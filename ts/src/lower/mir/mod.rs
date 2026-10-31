@@ -2258,7 +2258,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				let (place, rvalue) = &**assign;
 				// Whichever way the reference lowers, as an alias of the place or a value.
 				if let Rvalue::Ref(_, _, borrowed) = rvalue
-					&& let Some(why) = self.lent_out_of_step(*borrowed)
+					&& let Some(why) = self.lent_out_of_step(*borrowed, *place)
 				{
 					self.err(span, why);
 				}

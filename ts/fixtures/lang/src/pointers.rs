@@ -4,7 +4,8 @@
 //! and compared; pointers to the parts of a struct kept as objects; the pointers
 //! `UnsafeCell::get` gives; slots of fresh memory written whole before any pointer
 //! into them is taken, by index or through std's iterators over them; pointers into
-//! nodes that an `AtomicPtr` and memory hold pointers to; and pointers to arrays of bytes.
+//! nodes that an `AtomicPtr` and memory hold pointers to; pointers to arrays of bytes; and
+//! a pointer into a cell that other functions write whole through a `&mut` to it.
 
 use std::cell::UnsafeCell;
 use std::mem::MaybeUninit;
@@ -1487,4 +1488,55 @@ struct Slot {
 
 fn attach<T>(at: &mut *mut T, to: &mut T) {
 	*at = to;
+}
+
+/// A pointer a callee takes through a reference to a cell in a struct, which other
+/// functions then write whole through a `&mut` to the cell alone: by assignment, by
+/// `mem::replace`, and by `mem::swap`. JS writes each into the cell there, which the
+/// pointer sees.
+pub fn part_written(data: &[u8], out: &mut Vec<u8>) {
+	for &n in data {
+		let mut w = Written {
+			cell: UnsafeCell::new(n),
+			tag: !n,
+		};
+		let p = written_cell(&w.cell);
+		let seen = unsafe { *p };
+		overwrite(&mut w.cell, n ^ 0x11);
+		let after_write = unsafe { *p };
+		let old = replace_cell(&mut w.cell, n ^ 0x22);
+		let after_replace = unsafe { *p };
+		swap_cell(&mut w.cell, n ^ 0x33);
+		out.extend([
+			seen,
+			after_write,
+			old,
+			after_replace,
+			unsafe { *p },
+			w.cell.into_inner(),
+			w.tag,
+		]);
+	}
+}
+
+/// A struct JS keeps as an object that only [`part_written`] points into.
+struct Written {
+	cell: UnsafeCell<u8>,
+	tag: u8,
+}
+
+fn written_cell(c: &UnsafeCell<u8>) -> *mut u8 {
+	c.get()
+}
+
+fn overwrite(c: &mut UnsafeCell<u8>, n: u8) {
+	*c = UnsafeCell::new(n);
+}
+
+fn replace_cell(c: &mut UnsafeCell<u8>, n: u8) -> u8 {
+	std::mem::replace(c, UnsafeCell::new(n)).into_inner()
+}
+
+fn swap_cell(c: &mut UnsafeCell<u8>, n: u8) {
+	std::mem::swap(c, &mut UnsafeCell::new(n));
 }

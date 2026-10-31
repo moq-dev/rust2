@@ -8,6 +8,7 @@
 
 use std::cell::RefCell;
 
+use rustc_abi::FieldIdx;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet, FxIndexSet};
 use rustc_hir::def::DefKind;
 use rustc_hir::def_id::DefId;
@@ -67,12 +68,16 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			|| parts.into_iter().any(|t| self.changes(t))
 	}
 
-	/// Whether the crate may give a part of a `ty` kept as a JS object another object: by
-	/// a write of the part, or of a whole value that is or holds a `ty`.
-	pub fn replaced(&self, ty: Ty<'tcx>) -> bool {
+	/// Whether the crate may give the part of a `ty` kept as a JS object in the field `at`,
+	/// or with `None` in an element, another object: by a write of that part, or of a whole
+	/// value that is or holds a `ty`.
+	pub fn replaced(&self, ty: Ty<'tcx>, at: Option<FieldIdx>) -> bool {
 		let (writes, polymorphic) = (&self.writes, self.polymorphic());
 		writes.contains(&writes.replaced, true, self.tcx, ty, polymorphic)
-			|| writes.contains(&writes.holders, false, self.tcx, ty, polymorphic)
+			|| writes
+				.holders
+				.get(&at)
+				.is_some_and(|holders| writes.contains(holders, false, self.tcx, ty, polymorphic))
 	}
 
 	/// Whether a `ty` is, or holds by value at any depth, a part that `object` says is a JS
@@ -402,8 +407,9 @@ pub struct Writes<'tcx> {
 	/// any depth.
 	replaced: Types<'tcx>,
 	/// The types a part of which, kept as a JS object, a write of that part alone gives
-	/// another object, as `p.x = Inner {..}` does to `p`'s.
-	holders: Types<'tcx>,
+	/// another object, as `p.x = Inner {..}` does to `p`'s, by the field written, or `None`
+	/// for an element.
+	holders: FxHashMap<Option<FieldIdx>, Types<'tcx>>,
 	/// The types a raw pointer is made into through a reference to one, where the pointer
 	/// may outlive the call that made it: whoever borrowed the place it points at can't
 	/// give that place another object while the pointer may be read.
@@ -493,7 +499,7 @@ impl<'tcx> Writes<'tcx> {
 		!instance.args.has_param()
 			&& (writes(&self.into)
 				|| writes(&self.replaced)
-				|| writes(&self.holders)
+				|| self.holders.values().any(writes)
 				|| writes(&self.taken)
 				|| self.taken_in.get(&def_id).is_some_and(writes))
 			&& !self
@@ -995,27 +1001,32 @@ impl<'tcx> BodyWrites<'_, '_, '_, 'tcx> {
 	}
 
 	/// A whole `place` written at `at`, unless the memory is fresh: each part of what it
-	/// held, at any depth, gets another object, and a whole field kept as an object gives
-	/// what holds it another object there. A variable assigned whole is judged where a
-	/// pointer into it is taken.
+	/// held, at any depth, gets another object, and a whole field or element kept as an
+	/// object gives what holds it another object there. A variable assigned whole is judged
+	/// where a pointer into it is taken.
 	fn stored(&mut self, place: Place<'tcx>, at: Location) {
 		let Some((base, elem)) = place.iter_projections().last() else {
 			return;
 		};
 		let ty = place.ty(self.body, self.tcx).ty;
+		let base = base.ty(self.body, self.tcx).ty;
 		let replaced = self.parts(ty);
 		let holder = match elem {
-			ProjectionElem::Field(..) if self.inline(ty) => {
-				Some(base.ty(self.body, self.tcx).ty).filter(|&base| !base.is_union() && self.inline(base))
-			}
+			_ if !self.inline(ty) => None,
+			ProjectionElem::Field(field, _) => Some(Some(field)).filter(|_| !base.is_union() && self.inline(base)),
+			ProjectionElem::Index(_) | ProjectionElem::ConstantIndex { .. } => Some(None),
 			_ => None,
 		};
 		if (!replaced.is_empty() || holder.is_some()) && !self.fresh(place, at, None) {
 			for ty in replaced {
 				self.writes.replaced.insert(self.tcx, self.def_id, ty);
 			}
-			if let Some(holder) = holder {
-				self.writes.holders.insert(self.tcx, self.def_id, holder);
+			if let Some(at) = holder {
+				self.writes
+					.holders
+					.entry(at)
+					.or_default()
+					.insert(self.tcx, self.def_id, base);
 			}
 		}
 	}
