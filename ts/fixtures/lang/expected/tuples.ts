@@ -324,7 +324,7 @@ export function borrowed(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}), undefined, 4, true);
 	const t: [rt.ByteVec, Spot.Spot[], rt.HashMap<rt.u8, rt.u8>, string] = [new rt.ByteVec(), [], rt.hashNew() as rt.HashMap<rt.u8, rt.u8>, ""];
 	const marks: rt.char[] = [122, 233];
-	const _10: rt.Iter<[rt.u8, Spot.Spot, [rt.u8, rt.u8], rt.char]> = rt.iterMap(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), rt.iterSlice(points), "index"), (_23: [rt.u8, Spot.Spot]): [rt.u8, Spot.Spot, [rt.u8, rt.u8], rt.char] => {
+	const _10: rt.Iter<[rt.u8, Spot.Spot, [rt.u8, rt.u8], rt.char]> = rt.iterMap(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), rt.iterSlice(points), [false, false]), (_23: [rt.u8, Spot.Spot]): [rt.u8, Spot.Spot, [rt.u8, rt.u8], rt.char] => {
 		const _54: [rt.u8, rt.u8] = [_23[0], _23[0]];
 		const _72: rt.usize = ((_23[0] & 1)) as rt.usize;
 		if (!(_72 < 2)) {

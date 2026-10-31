@@ -50,6 +50,14 @@ export function copy$Option_array0_u32(v: rt.u32[] | undefined): rt.u32[] | unde
 	return v === undefined ? v : copy$array_u32(v);
 }
 
+export function copy$Option_array0_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array1_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
 export function copy$Option_array275_u32(v: rt.u32[] | undefined): rt.u32[] | undefined {
 	return v === undefined ? v : copy$array_u32(v);
 }
@@ -75,6 +83,14 @@ export function copy$Option_array2_u64(v: rt.u64[] | undefined): rt.u64[] | unde
 }
 
 export function copy$Option_array2_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array3_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array40_u8(v: Uint8Array | undefined): Uint8Array | undefined {
 	return v === undefined ? v : copy$array_u8(v);
 }
 

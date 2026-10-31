@@ -256,6 +256,15 @@ fn iterate(chain: u8, data: &[u8], out: &mut Vec<u8>) {
 		),
 		// `TrustedLen` but not by index, so `count` folds it by its size hint.
 		6 => put_usize(out, data.iter().zip(data.iter().rev()).filter(|(a, b)| a < b).count()),
+		// By index from the back, which skips the longer range's excess without reading it.
+		7 => put_usize(
+			out,
+			(0..data.len() * 64)
+				.zip(data)
+				.rev()
+				.filter(|&(i, &b)| (i as u8) < b)
+				.count(),
+		),
 		_ => {
 			let mut last = 0;
 			for (i, &b) in data.iter().enumerate() {

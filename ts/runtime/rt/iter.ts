@@ -721,12 +721,13 @@ export function iterChain<T>(it: Iter<T>, other: Iter<T>): Iter<T> {
 }
 
 /**
- * How std's `Zip` reads its iterators, by the traits both implement: `index` of two
- * `TrustedRandomAccess` ones, which it reads by index up to the shorter length and never
- * past it, and `len` of two `TrustedLen` ones, whose `fold` reads as many pairs as its
- * size hint's upper bound, where `next` reads the first once past a shorter second.
+ * How std's `Zip` reads its iterators, by the traits both implement: two
+ * `TrustedRandomAccess` ones, as whether each may have side effects (`MAY_HAVE_SIDE_EFFECT`),
+ * which it reads by index up to the shorter length and past it only one that may; and
+ * `len` of two `TrustedLen` ones, whose `fold` reads as many pairs as its size hint's
+ * upper bound, where `next` reads the first once past a shorter second.
  */
-export type Trusted = "index" | "len";
+export type Trusted = readonly [boolean, boolean] | "len";
 
 /**
  * `zip`, with `other` already made an iterator, as std does when it is called, read as
@@ -734,8 +735,8 @@ export type Trusted = "index" | "len";
  * or `dropB`.
  */
 export function iterZip<T, U>(it: Iter<T>, other: Iter<U>, trusted?: Trusted, dropA?: Drop<T>, dropB?: Drop<U>): Iter<[T, U]> {
-	if (trusted === "index") return new TrustedZipIter(it, other, dropA, dropB);
-	return new ZipIter(it, other, trusted === "len", dropA, dropB);
+	if (trusted === undefined || trusted === "len") return new ZipIter(it, other, trusted === "len", dropA, dropB);
+	return new TrustedZipIter(it, other, trusted, dropA, dropB);
 }
 
 /** `Iterator::rev`. */
@@ -2503,20 +2504,24 @@ class ZipFold<A, B> extends Iter<[A, B]> {
 
 /**
  * std's `Zip` of two `TrustedRandomAccess` iterators, which counts the pairs it reads, and
- * which `fold` reads as `next` does.
+ * which `fold` reads as `next` does. It reads an item it never yields only from a side
+ * that may have side effects, and skips the rest of a side that has none in one step.
  */
 class TrustedZipIter<A, B> extends ZipIter<A, B> {
 	private index = 0;
 	private end: number;
+	/** Whether each side may have side effects. */
+	private readonly effects: readonly [boolean, boolean];
 
-	constructor(a: Iter<A>, b: Iter<B>, dropA?: Drop<A>, dropB?: Drop<B>) {
+	constructor(a: Iter<A>, b: Iter<B>, effects: readonly [boolean, boolean], dropA?: Drop<A>, dropB?: Drop<B>) {
 		super(a, b, false, dropA, dropB);
 		this.end = Math.min(a.len(), b.len());
+		this.effects = effects;
 	}
 
 	/** std's: its count of pairs read, with its iterators, which it reads by index as they are. */
 	override clone(h?: Clones): Iter<[A, B]> {
-		const it = new TrustedZipIter(this.a.clone(h?.i), this.b.clone(h?.o), this.dropA, this.dropB);
+		const it = new TrustedZipIter(this.a.clone(h?.i), this.b.clone(h?.o), this.effects, this.dropA, this.dropB);
 		it.index = this.index;
 		it.end = this.end;
 		return it;
@@ -2528,23 +2533,64 @@ class TrustedZipIter<A, B> extends ZipIter<A, B> {
 		return super.next();
 	}
 
-	/** std's: each pair it skips made and dropped one side at a time, then `next`. */
+	/**
+	 * std's: each pair it skips made and dropped one side at a time, of only the sides that
+	 * may have side effects, then `next`.
+	 */
 	override nth(n: number): [A, B] | Done {
 		const skip = Math.min(n, this.end - this.index);
-		for (let i = 0; i < skip; i++) {
-			this.index++;
-			const a = this.a.next();
-			if (a !== DONE) this.dropA?.(a);
-			const b = this.b.next();
-			if (b !== DONE) this.dropB?.(b);
-		}
+		const [effectA, effectB] = this.effects;
+		if (!effectA) this.a.advanceBy(skip, this.dropA);
+		if (!effectB) this.b.advanceBy(skip, this.dropB);
+		if (!effectA && !effectB) this.index += skip;
+		else
+			for (let i = 0; i < skip; i++) {
+				this.index++;
+				if (effectA) {
+					const a = this.a.next();
+					if (a !== DONE) this.dropA?.(a);
+				}
+				if (effectB) {
+					const b = this.b.next();
+					if (b !== DONE) this.dropB?.(b);
+				}
+			}
 		return this.next();
 	}
 
+	/**
+	 * std's: the longer side trimmed to the pairs left, as only the first pair it reads
+	 * from the back needs, reading each item past them back to front from a side that may
+	 * have side effects, and none from one that has none.
+	 */
 	override nextBack(): [A, B] | Done {
 		if (this.index >= this.end) return DONE;
+		const left = this.end - this.index;
+		trim(this.a, this.a.len() - left, this.effects[0], this.dropA);
+		trim(this.b, this.b.len() - left, this.effects[1], this.dropB);
 		this.end--;
 		return super.nextBack();
+	}
+
+	/** `advance_by`, by `next`, in one step where neither side has side effects. */
+	override advanceBy(n: number, drop?: Drop<[A, B]>): number {
+		if (this.effects[0] || this.effects[1]) return super.advanceBy(n, drop);
+		const skip = Math.min(n, this.len());
+		this.index += skip;
+		this.a.advanceBy(skip, this.dropA);
+		this.b.advanceBy(skip, this.dropB);
+		return n - skip;
+	}
+
+	/** `advance_back_by`, by `nextBack`, in one step where neither side has side effects. */
+	override advanceBackBy(n: number, drop?: Drop<[A, B]>): number {
+		if (this.effects[0] || this.effects[1]) return super.advanceBackBy(n, drop);
+		const skip = Math.min(n, this.len());
+		const left = this.len() - skip;
+		trim(this.a, this.a.len() - left, false, this.dropA);
+		trim(this.b, this.b.len() - left, false, this.dropB);
+		this.end -= skip;
+		return n - skip;
 	}
 
 	override len(): number {
@@ -2553,6 +2599,18 @@ class TrustedZipIter<A, B> extends ZipIter<A, B> {
 
 	override sizeHint(): SizeHint {
 		return exactHint(this.len());
+	}
+}
+
+/** Drop `n` items from the back of `it`, read one at a time if it may have side effects. */
+function trim<T>(it: Iter<T>, n: number, effect: boolean, drop?: Drop<T>): void {
+	if (!effect) {
+		it.advanceBackBy(n, drop);
+		return;
+	}
+	for (let i = 0; i < n; i++) {
+		const item = it.nextBack();
+		if (item !== DONE) drop?.(item);
 	}
 }
 
@@ -3867,6 +3925,22 @@ export class Range<T> extends Iter<T> {
 		}
 		this.start = this.end;
 		return DONE;
+	}
+
+	/** std's `advance_by`, in one step. */
+	override advanceBy(n: number): number {
+		const [len] = this.sizeHint();
+		const skip = Math.min(n, len);
+		this.start = step(this.start, skip, this.int)!;
+		return n - skip;
+	}
+
+	/** std's `advance_back_by`, in one step. */
+	override advanceBackBy(n: number): number {
+		const [len] = this.sizeHint();
+		const skip = Math.min(n, len);
+		this.end = step(this.end, -skip, this.int)!;
+		return n - skip;
 	}
 
 	/** std's `nth_back`, in one step. */

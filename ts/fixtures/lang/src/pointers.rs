@@ -1262,3 +1262,22 @@ fn viewed(n: u8) -> [u8; 2] {
 	v = Viewed(v.1, v.0);
 	[v.0, v.1]
 }
+
+/// Values std's reads load through pointers a closure makes of references, which hold
+/// none of those pointers: each read out over a type parameter, as smallvec's `Drain`
+/// reads its items, and kept past its array's next value.
+pub fn loaded(data: &[u8], out: &mut Vec<u8>) {
+	for &n in data {
+		let mut pair = [Loaded(n, 1), Loaded(2, !n)];
+		let first = next_read(&mut pair.iter()).unwrap_or(Loaded(0, 0));
+		pair = [Loaded(first.1, n ^ 0x5a), Loaded(first.0, n)];
+		out.extend([first.0, first.1, pair[0].0, pair[0].1, pair[1].0]);
+	}
+}
+
+/// A struct JS keeps as an object that only [`loaded`] reads out.
+struct Loaded(u8, u8);
+
+fn next_read<T>(items: &mut std::slice::Iter<'_, T>) -> Option<T> {
+	items.next().map(|r| unsafe { std::ptr::read(r) })
+}

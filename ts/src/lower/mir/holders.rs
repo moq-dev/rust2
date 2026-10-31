@@ -47,7 +47,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 			return None;
 		}
 		let memo = RefCell::default();
-		let held = Trace::new(self.b.t, self.mir, self.b.t.typing_env_pub(), &memo).holders(made.local, false);
+		let held = Trace::new(self.b.t, self.mir, self.b.t.typing_env_pub(), &memo).holders(made.local, false, true);
 		held.escapes.is_empty().then_some(held.all)
 	}
 }
@@ -68,8 +68,9 @@ pub(in crate::lower) struct Trace<'x, 'a, 'tcx> {
 /// std's run none of the crate's code.
 #[derive(Default)]
 pub(in crate::lower) struct Memo<'tcx> {
-	/// Whether a function may keep any of the given parameters anywhere but in its result.
-	kept: FxHashMap<(DefId, Vec<Local>), bool>,
+	/// Whether a function may keep any of the given parameters anywhere but in its result,
+	/// with `loads` as [`Trace::holders`] takes it.
+	kept: FxHashMap<(DefId, Vec<Local>, bool), bool>,
 	/// Where each function's result may point: where its parameters do, or at a constant
 	/// or a thread-local; or `None` if anywhere else.
 	returned: FxHashMap<DefId, Option<Vec<Source>>>,
@@ -89,6 +90,12 @@ pub(in crate::lower) struct Held {
 	elems: DenseBitSet<Local>,
 	/// The local the pointers point to, if they are made of it rather than held in it.
 	value: Option<Local>,
+	/// Whether a value read through a holder holds the pointers too, as [`Trace::holders`]
+	/// takes `loads`.
+	loads: bool,
+	/// Without `loads`, those that may point at a holder, or at memory one was put in,
+	/// through which a read does hold the pointers.
+	behind: DenseBitSet<Local>,
 	/// Where one may escape where liveness can't follow it: into memory, a closure, an
 	/// async body's state (which is memory), or a call that may keep it.
 	pub escapes: Vec<Location>,
@@ -160,14 +167,19 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 	/// The locals that may hold the pointer `root` holds, or with `value`, one to `root`
 	/// itself, or what is made of it: a copy, a cast, a reference or pointer made through
 	/// it, a value read through it that could hold one, or what std or the crate returns
-	/// given one.
-	pub fn holders(&self, root: Local, value: bool) -> Held {
+	/// given one. Without `loads`, a value read through a pointer that points at no holder,
+	/// as std's `ptr::read` reads one, holds none of them: what the pointer points at holds
+	/// it only once it is put in memory, which is an escape. Only a pointer read after
+	/// counts then, not one into memory a holder reaches.
+	pub fn holders(&self, root: Local, value: bool, loads: bool) -> Held {
 		let mir = self.mir;
 		let mut held = Held {
 			all: DenseBitSet::new_empty(mir.local_decls.len()),
 			parts: DenseBitSet::new_empty(mir.local_decls.len()),
 			elems: DenseBitSet::new_empty(mir.local_decls.len()),
 			value: value.then_some(root),
+			loads,
+			behind: DenseBitSet::new_empty(mir.local_decls.len()),
 			escapes: Vec::new(),
 		};
 		held.all.insert(root);
@@ -181,7 +193,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 					match &stmt.kind {
 						StatementKind::Assign(assign) => {
 							let (to, rvalue) = &**assign;
-							if !reads(&held.all, |v| v.visit_rvalue(rvalue, at)) {
+							if !reads(&held.all, |v| v.visit_rvalue(rvalue, at)) || held.loaded(rvalue) {
 								continue;
 							}
 							if let Rvalue::Aggregate(kind, _) = rvalue
@@ -203,6 +215,12 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 							match self.held_in(*to, level, &mut held) {
 								Some(new) => grew |= new,
 								None => held.escapes.push(at),
+							}
+							// A pointer to a holder, through which a read holds the pointers.
+							let borrowed =
+								matches!(rvalue, Rvalue::Ref(_, _, p) | Rvalue::RawPtr(_, p) if !p.is_indirect());
+							if !held.loads && (borrowed || reads(&held.behind, |v| v.visit_rvalue(rvalue, at))) {
+								grew |= held.behind.insert(to.local);
 							}
 						}
 						StatementKind::Intrinsic(_) if reads(&held.all, |v| v.visit_statement(stmt, at)) => {
@@ -227,12 +245,25 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 							continue;
 						}
 						let returned = destination.ty(&mir.local_decls, self.t.tcx).ty;
+						let derives = match *func.ty(&mir.local_decls, self.t.tcx).kind() {
+							ty::FnDef(def_id, _) => pointer::derives(self.t.tcx, def_id),
+							_ => None,
+						};
+						let behind = given.iter().any(|&i| held.behind_arg(&args[i].node));
+						if !held.loads && !behind && derives == Some(Derives::Loaded) {
+							continue;
+						}
 						match self.call(func, args, returned, &given, &held) {
 							Some(level) => match self.held_in(*destination, level, &mut held) {
 								Some(new) => grew |= new,
 								None => held.escapes.push(at),
 							},
 							None => held.escapes.push(at),
+						}
+						// What else std or the crate returns may point at memory it put a
+						// pointer in, as `Box::new` does.
+						if !held.loads && (behind || derives != Some(Derives::Same)) {
+							grew |= held.behind.insert(destination.local);
 						}
 					}
 					TerminatorKind::Drop { place, .. }
@@ -310,7 +341,8 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		}
 		if let Some(did) = self.read_fn(def_id, gargs.skip_binder()) {
 			let params = given.iter().map(|&i| Local::from_usize(i + 1)).collect();
-			return (!self.keeps(did, params)).then_some(Level::Part);
+			let loads = held.loads || given.iter().any(|&i| held.behind_arg(&args[i].node));
+			return (!self.keeps(did, params, loads)).then_some(Level::Part);
 		}
 		let tys: Vec<Ty<'tcx>> = given
 			.iter()
@@ -355,9 +387,9 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 	}
 
 	/// Whether the crate's function `did` may keep what its `params` hold anywhere but in
-	/// its result.
-	fn keeps(&self, did: DefId, params: Vec<Local>) -> bool {
-		let key = (did, params);
+	/// its result, with `loads` as [`Self::holders`] takes it.
+	fn keeps(&self, did: DefId, params: Vec<Local>, loads: bool) -> bool {
+		let key = (did, params, loads);
 		if let Some(&kept) = self.memo.borrow().kept.get(&key) {
 			return kept;
 		}
@@ -367,7 +399,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		let kept = key
 			.1
 			.iter()
-			.any(|&param| !callee.holders(param, false).escapes.is_empty());
+			.any(|&param| !callee.holders(param, false, key.2).escapes.is_empty());
 		self.memo.borrow_mut().kept.insert(key, kept);
 		kept
 	}
@@ -580,8 +612,8 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		};
 		sources.into_iter().all(|source| {
 			let held = match source {
-				Source::Fresh(root) => self.holders(root, false),
-				Source::Local(root) => self.holders(root, true),
+				Source::Fresh(root) => self.holders(root, false, true),
+				Source::Local(root) => self.holders(root, true, true),
 				Source::Param(_) | Source::Static => return false,
 			};
 			if held.escapes.iter().any(|&escape| self.reaches(escape, at)) {
@@ -975,6 +1007,22 @@ fn level(rvalue: &Rvalue<'_>, held: &Held) -> Level {
 }
 
 impl Held {
+	/// Whether `rvalue`, which reads a holder, only reads a value through one that points at
+	/// no holder, which then holds none of the pointers without `loads`.
+	fn loaded(&self, rvalue: &Rvalue<'_>) -> bool {
+		let place = match rvalue {
+			Rvalue::Use(op, _) | Rvalue::Cast(_, op, _) => op.place(),
+			Rvalue::CopyForDeref(place) => Some(*place),
+			_ => None,
+		};
+		!self.loads && place.is_some_and(|p| p.is_indirect() && !self.behind.contains(p.local))
+	}
+
+	/// Whether the argument `op` may point at a holder, as [`Self::behind`] says.
+	fn behind_arg(&self, op: &Operand<'_>) -> bool {
+		!self.loads && op.place().is_some_and(|p| self.behind.contains(p.local))
+	}
+
 	/// What the pointers `local` holds point at; any read of the value the pointers are made
 	/// of is a part of it.
 	fn of(&self, local: Local) -> Level {

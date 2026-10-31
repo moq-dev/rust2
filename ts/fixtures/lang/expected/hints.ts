@@ -1789,7 +1789,7 @@ export function hints(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			const _143: rt.Range<rt.u32> = new rt.Range(0, u32Of(m));
 			walkFront$iter_Zip_hints_Endless_ops_Range_u32(rt.iterZip(rt.iterFrom(_142, (it: Endless.Endless) => Endless.next$iter_Iterator(it)), _143), steps, out);
 		} else if (_136 === 2) {
-			walk$iter_Zip_slice_Iter_u8_iter_Skip_slice_Iter_u8(rt.iterZip(rt.iterSlice(rt.byteSliceView(bytes)), rt.iterSkip(rt.iterSlice(rt.byteSliceView(bytes)), 1), "index"), steps, out);
+			walk$iter_Zip_slice_Iter_u8_iter_Skip_slice_Iter_u8(rt.iterZip(rt.iterSlice(rt.byteSliceView(bytes)), rt.iterSkip(rt.iterSlice(rt.byteSliceView(bytes)), 1), [false, false]), steps, out);
 		} else {
 			walkFront$iter_Zip_ops_Range_u32_hints_Endless(rt.iterZip(new rt.Range(0, u32Of(n)), rt.iterFrom({ _0: n }, (it: Endless.Endless) => Endless.next$iter_Iterator(it))), steps, out);
 		}
@@ -2101,7 +2101,7 @@ export function hints(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		if (_458 === 0) {
 			walkFront$iter_Take_iter_Skip_iter_Chain_ops_Range_u64_ops_Range_u64(rt.iterTake(rt.iterSkip(rt.iterChain(new rt.Range(0, n, rt.u64Step), new rt.Range(0, m, rt.u64Step)), 3), u32Of(n) as rt.usize), steps, out);
 		} else if (_458 === 1) {
-			walk$iter_StepBy_iter_Rev_iter_Zip_ops_Range_u32_ops_Range_u32(rt.iterStepBy(rt.iterRev(rt.iterZip(new rt.Range(0, u32Of(rt.u64Min(n, 9))), new rt.Range(0, u32Of(rt.u64Min(m, 9))), "index")), 2), steps, out);
+			walk$iter_StepBy_iter_Rev_iter_Zip_ops_Range_u32_ops_Range_u32(rt.iterStepBy(rt.iterRev(rt.iterZip(new rt.Range(0, u32Of(rt.u64Min(n, 9))), new rt.Range(0, u32Of(rt.u64Min(m, 9))), [false, false])), 2), steps, out);
 		} else if (_458 === 2) {
 			walk$iter_Chain_iter_Flatten_iter_Map_ops_Range_u64_hints_hints_closure28_ops_Range_u64(rt.iterChain(rt.iterFlatten(rt.iterMap(new rt.Range(0, n, rt.u64Step), (i4: rt.u64): rt.u64[] => {
 				return Array.from({ length: 2 }, (): rt.u64 => {

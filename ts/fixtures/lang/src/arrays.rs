@@ -1,8 +1,10 @@
 //! Arrays `array::from_fn` makes, calling its function on each index in order: of bytes,
 //! wide integers, atomics each its own, strings, nested arrays, none at all, and a length
-//! a const parameter gives; arrays `map` makes; arrays' elements each lent; and arrays as
-//! slices, written through.
+//! a const parameter gives; arrays `map` makes; arrays' elements each lent; arrays as
+//! slices, written through; and arrays of bytes std is given by reference.
 
+use std::borrow::{Borrow, BorrowMut};
+use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Each byte an operation, its value the operand; each puts what it read.
@@ -250,4 +252,177 @@ fn written(bytes: &mut [u8; 4], wide: &mut [u16; 3], op: u8) {
 	w[0] = u16::from(op);
 	w.swap(1, 2);
 	w[1..].fill(u16::from(op) + 1);
+}
+
+/// Arrays of bytes std is given by reference, as the `&T` of a `T = [u8; N]`: copied out of
+/// an `Option`, found among others, lent back, formatted, compared by `assert_eq!` and
+/// `assert_ne!`, and swapped, replaced, and taken through a `&mut`, of locals, elements,
+/// fields, and parts of a longer slice. Writes through each land in the array, and a copy shares nothing with
+/// it. Of no bytes, one, three, and many.
+pub fn given(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	match kind % 4 {
+		0 => {
+			given_n::<0>(data, out);
+			taken::<0>(data, out);
+		}
+		1 => {
+			given_n::<1>(data, out);
+			taken::<1>(data, out);
+		}
+		2 => {
+			given_n::<3>(data, out);
+			taken::<3>(data, out);
+			fields(data, out);
+		}
+		_ => {
+			given_n::<40>(data, out);
+			taken::<32>(data, out);
+		}
+	}
+}
+
+/// `N` bytes of `data` from `at`, past its end each its index.
+fn bytes_at<const N: usize>(data: &[u8], at: usize) -> [u8; N] {
+	std::array::from_fn(|i| data.get(at + i).copied().unwrap_or((at + i) as u8))
+}
+
+/// A field std is given a `&mut` to.
+struct Framed {
+	bytes: [u8; 3],
+}
+
+/// An array formatted through its own `Debug`, given a reference to it.
+struct Bracketed([u8; 3]);
+
+impl fmt::Debug for Bracketed {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str("<")?;
+		fmt::Debug::fmt(&self.0, f)?;
+		f.write_str(">")
+	}
+}
+
+/// Each array's bytes, in order.
+fn put<const N: usize>(out: &mut Vec<u8>, arrays: &[[u8; N]]) {
+	for a in arrays {
+		out.extend_from_slice(a);
+	}
+}
+
+/// The bytes of a `Some`, or 0xff for a `None`.
+fn put_some<const N: usize>(out: &mut Vec<u8>, a: Option<[u8; N]>) {
+	match a {
+		Some(a) => out.extend_from_slice(&a),
+		None => out.push(0xff),
+	}
+}
+
+/// [`given`] of `N` bytes, all but `mem::take`.
+fn given_n<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
+	let mut a: [u8; N] = bytes_at(data, 0);
+	let mut b: [u8; N] = bytes_at(data, N);
+	// A copy out of an `Option` of either reference shares nothing with the array.
+	let copied = Some(&a).copied();
+	let cloned = Some(&mut b).cloned();
+	if let Some(x) = a.first_mut() {
+		*x ^= 0x01;
+	}
+	if let Some(x) = b.last_mut() {
+		*x ^= 0x02;
+	}
+	put(out, &[a, b]);
+	put_some(out, copied);
+	put_some(out, cloned);
+	// Each holds the other's bytes, and a write to one after leaves the other.
+	std::mem::swap(&mut a, &mut b);
+	if let Some(x) = a.first_mut() {
+		*x = x.wrapping_add(1);
+	}
+	put(out, &[a, b]);
+	// Elements, swapped with a local and replaced by one.
+	let mut v: Vec<[u8; N]> = (0..3).map(|k| bytes_at(data, k * 2)).collect();
+	std::mem::swap(&mut v[0], &mut a);
+	let old = std::mem::replace(&mut v[2], b);
+	b.fill(0xbb);
+	put(out, &[old, a, b]);
+	put(out, &v);
+	out.extend([v.contains(&a), v.contains(&b), v[..1].contains(&old)].map(u8::from));
+	// One returned by `IndexMut`, swapped with another.
+	let (first, rest) = v.split_at_mut(1);
+	std::mem::swap(&mut first[0], &mut rest[1]);
+	put(out, &v);
+	// Parts of a longer slice, at an offset into it.
+	let mut buf: Vec<u8> = (0..2 * N + 1)
+		.map(|i| data.get(i).map_or(i as u8 ^ 0x55, |d| d ^ 0x80))
+		.collect();
+	out.push(u8::from(v.contains(buf.last_chunk::<N>().unwrap())));
+	let part = buf[1..].first_chunk::<N>().copied();
+	if let Some((x, rest)) = buf.split_first_chunk_mut::<N>()
+		&& let Some(y) = rest.last_chunk_mut::<N>()
+	{
+		std::mem::swap(x, y);
+	}
+	out.extend_from_slice(&buf);
+	let old = buf.last_chunk_mut::<N>().map(|t| std::mem::replace(t, a));
+	let cloned = buf.last_chunk_mut::<N>().cloned();
+	if let Some(x) = buf.last_mut() {
+		*x ^= 0x40;
+	}
+	put_some(out, part);
+	put_some(out, old);
+	put_some(out, cloned);
+	out.extend_from_slice(&buf);
+	// Lent back as one, sharing the array's bytes.
+	let one = std::slice::from_ref(&a);
+	out.push(one.len() as u8);
+	put(out, one);
+	let borrowed: &[u8; N] = Borrow::borrow(&v[0]);
+	out.extend_from_slice(borrowed);
+	let lent: &mut [u8; N] = BorrowMut::borrow_mut(&mut b);
+	if let Some(x) = lent.last_mut() {
+		*x = 0xee;
+	}
+	put(out, &[b]);
+	out.extend_from_slice(format!("{a:?} {:?}", std::slice::from_ref(&b)).as_bytes());
+	// Panics with std's message where they differ.
+	if data.first().is_some_and(|d| d % 3 == 0) {
+		assert_eq!(a, b, "after {}", data.len());
+	}
+}
+
+/// [`given`] of a field's `[u8; 3]`, swapped, replaced, taken, and formatted through its
+/// own `Debug`.
+fn fields(data: &[u8], out: &mut Vec<u8>) {
+	let mut a: [u8; 3] = bytes_at(data, 2);
+	let mut held = Framed {
+		bytes: bytes_at(data, 0),
+	};
+	std::mem::swap(&mut held.bytes, &mut a);
+	let old = std::mem::replace(&mut held.bytes, [a[2], a[1], a[0]]);
+	held.bytes[0] ^= 0x10;
+	put(out, &[a, old, held.bytes]);
+	let shown = format!("{:?}", Bracketed(held.bytes));
+	let taken = std::mem::take(&mut held.bytes);
+	put(out, &[taken, held.bytes]);
+	out.extend_from_slice(shown.as_bytes());
+	if data.first().is_some_and(|d| d % 3 == 1) {
+		assert_ne!(old, a, "fields of {}", data.len());
+	}
+}
+
+/// [`given`] of `N` bytes, by `mem::take`, which `Default` bounds.
+fn taken<const N: usize>(data: &[u8], out: &mut Vec<u8>)
+where
+	[u8; N]: Default,
+{
+	let mut a: [u8; N] = bytes_at(data, 1);
+	let t = std::mem::take(&mut a);
+	put(out, &[t, a]);
+	let mut buf: Vec<u8> = data.iter().rev().copied().chain([0x77; N]).collect();
+	if let Some(c) = buf.last_chunk_mut::<N>() {
+		c.fill(0x66);
+		let c = std::mem::take(c);
+		out.extend_from_slice(&c);
+	}
+	out.extend_from_slice(&buf);
 }

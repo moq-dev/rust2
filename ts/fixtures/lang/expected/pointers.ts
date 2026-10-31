@@ -2,7 +2,7 @@
 
 import * as rt from "./rt.ts";
 import { copy$Option_pointers_Pair, copy$array_unit, copy$mem_MaybeUninit_array_u32, copy$mem_MaybeUninit_tuple2_u8_u8, copy$pointers_ByCall, copy$pointers_ByClosure, copy$pointers_ByObject, copy$pointers_Duo, copy$pointers_Halves, copy$pointers_Outer, copy$pointers_Pair, copy$tuple2_array2_u32_u8, copy$tuple2_u32_u32, copy$tuple2_u8_u8, drop$pointers_List_String, drop$pointers_List_sync_Arc_u8 } from "./lib.ts";
-import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, mapOr$08xz81a as option_mapOr$08xz81a, mapOr$1wxcg5q as option_mapOr$1wxcg5q, filter$0tnmmii } from "./core/option.ts";
+import { unwrapOr$0mkoact as option_unwrapOr$0mkoact, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$1cfrse5 as option_map$1cfrse5, mapOr$08xz81a as option_mapOr$08xz81a, mapOr$1wxcg5q as option_mapOr$1wxcg5q, filter$0tnmmii } from "./core/option.ts";
 import * as Bin from "./pointers.Bin.ts";
 import type * as ByCall from "./pointers.ByCall.ts";
 import * as ByClosure from "./pointers.ByClosure.ts";
@@ -15,6 +15,7 @@ import type * as Inner from "./pointers.Inner.ts";
 import * as Lent from "./pointers.Lent.ts";
 import type * as Links from "./pointers.Links.ts";
 import * as List from "./pointers.List.ts";
+import type * as Loaded from "./pointers.Loaded.ts";
 import type * as Log from "./pointers.Log.ts";
 import type * as pointers_Node from "./pointers.Node.ts";
 import type * as Outer from "./pointers.Outer.ts";
@@ -1107,6 +1108,26 @@ export function viewed(n: rt.u8): Uint8Array {
 	bump(n);
 	v = { _0: v._1, _1: v._0 };
 	return Uint8Array.of(v._0, v._1);
+}
+
+/**
+ * Values std's reads load through pointers a closure makes of references, which hold
+ * none of those pointers: each read out over a type parameter, as smallvec's `Drain`
+ * reads its items, and kept past its array's next value.
+ */
+export function loaded(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(data)) {
+		let pair: Loaded.Loaded[] = [{ _0: n, _1: 1 }, { _0: 2, _1: ~n & 0xff }];
+		const first: Loaded.Loaded = option_unwrapOr$0mkoact(nextRead$pointers_Loaded(rt.iterSlice(pair)), { _0: 0, _1: 0 });
+		pair = [{ _0: first._1, _1: n ^ 90 }, { _0: first._0, _1: n }];
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(first._0, first._1, pair[0]._0, pair[0]._1, pair[1]._0)), undefined, true);
+	}
+}
+
+export function nextRead$pointers_Loaded(items: rt.Iter<Loaded.Loaded>): Loaded.Loaded | undefined {
+	return option_map$1cfrse5(rt.iterToOption(items.next()), (r: Loaded.Loaded): Loaded.Loaded => {
+		return r;
+	});
 }
 
 //# sourceMappingURL=pointers.ts.map

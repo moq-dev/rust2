@@ -58,7 +58,7 @@ export function workloads(encode: (input: Uint8Array) => Uint8Array): Workload[]
 	// Iterator chains over bytes, as `bench.rs`'s op 6 picks them by selector; no byte is
 	// 0xff, so `any` reads them all.
 	const bytes = Uint8Array.from({ length: 1024 }, (_, i) => (i * 167 + 13) % 255);
-	const chains = ["map-filter-count", "any", "filter-collect", "sum", "skip-take-fold", "enumerate-for", "zip-filter-count"];
+	const chains = ["map-filter-count", "any", "filter-collect", "sum", "skip-take-fold", "enumerate-for", "zip-filter-count", "zip-rev-filter-count"];
 	chains.forEach((chain, selector) => {
 		out.push({ name: `iter/${chain}`, op: "iterate", items: bytes.length, input: Uint8Array.of(6, selector, ...bytes) });
 	});

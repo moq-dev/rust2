@@ -27,7 +27,7 @@ The fork's feature quests folded into the [exporter](/quest/m1/ffi-export/README
 ## Required
 
 - [A pointer a callee takes to a part another function replaces](/quest/m2/ts-pointer-part-replaced.md) - a pointer a callee took through a reference to a part, which another function then replaces whole, is refused rather than silently left on the old object
-- [Borrows refused for a pointer no callee keeps there](/quest/m2/ts-taken-precision.md) - moq's census drops the 194 borrows refused for a pointer that no callee they reach keeps
+- [Borrows refused for a pointer no callee keeps there](/quest/m2/ts-taken-precision.md) - moq's census drops the 187 borrows refused for a pointer that no callee they reach keeps
 - [Byte slices without objects](/quest/m2/ts-byte-views/README.md) - reading through a translated cursor allocates no object per read
 - [Async in the TypeScript translator](/quest/m2/ts-async.md) - moq-net's and kio's async code translates with Rust's lazy futures
 - [Shared ownership](/quest/m2/ts-shared.md) - `Arc`/`Rc`/`Weak` keep exact counts, and locks and atomics become plain values
