@@ -25,7 +25,6 @@ generic std gap is planned here even when moq never calls it.
 - [An Option a loop borrows, tested as one](/quest/m3/ts-option-ref-loop.md) - `if let Some(x)` of the `&Option<T>` a `for` loop yields tests its `None`, not the iterator's end
 - [Judging writes in a body generic over a const](/quest/m3/ts-const-generic-writes.md) - a function generic over `const N` whose calls take a type holding `N` translates instead of panicking
 - [Arrays of bytes a flattened Option reference lends](/quest/m3/ts-flatten-byte-options.md) - `iter().flatten()` over `&[Option<[u8; N]>]` yields `rt.ByteSlice`s
-- [Raw pointers to arrays of bytes](/quest/m3/ts-byte-array-pointers.md) - `ptr::eq`, `swap`, `read`, and `write` of pointers to a `[u8; N]` keep std's semantics or refuse
 - [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does

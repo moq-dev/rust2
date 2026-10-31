@@ -1698,7 +1698,7 @@ fn std_key<'tcx>(b: &Body<'_, '_, 'tcx>, ty: Ty<'tcx>) -> bool {
 		// A float is no key, but its `PartialEq` and `PartialOrd` are the runtime's.
 		ty::Bool | ty::Char | ty::Int(_) | ty::Uint(_) | ty::Float(_) | ty::Str => true,
 		_ if library::nothing(b.t.tcx, ty) => true,
-		// Which compares as its JS value where that is its address, and orders and hashes by none.
+		// Which compares by where it points, and orders and hashes by none.
 		ty::RawPtr(..) => true,
 		ty::Tuple(tys) => tys.iter().all(held),
 		_ if let Some(elem) = elements_of(b, ty) => held(elem),
@@ -2012,6 +2012,7 @@ pub fn eq_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Expr
 		}
 		ty::RawPtr(pointee, _) => match b.t.incomparable(*pointee) {
 			Some(why) => b.err(span, why),
+			None if b.t.pointee(*pointee) == super::pointer::Pointee::Bytes => Expr::Rt("byteSliceSame".into()),
 			None => Expr::Rt("same".into()),
 		},
 		ty::Adt(..) if let Some(inner) = option_of(b, ty) => match eq_fn(b, inner, span) {

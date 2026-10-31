@@ -96,8 +96,8 @@ a raw pointer to `Target` in a variable assigned again while it may point there 
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1782:10
 a reference to `Picked`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1798:25
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1813:10
-a reference to `Behind`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1830:22
-a reference to `Unboxed`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1844:16
+a reference to `Behind`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1868:22
+a reference to `Unboxed`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1882:16
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1010:26
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1023:22
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1033:12
@@ -162,6 +162,24 @@ a raw pointer to `ByKeyReplace` in `(u16, ByKeyReplace)`, which the crate may pu
 a raw pointer to `ByKeyTake` in `(u16, ByKeyTake)`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1637:52
 `std::ops::DerefMut::deref_mut` of a value JS copies, which is no path at fixtures/reject/src/lib.rs:1646:2
 `std::ops::IndexMut::index_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1652:3
+unsupported call to `std::ptr::copy::<[u8; 4]>` at fixtures/reject/src/lib.rs:1826:3
+unsupported call to `std::ptr::copy_nonoverlapping::<[u8; 4]>` at fixtures/reject/src/lib.rs:1827:3
+unsupported call to `std::ptr::addr_eq::<[u8; 4], [u8; 4]>` at fixtures/reject/src/lib.rs:1828:14
+comparing `*mut [u8; 4]` at fixtures/reject/src/lib.rs:1828:41
+a cast from a pointer to `[u8; 4]` to one to `u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:1829:17
+a cast from `*const [u8; 4]` to `*const u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:1829:33
+unsupported call to `std::ptr::mut_ptr::<impl *mut [u8; 4]>::add` at fixtures/reject/src/lib.rs:1829:56
+unsupported call to `std::ptr::const_ptr::<impl *const [u8; 4]>::offset` at fixtures/reject/src/lib.rs:1829:73
+a coercion of `*const [u8; 4]` to `*const [u8]`, a pointer to a slice at fixtures/reject/src/lib.rs:1830:28
+hashing `*const [u8; 4]` by its address, which JS has no counterpart of at fixtures/reject/src/lib.rs:1832:5
+unsupported call to `<std::option::Option<std::ptr::NonNull<[u8; 4]>> as std::cmp::PartialEq>::eq` at fixtures/reject/src/lib.rs:1833:14
+unsupported call to `std::ptr::const_ptr::<impl *const [u8]>::len` at fixtures/reject/src/lib.rs:1834:76
+a raw pointer to `[u8; 3]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1843:15
+a raw pointer to `[u8; 3]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1843:18
+a raw pointer to `[u8; 2]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1843:37
+a raw pointer to `[u8; 2]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1843:44
+a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1850:26
+a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1851:10
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:132:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:152:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:180:2

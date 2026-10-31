@@ -149,5 +149,8 @@ roots = [
     "key_taken",
     "ascii_in_tuple",
     "ascii_part",
+    "byte_pointer_ops",
+    "byte_pointer_parts",
+    "byte_pointer_rebound",
 ]
 printable = ["Meters"]

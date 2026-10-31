@@ -925,9 +925,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			// A borrow: borrow checking keeps the place as it is but through the borrow,
 			// unless the path to it goes through a reference held in a field or element,
 			// which can be replaced while the borrow lives.
-			// A borrow of bytes not yet in a slice makes one.
+			// A borrow of bytes not yet in a slice makes one, and one of a `MaybeUninit` of
+			// bytes in a slice a view of them.
 			(ty::Ref(..), Rvalue::Ref(_, _, place))
-				if crate::lower::byte_array(place.ty(&mir.local_decls, self.tcx).ty) && !self.in_bytes(*place) =>
+				if crate::lower::byte_array(place.ty(&mir.local_decls, self.tcx).ty) != self.in_bytes(*place) =>
 			{
 				false
 			}
