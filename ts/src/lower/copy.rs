@@ -94,17 +94,21 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	}
 
 	/// Note a comparison of pointers to a `ty`, which [`Self::taken`] counts from the next
-	/// run on if a callee may keep one into it or into what holds it.
+	/// run on if a pointer may be made into it, or into what holds it, through a reference,
+	/// by any body.
 	pub fn compare(&mut self, ty: Ty<'tcx>) {
-		let (tcx, env, writes) = (self.tcx, self.typing_env(), &self.writes);
+		let (tcx, env, writes, polymorphic) = (self.tcx, self.typing_env(), &self.writes, self.polymorphic());
 		let stored = storage(tcx, ty);
 		let kept = (ty.has_param() || ty.is_freeze(tcx, env))
-			&& (writes.contains(&writes.taken, true, tcx, ty, self.polymorphic())
-				|| writes
-					.taken
-					.concrete
-					.iter()
-					.any(|&taken| by_value(tcx, env, taken).any(|part| storage(tcx, part) == stored)));
+			&& std::iter::once(&writes.taken)
+				.chain(writes.taken_in.values())
+				.any(|taken| {
+					writes.contains(taken, true, tcx, ty, polymorphic)
+						|| taken
+							.concrete
+							.iter()
+							.any(|&taken| by_value(tcx, env, taken).any(|part| storage(tcx, part) == stored))
+				});
 		if kept {
 			self.comparing.insert(stored);
 		}

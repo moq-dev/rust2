@@ -1902,6 +1902,23 @@ pub fn enclosed_compared_rebound(n: u32) -> bool {
 	p == enclosed_of(&e) && (e.0).0 > 0
 }
 
+pub struct Chosen(pub u32);
+
+fn choose<'a>(a: &'a mut Chosen, b: &'a mut Chosen, first: bool) -> &'a mut Chosen {
+	if first { a } else { b }
+}
+
+/// A pointer made of a reference a callee picks between two variables, compared after
+/// the caller's assignment of one of them.
+pub fn chosen_compared_rebound(n: u32, first: bool) -> bool {
+	let mut a = Chosen(n);
+	let mut b = Chosen(n + 1);
+	let r = choose(&mut a, &mut b, first);
+	let p = &raw const *r;
+	a = Chosen(n + 2);
+	p == &raw const a && a.0 > b.0
+}
+
 fn bytes_of(b: &[u8; 4]) -> *const [u8; 4] {
 	b
 }
