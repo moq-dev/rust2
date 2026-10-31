@@ -6,24 +6,24 @@ import * as At from "./returns.At.ts";
 import type * as Short from "./splits.Short.ts";
 
 /** The first byte, then a big-endian `u16`, by `?` on `ok_or`. */
-export function header(dataData: Uint8Array, dataStart: number, dataLen: number): Short.Short | undefined {
+export function header(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 | undefined {
 	if (dataLen !== 0) {
 		const a: rt.u8 = dataData[dataStart];
 		if (dataLen - 1 >= 2) {
-			const _20_1: rt.u16 = (dataData[dataStart + 1] << 8) | dataData[dataStart + 2];
-			headerOut.p_0 = a;
-			headerOut.p_1 = _20_1;
+			headerOut.p_1 = (dataData[dataStart + 1] << 8) | dataData[dataStart + 2];
 			headerOut.p_2Data = dataData;
 			headerOut.p_2Start = dataStart + 3;
 			headerOut.p_2Len = dataLen - 3;
-			return undefined;
+			return a;
 		}
-		return { tag: "Need", _0: 2 } as Short.Short;
+		headerOut.err = { tag: "Need", _0: 2 } as Short.Short;
+		return undefined;
 	}
-	return { tag: "Empty" } as Short.Short;
+	headerOut.err = { tag: "Empty" } as Short.Short;
+	return undefined;
 }
 
-export const headerOut: { p_0: rt.u8; p_1: rt.u16; p_2Data: Uint8Array; p_2Start: number; p_2Len: number } = { p_0: undefined as never, p_1: undefined as never, p_2Data: undefined as never, p_2Start: undefined as never, p_2Len: undefined as never };
+export const headerOut: { err: unknown; p_1: rt.u16; p_2Data: Uint8Array; p_2Start: number; p_2Len: number } = { err: undefined, p_1: undefined as never, p_2Data: undefined as never, p_2Start: undefined as never, p_2Len: undefined as never };
 
 /** Two bytes, by `?` on an `Option`. */
 export function two(dataData: Uint8Array, dataStart: number, dataLen: number): [rt.u8, rt.u8, rt.ByteSlice] | undefined {
@@ -38,17 +38,17 @@ export function two(dataData: Uint8Array, dataStart: number, dataLen: number): [
 }
 
 /** `n` bytes, or how many it needed. */
-export function take(dataData: Uint8Array, dataStart: number, dataLen: number, n: rt.usize): Short.Short | undefined {
+export function take(dataData: Uint8Array, dataStart: number, dataLen: number, n: rt.usize): Uint8Array | undefined {
 	if (!(n <= dataLen)) {
-		return { tag: "Need", _0: n } as Short.Short;
+		At.splitOut$returns_Split.err = { tag: "Need", _0: n } as Short.Short;
+		return undefined;
 	}
-	At.splitOut$returns_Split.p_0Data = dataData;
 	At.splitOut$returns_Split.p_0Start = dataStart;
 	At.splitOut$returns_Split.p_0Len = n;
 	At.splitOut$returns_Split.p_1Data = dataData;
 	At.splitOut$returns_Split.p_1Start = dataStart + n;
 	At.splitOut$returns_Split.p_1Len = dataLen - n;
-	return undefined;
+	return dataData;
 }
 
 /** The byte after the first, or an error that is itself an enum, held whole. */
@@ -110,14 +110,14 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 		rt.byteVecPush(out, mid4 & 0xff);
 		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(dataData, dataStart + mid4, dataLen - mid4));
 	} else if (_4 === 2) {
-		const err3: Short.Short | undefined = header(dataData, dataStart, dataLen);
-		const part7: rt.u8 = headerOut.p_0;
+		const part7: rt.u8 | undefined = header(dataData, dataStart, dataLen);
 		const part8: rt.u16 = headerOut.p_1;
 		const part9: Uint8Array = headerOut.p_2Data;
 		const part10: number = headerOut.p_2Start;
 		const part11: number = headerOut.p_2Len;
-		if (err3 === undefined) {
-			const a2: rt.u8 = part7;
+		const err3: Short.Short | undefined = part7 === undefined ? headerOut.err as Short.Short : undefined;
+		if (part7 !== undefined) {
+			const a2: rt.u8 = part7 as rt.u8;
 			const b3: rt.u16 = part8;
 			rt.byteVecPush(out, a2);
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(b3)));
@@ -237,13 +237,13 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 				return _2[0].data[_2[0].start + 3] ^ (_2[1].length & 0xff);
 			}));
 		}
-		const err2: Short.Short | undefined = take(dataData, dataStart, dataLen, 3);
-		const part: Uint8Array = At.splitOut$returns_Split.p_0Data;
+		const part: Uint8Array | undefined = take(dataData, dataStart, dataLen, 3);
 		const part2: number = At.splitOut$returns_Split.p_0Start;
 		const part3: number = At.splitOut$returns_Split.p_0Len;
 		const part6: number = At.splitOut$returns_Split.p_1Len;
-		if (err2 === undefined) {
-			rt.byteVecPush(out, opaque(part, part2, part3));
+		const err2: Short.Short | undefined = part === undefined ? At.splitOut$returns_Split.err as Short.Short : undefined;
+		if (part !== undefined) {
+			rt.byteVecPush(out, opaque(part as Uint8Array, part2, part3));
 			rt.byteVecPush(out, part6 & 0xff);
 		} else {
 			const e: Short.Short = err2 as Short.Short;

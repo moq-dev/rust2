@@ -11,20 +11,20 @@ export function header(dataData: Uint8Array, dataStart: number, dataLen: number)
 	return undefined;
 }
 
-export function take4(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 | undefined {
+export function take4(dataData: Uint8Array, dataStart: number, dataLen: number): Uint8Array | undefined {
 	if (!(dataLen >= 4)) {
-		return dataLen & 0xff;
+		take4Out.err = dataLen & 0xff;
+		return undefined;
 	}
-	take4Out.p_0Data = dataData;
 	take4Out.p_0Start = dataStart;
 	take4Out.p_0Len = 4;
 	take4Out.p_1Data = dataData;
 	take4Out.p_1Start = dataStart + 4;
 	take4Out.p_1Len = dataLen - 4;
-	return undefined;
+	return dataData;
 }
 
-export const take4Out: { p_0Data: Uint8Array; p_0Start: number; p_0Len: number; p_1Data: Uint8Array; p_1Start: number; p_1Len: number } = { p_0Data: undefined as never, p_0Start: undefined as never, p_0Len: undefined as never, p_1Data: undefined as never, p_1Start: undefined as never, p_1Len: undefined as never };
+export const take4Out: { err: unknown; p_0Start: number; p_0Len: number; p_1Data: Uint8Array; p_1Start: number; p_1Len: number } = { err: undefined, p_0Start: undefined as never, p_0Len: undefined as never, p_1Data: undefined as never, p_1Start: undefined as never, p_1Len: undefined as never };
 
 export function word(chunkData: Uint8Array, chunkStart: number, _chunkLen: number): rt.u32 {
 	return ((chunkData[chunkStart] << 24) | (chunkData[chunkStart + 1] << 16) | (chunkData[chunkStart + 2] << 8) | chunkData[chunkStart + 3]) >>> 0;
@@ -69,17 +69,17 @@ export function chunks(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			rt.byteVecPush(out, h.tag.data[h.tag.start + 1]);
 			rt.byteVecPush(out, h.rest.length & 0xff);
 		}
-		const err: rt.u8 | undefined = take4(dataData, dataStart, dataLen);
-		const part2: Uint8Array = take4Out.p_0Data;
+		const part2: Uint8Array | undefined = take4(dataData, dataStart, dataLen);
 		const part3: number = take4Out.p_0Start;
 		const part4: number = take4Out.p_0Len;
 		const part5: Uint8Array = take4Out.p_1Data;
 		const part6: number = take4Out.p_1Start;
 		const part7: number = take4Out.p_1Len;
-		if (err === undefined) {
-			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(word(part2, part3, part4))));
-			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.i16ToBeBytes((((part2[part3 + 1] << 8) | part2[part3 + 2]) << 16) >> 16)));
-			const _42: [rt.u8, rt.ByteSlice, rt.u8] = ends(part2, part3, part4);
+		const err: rt.u8 | undefined = part2 === undefined ? take4Out.err as rt.u8 : undefined;
+		if (part2 !== undefined) {
+			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(word(part2 as Uint8Array, part3, part4))));
+			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.i16ToBeBytes(((((part2 as Uint8Array)[part3 + 1] << 8) | (part2 as Uint8Array)[part3 + 2]) << 16) >> 16)));
+			const _42: [rt.u8, rt.ByteSlice, rt.u8] = ends(part2 as Uint8Array, part3, part4);
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(_42[0], _42[2], _42[1].data[_42[1].start], _42[1].data[_42[1].start + 1], _42[1].length & 0xff)));
 			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part5, part6, part7));
 		} else {
