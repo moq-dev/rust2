@@ -123,8 +123,12 @@ fn made(data: &[u8], out: &mut Vec<u8>) {
 	}
 }
 
-/// `tracing`'s events, which evaluate nothing without a subscriber: no field marks `out`.
+/// `tracing`'s events, which evaluate nothing without a subscriber: no field marks `out`,
+/// one in a branch included.
 fn events(data: &[u8], out: &mut Vec<u8>) {
+	if data.len() > 1 {
+		tracing::debug!("branch");
+	}
 	tracing::trace!(n = mark(out, 1), "trace");
 	tracing::debug!(?data, n = mark(out, 2));
 	tracing::info!(n = %mark(out, 3), "info {}", data.len());

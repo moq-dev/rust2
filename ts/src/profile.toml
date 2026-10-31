@@ -7,11 +7,12 @@
 # pointers, such as a box's: JS has no pointers to check. With every call where the source
 # has it, as a release build's inlining would not keep it, since a call is what a binding
 # or a std function's translation stands in for. And with `rust2_ts` set, so a crate can
-# give translation a safe twin of its `unsafe`.
-profile.dev.rustflags = ["-Zalways-encode-mir", "-Zub-checks=no", "-Zinline-mir=no", "--cfg=rust2_ts"]
+# give translation a safe twin of its `unsafe`. And with the storage markers a release
+# build keeps, which tell where each local's storage ends: no pointer into it is read past.
+profile.dev.rustflags = ["-Zalways-encode-mir", "-Zub-checks=no", "-Zinline-mir=no", "-Zmir-enable-passes=-RemoveStorageMarkers", "--cfg=rust2_ts"]
 # std's own crates, with every function's MIR, so the bodies of std's combinators lower as
 # the crate's do: the target's prebuilt std encodes the MIR of few, optimized. The rest of
 # std's take the flags above to no effect, since none translates.
-profile.dev.package.core.rustflags = ["-Zalways-encode-mir"]
-profile.dev.package.alloc.rustflags = ["-Zalways-encode-mir"]
-profile.dev.package.std.rustflags = ["-Zalways-encode-mir"]
+profile.dev.package.core.rustflags = ["-Zalways-encode-mir", "-Zmir-enable-passes=-RemoveStorageMarkers"]
+profile.dev.package.alloc.rustflags = ["-Zalways-encode-mir", "-Zmir-enable-passes=-RemoveStorageMarkers"]
+profile.dev.package.std.rustflags = ["-Zalways-encode-mir", "-Zmir-enable-passes=-RemoveStorageMarkers"]

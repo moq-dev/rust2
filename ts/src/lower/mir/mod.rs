@@ -109,7 +109,55 @@ fn instance_mir<'tcx>(t: &mut Translator<'_, 'tcx>, instance: Instance<'tcx>, sp
 		return None;
 	}
 	decided::fold(tcx, &t.crates, &mut body);
+	same_switches(&mut body);
 	Some(body)
+}
+
+/// Each switch whose targets all go on to one block, past blocks that only mark where
+/// locals' storage begins or ends, made a jump there, as rustc's own simplification makes
+/// it where no markers stand between.
+fn same_switches(body: &mut mir::Body<'_>) {
+	let blocks = &body.basic_blocks;
+	let past = |mut bb: BasicBlock| {
+		for _ in 0..blocks.len() {
+			let data = &blocks[bb];
+			match data.terminator().kind {
+				TerminatorKind::Goto { target, .. }
+					if !data.is_cleanup
+						&& data.statements.iter().all(|s| {
+							matches!(
+								s.kind,
+								StatementKind::StorageLive(_) | StatementKind::StorageDead(_) | StatementKind::Nop
+							)
+						}) =>
+				{
+					bb = target
+				}
+				_ => break,
+			}
+		}
+		bb
+	};
+	let same: Vec<(BasicBlock, BasicBlock)> = blocks
+		.iter_enumerated()
+		.filter_map(|(bb, data)| {
+			let TerminatorKind::SwitchInt { targets, .. } = &data.terminator().kind else {
+				return None;
+			};
+			let first = targets.all_targets()[0];
+			targets
+				.all_targets()
+				.iter()
+				.all(|&t| past(t) == past(first))
+				.then_some((bb, first))
+		})
+		.collect();
+	for (bb, target) in same {
+		body.basic_blocks_mut()[bb].terminator_mut().kind = TerminatorKind::Goto {
+			target,
+			loop_hint_attrs: Default::default(),
+		};
+	}
 }
 
 /// Why a body of std's can't lower as the crate's do, if it can't. The crate's analysis of
@@ -1430,13 +1478,20 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			if data.is_cleanup {
 				continue;
 			}
+			// Past blocks that do nothing but go on, such as one that only ends locals'
+			// storage, as each node's exit goes.
 			succs[bb.as_usize()] = match self.redirect.get(&bb) {
-				Some(&to) => vec![to.as_usize()],
-				None => self
-					.successors(data.terminator())
-					.into_iter()
-					.map(BasicBlock::as_usize)
-					.collect(),
+				Some(&to) => vec![self.forward(to).as_usize()],
+				None => {
+					let mut succs: Vec<usize> = Vec::new();
+					for to in self.successors(data.terminator()) {
+						let to = self.forward(to).as_usize();
+						if !succs.contains(&to) {
+							succs.push(to);
+						}
+					}
+					succs
+				}
 			};
 		}
 		let graph = cfg::Graph { succs };
@@ -1539,6 +1594,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					continue;
 				}
 				for succ in self.successors(mir.basic_blocks[next].terminator()) {
+					// Past blocks that only end storage, which may go on into another macro.
+					let succ = if ignored(succ) { succ } else { self.forward(succ) };
 					match ignored(succ) {
 						true => stack.push(succ),
 						false => {
@@ -2194,6 +2251,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		match &stmt.kind {
 			StatementKind::Assign(assign) => {
 				let (place, rvalue) = &**assign;
+				// Whichever way the reference lowers, as an alias of the place or a value.
+				if let Rvalue::Ref(_, _, borrowed) = rvalue
+					&& let Some(why) = self.lent_out_of_step(*borrowed)
+				{
+					self.err(span, why);
+				}
 				self.assign(*place, rvalue, span, out);
 			}
 			StatementKind::SetDiscriminant { place, variant_index } => {
@@ -2804,7 +2867,16 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 
 impl cfg::Lower for Fx<'_, '_, '_, '_> {
 	fn node(&mut self, node: usize, out: &mut Vec<Stmt>) -> Exit {
-		self.block(BasicBlock::from_usize(node), out)
+		let exit = self.block(BasicBlock::from_usize(node), out);
+		let forward = |to: usize| self.forward(BasicBlock::from_usize(to)).as_usize();
+		match exit {
+			Exit::Goto(to) => Exit::Goto(forward(to)),
+			Exit::Branch(arms, default) => Exit::Branch(
+				arms.into_iter().map(|(cond, to)| (cond, forward(to))).collect(),
+				forward(default),
+			),
+			Exit::End => Exit::End,
+		}
 	}
 
 	fn flush(&mut self, out: &mut Vec<Stmt>) {

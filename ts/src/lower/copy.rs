@@ -75,6 +75,19 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			|| writes.contains(&writes.holders, false, self.tcx, ty, polymorphic)
 	}
 
+	/// Whether a `ty` is, or holds by value at any depth, a part that `object` says is a JS
+	/// object, into which a raw pointer may be made through a reference that the crate's
+	/// code can't follow back to where it was borrowed, by any body or by `body` alone.
+	pub fn taken(&self, body: DefId, ty: Ty<'tcx>, object: &dyn Fn(Ty<'tcx>) -> bool) -> bool {
+		let (writes, polymorphic) = (&self.writes, self.polymorphic());
+		let local = writes.taken_in.get(&body);
+		by_value(self.tcx, self.typing_env(), ty).any(|part| {
+			object(part)
+				&& (writes.contains(&writes.taken, false, self.tcx, part, polymorphic)
+					|| local.is_some_and(|local| writes.contains(local, false, self.tcx, part, polymorphic)))
+		})
+	}
+
 	/// `value`, a `ty` read out of where it is kept, as a value of its own, as Rust's read
 	/// copies its bytes: the JS objects it holds by value copied where the crate's code
 	/// writes into them in place.
@@ -341,6 +354,13 @@ pub struct Writes<'tcx> {
 	/// The types a part of which, kept as a JS object, a write of that part alone gives
 	/// another object, as `p.x = Inner {..}` does to `p`'s.
 	holders: Types<'tcx>,
+	/// The types a raw pointer is made into through a reference to one, where the pointer
+	/// may outlive the call that made it: whoever borrowed the place it points at can't
+	/// give that place another object while the pointer may be read.
+	taken: Types<'tcx>,
+	/// As `taken`, by the body making each, of pointers that die with the call but through
+	/// a reference that may point at that body's own locals, where it can't tell which.
+	taken_in: FxHashMap<DefId, Types<'tcx>>,
 	/// The bodies read.
 	read: FxHashSet<DefId>,
 	/// The arguments of each body's instances that translation reached, without type
@@ -421,7 +441,11 @@ impl<'tcx> Writes<'tcx> {
 		}
 		let writes = |types: &Types<'tcx>| types.generic.iter().any(|&(body, _)| body == def_id);
 		!instance.args.has_param()
-			&& (writes(&self.into) || writes(&self.replaced) || writes(&self.holders))
+			&& (writes(&self.into)
+				|| writes(&self.replaced)
+				|| writes(&self.holders)
+				|| writes(&self.taken)
+				|| self.taken_in.get(&def_id).is_some_and(writes))
 			&& !self
 				.reached
 				.get(&def_id)
@@ -667,6 +691,197 @@ pub fn through_borrows<'tcx>(
 	place
 }
 
+/// The places a pointer made of `place` at `at` may point into: `place` read through each
+/// reference that `borrow` says borrows a place, as [`through_borrows`] reads it, and
+/// through one that [`retargeted`] follows, as each place it may borrow there.
+pub fn borrowed_places<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	body: &mir::Body<'tcx>,
+	place: Place<'tcx>,
+	at: Location,
+	borrow: &dyn Fn(Local) -> Option<Place<'tcx>>,
+) -> Vec<Place<'tcx>> {
+	let place = through_borrows(tcx, place, borrow);
+	let Some((ProjectionElem::Deref, rest)) = place.projection.split_first() else {
+		return vec![place];
+	};
+	match retargeted(tcx, body, place.local, at) {
+		Some(borrowed) => borrowed
+			.into_iter()
+			.map(|b| through_borrows(tcx, b.project_deeper(rest, tcx), borrow))
+			.collect(),
+		None => vec![place],
+	}
+}
+
+/// The places the reference `local` may borrow at `at`, where nothing borrows it but to
+/// read it, or to point it elsewhere by `mem::replace` or `mem::swap`, as
+/// `mem::replace(&mut r, &mut b)` points `r` at `b`: those of each borrow that reaches
+/// `at`, assigned to it or given it by such a call. `None` if something else assigns it,
+/// or the parameter's value may reach `at`.
+pub fn retargeted<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	body: &mir::Body<'tcx>,
+	local: Local,
+	at: Location,
+) -> Option<Vec<Place<'tcx>>> {
+	retargeted_in(tcx, body, local, at, &mut FxHashSet::default())
+}
+
+/// [`retargeted`], past the references and locations `visiting` already follows, which
+/// a `mem::swap` in a loop leads back to: each adds no borrow the first doesn't find.
+fn retargeted_in<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	body: &mir::Body<'tcx>,
+	local: Local,
+	at: Location,
+	visiting: &mut FxHashSet<(Local, Location)>,
+) -> Option<Vec<Place<'tcx>>> {
+	if !body.local_decls[local].ty.is_ref() {
+		return None;
+	}
+	if !visiting.insert((local, at)) {
+		return Some(Vec::new());
+	}
+	// Each `&mut local`, which only such a call may take.
+	let mut lent = FxHashSet::default();
+	for data in body.basic_blocks.iter() {
+		for stmt in &data.statements {
+			if let mir::StatementKind::Assign(assign) = &stmt.kind
+				&& let Rvalue::Ref(_, _, p) | Rvalue::RawPtr(_, p) = &assign.1
+				&& p.local == local
+				&& !p.is_indirect()
+			{
+				match (&assign.1, assign.0.as_local()) {
+					(Rvalue::Ref(_, mir::BorrowKind::Shared | mir::BorrowKind::Fake(_), _), _) => {}
+					(Rvalue::Ref(_, mir::BorrowKind::Mut { .. }, p), Some(by)) if p.projection.is_empty() => {
+						lent.insert(by);
+					}
+					_ => return None,
+				}
+			}
+		}
+	}
+	let rebinding = |args: &[rustc_span::Spanned<mir::Operand<'tcx>>], func: &mir::Operand<'tcx>| {
+		let i = args.iter().position(|a| {
+			a.node
+				.place()
+				.and_then(|p| p.as_local())
+				.is_some_and(|l| lent.contains(&l))
+		})?;
+		let (def_id, _) = func.const_fn_def()?;
+		Some((
+			i,
+			super::library::key(tcx, def_id).map(|(_, name)| name),
+			super::pointer::rebinds(tcx, def_id),
+		))
+	};
+	// Each `&mut local` is used once, by such a call.
+	let mut uses = FxHashMap::default();
+	UsesOf(&lent, &mut uses).visit_body(body);
+	for (data, bb) in body.basic_blocks.iter().zip(body.basic_blocks.indices()) {
+		if let mir::TerminatorKind::Call { func, args, .. } = &data.terminator().kind
+			&& let Some((i, _, rebinds)) = rebinding(args, func)
+			&& i < rebinds
+		{
+			let by = args[i].node.place().and_then(|p| p.as_local());
+			if by.is_some_and(|by| uses.get(&by) == Some(&vec![body.terminator_loc(bb)])) {
+				uses.remove(&by.unwrap());
+			}
+		}
+	}
+	if !uses.is_empty() {
+		return None;
+	}
+	// What a local assigned once, from a borrow, borrows.
+	let borrowed = |op: &mir::Operand<'tcx>| {
+		let by = op.place()?.as_local()?;
+		let called = body.basic_blocks.iter().any(
+			|data| matches!(&data.terminator().kind, mir::TerminatorKind::Call { destination, .. } if destination.local == by),
+		);
+		let mut defs = body
+			.basic_blocks
+			.iter()
+			.flat_map(|data| &data.statements)
+			.filter_map(|stmt| match &stmt.kind {
+				mir::StatementKind::Assign(assign) if assign.0.local == by => Some(&assign.1),
+				_ => None,
+			});
+		match (defs.next(), defs.next(), called) {
+			(Some(Rvalue::Ref(_, _, p)), None, false) => Some(*p),
+			_ => None,
+		}
+	};
+	let blocks = &body.basic_blocks;
+	let mut found = Vec::new();
+	let mut seen = FxHashSet::default();
+	let mut stack = vec![(at.block, Some(at.statement_index))];
+	while let Some((bb, before)) = stack.pop() {
+		let data = &blocks[bb];
+		let end = match before {
+			Some(i) => i,
+			None => {
+				match &data.terminator().kind {
+					mir::TerminatorKind::Call { destination, .. } if destination.as_local() == Some(local) => {
+						return None;
+					}
+					mir::TerminatorKind::Yield { resume_arg, .. } if resume_arg.as_local() == Some(local) => {
+						return None;
+					}
+					mir::TerminatorKind::Call { func, args, .. } => match rebinding(args, func) {
+						Some((_, Some(name), _)) if name == "replace" => {
+							found.push(borrowed(&args[1].node)?);
+							continue;
+						}
+						Some((i, Some(name), _)) if name == "swap" => {
+							let other = borrowed(&args[1 - i].node)?.as_local()?;
+							found.extend(retargeted_in(tcx, body, other, body.terminator_loc(bb), visiting)?);
+							continue;
+						}
+						Some(_) => return None,
+						None => {}
+					},
+					_ => {}
+				}
+				data.statements.len()
+			}
+		};
+		let def = data.statements[..end].iter().rev().find_map(|stmt| match &stmt.kind {
+			mir::StatementKind::Assign(assign) if assign.0.as_local() == Some(local) => Some(&assign.1),
+			_ => None,
+		});
+		match def {
+			Some(Rvalue::Ref(_, _, p)) => found.push(*p),
+			Some(_) => return None,
+			None if bb == mir::START_BLOCK => return None,
+			None => {
+				for &pred in &blocks.predecessors()[bb] {
+					if seen.insert(pred) {
+						stack.push((pred, None));
+					}
+				}
+			}
+		}
+	}
+	found.dedup();
+	Some(found)
+}
+
+/// Where each of some locals is used, other than assigned or marked.
+struct UsesOf<'x>(&'x FxHashSet<Local>, &'x mut FxHashMap<Local, Vec<Location>>);
+
+impl<'tcx> Visitor<'tcx> for UsesOf<'_> {
+	fn visit_local(&mut self, local: Local, context: PlaceContext, at: Location) {
+		if self.0.contains(&local)
+			&& !matches!(
+				context,
+				PlaceContext::NonUse(_) | PlaceContext::MutatingUse(MutatingUseContext::Store)
+			) {
+			self.1.entry(local).or_default().push(at);
+		}
+	}
+}
+
 /// The writes of one body.
 struct BodyWrites<'w, 'm, 'a, 'tcx> {
 	tcx: TyCtxt<'tcx>,
@@ -808,6 +1023,67 @@ impl<'tcx> BodyWrites<'_, '_, '_, 'tcx> {
 		}
 	}
 
+	/// A raw pointer made of `place` at `at` into `made`: what each reference it is made
+	/// through points at is taken, for every body if the pointer may outlive the call, or
+	/// else for this body alone if the reference may point at its own locals. A pointer
+	/// made of the body's own local is judged where it is made.
+	fn take(&mut self, place: Place<'tcx>, at: Location, made: Place<'tcx>) {
+		let borrows = &self.borrows;
+		let places = borrowed_places(self.tcx, self.body, place, at, &|local| borrows[local]);
+		let outlives = self.outlives(made);
+		for place in places {
+			let Some(last) = place.projection.iter().rposition(|e| e == ProjectionElem::Deref) else {
+				continue;
+			};
+			let reference = &place.projection[..last];
+			if !Place::ty_from(place.local, reference, self.body, self.tcx).ty.is_ref() {
+				continue;
+			}
+			let referent = Place::ty_from(place.local, &place.projection[..=last], self.body, self.tcx).ty;
+			let taken = match (outlives, self.outside(place.local, reference)) {
+				(true, _) => &mut self.writes.taken,
+				(false, false) => self.writes.taken_in.entry(self.def_id).or_default(),
+				(false, true) => continue,
+			};
+			taken.insert(self.tcx, self.def_id, referent);
+		}
+	}
+
+	/// Whether the reference at `local` and `projection` points at none of this body's
+	/// locals: one made of no borrow of one, as a parameter's, or a closure's capture.
+	fn outside(&self, local: Local, projection: &[ProjectionElem<Local, Ty<'tcx>>]) -> bool {
+		match projection {
+			_ if !projection.contains(&ProjectionElem::Deref) => !self.trace.may_point_into_locals(local),
+			[ProjectionElem::Deref, ProjectionElem::Field(..)] => {
+				local == Local::from_u32(1)
+					&& self.tcx.is_closure_like(self.def_id)
+					&& self.tcx.coroutine_kind(self.def_id).is_none()
+			}
+			_ => false,
+		}
+	}
+
+	/// Whether the pointer `made` holds may be read after the body returns: returned as a
+	/// raw pointer, or kept where liveness can't follow it, such as in memory or by a call
+	/// that keeps it. One returned only as a reference is a borrow the caller's borrow
+	/// checker bounds, which no assignment of what it points at outlives.
+	fn outlives(&self, made: Place<'tcx>) -> bool {
+		let Some(made) = made.as_local() else {
+			return true;
+		};
+		let held = self.trace.holders(made, false);
+		let env = ty::TypingEnv::post_analysis(self.tcx, self.def_id);
+		let raw = |ty: Ty<'tcx>| {
+			ty.is_raw_ptr()
+				|| matches!(
+					ty.kind(),
+					ty::Param(_) | ty::Alias(..) | ty::Closure(..) | ty::Coroutine(..) | ty::CoroutineClosure(..)
+				)
+		};
+		!held.escapes.is_empty()
+			|| held.all.contains(mir::RETURN_PLACE) && by_value(self.tcx, env, self.body.return_ty()).any(raw)
+	}
+
 	/// Whether the function item `def_id` with `args` translates, whose body is
 	/// read, rather than std's or a trait method only an instance resolves.
 	fn crate_fn(&self, def_id: DefId, args: ty::GenericArgsRef<'tcx>) -> bool {
@@ -821,6 +1097,11 @@ impl<'tcx> BodyWrites<'_, '_, '_, 'tcx> {
 
 impl<'tcx> Visitor<'tcx> for BodyWrites<'_, '_, '_, 'tcx> {
 	fn visit_assign(&mut self, place: &Place<'tcx>, rvalue: &Rvalue<'tcx>, location: Location) {
+		if let Rvalue::RawPtr(kind, pointee) = rvalue
+			&& *kind != mir::RawPtrKind::FakeForPtrMetadata
+		{
+			self.take(*pointee, location, *place);
+		}
 		if place.as_local().is_none() {
 			self.pointees(place.ty(self.body, self.tcx).ty, false);
 		}
@@ -844,6 +1125,12 @@ impl<'tcx> Visitor<'tcx> for BodyWrites<'_, '_, '_, 'tcx> {
 		} = &terminator.kind
 		{
 			self.store_through(*destination, location);
+			if let Some((def_id, gargs)) = func.const_fn_def()
+				&& super::pointer::from_reference(self.tcx, def_id, gargs)
+				&& let Some(reference) = args.first().and_then(|a| a.node.place())
+			{
+				self.take(self.tcx.mk_place_deref(reference), location, *destination);
+			}
 			let rebound = func
 				.const_fn_def()
 				.map_or(0, |(def_id, _)| super::pointer::rebinds(self.tcx, def_id));

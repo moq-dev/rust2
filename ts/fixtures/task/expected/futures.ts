@@ -135,7 +135,7 @@ export class helpersFuture {
 						if (read.ok) {
 							if (read.value === 154) {
 								_51 = this.#total;
-								bb0 = 35;
+								bb0 = 36;
 								continue;
 							}
 							this.#total = rt.u64Add(this.#total, read.value);
@@ -144,12 +144,12 @@ export class helpersFuture {
 							continue;
 						}
 						_51 = read.error;
-						bb0 = 35;
+						bb0 = 36;
 						continue;
 					}
 					this.#state = 3;
 					return rt.Pending;
-				case 35:
+				case 36:
 					rt.drop(this.#pinned$2);
 					this.#guard[Symbol.dispose]();
 					this.#rx[Symbol.dispose]();

@@ -87,6 +87,16 @@ a raw pointer to `(u32, u32)` in a variable assigned again while it may point th
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:656:10
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:665:10
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:673:10
+a reference to `Owned`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1672:19
+a reference to `Stored`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1688:13
+a reference to `Passed`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1704:10
+a reference to `Counter`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1721:19
+a reference to `Core`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1746:18
+a reference to `std::cell::UnsafeCell<u64>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1761:18
+a raw pointer to `Target` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1775:10
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1788:10
+a reference to `Picked`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1804:25
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1819:10
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1016:26
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1029:22
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1039:12
@@ -129,6 +139,11 @@ a raw pointer to `(u16, u16)` in `Pushed`, which the crate may put another objec
 `Extend` of `(std::vec::Vec<u8>, Tally)` by `(u8, u8)`, whose `Tally` of `u8` is not supported yet at fixtures/reject/src/lib.rs:1282:31
 `Extend` of `(Tally,)` by `(u8,)`, whose `Tally` of `u8` is not supported yet at fixtures/reject/src/lib.rs:1287:29
 unsupported call to `core::num::<impl u8>::is_ascii_octdigit` at fixtures/reject/src/lib.rs:1292:4
+a reference to `InArray`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1352:33
+a reference to `InTuple`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1361:33
+a reference to `InNested`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1370:34
+a reference to `InPayload`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1379:11
+a reference to `InField`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1391:33
 a raw pointer to `std::cell::UnsafeCell<u16>` in `ByRead`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1470:35
 a raw pointer to `std::cell::UnsafeCell<u16>` in `ByWrite`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1483:35
 a raw pointer to `std::cell::UnsafeCell<u16>` in `BySwap`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1496:35

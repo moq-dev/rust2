@@ -1846,8 +1846,49 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	/// the path is such an object, as one is for the pointer `UnsafeCell::get` gives. A
 	/// place read through a reference to a place this body borrows is that place.
 	pub(super) fn out_of_step(&self, place: Place<'tcx>, cells: bool) -> Option<String> {
+		self.borrowed_places(place).into_iter().find_map(|place| {
+			self.parts_out_of_step(place, cells)
+				.or_else(|| self.reassigned(place, cells))
+		})
+	}
+
+	/// Why a reference made of `place` here would not keep pointing where Rust's does, if
+	/// a raw pointer the crate's code can't follow back here may be made through it, as
+	/// one a callee takes and returns, into a part JS keeps as an object: the variable it
+	/// is in, or a part on its path, assigned again while the reference, or what is made of
+	/// it, may still be read, as [`Self::out_of_step`] judges the pointer.
+	pub(super) fn lent_out_of_step(&self, place: Place<'tcx>) -> Option<String> {
+		let ty = place.ty(&self.mir.local_decls, self.tcx).ty;
+		if !self
+			.b
+			.t
+			.taken(self.mir.source.def_id(), ty, &|part| self.pointed_object(part, true))
+		{
+			return None;
+		}
+		let assigned = self
+			.borrowed_places(place)
+			.into_iter()
+			.any(|place| self.assigned_after(place, past_pointers(place)));
+		assigned.then(|| {
+			format!("a reference to `{ty}`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there")
+		})
+	}
+
+	/// The places a pointer made of `place` here may point into, as
+	/// [`copy::borrowed_places`] reads them through this body's borrows.
+	fn borrowed_places(&self, place: Place<'tcx>) -> Vec<Place<'tcx>> {
+		crate::lower::copy::borrowed_places(self.tcx, self.mir, place, self.at, &|local| {
+			self.borrow_of(local, false)
+		})
+	}
+
+	/// Why a raw pointer to `place`, read through no borrow of this body's, would not keep
+	/// pointing where Rust's does by a part on its path past its last pointer, if it would
+	/// not: one in an element, a payload, a union field, or an object the crate may give
+	/// another in its place.
+	fn parts_out_of_step(&self, place: Place<'tcx>, cells: bool) -> Option<String> {
 		let (tcx, decls, t) = (self.tcx, &self.mir.local_decls, &self.b.t);
-		let place = self.through_borrows(place, false);
 		let elems = place.projection.as_slice();
 		let start = past_pointers(place);
 		for i in start..elems.len() {
@@ -1878,7 +1919,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				));
 			}
 		}
-		self.reassigned(place, cells)
+		None
 	}
 
 	/// Why a raw pointer made of `place` here, read through no borrow of this body's, would
@@ -1924,14 +1965,19 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	/// place, or with `aliases`, only through each alias of one, which a whole write through
 	/// assigns. A reference something borrows may be pointed elsewhere, so it is no such one.
 	fn through_borrows(&self, place: Place<'tcx>, aliases: bool) -> Place<'tcx> {
-		crate::lower::copy::through_borrows(self.tcx, place, |local| match self.def_rvalue(local) {
+		crate::lower::copy::through_borrows(self.tcx, place, |local| self.borrow_of(local, aliases))
+	}
+
+	/// The place the reference `local` borrows, as [`Self::through_borrows`] reads it.
+	fn borrow_of(&self, local: Local, aliases: bool) -> Option<Place<'tcx>> {
+		match self.def_rvalue(local) {
 			Some(mir::Rvalue::Ref(_, _, borrowed))
 				if self.defs[local] == 1 && !self.borrowed[local] && (!aliases || self.alias_of_place(local)) =>
 			{
 				Some(*borrowed)
 			}
 			_ => None,
-		})
+		}
 	}
 
 	/// Whether something on the path of `place` from its `start`, a part with no pointer
@@ -1944,8 +1990,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	fn assigned_after(&self, place: Place<'tcx>, start: usize) -> bool {
 		use rustc_mir_dataflow::Analysis;
 		let tcx = self.tcx;
-		// Optimized MIR has no storage markers, so in a loop the search reaches the next
-		// iteration's assignments, where the pointer made in this one may be dead.
+		// Rustc drops the storage markers of locals it merges, so in a loop the search may
+		// reach the next iteration's assignments, where the pointer made in this one may be
+		// dead.
 		let mut liveness = None;
 		let mut read_after = |at: mir::Location| {
 			let (holders, live) = liveness.get_or_insert_with(|| {

@@ -70,9 +70,9 @@ pub(in crate::lower) struct Trace<'x, 'a, 'tcx> {
 pub(in crate::lower) struct Memo<'tcx> {
 	/// Whether a function may keep any of the given parameters anywhere but in its result.
 	kept: FxHashMap<(DefId, Vec<Local>), bool>,
-	/// The parameters each function's result may point where they do, or `None` if it may
-	/// point anywhere else.
-	returned: FxHashMap<DefId, Option<Vec<Local>>>,
+	/// Where each function's result may point: where its parameters do, or at a constant
+	/// or a thread-local; or `None` if anywhere else.
+	returned: FxHashMap<DefId, Option<Vec<Source>>>,
 	/// Whether std's function or impl, given these arguments, is [`Trace::inert`].
 	inert: FxHashMap<(DefId, GenericArgsRef<'tcx>), bool>,
 }
@@ -128,6 +128,8 @@ enum Source {
 	Local(Local),
 	/// This parameter.
 	Param(Local),
+	/// A constant or a thread-local, which no local is.
+	Static,
 }
 
 /// The memory a write fills.
@@ -370,9 +372,9 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		kept
 	}
 
-	/// The parameters of the crate's function `did` whose pointers its result may point
-	/// where they do, or `None` if it may point anywhere else.
-	fn returned(&self, did: DefId) -> Option<Vec<Local>> {
+	/// Where the crate's function `did`'s result may point: where each [`Source::Param`]
+	/// does, or at a [`Source::Static`]; or `None` if anywhere else.
+	fn returned(&self, did: DefId) -> Option<Vec<Source>> {
 		if let Some(returned) = self.memo.borrow().returned.get(&did) {
 			return returned.clone();
 		}
@@ -381,7 +383,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 			sources
 				.into_iter()
 				.map(|source| match source {
-					Source::Param(param) => Some(param),
+					Source::Param(_) | Source::Static => Some(source),
 					Source::Fresh(_) | Source::Local(_) => None,
 				})
 				.collect()
@@ -580,7 +582,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 			let held = match source {
 				Source::Fresh(root) => self.holders(root, false),
 				Source::Local(root) => self.holders(root, true),
-				Source::Param(_) => return false,
+				Source::Param(_) | Source::Static => return false,
 			};
 			if held.escapes.iter().any(|&escape| self.reaches(escape, at)) {
 				return false;
@@ -723,6 +725,13 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		false
 	}
 
+	/// Whether a pointer `local` holds may point into one of the body's own locals, as
+	/// [`Self::origins`] finds where it came from, or can't tell.
+	pub fn may_point_into_locals(&self, local: Local) -> bool {
+		self.origins(local, None)
+			.is_none_or(|sources| sources.iter().any(|source| matches!(source, Source::Local(_))))
+	}
+
 	/// Where the pointers `local` may hold, to a `filled` value if known, may have come
 	/// from, following copies, casts, pointers made through them, and calls of std or the
 	/// crate that return where they point, or of std's that run none of the crate's code,
@@ -764,6 +773,11 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 			}
 			for def in &defs[local].whole {
 				match *def {
+					Def::Assign(
+						Rvalue::Use(Operand::Constant(_), _)
+						| Rvalue::Cast(_, Operand::Constant(_), _)
+						| Rvalue::ThreadLocalRef(_),
+					) => _ = sources.insert(Source::Static),
 					Def::Assign(Rvalue::Use(op, _) | Rvalue::Cast(_, op, _)) => {
 						stack.push((direct(op.place()?)?, deep))
 					}
@@ -805,8 +819,13 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 								}
 							}
 						} else if let Some(did) = self.read_fn(def_id, gargs.skip_binder()) {
-							for param in self.returned(did)? {
-								stack.push((direct(args[param.as_usize() - 1].node.place()?)?, deep));
+							for source in self.returned(did)? {
+								match source {
+									Source::Param(param) => {
+										stack.push((direct(args[param.as_usize() - 1].node.place()?)?, deep))
+									}
+									_ => _ = sources.insert(source),
+								}
 							}
 						} else if self.runs_std(def_id, gargs.skip_binder(), args) {
 							sources.insert(Source::Fresh(local));

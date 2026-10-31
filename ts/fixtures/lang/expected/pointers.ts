@@ -24,6 +24,7 @@ import type * as pointers_Run from "./pointers.Run.ts";
 import * as Segment from "./pointers.Segment.ts";
 import type * as Span from "./pointers.Span.ts";
 import type * as Stable from "./pointers.Stable.ts";
+import type * as Viewed from "./pointers.Viewed.ts";
 import type * as Waiter from "./pointers.Waiter.ts";
 import * as Waiters from "./pointers.Waiters.ts";
 import * as Wrapped from "./pointers.Wrapped.ts";
@@ -1022,6 +1023,90 @@ export function waiters(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 		nodes[node];
 	}
+}
+
+/**
+ * Pointers callees take through references, which keep pointing where Rust's do: one
+ * read before its variable is assigned again, ones kept where liveness can't follow them
+ * for a variable each iteration of a loop declares, one through a reference `mem::swap`
+ * points at another variable, whose first is assigned after, and ones a callee gives back
+ * only as a reference, through a borrow a closure keeps.
+ */
+export function taken(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(data)) {
+		const _10: rt.u8 = rt.u8Rem(n, 4);
+		if (_10 === 0) {
+			rt.iterExtendBytes(out, rt.iterSlice(readBefore(n)), undefined, true);
+		} else if (_10 === 1) {
+			perIteration(n, out);
+		} else if (_10 === 2) {
+			rt.iterExtendBytes(out, rt.iterSlice(swappedAway(n)), undefined, true);
+		} else {
+			rt.iterExtendBytes(out, rt.iterSlice(viewed(n)), undefined, true);
+		}
+	}
+}
+
+export function readBefore(n: rt.u8): Uint8Array {
+	let d: Duo.Duo = { _0: n, _1: ~n & 0xff };
+	const q: Duo.Duo = pointerOf(d);
+	q._0 = q._0 ^ 51;
+	const seen: rt.u8 = q._0;
+	d = { _0: d._1, _1: d._0 };
+	return Uint8Array.of(seen, d._0, d._1);
+}
+
+export function keep(d: Duo.Duo, kept: Duo.Duo[]): void {
+	kept.push(d);
+}
+
+export function perIteration(n: rt.u8, out: rt.ByteVec): void {
+	let _9!: rt.u8;
+	const kept: Duo.Duo[] = [];
+	const _6: rt.u8 = rt.u8Rem(n, 4);
+	let iterStart: rt.u8 = 0;
+	const iterEnd: rt.u8 = _6;
+	while ((_9 = iterStart++) < iterEnd) {
+		const i: rt.u8 = _9;
+		const d: Duo.Duo = { _0: n ^ i, _1: i };
+		keep(d, kept);
+		const at = rt.idx(kept, 0);
+		kept[at]._1 = kept[at]._1 ^ n;
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(d._0, d._1)), undefined, true);
+		rt.vecTruncate(kept, 0);
+	}
+}
+
+export function swappedAway(n: rt.u8): Uint8Array {
+	let a: [rt.u8, rt.u8] = [n, 1];
+	const b: [rt.u8, rt.u8] = [2, n];
+	let r: [rt.u8, rt.u8] = a;
+	let s: [rt.u8, rt.u8] = b;
+	const swapped = r;
+	r = s;
+	s = swapped;
+	const p: [rt.u8, rt.u8] = r;
+	a = [a[1], a[0]] as [rt.u8, rt.u8];
+	p[0] = p[0] ^ 7;
+	return Uint8Array.of(a[0], a[1], b[0], b[1]);
+}
+
+export function firstOf(v: Viewed.Viewed): rt.Place<rt.u8> {
+	const _2: Viewed.Viewed = v;
+	return rt.place(() => _2._0, (value) => _2._0 = value);
+}
+
+export function viewed(n: rt.u8): Uint8Array {
+	let v: Viewed.Viewed = { _0: n, _1: 3 };
+	const _4: Viewed.Viewed = v;
+	const bump: (a0: rt.u8) => undefined = (k: rt.u8): undefined => {
+		const _3: rt.Place<rt.u8> = firstOf(_4);
+		_3.v = _3.v ^ k;
+	};
+	bump(5);
+	bump(n);
+	v = { _0: v._1, _1: v._0 };
+	return Uint8Array.of(v._0, v._1);
 }
 
 //# sourceMappingURL=pointers.ts.map

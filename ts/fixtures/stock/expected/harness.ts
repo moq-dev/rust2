@@ -122,7 +122,10 @@ export function made(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 }
 
-/** `tracing`'s events, which evaluate nothing without a subscriber: no field marks `out`. */
+/**
+ * `tracing`'s events, which evaluate nothing without a subscriber: no field marks `out`,
+ * one in a branch included.
+ */
 export function events(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, data.length & 0xff);
 }

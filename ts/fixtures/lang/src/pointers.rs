@@ -1193,3 +1193,72 @@ pub fn waiters(data: &[u8], out: &mut Vec<u8>) {
 		drop(unsafe { Box::from_raw(nodes[node]) });
 	}
 }
+
+/// Pointers callees take through references, which keep pointing where Rust's do: one
+/// read before its variable is assigned again, ones kept where liveness can't follow them
+/// for a variable each iteration of a loop declares, one through a reference `mem::swap`
+/// points at another variable, whose first is assigned after, and ones a callee gives back
+/// only as a reference, through a borrow a closure keeps.
+pub fn taken(data: &[u8], out: &mut Vec<u8>) {
+	for &n in data {
+		match n % 4 {
+			0 => out.extend(read_before(n)),
+			1 => per_iteration(n, out),
+			2 => out.extend(swapped_away(n)),
+			_ => out.extend(viewed(n)),
+		}
+	}
+}
+
+fn read_before(n: u8) -> [u8; 3] {
+	let mut d = Duo(n, !n);
+	let q = pointer_of(&mut d);
+	let seen = unsafe {
+		(*q).0 ^= 0x33;
+		(*q).0
+	};
+	d = Duo(d.1, d.0);
+	[seen, d.0, d.1]
+}
+
+fn keep(d: &mut Duo, kept: &mut Vec<*mut Duo>) {
+	kept.push(&raw mut *d);
+}
+
+fn per_iteration(n: u8, out: &mut Vec<u8>) {
+	let mut kept = Vec::new();
+	for i in 0..n % 4 {
+		let mut d = Duo(n ^ i, i);
+		keep(&mut d, &mut kept);
+		unsafe { (*kept[0]).1 ^= n };
+		out.extend([d.0, d.1]);
+		kept.clear();
+	}
+}
+
+fn swapped_away(n: u8) -> [u8; 4] {
+	let mut a = (n, 1);
+	let mut b = (2, n);
+	let mut r = &mut a;
+	let mut s = &mut b;
+	std::mem::swap(&mut r, &mut s);
+	let p = &raw mut *r;
+	a = (a.1, a.0);
+	unsafe { (*p).0 ^= 7 };
+	[a.0, a.1, b.0, b.1]
+}
+
+struct Viewed(u8, u8);
+
+fn first_of(v: &mut Viewed) -> &mut u8 {
+	unsafe { &mut (*(&raw mut *v)).0 }
+}
+
+fn viewed(n: u8) -> [u8; 2] {
+	let mut v = Viewed(n, 3);
+	let mut bump = |k| *first_of(&mut v) ^= k;
+	bump(5);
+	bump(n);
+	v = Viewed(v.1, v.0);
+	[v.0, v.1]
+}

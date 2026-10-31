@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 163
-- Function instances: 216
+- Refusals: 178
+- Function instances: 233
 - Generic functions no instance reached, lowered over their type parameters: 11
 
 ## By construct
@@ -10,7 +10,8 @@
 | ---: | --- | --- |
 | 45 | a raw pointer to `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:623:10 |
 | 18 | unsupported call to `_` | fixtures/reject/src/lib.rs:167:8 |
-| 14 | a raw pointer to `_` in a variable assigned again while it may point there | fixtures/reject/src/lib.rs:631:10 |
+| 17 | a raw pointer to `_` in a variable assigned again while it may point there | fixtures/reject/src/lib.rs:631:10 |
+| 12 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | fixtures/reject/src/lib.rs:1352:33 |
 | 4 | a variant of `_`, which is not supported: either is the same JS string | fixtures/reject/src/lib.rs:344:2 |
 | 3 | `_` with a mutable reference to a value JS copies, which its mapping would copy | fixtures/reject/src/lib.rs:529:12 |
 | 3 | a copy of a closure that changes what it captured | fixtures/reject/src/lib.rs:237:14 |
@@ -79,8 +80,8 @@ The type or module each refused type or path belongs to.
 
 | Count | API | First |
 | ---: | --- | --- |
-| 30 | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:702:15 |
-| 22 | `(u32, u32)` | fixtures/reject/src/lib.rs:623:10 |
+| 31 | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:702:15 |
+| 24 | `(u32, u32)` | fixtures/reject/src/lib.rs:623:10 |
 | 6 | `f16` | fixtures/reject/src/lib.rs:7:14 |
 | 6 | `std::borrow::Cow` | fixtures/reject/src/lib.rs:344:2 |
 | 5 | `Gap` | fixtures/reject/src/lib.rs:923:10 |
@@ -92,6 +93,11 @@ The type or module each refused type or path belongs to.
 | 3 | `std::vec::Vec` | fixtures/reject/src/lib.rs:323:16 |
 | 3 | `{closure}` | fixtures/reject/src/lib.rs:332:13 |
 | 2 | `(u16, u16)` | fixtures/reject/src/lib.rs:1191:31 |
+| 2 | `InArray` | fixtures/reject/src/lib.rs:1317:9 |
+| 2 | `InField` | fixtures/reject/src/lib.rs:1333:9 |
+| 2 | `InNested` | fixtures/reject/src/lib.rs:1325:9 |
+| 2 | `InPayload` | fixtures/reject/src/lib.rs:1329:9 |
+| 2 | `InTuple` | fixtures/reject/src/lib.rs:1321:9 |
 | 2 | `Poll` | fixtures/reject/src/lib.rs:79:20 |
 | 2 | `Reused` | fixtures/reject/src/lib.rs:21:4 |
 | 2 | `Scaled` | fixtures/reject/src/lib.rs:472:23 |
@@ -140,7 +146,9 @@ The type or module each refused type or path belongs to.
 | 1 | `BytesMut` | fixtures/reject/src/lib.rs:396:6 |
 | 1 | `Called` | fixtures/reject/src/lib.rs:1101:28 |
 | 1 | `Copied` | fixtures/reject/src/lib.rs:1191:31 |
+| 1 | `Core` | fixtures/reject/src/lib.rs:1746:18 |
 | 1 | `Counted` | fixtures/reject/src/lib.rs:402:2 |
+| 1 | `Counter` | fixtures/reject/src/lib.rs:1721:19 |
 | 1 | `DoubleEndedIterator` | fixtures/reject/src/lib.rs:152:1 |
 | 1 | `Entry` | fixtures/reject/src/lib.rs:332:13 |
 | 1 | `Escaped` | fixtures/reject/src/lib.rs:1087:43 |
@@ -149,12 +157,7 @@ The type or module each refused type or path belongs to.
 | 1 | `HashMap` | fixtures/reject/src/lib.rs:266:6 |
 | 1 | `Hasher` | fixtures/reject/src/lib.rs:274:9 |
 | 1 | `Hits` | fixtures/reject/src/lib.rs:735:21 |
-| 1 | `InArray` | fixtures/reject/src/lib.rs:1317:9 |
-| 1 | `InField` | fixtures/reject/src/lib.rs:1333:9 |
 | 1 | `InGeneric` | fixtures/reject/src/lib.rs:1337:9 |
-| 1 | `InNested` | fixtures/reject/src/lib.rs:1325:9 |
-| 1 | `InPayload` | fixtures/reject/src/lib.rs:1329:9 |
-| 1 | `InTuple` | fixtures/reject/src/lib.rs:1321:9 |
 | 1 | `InWritten` | fixtures/reject/src/lib.rs:1341:9 |
 | 1 | `Lane` | fixtures/reject/src/lib.rs:887:19 |
 | 1 | `Loaded` | fixtures/reject/src/lib.rs:1157:29 |
@@ -163,15 +166,20 @@ The type or module each refused type or path belongs to.
 | 1 | `Maybe` | fixtures/reject/src/lib.rs:31:2 |
 | 1 | `Onced` | fixtures/reject/src/lib.rs:1248:46 |
 | 1 | `Only` | fixtures/reject/src/lib.rs:752:11 |
+| 1 | `Owned` | fixtures/reject/src/lib.rs:1672:19 |
+| 1 | `Passed` | fixtures/reject/src/lib.rs:1704:10 |
+| 1 | `Picked` | fixtures/reject/src/lib.rs:1804:25 |
 | 1 | `Plain` | fixtures/reject/src/lib.rs:841:10 |
 | 1 | `Pushed` | fixtures/reject/src/lib.rs:1263:22 |
 | 1 | `Repeated` | fixtures/reject/src/lib.rs:1236:18 |
 | 1 | `Rewritten` | fixtures/reject/src/lib.rs:1145:47 |
 | 1 | `Sink` | fixtures/reject/src/lib.rs:62:10 |
 | 1 | `Span2` | fixtures/reject/src/lib.rs:623:10 |
+| 1 | `Stored` | fixtures/reject/src/lib.rs:1688:13 |
 | 1 | `String` | fixtures/reject/src/lib.rs:799:4 |
 | 1 | `T \| undefined` | fixtures/reject/src/lib.rs:31:2 |
 | 1 | `Tail` | fixtures/reject/src/lib.rs:499:30 |
+| 1 | `Target` | fixtures/reject/src/lib.rs:1775:10 |
 | 1 | `Track` | fixtures/reject/src/lib.rs:867:19 |
 | 1 | `Waiting` | fixtures/reject/src/lib.rs:510:2 |
 | 1 | `Window` | fixtures/reject/src/lib.rs:684:2 |
@@ -208,7 +216,7 @@ The type or module each refused type or path belongs to.
 
 | Count | Construct | Type or path | First |
 | ---: | --- | --- | --- |
-| 12 | a raw pointer to `_` in a variable assigned again while it may point there | `(u32, u32)` | fixtures/reject/src/lib.rs:631:10 |
+| 14 | a raw pointer to `_` in a variable assigned again while it may point there | `(u32, u32)` | fixtures/reject/src/lib.rs:631:10 |
 | 4 | a variant of `_`, which is not supported: either is the same JS string | `std::borrow::Cow` | fixtures/reject/src/lib.rs:344:2 |
 | 3 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u32, u32)`, `Gap` | fixtures/reject/src/lib.rs:923:10 |
 | 3 | unsupported type `_` | `f16` | fixtures/reject/src/lib.rs:7:14 |
@@ -293,7 +301,20 @@ The type or module each refused type or path belongs to.
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Onced` | fixtures/reject/src/lib.rs:1248:46 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Repeated` | fixtures/reject/src/lib.rs:1236:18 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Rewritten` | fixtures/reject/src/lib.rs:1145:47 |
+| 1 | a raw pointer to `_` in a variable assigned again while it may point there | `Target` | fixtures/reject/src/lib.rs:1775:10 |
 | 1 | a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet | `(u32, u32)` | fixtures/reject/src/lib.rs:694:10 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Core` | fixtures/reject/src/lib.rs:1746:18 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Counter` | fixtures/reject/src/lib.rs:1721:19 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InArray` | fixtures/reject/src/lib.rs:1352:33 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InField` | fixtures/reject/src/lib.rs:1391:33 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InNested` | fixtures/reject/src/lib.rs:1370:34 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InPayload` | fixtures/reject/src/lib.rs:1379:11 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InTuple` | fixtures/reject/src/lib.rs:1361:33 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Owned` | fixtures/reject/src/lib.rs:1672:19 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Passed` | fixtures/reject/src/lib.rs:1704:10 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Picked` | fixtures/reject/src/lib.rs:1804:25 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Stored` | fixtures/reject/src/lib.rs:1688:13 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:1761:18 |
 | 1 | a scalar constant of type `_` | `f16` | fixtures/reject/src/lib.rs:8:2 |
 | 1 | a trait object of `_`, which is not supported yet | `[u8; 4]` | fixtures/reject/src/lib.rs:489:26 |
 | 1 | a zero-sized constant of type `_` | `{async closure}` | fixtures/reject/src/lib.rs:50:2 |
@@ -410,7 +431,7 @@ The type or module each refused type or path belongs to.
 
 </details>
 
-<details><summary>a raw pointer to `_` in a variable assigned again while it may point there (14)</summary>
+<details><summary>a raw pointer to `_` in a variable assigned again while it may point there (17)</summary>
 
 - fixtures/reject/src/lib.rs:631:10: a raw pointer to `(u32, u32)` in a variable assigned again while it may point there
 - fixtures/reject/src/lib.rs:639:10: a raw pointer to `(u32, u32)` in a variable assigned again while it may point there
@@ -426,6 +447,26 @@ The type or module each refused type or path belongs to.
 - fixtures/reject/src/lib.rs:1048:10: a raw pointer to `(u32, u32)` in a variable assigned again while it may point there
 - fixtures/reject/src/lib.rs:1058:17: a raw pointer to `(u32, u32)` in a variable assigned again while it may point there
 - fixtures/reject/src/lib.rs:1063:10: a raw pointer to `(u32, u32)` in a variable assigned again while it may point there
+- fixtures/reject/src/lib.rs:1775:10: a raw pointer to `Target` in a variable assigned again while it may point there
+- fixtures/reject/src/lib.rs:1788:10: a raw pointer to `(u32, u32)` in a variable assigned again while it may point there
+- fixtures/reject/src/lib.rs:1819:10: a raw pointer to `(u32, u32)` in a variable assigned again while it may point there
+
+</details>
+
+<details><summary>a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there (12)</summary>
+
+- fixtures/reject/src/lib.rs:1352:33: a reference to `InArray`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1361:33: a reference to `InTuple`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1370:34: a reference to `InNested`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1379:11: a reference to `InPayload`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1391:33: a reference to `InField`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1672:19: a reference to `Owned`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1688:13: a reference to `Stored`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1704:10: a reference to `Passed`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1721:19: a reference to `Counter`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1746:18: a reference to `Core`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1761:18: a reference to `std::cell::UnsafeCell<u64>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1804:25: a reference to `Picked`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
 
 </details>
 
