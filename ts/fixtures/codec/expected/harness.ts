@@ -270,13 +270,13 @@ export function decodeStep(r: Decoder.Decoder, step: rt.u8, out: rt.ByteVec): rt
 			return _31;
 		}
 	} else if (_5 === 5) {
-		const part4: Uint8Array | undefined = Decoder.bytes(r);
+		const err2: DecodeError.DecodeError | undefined = Decoder.bytes(r);
+		const part4: Uint8Array = Decoder.sliceOut.pData;
 		const part5: number = Decoder.sliceOut.pStart;
 		const part6: number = Decoder.sliceOut.pLen;
-		const err2: DecodeError.DecodeError | undefined = part4 === undefined ? Decoder.sliceOut.err as DecodeError.DecodeError : undefined;
-		if (part4 !== undefined) {
+		if (err2 === undefined) {
 			putUsize(out, part6);
-			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part4 as Uint8Array, part5, part6));
+			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part4, part5, part6));
 		} else {
 			return rt.Err(err2 as DecodeError.DecodeError);
 		}
@@ -288,12 +288,12 @@ export function decodeStep(r: Decoder.Decoder, step: rt.u8, out: rt.ByteVec): rt
 			return _49;
 		}
 	} else if (_5 === 7) {
-		const part: Uint8Array | undefined = Decoder.slice(r, rt.u8Div(step, 10) as rt.usize);
+		const err: DecodeError.DecodeError | undefined = Decoder.slice(r, rt.u8Div(step, 10) as rt.usize);
+		const part: Uint8Array = Decoder.sliceOut.pData;
 		const part2: number = Decoder.sliceOut.pStart;
 		const part3: number = Decoder.sliceOut.pLen;
-		const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.sliceOut.err as DecodeError.DecodeError : undefined;
-		if (part !== undefined) {
-			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part as Uint8Array, part2, part3));
+		if (err === undefined) {
+			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part, part2, part3));
 		} else {
 			return rt.Err(err as DecodeError.DecodeError);
 		}

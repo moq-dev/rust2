@@ -61,19 +61,19 @@ export function isEmpty(self: Decoder): boolean {
 }
 
 /** Read `len` raw bytes. */
-export function slice(self: Decoder, len: rt.usize): Uint8Array | undefined {
+export function slice(self: Decoder, len: rt.usize): DecodeError.DecodeError | undefined {
 	const slice: rt.ByteSlice = self.buf;
 	if (len <= slice.length) {
 		self.buf = new rt.ByteSlice(slice.data, slice.start + len, slice.length - len);
+		sliceOut.pData = slice.data;
 		sliceOut.pStart = slice.start;
 		sliceOut.pLen = len;
-		return slice.data;
+		return undefined;
 	}
-	sliceOut.err = short(self, len);
-	return undefined;
+	return short(self, len);
 }
 
-export const sliceOut: { err: unknown; pStart: number; pLen: number } = { err: undefined, pStart: undefined as never, pLen: undefined as never };
+export const sliceOut: { pData: Uint8Array; pStart: number; pLen: number } = { pData: undefined as never, pStart: undefined as never, pLen: undefined as never };
 
 /** Read every remaining byte. */
 export function rest(self: Decoder): rt.ByteSlice {
@@ -84,46 +84,46 @@ export function rest(self: Decoder): rt.ByteSlice {
 
 /** Split off the next `len` bytes as their own decoder, e.g. a size-prefixed body. */
 export function sub(self: Decoder, len: rt.usize): rt.Result<Decoder, DecodeError.DecodeError> {
-	const part: Uint8Array | undefined = slice(self, len);
+	const err: DecodeError.DecodeError | undefined = slice(self, len);
+	const part: Uint8Array = sliceOut.pData;
 	const part2: number = sliceOut.pStart;
 	const part3: number = sliceOut.pLen;
-	const err: DecodeError.DecodeError | undefined = part === undefined ? sliceOut.err as DecodeError.DecodeError : undefined;
-	if (part !== undefined) {
-		return rt.Ok(new_(part as Uint8Array, part2, part3, self.form));
+	if (err === undefined) {
+		return rt.Ok(new_(part, part2, part3, self.form));
 	}
 	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /** Read a single byte. */
 export function u8(self: Decoder): rt.Result<rt.u8, DecodeError.DecodeError> {
-	const part: Uint8Array | undefined = slice(self, 1);
+	const err: DecodeError.DecodeError | undefined = slice(self, 1);
+	const part: Uint8Array = sliceOut.pData;
 	const part2: number = sliceOut.pStart;
 	const part3: number = sliceOut.pLen;
-	const err: DecodeError.DecodeError | undefined = part === undefined ? sliceOut.err as DecodeError.DecodeError : undefined;
-	if (part !== undefined) {
+	if (err === undefined) {
 		if (0 >= part3) {
 			rt.panic("index out of bounds: the len is " + part3 + " but the index is " + 0);
 		}
-		return rt.Ok((part as Uint8Array)[part2]);
+		return rt.Ok(part[part2]);
 	}
 	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /** Read a big-endian `u16`. */
 export function u16(self: Decoder): rt.Result<rt.u16, DecodeError.DecodeError> {
-	const part: Uint8Array | undefined = slice(self, 2);
+	const err: DecodeError.DecodeError | undefined = slice(self, 2);
+	const part: Uint8Array = sliceOut.pData;
 	const part2: number = sliceOut.pStart;
 	const part3: number = sliceOut.pLen;
-	const err: DecodeError.DecodeError | undefined = part === undefined ? sliceOut.err as DecodeError.DecodeError : undefined;
-	if (part !== undefined) {
+	if (err === undefined) {
 		if (0 >= part3) {
 			rt.panic("index out of bounds: the len is " + part3 + " but the index is " + 0);
 		}
-		const _9: rt.u8 = (part as Uint8Array)[part2];
+		const _9: rt.u8 = part[part2];
 		if (1 >= part3) {
 			rt.panic("index out of bounds: the len is " + part3 + " but the index is " + 1);
 		}
-		return rt.Ok((_9 << 8) | (part as Uint8Array)[part2 + 1]);
+		return rt.Ok((_9 << 8) | part[part2 + 1]);
 	}
 	return rt.Err(err as DecodeError.DecodeError);
 }
@@ -175,7 +175,7 @@ export function varintOpt(self: Decoder): rt.Result<rt.u64 | undefined, DecodeEr
 }
 
 /** Read a varint length, then that many raw bytes. */
-export function bytes(self: Decoder): Uint8Array | undefined {
+export function bytes(self: Decoder): DecodeError.DecodeError | undefined {
 	let _0!: rt.Result<rt.ByteSlice, DecodeError.DecodeError>;
 	const start: rt.ByteSlice = self.buf;
 	const _6: rt.Result<rt.u64, DecodeError.DecodeError> = varint(self);
@@ -184,14 +184,14 @@ export function bytes(self: Decoder): Uint8Array | undefined {
 			return { tag: "BoundsExceeded" } as DecodeError.DecodeError;
 		});
 		if (_3.ok) {
-			const part: Uint8Array | undefined = slice(self, _3.value);
+			const err: DecodeError.DecodeError | undefined = slice(self, _3.value);
+			const part: Uint8Array = sliceOut.pData;
 			const part2: number = sliceOut.pStart;
 			const part3: number = sliceOut.pLen;
-			const err: DecodeError.DecodeError | undefined = part === undefined ? sliceOut.err as DecodeError.DecodeError : undefined;
 			const _15: (a0: DecodeError.DecodeError) => undefined = (_22: DecodeError.DecodeError): undefined => {
 				self.buf = start;
 			};
-			_0 = inspectErr$156koiv((part === undefined ? rt.Err(err as DecodeError.DecodeError) : rt.Ok(new rt.ByteSlice(part as Uint8Array, part2, part3))) as rt.Result<rt.ByteSlice, DecodeError.DecodeError>, _15);
+			_0 = inspectErr$156koiv((err !== undefined ? rt.Err(err as DecodeError.DecodeError) : rt.Ok(new rt.ByteSlice(part, part2, part3))) as rt.Result<rt.ByteSlice, DecodeError.DecodeError>, _15);
 		} else {
 			_0 = _3;
 		}
@@ -200,23 +200,23 @@ export function bytes(self: Decoder): Uint8Array | undefined {
 	}
 	const result: rt.Result<rt.ByteSlice, DecodeError.DecodeError> = _0;
 	if (!result.ok) {
-		sliceOut.err = result.error;
-		return undefined;
+		return result.error;
 	}
 	const slice_: rt.ByteSlice = result.value;
+	sliceOut.pData = slice_.data;
 	sliceOut.pStart = slice_.start;
 	sliceOut.pLen = slice_.length;
-	return slice_.data;
+	return undefined;
 }
 
 /** Read a varint length, then that many bytes of UTF-8. */
 export function string(self: Decoder): rt.Result<string, DecodeError.DecodeError> {
-	const part: Uint8Array | undefined = bytes(self);
+	const err: DecodeError.DecodeError | undefined = bytes(self);
+	const part: Uint8Array = sliceOut.pData;
 	const part2: number = sliceOut.pStart;
 	const part3: number = sliceOut.pLen;
-	const err: DecodeError.DecodeError | undefined = part === undefined ? sliceOut.err as DecodeError.DecodeError : undefined;
-	if (part !== undefined) {
-		const _2: rt.Result<string, rt.FromUtf8Error> = rt.stringFromUtf8(rt.byteSliceToByteVec(new rt.ByteSlice(part as Uint8Array, part2, part3)));
+	if (err === undefined) {
+		const _2: rt.Result<string, rt.FromUtf8Error> = rt.stringFromUtf8(rt.byteSliceToByteVec(new rt.ByteSlice(part, part2, part3)));
 		if (_2.ok) {
 			return rt.Ok(_2.value);
 		}
