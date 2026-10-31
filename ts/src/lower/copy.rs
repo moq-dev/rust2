@@ -78,31 +78,35 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// Whether a `ty` is, or holds by value at any depth, a part that `object` says is a JS
 	/// object, into which a raw pointer may be made through a reference that the crate's
 	/// code can't follow back to where it was borrowed, by any body or by `body` alone. A
-	/// part with no `UnsafeCell` counts only if the crate compares pointers to it: an
-	/// assignment of where it is disables a pointer made through a reference to it, so a
-	/// read through one after is undefined in both Stacked and Tree Borrows, but comparing
-	/// its address is not.
+	/// part with no `UnsafeCell` counts only if the crate compares pointers to it or to what
+	/// it holds: an assignment of where it is disables a pointer made through a reference to
+	/// it, so a read through one after is undefined in both Stacked and Tree Borrows, but
+	/// comparing its address is not.
 	pub fn taken(&self, body: DefId, ty: Ty<'tcx>, object: &dyn Fn(Ty<'tcx>) -> bool) -> bool {
-		let (writes, polymorphic, env) = (&self.writes, self.polymorphic(), self.typing_env());
+		let (tcx, writes, polymorphic, env) = (self.tcx, &self.writes, self.polymorphic(), self.typing_env());
 		let local = writes.taken_in.get(&body);
-		by_value(self.tcx, env, ty).any(|part| {
+		by_value(tcx, env, ty).any(|part| {
 			object(part)
-				&& (!part.is_freeze(self.tcx, env) || self.compared(part))
-				&& (writes.contains(&writes.taken, false, self.tcx, part, polymorphic)
-					|| local.is_some_and(|local| writes.contains(local, false, self.tcx, part, polymorphic)))
+				&& (!part.is_freeze(tcx, env) || by_value(tcx, env, part).any(|held| self.compared(held)))
+				&& (writes.contains(&writes.taken, false, tcx, part, polymorphic)
+					|| local.is_some_and(|local| writes.contains(local, false, tcx, part, polymorphic)))
 		})
 	}
 
 	/// Note a comparison of pointers to a `ty`, which [`Self::taken`] counts from the next
-	/// run on if a callee may keep one.
+	/// run on if a callee may keep one into it or into what holds it.
 	pub fn compare(&mut self, ty: Ty<'tcx>) {
-		let (tcx, env) = (self.tcx, self.typing_env());
+		let (tcx, env, writes) = (self.tcx, self.typing_env(), &self.writes);
+		let stored = storage(tcx, ty);
 		let kept = (ty.has_param() || ty.is_freeze(tcx, env))
-			&& self
-				.writes
-				.contains(&self.writes.taken, false, tcx, ty, self.polymorphic());
+			&& (writes.contains(&writes.taken, true, tcx, ty, self.polymorphic())
+				|| writes
+					.taken
+					.concrete
+					.iter()
+					.any(|&taken| by_value(tcx, env, taken).any(|part| storage(tcx, part) == stored)));
 		if kept {
-			self.comparing.insert(storage(tcx, ty));
+			self.comparing.insert(stored);
 		}
 	}
 

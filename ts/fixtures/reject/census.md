@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 200
-- Function instances: 242
+- Refusals: 201
+- Function instances: 244
 - Generic functions no instance reached, lowered over their type parameters: 11
 
 ## By construct
@@ -11,7 +11,7 @@
 | 45 | a raw pointer to `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:617:10 |
 | 25 | unsupported call to `_` | fixtures/reject/src/lib.rs:167:8 |
 | 19 | a raw pointer to `_` in a variable assigned again while it may point there | fixtures/reject/src/lib.rs:625:10 |
-| 17 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | fixtures/reject/src/lib.rs:1346:33 |
+| 18 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | fixtures/reject/src/lib.rs:1346:33 |
 | 5 | a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet | fixtures/reject/src/lib.rs:688:10 |
 | 4 | a variant of `_`, which is not supported: either is the same JS string | fixtures/reject/src/lib.rs:338:2 |
 | 3 | `_` with a mutable reference to a value JS copies, which its mapping would copy | fixtures/reject/src/lib.rs:523:12 |
@@ -164,6 +164,7 @@ The type or module each refused type or path belongs to.
 | 1 | `Counted` | fixtures/reject/src/lib.rs:396:2 |
 | 1 | `Deep` | fixtures/reject/src/lib.rs:1797:18 |
 | 1 | `DoubleEndedIterator` | fixtures/reject/src/lib.rs:152:1 |
+| 1 | `Enclosing` | fixtures/reject/src/lib.rs:1900:22 |
 | 1 | `Entry` | fixtures/reject/src/lib.rs:326:13 |
 | 1 | `Escaped` | fixtures/reject/src/lib.rs:1081:43 |
 | 1 | `FusedIterator` | fixtures/reject/src/lib.rs:200:1 |
@@ -196,7 +197,7 @@ The type or module each refused type or path belongs to.
 | 1 | `Unboxed` | fixtures/reject/src/lib.rs:1776:16 |
 | 1 | `Waiting` | fixtures/reject/src/lib.rs:504:2 |
 | 1 | `Window` | fixtures/reject/src/lib.rs:678:2 |
-| 1 | `Wrapped` | fixtures/reject/src/lib.rs:1910:21 |
+| 1 | `Wrapped` | fixtures/reject/src/lib.rs:1927:21 |
 | 1 | `dyn Keyed` | fixtures/reject/src/lib.rs:541:32 |
 | 1 | `poll` | fixtures/reject/src/lib.rs:504:2 |
 | 1 | `rt.Poll` | fixtures/reject/src/lib.rs:504:2 |
@@ -328,6 +329,7 @@ The type or module each refused type or path belongs to.
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Behind` | fixtures/reject/src/lib.rs:1761:22 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Compared` | fixtures/reject/src/lib.rs:1883:22 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Deep` | fixtures/reject/src/lib.rs:1797:18 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Enclosing` | fixtures/reject/src/lib.rs:1900:22 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InArray` | fixtures/reject/src/lib.rs:1346:33 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InField` | fixtures/reject/src/lib.rs:1385:33 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `InNested` | fixtures/reject/src/lib.rs:1364:34 |
@@ -336,7 +338,7 @@ The type or module each refused type or path belongs to.
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Shared` | fixtures/reject/src/lib.rs:1838:20 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Slotted` | fixtures/reject/src/lib.rs:1819:21 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Unboxed` | fixtures/reject/src/lib.rs:1776:16 |
-| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Wrapped` | fixtures/reject/src/lib.rs:1910:21 |
+| 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Wrapped` | fixtures/reject/src/lib.rs:1927:21 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:1664:18 |
 | 1 | a scalar constant of type `_` | `f16` | fixtures/reject/src/lib.rs:8:2 |
 | 1 | a trait object of `_`, which is not supported yet | `[u8; 4]` | fixtures/reject/src/lib.rs:483:26 |
@@ -492,7 +494,7 @@ The type or module each refused type or path belongs to.
 
 </details>
 
-<details><summary>a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there (17)</summary>
+<details><summary>a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there (18)</summary>
 
 - fixtures/reject/src/lib.rs:1346:33: a reference to `InArray`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
 - fixtures/reject/src/lib.rs:1355:33: a reference to `InTuple`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
@@ -509,8 +511,9 @@ The type or module each refused type or path belongs to.
 - fixtures/reject/src/lib.rs:1855:20: a reference to `Inside`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
 - fixtures/reject/src/lib.rs:1868:26: a reference to `Inside`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
 - fixtures/reject/src/lib.rs:1883:22: a reference to `Compared`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
-- fixtures/reject/src/lib.rs:1895:19: a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
-- fixtures/reject/src/lib.rs:1910:21: a reference to `Wrapped<std::cell::Cell<u32>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1900:22: a reference to `Enclosing`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1912:19: a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+- fixtures/reject/src/lib.rs:1927:21: a reference to `Wrapped<std::cell::Cell<u32>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
 
 </details>
 

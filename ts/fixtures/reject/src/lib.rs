@@ -1885,6 +1885,23 @@ pub fn compared_rebound(n: u32) -> bool {
 	p == compared_of(&c) && c.0 > 0
 }
 
+pub struct Enclosed(pub u32);
+
+pub struct Enclosing(pub Enclosed);
+
+fn enclosed_of(e: &Enclosing) -> *const Enclosed {
+	&e.0
+}
+
+/// A pointer a callee makes to a part of a struct with no cell, compared after the
+/// caller's assignment of the whole.
+pub fn enclosed_compared_rebound(n: u32) -> bool {
+	let mut e = Enclosing(Enclosed(n));
+	let p = enclosed_of(&e);
+	e = Enclosing(Enclosed(n + 1));
+	p == enclosed_of(&e) && (e.0).0 > 0
+}
+
 fn bytes_of(b: &[u8; 4]) -> *const [u8; 4] {
 	b
 }
