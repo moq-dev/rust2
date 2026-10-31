@@ -65,6 +65,8 @@ Offering a change upstream needs maintainer approval each time, so most have no 
 
 uniffi-rs:
 
+- Python prefers the running event loop to the configured callback fallback
+  ([mozilla/uniffi-rs@f903c36c](https://github.com/mozilla/uniffi-rs/commit/f903c36c09fd396560e4dc28763a97a5c552e1c3)); the public setter keeps its 0.32 name.
 - Kotlin refuses a destroyed object passed as an argument (kixelated/uniffi-rs@88d835d).
 - Ruby is removed.
 - `toml` is pinned to major 1. Upstream's `>=0.9, <2` spans two majors, so a generator that
@@ -109,6 +111,10 @@ uniffi-dart, on top of upstream `main` at acterglobal/uniffi-dart@72d26c1:
 - RustBuffer and async result leak fixes, `liftAndFree` type arguments, non-null optionals
   lowered through `toRustBuffer`, an exported `Display` as an enum's `toString()`, and
   disposed objects refused as arguments.
+- Input scratch is released on partial allocation failure, and disposal reserves status
+  storage before closing the handle, so allocation failure leaves it owned and retryable
+  ([Uniffi-Dart/uniffi-dart@71dc9f8b](https://github.com/Uniffi-Dart/uniffi-dart/commit/71dc9f8b8f54cdfa6ef5d08f24e70cd93ef11d7d),
+  [@a2751c4c](https://github.com/Uniffi-Dart/uniffi-dart/commit/a2751c4cb0df3d28b5efab0bac1dadf439d9b163)).
 - Record errors keep their converter name, and futures cancel per operation (moq's
   `nix/uniffi-dart-record-error.patch` and `nix/uniffi-dart-cancellation.patch`).
 - Another crate's library is imported with a `uniffi_<namespace>` prefix that its types,

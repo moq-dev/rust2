@@ -24,10 +24,14 @@ def uniffi_set_event_loop(eventloop: asyncio.BaseEventLoop):
     _UNIFFI_GLOBAL_EVENT_LOOP = eventloop
 
 def _uniffi_get_event_loop():
-    if _UNIFFI_GLOBAL_EVENT_LOOP is not None:
-        return _UNIFFI_GLOBAL_EVENT_LOOP
-    else:
+    # Futures belong to the loop running this call. The configured loop is only
+    # a fallback for callbacks invoked on threads without their own event loop.
+    try:
         return asyncio.get_running_loop()
+    except RuntimeError:
+        if _UNIFFI_GLOBAL_EVENT_LOOP is not None:
+            return _UNIFFI_GLOBAL_EVENT_LOOP
+        raise
 
 # Continuation callback for async functions
 # lift the return value or error and resolve the future, causing the async function to resume.
