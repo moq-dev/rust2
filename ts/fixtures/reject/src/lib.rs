@@ -1945,3 +1945,20 @@ pub fn generic_cell_rebound(n: u32) -> u32 {
 	w = Wrapped(2, std::cell::Cell::new(0));
 	unsafe { (*p).1.get() + w.0 as u32 }
 }
+
+#[derive(Clone, Copy)]
+pub struct Block<const N: usize>([u8; N]);
+
+/// A struct generic over a length, which no class is, cloned out of an `Option` a pair
+/// holds and written back whole in a body generic over that length.
+pub fn block_cloned(a: Option<Block<2>>) -> Option<Block<2>> {
+	reclone(a)
+}
+
+fn reclone<const N: usize>(a: Option<Block<N>>) -> Option<Block<N>> {
+	let mut pair = (a, 0u8);
+	#[allow(clippy::clone_on_copy, reason = "the clone `Option`'s `Clone` makes")]
+	let copy = pair.0.clone();
+	pair.0 = copy;
+	pair.0
+}

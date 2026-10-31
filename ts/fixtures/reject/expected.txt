@@ -185,6 +185,7 @@ a raw pointer to `[u8; 2]` in an element, a payload, or a union field, which is 
 a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1743:26
 a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1743:26
 a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1744:10
+const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:1954:21
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:132:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:152:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:180:2
@@ -200,3 +201,4 @@ a raw pointer to `std::cell::UnsafeCell<u16>` in `InPayload`, which the crate ma
 a raw pointer to `std::cell::UnsafeCell<u16>` in `InField`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1327:9
 a raw pointer to `std::cell::UnsafeCell<u16>` in `InGeneric`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1331:9
 a raw pointer to `std::cell::UnsafeCell<u16>` in `InWritten`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1335:9
+a reference to `std::option::Option<Block<2>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1961:13

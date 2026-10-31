@@ -22,7 +22,7 @@ generic std gap is planned here even when moq never calls it.
 - [Placeholders written to a crate's own fmt::Write](/quest/m3/ts-fmt-calls.md) - `write!` with placeholders into a crate's own writer translates, its `write_str` seeing each call std makes
 - [Waiting: type-check in process with tsrs](/quest/m3/ts-tsrs.md) - rust2-ts checks bindings through tsrs instead of `tsc` once it is a stable library
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
-- [Judging writes in a body generic over a const](/quest/m3/ts-const-generic-writes.md) - a function generic over `const N` whose calls take a type holding `N` translates instead of panicking
+- [Fresh writes in a body generic over a type](/quest/m3/ts-fresh-type-params.md) - a whole write into fresh memory holding a type parameter's values fills it, as one generic over a length alone does
 - [Arrays of bytes a flattened Option reference lends](/quest/m3/ts-flatten-byte-options.md) - `iter().flatten()` over `&[Option<[u8; N]>]` yields `rt.ByteSlice`s
 - [Raw pointers to a type parameter in a struct](/quest/m3/ts-generic-pointer-fields.md) - a `*mut T` field of a generic struct is typed as each instance stores it, or refuses
 - [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
