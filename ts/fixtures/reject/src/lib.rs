@@ -1708,6 +1708,44 @@ pub fn swapped_in_loop(n: u32) -> u32 {
 	unsafe { (*p).0 + a.0 }
 }
 
+/// Pointer operations on arrays of bytes that read the address or other bytes than the
+/// array's: comparing addresses only, copying, offsetting, casting to another pointee,
+/// hashing, and ordering.
+pub fn byte_pointer_ops(mut a: [u8; 4], b: [u8; 4]) -> u64 {
+	use std::hash::{Hash, Hasher};
+	let p: *mut [u8; 4] = &mut a;
+	let q: *const [u8; 4] = &b;
+	unsafe {
+		std::ptr::copy(q, p, 1);
+		std::ptr::copy_nonoverlapping(q, p, 1);
+		let same = std::ptr::addr_eq(p, q) || p < q.cast_mut();
+		let byte = *p.cast::<u8>() + *(q as *const u8) + (*p.add(0))[0] + (*q.offset(0))[1];
+		let slice: *const [u8] = q;
+		let mut h = std::collections::hash_map::DefaultHasher::new();
+		q.hash(&mut h);
+		let some = Some(std::ptr::NonNull::from(&a)) == Some(std::ptr::NonNull::from(&b));
+		h.finish() + u64::from(same) + u64::from(some) + u64::from(byte) + slice.len() as u64
+	}
+}
+
+/// Pointers to arrays of bytes that are parts of an array kept apart from it: a slice
+/// pattern's rest and an array's element.
+pub fn byte_pointer_parts(a: [u8; 4], b: [[u8; 2]; 3]) -> bool {
+	let [_, ref x @ ..] = a;
+	let [_, ref y @ ..] = a;
+	std::ptr::eq(x, y) || std::ptr::eq(&b[0], &b[1])
+}
+
+/// Pointers to an array of bytes in a variable assigned again while they point there,
+/// made of a reference and as a raw borrow.
+pub fn byte_pointer_rebound(n: u8) -> u8 {
+	let mut a = [n; 4];
+	let p: *const [u8; 4] = &a;
+	let q = &raw const a;
+	a = [n ^ 1; 4];
+	unsafe { (*p)[0] + (*q)[1] + a[2] }
+}
+
 pub struct Behind(pub std::cell::Cell<u32>);
 
 fn read_behind(b: &Behind) -> *const Behind {
@@ -1830,6 +1868,33 @@ pub fn inside_field_rebound(n: u32) -> u32 {
 	let p = inside_field_of(&i);
 	i = Inside(std::cell::UnsafeCell::new(Duo(0, 0)));
 	unsafe { *p + (*i.0.get()).0 }
+}
+
+pub struct Compared(pub u32);
+
+fn compared_of(c: &Compared) -> *const Compared {
+	c
+}
+
+/// A pointer a callee makes to a struct with no cell, compared after the caller's
+/// assignment, which Rust defines as its address and JS as the object it replaced.
+pub fn compared_rebound(n: u32) -> bool {
+	let mut c = Compared(n);
+	let p = compared_of(&c);
+	c = Compared(n + 1);
+	p == compared_of(&c) && c.0 > 0
+}
+
+fn bytes_of(b: &[u8; 4]) -> *const [u8; 4] {
+	b
+}
+
+/// A pointer a callee makes to an array of bytes, compared after the caller's assignment.
+pub fn bytes_compared_rebound(n: u8) -> bool {
+	let mut b = [n; 4];
+	let p = bytes_of(&b);
+	b = [n ^ 1; 4];
+	std::ptr::eq(p, bytes_of(&b)) && b[0] > 0
 }
 
 pub struct Wrapped<T>(pub u8, pub T);

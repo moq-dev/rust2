@@ -14,9 +14,9 @@ tests against native Rust: `ToOwned::to_owned` and `clone_into`, `Clone::clone_f
 Found by [moq-dev/rust2#354](https://github.com/moq-dev/rust2/pull/354): each is refused as
 "unsupported call" for `[u32; 2]` and `u32` as for `[u8; 2]`, having no mapping. A mapping
 given a `&[u8; N]` as a `&T` gets an `rt.byteSliceView` of it from `lend::give`, which
-shares the bytes, so reads, copies, and writes through it need nothing more; a pointer
-made of the view is another object than one made of the slice, so `ptr::from_ref` waits
-on [Raw pointers to arrays of bytes](/quest/m3/ts-byte-array-pointers.md).
+shares the bytes, so reads, copies, and writes through it need nothing more. A pointer to
+a `[u8; N]` is an `rt.ByteSlice` compared by the buffer and offset of its bytes, so
+`ptr::from_ref` of the view is `rt.byteSliceFrom` of it.
 
 No consumer calls them yet; they are planned here as part of std.
 

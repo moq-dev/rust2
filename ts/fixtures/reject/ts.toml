@@ -86,6 +86,8 @@ roots = [
     "inside_cell_rebound",
     "inside_field_rebound",
     "generic_cell_rebound",
+    "compared_rebound",
+    "bytes_compared_rebound",
     "pointer_in_struct",
     "pointer_returned",
     "pointer_pushed",
@@ -149,5 +151,8 @@ roots = [
     "key_taken",
     "ascii_in_tuple",
     "ascii_part",
+    "byte_pointer_ops",
+    "byte_pointer_parts",
+    "byte_pointer_rebound",
 ]
 printable = ["Meters"]

@@ -389,30 +389,40 @@ fn atomic<'tcx>(
 		args.insert(1, f);
 		Expr::rt("atomicFetch", args)
 	};
-	// A compare-exchange, given what compares a wide integer, whose limbs `===` can't.
-	let exchange = |f: &str, mut args: Vec<Expr>| {
-		args.extend(int.filter(|int| int.big()).map(|int| int.func("eq")));
-		Expr::rt(f, args)
-	};
-	// A pointer compares as `ptr::eq` does only where it is the object it points at.
+	// A pointer compares as `ptr::eq` does only where it is the object it points at, or
+	// a slice of the bytes it points at, which `rt.byteSliceSame` compares.
 	let generics = tcx.generics_of(imp).count();
 	let atomic = tcx
 		.type_of(imp)
 		.instantiate(tcx, &call.args[..generics])
 		.skip_norm_wip();
-	if let ty::Adt(_, atomic_args) = atomic.kind()
-		&& let ty::RawPtr(pointee, _) = atomic_args.type_at(0).kind()
+	let pointee = match atomic.kind() {
+		ty::Adt(_, atomic_args) => match atomic_args.type_at(0).kind() {
+			ty::RawPtr(pointee, _) => Some(*pointee),
+			_ => None,
+		},
+		_ => None,
+	};
+	if let Some(pointee) = pointee
 		&& matches!(
 			name,
 			"compare_exchange" | "compare_exchange_weak" | "try_update" | "fetch_update" | "update"
 		)
-		&& b.t.incomparable(*pointee).is_some()
+		&& b.t.incomparable(pointee).is_some()
 	{
 		return Ok(Some(b.err(
 			call.span,
 			format!("comparing pointers to `{pointee}` in an atomic, which JS has no address of"),
 		)));
 	}
+	let bytes = pointee.is_some_and(|p| b.t.pointee(p) == crate::lower::pointer::Pointee::Bytes);
+	// A compare-exchange, given what compares a wide integer, whose limbs `===` can't, or
+	// pointers to bytes.
+	let exchange = |f: &str, mut args: Vec<Expr>| {
+		args.extend(int.filter(|int| int.big()).map(|int| int.func("eq")));
+		args.extend(bytes.then(|| Expr::Rt("byteSliceSame".into())));
+		Expr::rt(f, args)
+	};
 	let e = match name {
 		"new" => Expr::New(Box::new(Expr::Rt("Atomic".into())), args),
 		"load" => Expr::rt("atomicLoad", args),
