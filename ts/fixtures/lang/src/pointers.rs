@@ -1287,9 +1287,13 @@ fn next_read<T>(items: &mut std::slice::Iter<'_, T>) -> Option<T> {
 /// read, as zlib's stream takes its window each round: one into an array, and one into a
 /// struct by a callee over a type parameter.
 pub fn reattached(data: &[u8], out: &mut Vec<u8>) {
-	let mut window = Window { at: std::ptr::null_mut() };
+	let mut window = Window {
+		at: std::ptr::null_mut(),
+	};
 	let mut buf = [0u16; 4];
-	let mut slot = Slot { at: std::ptr::null_mut() };
+	let mut slot = Slot {
+		at: std::ptr::null_mut(),
+	};
 	let mut pair = Reattached(0, 0);
 	for &n in data {
 		attach_window(&mut window, &mut buf);
