@@ -1397,11 +1397,12 @@ export function options(dataData: Uint8Array, dataStart: number, dataLen: number
  * each way JS holds `None`: `undefined`, `rt.None` where `Some` can be `undefined`, and
  * nested.
  */
-export function optionItems(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function optionItems(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let _44!: rt.u8;
 	let _67!: boolean;
 	let _87!: undefined | rt.None;
 	let _138!: rt.u8;
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _3: (a0: rt.u8) => rt.u8 | undefined = (b4: rt.u8): rt.u8 | undefined => {
 		if (!(rt.u8Rem(b4, 3) === 0)) {
 			return b4;
