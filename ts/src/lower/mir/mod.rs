@@ -245,8 +245,9 @@ enum Slot<'tcx> {
 	/// A reference assigned once, read as the place it borrows, which is set once its
 	/// assignment is lowered.
 	Alias(Option<Expr>),
-	/// A discriminant only a `switchInt` reads: tested as the place's variant.
-	Discr(Option<(Expr, Ty<'tcx>)>),
+	/// A discriminant only a `switchInt` reads: tested as the place's variant, and whether
+	/// the place is a whole `next` result.
+	Discr(Option<(Expr, Ty<'tcx>, bool)>),
 	/// A discriminant only a `switchInt` reads, of a local held as its parts: its flag,
 	/// whether it is its second variant.
 	Flag(Option<Expr>),
@@ -337,8 +338,6 @@ pub struct Fx<'m, 'b, 'a, 'tcx> {
 	var_parts: FxHashMap<Local, Vec<Expr>>,
 	/// Locals holding what `Iterator::next` returns by the protocol: an item or `rt.DONE`.
 	next_results: FxHashSet<Local>,
-	/// Their names, which a switch on their variant tests against `rt.DONE`.
-	next_names: FxHashSet<String>,
 	/// Next results of a range of numbers stepped in place: each holds only the item, so
 	/// JS keeps it a number, and a flag holds whether there was one.
 	range_nexts: FxHashSet<Local>,
@@ -446,7 +445,6 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			ignored_sites: Vec::new(),
 			var_parts: FxHashMap::default(),
 			next_results: FxHashSet::default(),
-			next_names: FxHashSet::default(),
 			range_nexts: FxHashSet::default(),
 			range_flags: FxHashMap::default(),
 			stepped: FxHashSet::default(),
@@ -1218,6 +1216,11 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		if self.next {
 			self.next_results.insert(mir::RETURN_PLACE);
 		}
+	}
+
+	/// Whether `place` is a whole `next` result, which holds the item or `rt.DONE`.
+	fn next_result(&self, place: Place<'tcx>) -> bool {
+		place.as_local().is_some_and(|l| self.next_results.contains(&l))
 	}
 
 	/// Each `(hi as u64) << 32 | lo as u64` of halves of at most 32 bits, as moq's
@@ -2393,6 +2396,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						unreachable!("checked by discr_only")
 					};
 					let ty = p.ty(&self.mir.local_decls, self.tcx).ty;
+					let next = self.next_result(*p);
 					let target = self.place_expr(*p, span, out);
 					// A switch whose other variants can't exist tests nothing, so the read
 					// runs only for its effects.
@@ -2406,7 +2410,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 							Expr::undefined()
 						}
 					};
-					self.slots[local] = Slot::Discr(Some((target, ty)));
+					self.slots[local] = Slot::Discr(Some((target, ty, next)));
 					return;
 				}
 				Slot::Flag(_) => {
@@ -2690,14 +2694,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			_ => test,
 		};
 		let tests: Vec<(Expr, BasicBlock)> = match discr_local.map(|l| self.slots[l].clone()) {
-			Some(Slot::Discr(Some((scrut, ty)))) => {
+			Some(Slot::Discr(Some((scrut, ty, next)))) => {
 				if !arms.is_empty() && whole.is_none() {
 					self.switched.extend(scrut.path_key().map(|key| (key, ty)));
 				}
 				let tests: Vec<Expr> = arms
 					.iter()
 					.map(|&(value, _)| {
-						let test = self.variant_test(&scrut, ty, value, span);
+						let test = self.variant_test(&scrut, ty, value, next, span);
 						widen(test, &scrut)
 					})
 					.collect();

@@ -25,6 +25,7 @@ import * as defaults_Made from "../defaults.Made.ts";
 import type * as dyns_Shape from "../dyns.Shape.ts";
 import * as edits_Named from "../edits.Named.ts";
 import type * as hints_Unit from "../hints.Unit.ts";
+import type * as Badge from "../iters.Badge.ts";
 import type * as Quarter from "../iters.Quarter.ts";
 import type * as Tilt from "../iters.Tilt.ts";
 import { side, order as keys_order } from "../keys.ts";
@@ -746,6 +747,13 @@ export function map$0gn4nwv(self: rt.u8 | undefined, _: (a0: rt.u8) => Side.Side
 	return side(self);
 }
 
+export function map$0of9gds(self: rt.u8 | undefined, f: (a0: rt.u8) => Badge.Badge): Badge.Badge | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
 export function map$1pb5zw8(self: rt.u8 | undefined, f: (a0: rt.u8) => [rt.u16, rt.u8]): [rt.u16, rt.u8] | undefined {
 	if (self === undefined) {
 		return undefined;
@@ -758,6 +766,13 @@ export function map$1fmzefe(self: rt.u8 | undefined, f: (a0: rt.u8) => [rt.u8, r
 		return undefined;
 	}
 	return f(self);
+}
+
+export function map$1c7zybz(self: rt.u8 | undefined, _: (a0: rt.u8) => rt.u32): rt.u32 | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return self as rt.u32;
 }
 
 export function map$0cs071d(self: rt.u8 | undefined, f: (a0: rt.u8) => rt.u8): rt.u8 | undefined {
@@ -1412,6 +1427,13 @@ export function mapOr$1dmz9kd(self: [rt.usize, [rt.u8, rt.ByteSlice]] | undefine
 }
 
 export function mapOr$1llunel(self: rt.u16 | undefined, default_: rt.u16, f: (a0: rt.u16) => rt.u16): rt.u16 {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
+export function mapOr$1sxa8ki(self: rt.u32 | undefined, default_: rt.u8, f: (a0: rt.u32) => rt.u8): rt.u8 {
 	if (self === undefined) {
 		return default_;
 	}

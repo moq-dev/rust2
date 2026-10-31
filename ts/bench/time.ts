@@ -59,7 +59,7 @@ const enum Op {
 export interface Options {
 	/** How long one sample runs at least, in milliseconds. */
 	sampleMs: number;
-	/** Samples per timed body, interleaved with every other body's. */
+	/** Rounds, each one sample of every body from fresh workers. */
 	rounds: number;
 	/** Seeds the order of the bodies in each round. */
 	seed: number;
@@ -71,7 +71,7 @@ export interface Timing {
 	workload: string;
 	op: string;
 	route: string;
-	/** Calls per sample. */
+	/** Calls per sample, as the first round's warm-up found. */
 	calls: number;
 	/** Nanoseconds per item, one per round. */
 	ns: number[];
@@ -94,7 +94,13 @@ export function hex(bytes: Uint8Array): string {
 	return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Times `workloads` on each subject, each in a worker `spawn` starts for it alone. */
+/**
+ * Times `workloads` on each subject, each round in a fresh worker per subject that `spawn`
+ * starts. A worker keeps the inlining and deopts it settles into for as long as it runs,
+ * which put identical copies of a route up to 1.6x apart, so a round is one sample of each
+ * body from fresh workers, as Kalibera and Jones's "Rigorous Benchmarking in Reasonable
+ * Time" advises when runs vary more than iterations within one.
+ */
 export async function measure(
 	wasm: Wasm,
 	subjects: Subject[],
@@ -103,69 +109,70 @@ export async function measure(
 	options: Options,
 ): Promise<Timing[]> {
 	const { progress, sampleMs } = options;
-	const links: Link[] = [];
-	try {
-		type Realm = (op: Op, arg: number) => Promise<unknown>;
-		const realms: Realm[] = [];
-		const bodies: { realm: Realm; index: number; workload: Workload; route: string; calls: number; ns: number[] }[] = [];
-		for (const subject of subjects) {
-			progress(`loading ${"wasm" in subject ? subject.wasm : subject.file}`);
-			const link = spawn();
-			links.push(link);
-			const control = new Int32Array(new SharedArrayBuffer(12));
-			link.post({ subject, workloads, sampleMs, control });
-			const list = (await link.reply()) as { route: string; workload: number }[];
-			const realm = (op: Op, arg: number) => {
-				control[1] = op;
-				control[2] = arg;
-				Atomics.add(control, 0, 1);
-				Atomics.notify(control, 0);
-				return link.reply();
-			};
-			realms.push(realm);
-			list.forEach(({ route, workload }, index) => {
-				bodies.push({ realm, index, workload: workloads[workload], route, calls: 0, ns: [] });
-			});
-		}
-
-		for (const [i, workload] of workloads.entries()) {
-			const want = wasm.call(workload.input);
-			if (want === "panic") throw new Error(`${workload.name} ${workload.op} panics in native Rust`);
-			for (const [r, subject] of subjects.entries()) {
+	const want = workloads.map((workload) => {
+		const output = wasm.call(workload.input);
+		if (output === "panic") throw new Error(`${workload.name} ${workload.op} panics in native Rust`);
+		return hex(output);
+	});
+	// Each subject's timings, one per body, which every round's worker lists alike.
+	const timings: Timing[][] = [];
+	const span = `${workloads[0].name} through ${workloads[workloads.length - 1].name}`;
+	const random = prng(options.seed);
+	for (let round = 0; round < options.rounds; round++) {
+		const of = `round ${round + 1} of ${options.rounds} on ${span}`;
+		const links: Link[] = [];
+		try {
+			type Realm = (op: Op, arg: number) => Promise<unknown>;
+			const bodies: { realm: Realm; index: number; timing: Timing; items: number; calls: number }[] = [];
+			for (const [s, subject] of subjects.entries()) {
+				progress(`loading ${"wasm" in subject ? subject.wasm : subject.file} for ${of}`);
+				const link = spawn();
+				links.push(link);
+				const control = new Int32Array(new SharedArrayBuffer(12));
+				link.post({ subject, workloads, sampleMs, control });
+				const list = (await link.reply()) as { route: string; workload: number }[];
+				const realm = (op: Op, arg: number) => {
+					control[1] = op;
+					control[2] = arg;
+					Atomics.add(control, 0, 1);
+					Atomics.notify(control, 0);
+					return link.reply();
+				};
+				timings[s] ??= list.map(({ route, workload: w }) => ({ workload: workloads[w].name, op: workloads[w].op, route, calls: 0, ns: [] }));
+				list.forEach(({ workload: w }, index) => {
+					bodies.push({ realm, index, timing: timings[s][index], items: workloads[w].items, calls: 0 });
+				});
 				if (!("route" in subject)) continue;
-				progress(`checking ${subject.route} on ${workload.name} ${workload.op}`);
-				const got = await realms[r](Op.Output, i);
-				if (got !== hex(want)) {
-					throw new Error(`${subject.route} differs from native Rust on ${workload.name} ${workload.op}:\nnative ${hex(want)}\ngot    ${got}`);
+				progress(`checking ${subject.route} for ${of}`);
+				for (const [i, workload] of workloads.entries()) {
+					const got = await realm(Op.Output, i);
+					if (got !== want[i]) {
+						throw new Error(`${subject.route} differs from native Rust on ${workload.name} ${workload.op}:\nnative ${want[i]}\ngot    ${got}`);
+					}
 				}
 			}
-		}
 
-		for (const body of bodies) {
-			progress(`warming up ${body.route} on ${body.workload.name} ${body.workload.op}`);
-			body.calls = (await body.realm(Op.Warm, body.index)) as number;
-		}
-
-		// Each round runs the bodies in a new random order, so drift spreads over all of them
-		// and no body keeps a slot: a fixed order runs identical code slower in one slot than
-		// in another. Progress is per round: a report per sample slows Chrome's samples by
-		// about 10%.
-		const span = `${workloads[0].name} through ${workloads[workloads.length - 1].name}`;
-		const random = prng(options.seed);
-		const order = [...bodies];
-		for (let round = 0; round < options.rounds; round++) {
-			progress(`timing round ${round + 1} of ${options.rounds} on ${span}`);
-			shuffle(order, random);
-			for (const body of order) {
-				const ms = (await body.realm(Op.Sample, body.index)) as number;
-				body.ns.push((ms * 1e6) / (body.calls * body.workload.items));
+			// Warm-up and sampling each take the bodies in a new random order, so drift spreads
+			// over all of them and no body keeps a slot: a fixed order runs identical code slower
+			// in one slot than in another. Progress is per step: a report per sample slows
+			// Chrome's samples by about 10%.
+			progress(`warming up ${of}`);
+			shuffle(bodies, random);
+			for (const body of bodies) {
+				body.calls = (await body.realm(Op.Warm, body.index)) as number;
+				body.timing.calls ||= body.calls;
 			}
+			progress(`timing ${of}`);
+			shuffle(bodies, random);
+			for (const body of bodies) {
+				const ms = (await body.realm(Op.Sample, body.index)) as number;
+				body.timing.ns.push((ms * 1e6) / (body.calls * body.items));
+			}
+		} finally {
+			for (const link of links) link.close();
 		}
-
-		return bodies.map(({ workload, route, calls, ns }) => ({ workload: workload.name, op: workload.op, route, calls, ns }));
-	} finally {
-		for (const link of links) link.close();
 	}
+	return timings.flat();
 }
 
 /**
