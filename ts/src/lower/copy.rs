@@ -77,12 +77,16 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 
 	/// Whether a `ty` is, or holds by value at any depth, a part that `object` says is a JS
 	/// object, into which a raw pointer may be made through a reference that the crate's
-	/// code can't follow back to where it was borrowed, by any body or by `body` alone.
+	/// code can't follow back to where it was borrowed, by any body or by `body` alone. Only
+	/// a part holding an `UnsafeCell` counts: an assignment of where it is disables a pointer
+	/// made through a reference to anything else, so a read through one after is undefined
+	/// in both Stacked and Tree Borrows.
 	pub fn taken(&self, body: DefId, ty: Ty<'tcx>, object: &dyn Fn(Ty<'tcx>) -> bool) -> bool {
 		let (writes, polymorphic) = (&self.writes, self.polymorphic());
 		let local = writes.taken_in.get(&body);
 		by_value(self.tcx, self.typing_env(), ty).any(|part| {
 			object(part)
+				&& !part.is_freeze(self.tcx, self.typing_env())
 				&& (writes.contains(&writes.taken, false, self.tcx, part, polymorphic)
 					|| local.is_some_and(|local| writes.contains(local, false, self.tcx, part, polymorphic)))
 		})

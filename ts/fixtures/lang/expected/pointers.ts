@@ -20,14 +20,17 @@ import type * as Log from "./pointers.Log.ts";
 import type * as pointers_Node from "./pointers.Node.ts";
 import type * as Outer from "./pointers.Outer.ts";
 import type * as pointers_Pair from "./pointers.Pair.ts";
+import type * as Reattached from "./pointers.Reattached.ts";
 import * as Reset from "./pointers.Reset.ts";
 import type * as pointers_Run from "./pointers.Run.ts";
 import * as Segment from "./pointers.Segment.ts";
+import type * as pointers_Slot from "./pointers.Slot.ts";
 import type * as Span from "./pointers.Span.ts";
 import type * as Stable from "./pointers.Stable.ts";
 import type * as Viewed from "./pointers.Viewed.ts";
 import type * as Waiter from "./pointers.Waiter.ts";
 import * as Waiters from "./pointers.Waiters.ts";
+import type * as pointers_Window from "./pointers.Window.ts";
 import * as Wrapped from "./pointers.Wrapped.ts";
 
 /** Put `node` in the list just before `at`. */
@@ -1128,6 +1131,54 @@ export function nextRead$pointers_Loaded(items: rt.Iter<Loaded.Loaded>): Loaded.
 	return option_map$1cfrse5(rt.iterToOption(items.next()), (r: Loaded.Loaded): Loaded.Loaded => {
 		return r;
 	});
+}
+
+/**
+ * Pointers callees keep, through references, to values with no cell in them, which their
+ * variables are assigned again past while they are kept: each made again before it is
+ * read, as zlib's stream takes its window each round: one into an array, and one into a
+ * struct by a callee over a type parameter.
+ */
+export function reattached(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const window: pointers_Window.Window = { at: rt.NULL };
+	let buf: rt.u16[] = Array.from({ length: 4 }, (): rt.u16 => {
+		return 0;
+	});
+	const slot: pointers_Slot.Slot = { at: rt.NULL };
+	let pair: Reattached.Reattached = { _0: 0, _1: 0 };
+	for (const n of rt.byteSliceView(data)) {
+		attachWindow(window, buf);
+		const _18: rt.u16 = (((n as rt.u16)) << 7) & 0xffff;
+		const _22: rt.usize = rt.u8Rem(n, 4) as rt.usize;
+		if (!(_22 < 4)) {
+			rt.panic("index out of bounds: the len is " + 4 + " but the index is " + _22);
+		}
+		window.at[_22] = window.at[_22] ^ _18;
+		rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap(buf, (b: rt.u16): rt.u8 => {
+			return (b >> 4) & 0xff;
+		})), undefined, true);
+		const _29: rt.u16 = n as rt.u16;
+		buf = Array.from({ length: 4 }, (): rt.u16 => {
+			return _29;
+		});
+		const _32: Reattached.Reattached = pair;
+		attach$pointers_Reattached(rt.place(() => slot.at, (value) => slot.at = value), _32);
+		const _33: rt.u8 = rt.u8WrappingAdd(slot.at._0, n);
+		slot.at._1 = _33;
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(pair._0, pair._1)), undefined, true);
+		pair = { _0: pair._1, _1: n };
+	}
+	rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap(buf, (b2: rt.u16): rt.u8 => {
+		return b2 & 0xff;
+	})), undefined, true);
+}
+
+export function attachWindow(window: pointers_Window.Window, to: rt.u16[]): void {
+	window.at = to;
+}
+
+export function attach$pointers_Reattached(at: rt.Place<Reattached.Reattached>, to: Reattached.Reattached): void {
+	at.v = to;
 }
 
 //# sourceMappingURL=pointers.ts.map

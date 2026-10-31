@@ -12,7 +12,10 @@ differential tests against native Rust.
 Found by [moq-dev/rust2#354](https://github.com/moq-dev/rust2/pull/354): a `&[u8; N]` is an
 `rt.ByteSlice`, and each reference to one array is its own object, so `ptr::eq(&a, &a)`
 translates to `a === b` of two objects, `false`. `ptr::swap` copies through `.slice()`,
-which an `rt.ByteSlice` lacks. Compare by `data` and `start`, and copy by
+which an `rt.ByteSlice` lacks. A `*mut [u8; N]` made of a `&mut [u8; N]` parameter, as
+in `fn attach(w: &mut Window, to: &mut [u8; 4]) { w.at = to }`, stores the view where the
+field's type is a `Uint8Array`, so `(*w.at)[i]` indexes the view and fails `tsc`.
+Compare by `data` and `start`, and copy by
 `rt.byteSliceToArray`, or refuse until [Unsafe code the translator can model](/quest/m3/ts-unsafe.md)
 types pointers.
 
