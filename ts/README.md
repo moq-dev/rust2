@@ -687,16 +687,17 @@ they need.
   noise, and Node's varint decode at 1.11-1.15.
 - A function of the crate's that only translated code calls and that returns a `Result`
   of byte slices and scalars, such as `Result<(u64, &[u8]), E>`, whose error is one JS
-  value, returns the `Ok`'s first part, or `undefined` for an error. It writes the rest of
-  the `Ok`'s parts, or the error, into a module-level slot, which every function returning
-  that payload type shares, named for the first of them in source order with its suffix,
-  as `readOut` or `leadOut$u16`, at its JS `return`, after its drops, and its caller
-  reads them at once, so one that returns another's result as is returns the call.
-  Returning the first part keeps a `u64` past 2^31, which a function too big to inline
-  boxes, out of the long-lived slot: Chrome's 8-byte leading-ones varints took 1.06-1.09x
-  `main`'s time writing it there, and 0.87-0.92x this way. The slot's fields start as
-  `undefined`, so V8 keeps them tagged. The function as a value is an arrow that rebuilds
-  the `Result`.
+  value that is never `undefined`, writes the `Ok`'s parts into a module-level slot and returns the error or
+  `undefined`. The slot is shared by every function returning that payload type, named
+  for the first of them in source order with its suffix, as `readOut` or `leadOut$u16`.
+  The function writes it at its JS `return`, after its drops, and its caller reads it at
+  once, so one that returns another's result as is returns the call. The slot's fields
+  start as `undefined`, so V8 keeps them tagged. When the `Ok`'s first part is a number,
+  the function returns that, or `undefined` for an error, and writes the error into the
+  slot instead: V8 boxes a number past 2^31 that a function too big to inline writes into
+  the long-lived slot, which made Chrome's 8-byte leading-ones varints 1.06-1.09x `main`'s
+  time. A slice's bytes stay in the slot, since returning them gave back frame decode. The
+  function as a value is an arrow that rebuilds the `Result`.
 - A `BTreeMap` is a B+ tree of up to 64 keys a node, O(log n) as std's B-tree is: its
   leaves hold the keys and values and link to their neighbors, which iterators walk from
   either end, and its branches hold each child's lower bound. A node's slots shift in a

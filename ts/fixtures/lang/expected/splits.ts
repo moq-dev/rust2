@@ -38,17 +38,17 @@ export function two(dataData: Uint8Array, dataStart: number, dataLen: number): [
 }
 
 /** `n` bytes, or how many it needed. */
-export function take(dataData: Uint8Array, dataStart: number, dataLen: number, n: rt.usize): Uint8Array | undefined {
+export function take(dataData: Uint8Array, dataStart: number, dataLen: number, n: rt.usize): Short.Short | undefined {
 	if (!(n <= dataLen)) {
-		At.splitOut$returns_Split.err = { tag: "Need", _0: n } as Short.Short;
-		return undefined;
+		return { tag: "Need", _0: n } as Short.Short;
 	}
+	At.splitOut$returns_Split.p_0Data = dataData;
 	At.splitOut$returns_Split.p_0Start = dataStart;
 	At.splitOut$returns_Split.p_0Len = n;
 	At.splitOut$returns_Split.p_1Data = dataData;
 	At.splitOut$returns_Split.p_1Start = dataStart + n;
 	At.splitOut$returns_Split.p_1Len = dataLen - n;
-	return dataData;
+	return undefined;
 }
 
 /** The byte after the first, or an error that is itself an enum, held whole. */
@@ -237,13 +237,13 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 				return _2[0].data[_2[0].start + 3] ^ (_2[1].length & 0xff);
 			}));
 		}
-		const part: Uint8Array | undefined = take(dataData, dataStart, dataLen, 3);
+		const err2: Short.Short | undefined = take(dataData, dataStart, dataLen, 3);
+		const part: Uint8Array = At.splitOut$returns_Split.p_0Data;
 		const part2: number = At.splitOut$returns_Split.p_0Start;
 		const part3: number = At.splitOut$returns_Split.p_0Len;
 		const part6: number = At.splitOut$returns_Split.p_1Len;
-		const err2: Short.Short | undefined = part === undefined ? At.splitOut$returns_Split.err as Short.Short : undefined;
-		if (part !== undefined) {
-			rt.byteVecPush(out, opaque(part as Uint8Array, part2, part3));
+		if (err2 === undefined) {
+			rt.byteVecPush(out, opaque(part, part2, part3));
 			rt.byteVecPush(out, part6 & 0xff);
 		} else {
 			const e: Short.Short = err2 as Short.Short;

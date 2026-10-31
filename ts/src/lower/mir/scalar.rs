@@ -234,10 +234,11 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 
 	/// Where `instance` hands back its `Ok`'s parts, if it does: a function of the crate's
 	/// that only translated code calls directly, and that returns a `Result` of byte slices
-	/// and scalars whose error is one value, such as `Result<(u64, &[u8]), E>`, writes the
-	/// `Ok`'s parts into a module-level slot its caller reads at once, and returns its error
-	/// or `undefined`. One whose first part is a number returns that, or `undefined` for an
-	/// error, and writes the error into the slot instead.
+	/// and scalars whose error is one value that is never `undefined`, such as
+	/// `Result<(u64, &[u8]), E>`, writes the `Ok`'s parts into a module-level slot its
+	/// caller reads at once, and returns its error or `undefined`. One whose first part is
+	/// a number returns that, or `undefined` for an error, and writes the error into the
+	/// slot instead.
 	pub(crate) fn slotted(&mut self, instance: ty::Instance<'tcx>) -> Option<Slotted<'tcx>> {
 		if let Some(slotted) = self.slotted.get(&instance) {
 			return slotted.clone();
@@ -270,14 +271,14 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 		}
 		let mut parts = Vec::new();
 		shape.parts("", &mut parts);
-		// A number is returned rather than written to the long-lived slot, where V8 boxes
-		// one past 2^31 that a function too big to inline writes; the error then goes in
-		// the slot. Else the error is returned, so it must never be `undefined`.
-		let returned = matches!(parts[0].1, Part::Value(first) if first.is_numeric());
 		let erased = self.erases_to(err);
-		if !returned && (erased.undefined || erased.none || erased.param || erased.pending || erased.outer_pending) {
+		if erased.undefined || erased.none || erased.param || erased.pending || erased.outer_pending {
 			return None;
 		}
+		// A number is returned rather than written to the long-lived slot, where V8 boxes
+		// one past 2^31 that a function too big to inline writes; the error then goes in
+		// the slot.
+		let returned = matches!(parts[0].1, Part::Value(first) if first.is_numeric());
 		let fields: Vec<String> = parts.iter().map(|(suffix, _)| format!("p{suffix}")).collect();
 		let sym = match self.slots.get(&ok) {
 			Some(&sym) => sym,

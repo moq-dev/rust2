@@ -7,21 +7,21 @@ export interface At {
 	_0: rt.usize;
 }
 
-export function split$returns_Split(self: At, dataData: Uint8Array, dataStart: number, dataLen: number): Uint8Array | undefined {
+export function split$returns_Split(self: At, dataData: Uint8Array, dataStart: number, dataLen: number): returns_Error.Error | undefined {
 	const mid: number = self._0;
 	const _5 = { tag: "Short", _0: self._0 } as returns_Error.Error;
 	if (!(mid <= dataLen)) {
-		splitOut$returns_Split.err = _5;
-		return undefined;
+		return _5;
 	}
+	splitOut$returns_Split.p_0Data = dataData;
 	splitOut$returns_Split.p_0Start = dataStart;
 	splitOut$returns_Split.p_0Len = mid;
 	splitOut$returns_Split.p_1Data = dataData;
 	splitOut$returns_Split.p_1Start = dataStart + mid;
 	splitOut$returns_Split.p_1Len = dataLen - mid;
-	return dataData;
+	return undefined;
 }
 
-export const splitOut$returns_Split: { err: unknown; p_0Start: number; p_0Len: number; p_1Data: Uint8Array; p_1Start: number; p_1Len: number } = { err: undefined, p_0Start: undefined as never, p_0Len: undefined as never, p_1Data: undefined as never, p_1Start: undefined as never, p_1Len: undefined as never };
+export const splitOut$returns_Split: { p_0Data: Uint8Array; p_0Start: number; p_0Len: number; p_1Data: Uint8Array; p_1Start: number; p_1Len: number } = { p_0Data: undefined as never, p_0Start: undefined as never, p_0Len: undefined as never, p_1Data: undefined as never, p_1Start: undefined as never, p_1Len: undefined as never };
 
 //# sourceMappingURL=returns.At.ts.map

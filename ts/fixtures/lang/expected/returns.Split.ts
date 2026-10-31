@@ -15,8 +15,8 @@ export class of$returns_At {
 	}
 
 	split$Split(a: rt.ByteSlice): rt.Result<[rt.ByteSlice, rt.ByteSlice], returns_Error.Error> {
-		const part = At.split$returns_Split(this.v, a.data, a.start, a.length);
-		const result: rt.Result<[rt.ByteSlice, rt.ByteSlice], returns_Error.Error> = part === undefined ? rt.Err(At.splitOut$returns_Split.err as returns_Error.Error) : rt.Ok([new rt.ByteSlice(part, At.splitOut$returns_Split.p_0Start, At.splitOut$returns_Split.p_0Len), new rt.ByteSlice(At.splitOut$returns_Split.p_1Data, At.splitOut$returns_Split.p_1Start, At.splitOut$returns_Split.p_1Len)] as [rt.ByteSlice, rt.ByteSlice]);
+		const err = At.split$returns_Split(this.v, a.data, a.start, a.length);
+		const result: rt.Result<[rt.ByteSlice, rt.ByteSlice], returns_Error.Error> = err !== undefined ? rt.Err(err as returns_Error.Error) : rt.Ok([new rt.ByteSlice(At.splitOut$returns_Split.p_0Data, At.splitOut$returns_Split.p_0Start, At.splitOut$returns_Split.p_0Len), new rt.ByteSlice(At.splitOut$returns_Split.p_1Data, At.splitOut$returns_Split.p_1Start, At.splitOut$returns_Split.p_1Len)] as [rt.ByteSlice, rt.ByteSlice]);
 		return result;
 	}
 }
