@@ -17,8 +17,8 @@
 //! hashes of bytes, ranges of `Bound`s and of the crate's own `RangeBounds`, the equality
 //! of `Result`s and std's errors, inclusive ranges read through each adaptor, iterators'
 //! size hints, the capacity overflows collections reserving by them panic with, tuples of
-//! collections collected and extended by their items, and zero-sized values, which MIR
-//! never assigns, with std's impls of them.
+//! collections collected and extended by their items, zero-sized values, which MIR
+//! never assigns, with std's impls of them, and functions generic over an array's length.
 //!
 //! `harness::run` is the entry point both sides of the differential test run, and
 //! `fmt::Fault` an error only `caller.ts` prints.
@@ -58,6 +58,7 @@ mod ints;
 mod iters;
 mod joins;
 mod keys;
+mod lengths;
 mod lists;
 mod locals;
 mod locks;

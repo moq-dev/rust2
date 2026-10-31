@@ -278,7 +278,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 							let slots = slots
 								.into_iter()
 								.map(|(name, slot_ty)| {
-									let slot_ty = self.instantiate(slot_ty, args);
+									let slot_ty = instantiate(tcx, self.typing_env(), slot_ty, args);
 									let value = self.snapshot(
 										v().member(name.clone()),
 										Ty::new_maybe_uninit(tcx, slot_ty),
@@ -317,18 +317,33 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		)
 	}
 
-	/// The type of field `did` of an ADT with `args`.
-	pub fn field_ty(&self, did: rustc_hir::def_id::DefId, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
-		self.instantiate(self.tcx.type_of(did).instantiate_identity().skip_norm_wip(), args)
+	/// The type of field `did` of an ADT with `args`, normalized in the translator's environment.
+	pub fn field_ty(&self, did: DefId, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
+		field_ty(self.tcx, self.typing_env(), did, args)
 	}
+}
 
-	/// `ty`, over an item's own type parameters, with `args` for them.
-	pub fn instantiate(&self, ty: Ty<'tcx>, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
-		let ty = EarlyBinder::bind(self.tcx, ty);
-		self.tcx
-			.try_instantiate_and_normalize_erasing_regions(args, self.typing_env_pub(), ty)
-			.unwrap_or_else(|_| ty.instantiate(self.tcx, args).skip_norm_wip())
-	}
+/// The type of field `did` of an ADT with `args`, normalized in `env`, the bounds of the
+/// body naming it.
+pub fn field_ty<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	env: ty::TypingEnv<'tcx>,
+	did: DefId,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Ty<'tcx> {
+	instantiate(tcx, env, tcx.type_of(did).instantiate_identity().skip_norm_wip(), args)
+}
+
+/// `ty`, over an item's own type parameters, with `args` for them, normalized in `env`.
+pub fn instantiate<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	env: ty::TypingEnv<'tcx>,
+	ty: Ty<'tcx>,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Ty<'tcx> {
+	let ty = EarlyBinder::bind(tcx, ty);
+	tcx.try_instantiate_and_normalize_erasing_regions(args, env, ty)
+		.unwrap_or_else(|_| ty.instantiate(tcx, args).skip_norm_wip())
 }
 
 /// The types the translated crates' code writes into in place: through a projection, as `p.x = 1`

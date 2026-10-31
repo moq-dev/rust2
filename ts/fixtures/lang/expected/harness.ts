@@ -30,17 +30,17 @@ import { values as hashes_values, random, bytes as hashes_bytes } from "./hashes
 import { hints, reserves } from "./hints.ts";
 import { holds } from "./holds.ts";
 import { u8Op, u16Op, u32Op, u64Op, u128Op, usizeOp, i8Op, i16Op, i32Op, i64Op, i128Op, isizeOp, i8Neg, i16Neg, i32Neg, i64Neg, i128Neg, isizeNeg, cast as ints_cast, convert, parses as ints_parses, widenings } from "./ints.ts";
-import { adaptors, consumers as iters_consumers, reducers, peekedOthers, skips, ranked as iters_ranked, ranges as iters_ranges, options as iters_options, own, values as iters_values, returned, zips, zipsBack, rangeFroms, rangeMethods, compares } from "./iters.ts";
+import { adaptors, consumers as iters_consumers, reducers, peekedOthers, skips, ranked as iters_ranked, ranges as iters_ranges, options as iters_options, optionItems, own, values as iters_values, returned, zips, zipsBack, rangeFroms, rangeMethods, compares } from "./iters.ts";
 import { joins } from "./joins.ts";
 import { keys as keys_keys, overrides, bytes as keys_bytes, lentKeys, lentValues, arrays, byteRefs } from "./keys.ts";
-import { lists as lists_lists } from "./lists.ts";
+import { lengths } from "./lengths.ts";
 import { locals } from "./locals.ts";
 import { locks, relock, rwlocks } from "./locks.ts";
 import { u8s as methods_u8s, u16s as methods_u16s, u32s as methods_u32s, u64s as methods_u64s, u128s as methods_u128s, usizes as methods_usizes, i8s as methods_i8s, i16s as methods_i16s, i32s as methods_i32s, i64s as methods_i64s, i128s as methods_i128s, isizes as methods_isizes } from "./methods.ts";
 import { nested as nested_nested } from "./nested.ts";
 import { objects } from "./objects.ts";
 import { orders, bytes as orders_bytes, tuples as orders_tuples, held as orders_held, btrees } from "./orders.ts";
-import { lists as pointers_lists, shared as pointers_shared, places as pointers_places, unchecked, nested as pointers_nested, copies as pointers_copies, sentinels, cells as pointers_cells, rebound as pointers_rebound, lapsed, writers, made as pointers_made, segments, uninitRuns, iteratedRuns, besideWritten, waiters, taken as pointers_taken, bytes as pointers_bytes, loaded } from "./pointers.ts";
+import { lists, shared as pointers_shared, places as pointers_places, unchecked, nested as pointers_nested, copies as pointers_copies, sentinels, cells as pointers_cells, rebound as pointers_rebound, lapsed, writers, made as pointers_made, segments, uninitRuns, iteratedRuns, besideWritten, waiters, taken as pointers_taken, bytes as pointers_bytes, loaded } from "./pointers.ts";
 import { refs, toRefs } from "./refs.ts";
 import { u8s as saturates_u8s, u16s as saturates_u16s, u32s as saturates_u32s, u64s as saturates_u64s, u128s as saturates_u128s, usizes as saturates_usizes, i8s as saturates_i8s, i16s as saturates_i16s, i32s as saturates_i32s, i64s as saturates_i64s, i128s as saturates_i128s, isizes as saturates_isizes } from "./saturates.ts";
 import { separated } from "./separated.ts";
@@ -144,7 +144,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::copies", (_2140: rt.u8, data40: rt.ByteSlice, out41: rt.ByteVec): undefined => {
 		pointers_copies(data40, out41);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::lists", (_2141: rt.u8, data41: rt.ByteSlice, out42: rt.ByteVec): undefined => {
-		pointers_lists(data41, out42);
+		lists(data41, out42);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::nested", (_2142: rt.u8, data42: rt.ByteSlice, out43: rt.ByteVec): undefined => {
 		pointers_nested(data42, out43);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::places", (_2143: rt.u8, data43: rt.ByteSlice, out44: rt.ByteVec): undefined => {
@@ -231,7 +231,9 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		pointers_bytes(data83, out84);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::loaded", (_2184: rt.u8, data84: rt.ByteSlice, out85: rt.ByteVec): undefined => {
 		loaded(data84, out85);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["orders::btrees", btrees as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["lists::lists", lists_lists as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["orders::btrees", btrees as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["lengths::lengths", lengths as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["iters::option_items", (_2185: rt.u8, data85: rt.ByteSlice, out86: rt.ByteVec): undefined => {
+		optionItems(data85, out86);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */

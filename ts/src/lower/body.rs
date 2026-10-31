@@ -105,7 +105,7 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 			return future.member("poll").call(values);
 		}
 		if let ty::InstanceKind::Item(did) = instance.def
-			&& self.t.lowers(instance)
+			&& self.t.lowers(self.t.typing_env_pub(), instance)
 		{
 			let values: Vec<Expr> = args.into_iter().map(Expr::typed).collect();
 			// An `async fn` that only makes its future: the future, made here.
@@ -278,7 +278,10 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 		{
 			let sym = match self.t.bound_fn(instance, span) {
 				Some(sym) => Some(sym),
-				None => self.t.lowers(instance).then(|| self.t.callee(instance, span)),
+				None => self
+					.t
+					.lowers(self.t.typing_env_pub(), instance)
+					.then(|| self.t.callee(instance, span)),
 			};
 			if let Some(sym) = sym {
 				return match sig.output().is_unit() {
