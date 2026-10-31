@@ -72,7 +72,7 @@ export function statics(data: rt.ByteSlice, out: rt.ByteVec): void {
 		if (!(_84 < 4)) {
 			rt.panic("index out of bounds: the len is " + 4 + " but the index is " + _84);
 		}
-		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_83.data[_83.start + _84], table() === table() ? 1 : 0)), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_83.data[_83.start + _84], rt.byteSliceSame(table(), table()) ? 1 : 0)), undefined, true);
 	}
 	rt.atomicStore(COUNT, { hi: 0xffffffff, lo: 0xfffffffd } as rt.u64, 0);
 	rt.atomicStore(SIGNED, -128, 0);

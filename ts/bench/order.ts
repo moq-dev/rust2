@@ -1,6 +1,7 @@
 // The `order/` workloads' hand-written route: `bench.rs`'s op 12, as TypeScript orders
 // numbers without a library: a typed array's `sort`, a stable `sort` by key, a loop for
-// the greatest and least, and a binary heap of its own, as JS has none.
+// the greatest and least, a binary heap of its own, as JS has none, and a `Map` of the
+// last value of each key, its keys then sorted.
 
 /** Run op 12, as `bench::run` does, for the selector and the count `data` starts with. */
 export function order(selector: number, data: Uint8Array): Uint8Array {
@@ -24,6 +25,15 @@ export function order(selector: number, data: Uint8Array): Uint8Array {
 				if (x < lo) lo = x;
 			}
 			v = Uint32Array.of(hi, lo);
+			break;
+		}
+		case 5:
+		case 6: {
+			const last = new Map<number, number>();
+			for (const x of v) last.set(x % 512, x);
+			const keys = Uint32Array.from(last.keys()).sort();
+			const end = keys[keys.length - 1];
+			v = Uint32Array.of(keys[0], keys.length, selector === 5 ? (last.get(end) as number) : end);
 			break;
 		}
 		default: {

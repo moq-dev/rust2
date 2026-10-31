@@ -1177,7 +1177,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				) => Some(ObjectKind::Class),
 				// A place, unless a pointer to what it holds is that object.
 				Some(library::Std::MaybeUninit) => match self.pointee(args.type_at(0)) {
-					pointer::Pointee::Object => self.object_kind(args.type_at(0)),
+					pointer::Pointee::Object | pointer::Pointee::Bytes => self.object_kind(args.type_at(0)),
 					pointer::Pointee::Place => None,
 				},
 				Some(_) => None,

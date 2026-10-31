@@ -24,14 +24,14 @@ generic std gap is planned here even when moq never calls it.
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
 - [Judging writes in a body generic over a const](/quest/m3/ts-const-generic-writes.md) - a function generic over `const N` whose calls take a type holding `N` translates instead of panicking
 - [Arrays of bytes a flattened Option reference lends](/quest/m3/ts-flatten-byte-options.md) - `iter().flatten()` over `&[Option<[u8; N]>]` yields `rt.ByteSlice`s
-- [Raw pointers to arrays of bytes](/quest/m3/ts-byte-array-pointers.md) - `ptr::eq`, `swap`, `read`, and `write` of pointers to a `[u8; N]` keep std's semantics or refuse
 - [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are
 - [ptr::replace whose result nothing reads](/quest/m3/ts-ptr-replace-unread.md) - `ptr::replace` with its result discarded type-checks
 - [LinkedList](/quest/m3/ts-linked-list.md) - `LinkedList` and its methods translate
-- [A B-tree's collect by std's sort and dedup](/quest/m3/ts-btree-collect-order.md) - collecting into a B-tree keeps the keys std's does when a key's impls disagree
+- [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements
+- [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
 - [A &mut str to any String](/quest/m3/ts-str-places.md) - `make_ascii_*` of a `String` a tuple, an array, or a `Vec` holds, and of a part of one, translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
 - [A crate's own Extend in a tuple](/quest/m3/ts-tuple-own-extend.md) - `collect` and `extend` into a tuple holding a crate's `Extend` type translate

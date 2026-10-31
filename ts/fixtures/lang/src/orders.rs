@@ -3,12 +3,13 @@
 //! it and each drop, so which tests run, in what order, which of equal values comes out,
 //! and when each value drops all show. Then byte arrays, slices, and vectors, by their
 //! bytes and then their length, `Result`s, `Poll`s, and deques, by what they hold, and
-//! tuples, by their fields.
+//! tuples, by their fields. Then B-trees collected of keys whose impls disagree.
 
 use std::cell::RefCell;
 use std::cmp::{self, Ordering, Reverse};
 use std::collections::binary_heap::PeekMut;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque};
+use std::marker::PhantomData;
 use std::task::Poll;
 
 thread_local! {
@@ -541,4 +542,188 @@ pub fn held(data: &[u8], out: &mut Vec<u8>) {
 	sorted.sort();
 	out.push(sorted.is_sorted() as u8);
 	out.extend(sorted.iter().max().map(|r| r.is_ok() as u8));
+}
+
+/// A key whose `Ord` orders by `key`, and whose `PartialOrd` and `PartialEq` judge by
+/// what `mode` picks: all three agree, or `lt` reverses `cmp`, or `==` tells apart keys
+/// `cmp` finds equal, or `lt` and `==` see only half the key, or each judges its own way.
+/// Each call logs which it is and the two tags.
+#[derive(Clone, Copy)]
+struct Torn {
+	key: u8,
+	tag: u8,
+	mode: u8,
+}
+
+fn torn(tag: usize, key: u8, mode: u8) -> Torn {
+	Torn {
+		key: key % 8,
+		tag: tag as u8,
+		mode,
+	}
+}
+
+impl Torn {
+	/// What `PartialOrd` orders by.
+	fn rank(&self) -> i16 {
+		match self.mode {
+			1 => -i16::from(self.key),
+			3 | 4 => i16::from(self.key / 2),
+			_ => i16::from(self.key),
+		}
+	}
+
+	/// What `PartialEq` compares.
+	fn class(&self) -> u16 {
+		match self.mode {
+			2 => u16::from(self.key) << 8 | u16::from(self.tag),
+			3 => u16::from(self.key / 2),
+			4 => u16::from(self.tag % 2),
+			_ => u16::from(self.key),
+		}
+	}
+}
+
+impl PartialEq for Torn {
+	fn eq(&self, other: &Self) -> bool {
+		log([b'=', self.tag, other.tag]);
+		self.class() == other.class()
+	}
+
+	fn ne(&self, other: &Self) -> bool {
+		log([b'!', self.tag, other.tag]);
+		self.class() != other.class()
+	}
+}
+
+impl Eq for Torn {}
+
+impl PartialOrd for Torn {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		log([b'p', self.tag, other.tag]);
+		Some(self.rank().cmp(&other.rank()))
+	}
+
+	fn lt(&self, other: &Self) -> bool {
+		log([b'<', self.tag, other.tag]);
+		self.rank() < other.rank()
+	}
+}
+
+impl Ord for Torn {
+	fn cmp(&self, other: &Self) -> Ordering {
+		log([b'c', self.tag, other.tag]);
+		self.key.cmp(&other.key)
+	}
+}
+
+/// Zero-sized, equal by `cmp` and never by `==`.
+#[derive(Clone, Copy)]
+struct Apart;
+
+impl PartialEq for Apart {
+	fn eq(&self, _: &Self) -> bool {
+		log([b'=', 0, 0]);
+		false
+	}
+}
+
+impl Eq for Apart {}
+
+impl PartialOrd for Apart {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
+
+	fn lt(&self, _: &Self) -> bool {
+		log([b'<', 0, 0]);
+		false
+	}
+}
+
+impl Ord for Apart {
+	fn cmp(&self, _: &Self) -> Ordering {
+		log([b'c', 0, 0]);
+		Ordering::Equal
+	}
+}
+
+/// `collect` and `from` into B-trees of `Torn` keys whose impls disagree as `kind` picks:
+/// a set's sort tests `lt`, a map's `cmp`, and each keeps the last of each run `!=` finds
+/// equal. Of at most 16 keys, of every byte, and of one key over and over: which keys and
+/// values each keeps, in its order, and each call std makes but of more than 16, which
+/// the runtime's sort makes in an order of its own. Then `extend`, which inserts each, and
+/// the set operators, which build as `collect` does from what they yield, of sets that
+/// `insert` built. Then zero-sized keys, which std's sort leaves as they are.
+pub fn btrees(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	let mode = kind % 5;
+	let keys = |bytes: &[u8]| -> Vec<Torn> { bytes.iter().enumerate().map(|(i, &b)| torn(i, b, mode)).collect() };
+	let short = &data[..data.len().min(16)];
+	let runs = [
+		keys(short),
+		keys(data),
+		short.iter().enumerate().map(|(i, _)| torn(i, 5, mode)).collect(),
+	];
+	for keys in runs {
+		let logged = keys.len() <= 16;
+		let set: BTreeSet<Torn> = keys.iter().copied().collect();
+		out.push(set.len() as u8);
+		out.extend(set.iter().map(|k| k.tag));
+		let map: BTreeMap<Torn, u8> = keys.iter().map(|k| (*k, k.tag ^ 0x80)).collect();
+		out.push(map.len() as u8);
+		out.extend(map.iter().flat_map(|(k, &v)| [k.tag, v]));
+		if let [a, b, c, ..] = *keys.as_slice() {
+			out.extend(BTreeSet::from([a, b, c]).iter().map(|k| k.tag));
+			out.extend(
+				BTreeMap::from([(a, 1), (b, 2), (c, 3)])
+					.iter()
+					.flat_map(|(k, &v)| [k.tag, v]),
+			);
+			out.extend(BTreeSet::from([a]).iter().map(|k| k.tag));
+		}
+		out.push(BTreeSet::<Torn>::from([]).len() as u8);
+		// std's own types order and compare as what they hold does.
+		let chunks: BTreeSet<Vec<Torn>> = keys.chunks(2).map(<[Torn]>::to_vec).collect();
+		out.extend(chunks.iter().flat_map(|c| c.iter().map(|k| k.tag)));
+		if logged {
+			flush(out);
+		}
+		// `insert` of each, whose searches call `cmp` in the order of the runtime's tree.
+		let mut extended = BTreeSet::new();
+		extended.extend(keys.iter().copied());
+		out.extend(extended.iter().map(|k| k.tag));
+		let mut entries = BTreeMap::new();
+		entries.extend(keys.iter().map(|k| (*k, k.tag)));
+		out.extend(entries.iter().flat_map(|(k, &v)| [k.tag, v]));
+		let (mut left, mut right) = (BTreeSet::new(), BTreeSet::new());
+		let (l, r) = keys.split_at(keys.len() / 2);
+		left.extend(l.iter().copied());
+		right.extend(r.iter().copied());
+		LOG.with_borrow_mut(Vec::clear);
+		out.extend((&left | &right).iter().map(|k| k.tag));
+		out.extend((&left ^ &right).iter().map(|k| k.tag));
+		if logged {
+			flush(out);
+		}
+		out.extend((&left & &right).iter().map(|k| k.tag));
+		out.extend((&left - &right).iter().map(|k| k.tag));
+		LOG.with_borrow_mut(Vec::clear);
+	}
+	let apart = vec![Apart; short.len()];
+	let set: BTreeSet<Apart> = apart.iter().copied().collect();
+	let units: BTreeMap<Apart, ()> = apart.iter().map(|&k| (k, ())).collect();
+	let map: BTreeMap<Apart, u8> = apart.iter().enumerate().map(|(i, &k)| (k, i as u8)).collect();
+	out.extend([set.len() as u8, units.len() as u8, map.len() as u8]);
+	out.extend(map.values());
+	flush(out);
+	// `PhantomData` compares nothing, so keys holding one agree whatever it names, and
+	// each value but the last of equal keys drops.
+	let phantoms: BTreeMap<Option<PhantomData<Torn>>, Item> = data
+		.iter()
+		.enumerate()
+		.map(|(i, &b)| ((b % 2 == 0).then_some(PhantomData), item(i, b)))
+		.collect();
+	out.extend(phantoms.values().map(|x| x.tag));
+	drop(phantoms);
+	flush(out);
 }

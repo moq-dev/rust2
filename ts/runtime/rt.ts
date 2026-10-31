@@ -843,6 +843,20 @@ export function byteSliceSplitLastMut(s: ByteSlice): [Place<number>, ByteSlice] 
 	return n < 0 ? undefined : [new AtIndex(s.data, s.start + n), new ByteSlice(s.data, s.start, n)];
 }
 
+/**
+ * `ptr::eq` of pointers to `[u8; N]`s: the same null or dangling pointer, or slices of the
+ * same bytes, which separate views of one buffer may hold.
+ */
+export function byteSliceSame(a: ByteSlice, b: ByteSlice): boolean {
+	if (!(a instanceof ByteSlice && b instanceof ByteSlice)) return a === b;
+	return a.data.buffer === b.data.buffer && a.data.byteOffset + a.start === b.data.byteOffset + b.start;
+}
+
+/** `ptr::write` of `bytes` through a pointer to a `[u8; N]`: copied into its slice. */
+export function byteSliceSet(s: ByteSlice, bytes: Uint8Array): void {
+	s.data.set(bytes, s.start);
+}
+
 /** `*r` of a `&[u8; N]`: a copy of its bytes. */
 export function byteSliceToArray(s: ByteSlice): Uint8Array {
 	return s.data.slice(s.start, s.start + s.length);

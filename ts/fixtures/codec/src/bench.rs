@@ -8,7 +8,7 @@
 //! op 12 orders integers by std's own `Ord`.
 
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BinaryHeap};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 use crate::coding::{Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, Form, varint};
 use crate::harness::{decode_error, encode_error, form, lite_version, put_u64, put_usize, take_u64};
@@ -209,9 +209,10 @@ fn ordered(data: &[u8], out: &mut Vec<u8>) {
 	put_u64(out, sum);
 }
 
-/// `count` integers sorted, sorted by a key, searched for the greatest and least, or
-/// pushed onto a `BinaryHeap` and popped off, as `selector` picks, each by `u32`'s own
-/// `Ord`: the first, middle, and last of the order, or the greatest and least.
+/// `count` integers sorted, sorted by a key, searched for the greatest and least, pushed
+/// onto a `BinaryHeap` and popped off, or collected into a `BTreeMap` or `BTreeSet`, as
+/// `selector` picks, each by `u32`'s own `Ord`: the first, middle, and last of the order,
+/// the greatest and least, or the first key, the length, and the last key or its value.
 fn order(selector: u8, data: &[u8], out: &mut Vec<u8>) {
 	let (count, _) = take_u64(data);
 	let count = count.clamp(1, 1 << 16) as u32;
@@ -223,6 +224,18 @@ fn order(selector: u8, data: &[u8], out: &mut Vec<u8>) {
 		3 => {
 			let (hi, lo) = v.iter().fold((0, u32::MAX), |(hi, lo), &x| (hi.max(x), lo.min(x)));
 			v = vec![hi, lo];
+		}
+		5 => {
+			let map: BTreeMap<u32, u32> = v.iter().map(|&x| (x % 512, x)).collect();
+			v = vec![
+				*map.keys().next().unwrap(),
+				map.len() as u32,
+				*map.values().next_back().unwrap(),
+			];
+		}
+		6 => {
+			let set: BTreeSet<u32> = v.iter().map(|&x| x % 512).collect();
+			v = vec![*set.first().unwrap(), set.len() as u32, *set.last().unwrap()];
 		}
 		_ => {
 			let mut heap = BinaryHeap::new();

@@ -154,6 +154,10 @@ export function copy$array_keys_Hop(v: Hop.Hop[]): Hop.Hop[] {
 	return v.map(copy$keys_Hop);
 }
 
+export function copy$array_ptr_array4_u8(v: rt.ByteSlice[]): rt.ByteSlice[] {
+	return v.slice();
+}
+
 export function copy$array_ref_sync_Mutex_u8(v: rt.Mutex<rt.u8>[]): rt.Mutex<rt.u8>[] {
 	return v.slice();
 }
@@ -237,6 +241,13 @@ export function copy$locals_Twin(v: locals_Twin.Twin): locals_Twin.Twin {
 }
 
 export function copy$mem_MaybeUninit_array_u32(v: rt.u32[]): rt.u32[] {
+	if (v === undefined) {
+		return v;
+	}
+	return v.slice();
+}
+
+export function copy$mem_MaybeUninit_array_u8(v: Uint8Array): Uint8Array {
 	if (v === undefined) {
 		return v;
 	}

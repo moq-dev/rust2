@@ -177,7 +177,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let tcx = self.tcx;
 		let decls = &self.mir.local_decls;
 		// Whether `e` is an `rt.ByteSlice` of the place's bytes: a `[u8]`, or a `[u8; N]`
-		// behind a reference.
+		// behind a reference or raw pointer.
 		let mut in_bytes = false;
 		// The projections a union's field consumed with it, down to a slot.
 		let mut consumed = 0;
@@ -312,7 +312,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				| ProjectionElem::PhantomDeref => {}
 			}
 			in_bytes = match elem {
-				ProjectionElem::Deref => bytes_ref(ty),
+				ProjectionElem::Deref => self.bytes_behind(place.local, read, ty),
 				ProjectionElem::Subslice { .. } => in_bytes,
 				_ => false,
 			};
@@ -369,20 +369,30 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		None
 	}
 
-	/// Whether `place` is a `[u8; N]` read through a reference, whose JS value is an
-	/// `rt.ByteSlice` of its bytes rather than a `Uint8Array`, as [`Self::place_expr`]
-	/// reads it.
+	/// Whether `place` is a `[u8; N]` read through a reference or raw pointer, or a
+	/// `MaybeUninit` of one through a raw pointer, whose JS value is an `rt.ByteSlice` of
+	/// its bytes rather than a `Uint8Array`, as [`Self::place_expr`] reads it.
 	pub(super) fn in_bytes(&self, place: Place<'tcx>) -> bool {
 		let mut in_bytes = false;
-		for (base, elem) in place.iter_projections() {
+		for (at, (base, elem)) in place.iter_projections().enumerate() {
 			let ty = base.ty(&self.mir.local_decls, self.tcx).ty;
 			in_bytes = match elem {
-				ProjectionElem::Deref => bytes_ref(ty),
+				ProjectionElem::Deref => self.bytes_behind(place.local, at, ty),
 				ProjectionElem::Subslice { .. } => in_bytes || byte_slice(ty),
 				_ => false,
 			};
 		}
-		in_bytes && byte_array(place.ty(&self.mir.local_decls, self.tcx).ty)
+		in_bytes && byte_array(self.b.t.uninit_inner(place.ty(&self.mir.local_decls, self.tcx).ty))
+	}
+
+	/// Whether `ty`, which projection `at` of a place of `local` derefs, is an
+	/// `rt.ByteSlice` of the bytes it points at: a reference or a raw pointer to a
+	/// `[u8; N]`, but not a box's pointer, which is the box.
+	fn bytes_behind(&self, local: Local, at: usize, ty: Ty<'tcx>) -> bool {
+		use crate::lower::pointer::Pointee;
+		bytes_ref(ty)
+			|| matches!(ty.kind(), ty::RawPtr(pointee, _) if self.b.t.pointee(*pointee) == Pointee::Bytes)
+				&& !(at == 0 && self.box_pointer(local))
 	}
 
 	/// Where a slice pattern's rest of `base`, a `ty`, ends: at `to`, or `to` before its end.
@@ -1932,12 +1942,12 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 			.then(|| format!("a raw pointer to `{ty}` in a variable assigned again while it may point there"))
 	}
 
-	/// Whether a raw pointer to a `ty` is the object JS keeps it in, or with `cells`, is or
-	/// holds an `rt.Cell`. Only an instance decides what a parameter is.
+	/// Whether a raw pointer to a `ty` is, or is a slice of, the object JS keeps it in, or
+	/// with `cells`, is or holds an `rt.Cell`. Only an instance decides what a parameter is.
 	fn pointed_object(&self, ty: Ty<'tcx>, cells: bool) -> bool {
 		let t = &self.b.t;
 		!(t.polymorphic() && ty.has_param())
-			&& (t.pointee(ty) == crate::lower::pointer::Pointee::Object || cells && t.std_of(ty) == Some(Std::Cell))
+			&& (t.pointee(ty) != crate::lower::pointer::Pointee::Place || cells && t.std_of(ty) == Some(Std::Cell))
 	}
 
 	/// Why the pointer std's `def_id` makes of what `reference` points at would not keep
@@ -1954,7 +1964,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		let pointee = tcx.mk_place_deref(reference.place()?);
 		let cell = library::key(tcx, def_id).is_some_and(|(owner, _)| owner == "UnsafeCell");
 		let held = gargs.type_at(0);
-		let place = match cell && self.b.t.pointee(held) == crate::lower::pointer::Pointee::Object {
+		let place = match cell && self.b.t.pointee(held) != crate::lower::pointer::Pointee::Place {
 			true => tcx.mk_place_field(pointee, FieldIdx::ZERO, held),
 			false => pointee,
 		};
