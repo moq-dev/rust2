@@ -4,7 +4,7 @@
 use crate::{
 	arrays, ascii, atomics, borrows, bounds, boxes, captures, cells, chars, chunks, clones, collections, combinators,
 	counts, cows, cycles, defaults, durations, dyns, edits, errors, floats, fmt, folds, generics, hashes, hints, holds,
-	ints, iters, joins, keys, locals, locks, methods, nested, objects, orders, pointers, refs, saturates, separated,
+	ints, iters, joins, keys, lengths, locals, locks, methods, nested, objects, orders, pointers, refs, saturates, separated,
 	shapes, singles, slices, splits, statics, strs, tuples, utf8, wrappers, wraps, zeros,
 };
 
@@ -252,6 +252,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("arrays::given", arrays::given),
 		("pointers::taken", |_, data, out| pointers::taken(data, out)),
 		("pointers::loaded", |_, data, out| pointers::loaded(data, out)),
+		("lengths::lengths", lengths::lengths),
 	]
 }
 

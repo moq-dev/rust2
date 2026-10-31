@@ -162,6 +162,7 @@ a raw pointer to `ByKeyReplace` in `(u16, ByKeyReplace)`, which the crate may pu
 a raw pointer to `ByKeyTake` in `(u16, ByKeyTake)`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1637:52
 `std::ops::DerefMut::deref_mut` of a value JS copies, which is no path at fixtures/reject/src/lib.rs:1646:2
 `std::ops::IndexMut::index_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1652:3
+const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:1854:21
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:132:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:152:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:180:2
