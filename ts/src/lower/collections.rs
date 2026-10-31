@@ -957,7 +957,15 @@ fn btree<'tcx>(
 		("BitOr" | "BitAnd" | "Sub" | "BitXor", _) => {
 			let keys = set_op_keys(b, coll, "btree", owner, values, span)?;
 			let target = btree_new(b, coll, span);
-			Expr::rt("btreeFromSorted", vec![target, keys])
+			// std's dedups what they yield by `!=`, which finds none equal where the key's
+			// impls are derived or std's, and agree.
+			let same = match own_ord(b, key, &mut Default::default()) {
+				true => not_ne_fn(b, key, span),
+				false => Expr::undefined(),
+			};
+			let mut rest = vec![same];
+			rest.extend(entry_droppers(b, coll, span));
+			Expr::rt("btreeFromSorted", super::iter::tail(vec![target, keys], rest))
 		}
 		("Index", "index") => Expr::rt("btreeIndex", values),
 		("Clone", "clone") => {
@@ -987,10 +995,10 @@ fn btree<'tcx>(
 }
 
 /// `collect` and `from` into an empty B-tree of type `coll`, from `source`, an iterator of
-/// type `iter`, which keep the last of equal keys, as std's sorted bulk build does. Of
-/// entries that drop, std's collects into a `Vec` first, and then drops each but the last
-/// of equal keys in the order a stable sort leaves them. The `Vec` reserves as for a
-/// `TrustedLen` iterator if `trusted`.
+/// type `iter`. std's collects into a `Vec` first, reserved as for a `TrustedLen` iterator
+/// if `trusted`, sorts it stably, a set's by `PartialOrd::lt` and a map's by `Ord::cmp`,
+/// unless zero-sized, then builds the tree of each but the last of a run of keys `!=` finds
+/// equal, which drop in order.
 fn btree_collect<'tcx>(
 	b: &mut Body<'_, '_, 'tcx>,
 	coll: Ty<'tcx>,
@@ -1002,7 +1010,11 @@ fn btree_collect<'tcx>(
 	let set = b.t.std_of(coll) == Some(Std::BTreeSet);
 	let target = btree_new(b, coll, span);
 	let key = arg(coll, 0);
-	if !b.t.drops(coll) {
+	let elem = stored(b, coll);
+	let own = own_ord(b, key, &mut Default::default());
+	// Of keys whose impls are derived or std's, which agree, inserting each in turn and
+	// keeping the last of equal ones builds the same tree faster, where none drops.
+	if !own && !b.t.drops(coll) {
 		let mut droppers = vec![Expr::lit("true"), Expr::undefined()];
 		if !set {
 			droppers.push(Expr::undefined());
@@ -1010,13 +1022,13 @@ fn btree_collect<'tcx>(
 		// Into a `Vec` first.
 		let folds = super::iter::implements(b.t, iter, "TrustedLen");
 		droppers.push(super::iter::iter_take(b, iter, folds, span));
-		droppers.push(super::iter::size_of(b, stored(b, coll), span));
+		droppers.push(super::iter::size_of(b, elem, span));
 		droppers.push(Expr::lit(trusted.to_string()));
 		let f = if set { "btreeExtendKeys" } else { "btreeExtend" };
 		return Expr::rt(f, super::iter::tail(vec![target, source], droppers));
 	}
-	// A sort by an `Ord` of the crate's may panic, or leave equal keys in another order.
-	if own_ord(b, key, &mut Default::default()) {
+	// A sort by an impl of the crate's may panic, or leave equal keys in another order.
+	if own && b.t.drops(coll) {
 		return b.err(
 			span,
 			format!(
@@ -1024,14 +1036,25 @@ fn btree_collect<'tcx>(
 			),
 		);
 	}
-	let entries = super::iter::to_array(b, source, iter, stored(b, coll), trusted, span);
-	let droppers = entry_droppers(b, coll, span);
+	let entries = super::iter::to_array(b, source, iter, elem, trusted, span);
+	let sorts = !b.t.zero_sized(elem);
+	let order = match set {
+		true if sorts && own => test_fn(b, key, "lt", span),
+		true => Expr::undefined(),
+		false => Expr::lit(sorts.to_string()),
+	};
+	let same = match own {
+		true => not_ne_fn(b, key, span),
+		false => Expr::undefined(),
+	};
+	let mut rest = vec![order, same];
+	rest.extend(entry_droppers(b, coll, span));
 	let f = if set { "btreeCollectKeys" } else { "btreeCollect" };
-	Expr::rt(f, super::iter::tail(vec![target, entries], droppers))
+	Expr::rt(f, super::iter::tail(vec![target, entries], rest))
 }
 
-/// Whether ordering or comparing a `ty` may run the crate's own `Ord` or `PartialEq`,
-/// rather than one derived, which may panic or disagree with itself.
+/// Whether ordering or comparing a `ty` may run the crate's own `Ord`, `PartialOrd`, or
+/// `PartialEq`, rather than one derived, which may panic or disagree with itself.
 fn own_ord<'tcx>(
 	b: &Body<'_, '_, 'tcx>,
 	ty: Ty<'tcx>,
@@ -1043,9 +1066,6 @@ fn own_ord<'tcx>(
 		return false;
 	}
 	match ty.kind() {
-		ty::Tuple(tys) => tys.iter().any(|t| own_ord(b, t, seen)),
-		ty::Adt(..) if let Some(inner) = option_of(b, ty).or_else(|| arc_of(b, ty)) => own_ord(b, inner, seen),
-		ty::Adt(..) if let Some((inner, _)) = cell_of(b, ty) => own_ord(b, inner, seen),
 		// A binding's, hand-written even where the Rust impl is derived.
 		ty::Adt(adt, _) if b.t.bound_drops(adt.did()).is_some() => true,
 		ty::Adt(adt, args) if b.t.own(adt.did()) => {
@@ -1058,12 +1078,29 @@ fn own_ord<'tcx>(
 					.is_some_and(|imp| tcx.is_automatically_derived(imp))
 			};
 			!derived("Ord", "cmp", &[ty.into()])
+				|| !derived("PartialOrd", "partial_cmp", &[ty.into(), ty.into()])
 				|| !derived("PartialEq", "eq", &[ty.into(), ty.into()])
 				|| adt
 					.all_fields()
 					.any(|f| own_ord(b, f.ty(tcx, args).skip_norm_wip(), seen))
 		}
-		_ => false,
+		// Which compare nothing they name.
+		ty::RawPtr(..) | ty::FnPtr(..) => false,
+		ty::Adt(adt, _) if adt.is_phantom_data() => false,
+		// std's, by each type it holds, which decides whether to look deeper.
+		_ => {
+			let mut walk = ty.walk();
+			walk.next();
+			while let Some(arg) = walk.next() {
+				if let Some(t) = arg.as_type() {
+					walk.skip_current_subtree();
+					if own_ord(b, t, seen) {
+						return true;
+					}
+				}
+			}
+			false
+		}
 	}
 }
 

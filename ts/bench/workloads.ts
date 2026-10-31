@@ -95,7 +95,7 @@ export function workloads(encode: (input: Uint8Array) => Uint8Array): Workload[]
 	out.push({ name: "time/ord/micros-48k", op: "compare", items: count, input: time(11, [...video, ...audio]) });
 
 	// `bench.rs`'s op 12: integers ordered by std's own `Ord`, which the translation tests.
-	const orders = ["sort", "sort-by-key", "iter-max-min", "ord-max-min", "binary-heap"];
+	const orders = ["sort", "sort-by-key", "iter-max-min", "ord-max-min", "binary-heap", "btree-map-collect", "btree-set-collect"];
 	orders.forEach((name, selector) => {
 		out.push({ name: `order/${name}`, op: "order", items: count, input: Uint8Array.of(12, selector, ...u64(BigInt(count))) });
 	});

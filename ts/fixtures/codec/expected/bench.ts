@@ -305,9 +305,10 @@ export function ordered(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /**
- * `count` integers sorted, sorted by a key, searched for the greatest and least, or
- * pushed onto a `BinaryHeap` and popped off, as `selector` picks, each by `u32`'s own
- * `Ord`: the first, middle, and last of the order, or the greatest and least.
+ * `count` integers sorted, sorted by a key, searched for the greatest and least, pushed
+ * onto a `BinaryHeap` and popped off, or collected into a `BTreeMap` or `BTreeSet`, as
+ * `selector` picks, each by `u32`'s own `Ord`: the first, middle, and last of the order,
+ * the greatest and least, or the first key, the length, and the last key or its value.
  */
 export function order(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let v: rt.u32[] = rt.iterToArray(rt.iterMap(new rt.Range(0, rt.u64Low(rt.u64Clamp(takeU64(data)[0], 1, 65536))), (i: rt.u32): rt.u32 => {
@@ -316,45 +317,58 @@ export function order(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
 	if (selector === 0) {
 		rt.sliceSort(v, rt.lt);
 	} else if (selector === 1) {
-		rt.sliceSortByKey(v, (_210: rt.u32): rt.u32 => {
-			return rt.u32Rem(_210, 1024);
+		rt.sliceSortByKey(v, (_212: rt.u32): rt.u32 => {
+			return rt.u32Rem(_212, 1024);
 		}, rt.lt);
 	} else if (selector === 2) {
 		v = [rt.optionUnwrap(rt.iterMax(rt.iterSlice(v), rt.lt)), rt.optionUnwrap(rt.iterMin(rt.iterSlice(v), rt.lt))];
 	} else if (selector === 3) {
-		const _35: [rt.u32, rt.u32] = rt.iterFold(rt.iterSlice(v), [0, 4294967295] as [rt.u32, rt.u32], (_2: [rt.u32, rt.u32], _33: rt.u32): [rt.u32, rt.u32] => {
-			const hi2: rt.u32 = _2[0];
-			const lo2: rt.u32 = _2[1];
-			const x4: rt.u32 = _33;
-			return [rt.max(hi2, x4), rt.min(lo2, x4)] as [rt.u32, rt.u32];
+		const _35: [rt.u32, rt.u32] = rt.iterFold(rt.iterSlice(v), [0, 4294967295] as [rt.u32, rt.u32], (_211: [rt.u32, rt.u32], _33: rt.u32): [rt.u32, rt.u32] => {
+			const hi2: rt.u32 = _211[0];
+			const lo2: rt.u32 = _211[1];
+			const x6: rt.u32 = _33;
+			return [rt.max(hi2, x6), rt.min(lo2, x6)] as [rt.u32, rt.u32];
 		});
 		v = [_35[0], _35[1]];
+	} else if (selector === 5) {
+		const _43: rt.Iter<[rt.u32, rt.u32]> = rt.iterMap(rt.iterSlice(v), (_210: rt.u32): [rt.u32, rt.u32] => {
+			const x5: rt.u32 = _210;
+			return [rt.u32Rem(x5, 512), x5] as [rt.u32, rt.u32];
+		});
+		const map: rt.BTreeMap<rt.u32, rt.u32> = rt.btreeExtend(rt.btreeNew(rt.cmp) as rt.BTreeMap<rt.u32, rt.u32>, _43, true, undefined, undefined, undefined, 8, true);
+		v = [rt.optionUnwrap(rt.iterToOption(rt.btreeKeys(map).next())), rt.btreeLen(map) as rt.u32, rt.optionUnwrap(rt.iterToOption(rt.btreeValues(map).nextBack()))];
+	} else if (selector === 6) {
+		const _65: rt.Iter<rt.u32> = rt.iterMap(rt.iterSlice(v), (_2: rt.u32): rt.u32 => {
+			return rt.u32Rem(_2, 512);
+		});
+		const set: rt.BTreeSet<rt.u32> = rt.btreeExtendKeys(rt.btreeNew(rt.cmp) as rt.BTreeSet<rt.u32>, _65, true, undefined, undefined, 4, true);
+		v = [rt.optionUnwrap(rt.btreeFirstKey(set)), rt.btreeLen(set) as rt.u32, rt.optionUnwrap(rt.btreeFirstKey(set, true))];
 	} else {
 		const heap: rt.BinaryHeap<rt.u32> = rt.heapNew() as rt.BinaryHeap<rt.u32>;
-		for (const _47 of rt.replaceIn(v, [])) {
-			rt.heapPush(heap, _47, rt.le);
+		for (const _87 of rt.replaceIn(v, [])) {
+			rt.heapPush(heap, _87, rt.le);
 		}
 		while (true) {
-			const _53: rt.u32 | undefined = rt.heapPop(heap, rt.le);
-			if (_53 !== undefined) {
-				v.push(_53);
+			const _93: rt.u32 | undefined = rt.heapPop(heap, rt.le);
+			if (_93 !== undefined) {
+				v.push(_93);
 			} else {
 				break;
 			}
 		}
 	}
-	const _63: rt.u32[] = v;
-	const _61: rt.u32 = _63[rt.idx(_63, 0)];
-	const _66: rt.u32[] = v;
-	const _64: rt.u32 = _66[rt.idx(_66, rt.usizeDiv(v.length, 2))];
-	const _73: rt.u32[] = v;
-	const iter2: rt.Iter<rt.u32> = rt.iterSlice([_61, _64, _73[rt.idx(_73, rt.usizeSub(v.length, 1))]]);
+	const _103: rt.u32[] = v;
+	const _101: rt.u32 = _103[rt.idx(_103, 0)];
+	const _106: rt.u32[] = v;
+	const _104: rt.u32 = _106[rt.idx(_106, rt.usizeDiv(v.length, 2))];
+	const _113: rt.u32[] = v;
+	const iter2: rt.Iter<rt.u32> = rt.iterSlice([_101, _104, _113[rt.idx(_113, rt.usizeSub(v.length, 1))]]);
 	while (true) {
-		const _79: rt.u32 | rt.Done = iter2.next();
-		if (_79 === rt.DONE) {
+		const _119: rt.u32 | rt.Done = iter2.next();
+		if (_119 === rt.DONE) {
 			break;
 		}
-		harness_putU64(out, _79 as rt.u64);
+		harness_putU64(out, _119 as rt.u64);
 	}
 }
 
