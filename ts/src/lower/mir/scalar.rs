@@ -8,7 +8,7 @@
 //! on a path, or in a loop that doesn't make its parts again, stays an object, so
 //! nothing is made more often than before, as does one only ever assigned an object's
 //! parts, which saves none. A function that hands back a `Result` in a slot holds its
-//! result so, to write the `Ok`'s parts there, and its callers read them back as parts.
+//! result so, to hand back the `Ok`'s parts, and its callers read them back as parts.
 
 use rustc_abi::VariantIdx;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
@@ -233,10 +233,10 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 	}
 
 	/// Where `instance` hands back its `Ok`'s parts, if it does: a function of the crate's
-	/// that only translated code calls directly, and that returns a `Result` of byte slices and scalars, such as
-	/// `Result<(u64, &[u8]), E>`, returns its error or `undefined`, and writes the `Ok`'s
-	/// parts into a module-level slot its caller reads at once. Its error must be one value
-	/// that is never `undefined`.
+	/// that only translated code calls directly, and that returns a `Result` of byte slices
+	/// and scalars, such as `Result<(u64, &[u8]), E>`, returns the `Ok`'s first part, which
+	/// is never `undefined`, or `undefined` for an error. It writes the rest, or the error,
+	/// which must be one value, into a module-level slot its caller reads at once.
 	pub(crate) fn slotted(&mut self, instance: ty::Instance<'tcx>) -> Option<Slotted<'tcx>> {
 		if let Some(slotted) = self.slotted.get(&instance) {
 			return slotted.clone();
@@ -264,20 +264,18 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 			return None;
 		}
 		let shape = self.shape(ok)?;
-		let erased = self.erases_to(err);
-		if !shape.has_slice()
-			|| shape.has_enum()
-			|| !matches!(self.shape(err), Some(Shape::Leaf(_)))
-			|| erased.undefined
-			|| erased.none
-			|| erased.param
-			|| erased.pending
-			|| erased.outer_pending
-		{
+		if !shape.has_slice() || shape.has_enum() || !matches!(self.shape(err), Some(Shape::Leaf(_))) {
 			return None;
 		}
 		let mut parts = Vec::new();
 		shape.parts("", &mut parts);
+		// The first part is returned, so `undefined` must mean an error.
+		if let Part::Value(first) = parts[0].1 {
+			let erased = self.erases_to(first);
+			if erased.undefined || erased.none || erased.param || erased.pending || erased.outer_pending {
+				return None;
+			}
+		}
 		let fields: Vec<String> = parts.iter().map(|(suffix, _)| format!("p{suffix}")).collect();
 		let sym = match self.slots.get(&ok) {
 			Some(&sym) => sym,
@@ -294,8 +292,9 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 	}
 
 	/// The slot of `Ok` payloads of type `ok`, which every function returning one shares:
-	/// each of `fields` starts `undefined`, so V8 keeps it tagged rather than boxing every
-	/// number past 2^31 that a function too big to inline writes.
+	/// the error, of any of their error types, then each of `fields` but the first part's,
+	/// which the function returns. Each starts `undefined`, so V8 keeps it tagged rather
+	/// than boxing every number past 2^31 that a function too big to inline writes.
 	fn slot(
 		&mut self,
 		ok: Ty<'tcx>,
@@ -318,14 +317,18 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 		});
 		let tys: Vec<Type> = parts.iter().map(|(_, part)| self.part_ty(*part, span)).collect();
 		let never = Expr::As(Box::new(Expr::undefined()), Type::Builtin("never"));
+		let held = std::iter::zip(&fields[1..], tys.into_iter().skip(1));
 		self.program.items.push(crate::ts::Item::Value {
 			sym,
-			ty: Type::Object(fields.iter().cloned().zip(tys).collect()),
+			ty: Type::Object(
+				std::iter::once((ERR.to_string(), Type::Builtin("unknown")))
+					.chain(held.map(|(field, ty)| (field.clone(), ty)))
+					.collect(),
+			),
 			doc: None,
 			value: Expr::Object(
-				fields
-					.iter()
-					.map(|field| (Key::Name(field.clone()), never.clone()))
+				std::iter::once((Key::Name(ERR.into()), Expr::undefined()))
+					.chain(fields[1..].iter().map(|field| (Key::Name(field.clone()), never.clone())))
 					.collect(),
 			),
 		});
@@ -347,6 +350,14 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 		let base = crate::lower::names::slot_base(self.tcx, instance.def_id());
 		let slot = &mut self.program.syms[sym];
 		(slot.order, slot.module, slot.base, slot.suffix) = (order, module, base, suffix);
+	}
+
+	/// What a function that hands back its `Ok`'s parts in `slotted` returns: the first
+	/// part, or `undefined` for an error.
+	pub(crate) fn slot_ret_ty(&mut self, slotted: &Slotted<'tcx>, span: Span) -> Type {
+		let mut parts = Vec::new();
+		slotted.ok.parts("", &mut parts);
+		Type::Union(vec![self.part_ty(parts[0].1, span), Type::Builtin("undefined")])
 	}
 
 	/// The type of a variable or field that holds `part`.
@@ -398,8 +409,11 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 	}
 }
 
-/// Where a function hands back its `Ok`'s parts: the module-level slot it writes them
-/// into, and their layout.
+/// The slot's field that holds an error.
+const ERR: &str = "err";
+
+/// Where a function hands back its `Ok`'s parts: it returns the first, or `undefined` for
+/// an error, and writes the rest, or the error, into a module-level slot.
 #[derive(Clone, Debug)]
 pub struct Slotted<'tcx> {
 	pub sym: crate::ts::SymId,
@@ -409,26 +423,34 @@ pub struct Slotted<'tcx> {
 	pub err: Ty<'tcx>,
 	/// The `Ok` payload's layout, which has no enum.
 	pub ok: Shape<'tcx>,
-	/// Each part's field in the slot, in order.
+	/// Each part's field in the slot, in order, but the first's, which is returned.
 	pub fields: Vec<String>,
 }
 
 impl<'tcx> Slotted<'tcx> {
-	/// The slot's field `i`, read or written.
+	/// The slot's field of part `i`, after the first, read or written.
 	pub fn field(&self, i: usize) -> Expr {
+		assert!(i > 0, "the first part is returned");
 		Expr::Sym(self.sym).member(self.fields[i].clone())
 	}
 
-	/// What a caller that keeps the result whole makes of what the call returned, `err`
-	/// (a name), read at once: the `Ok` of the slot's parts, or the `Err`.
-	pub fn rebuild(&self, t: &mut crate::lower::Translator<'_, 'tcx>, err: &str, span: Span) -> Expr {
-		let parts: Vec<Expr> = (0..self.fields.len()).map(|i| self.field(i)).collect();
+	/// The slot's field of the error.
+	pub fn err_field(&self) -> Expr {
+		Expr::Sym(self.sym).member(ERR)
+	}
+
+	/// What a caller that keeps the result whole makes of what the call returned, `first`
+	/// (a name), read at once: the `Ok` of it and the slot's parts, or the `Err`.
+	pub fn rebuild(&self, t: &mut crate::lower::Translator<'_, 'tcx>, first: &str, span: Span) -> Expr {
+		let parts: Vec<Expr> = std::iter::once(Expr::ident(first))
+			.chain((1..self.fields.len()).map(|i| self.field(i)))
+			.collect();
 		let ok = build_plain(t, &self.ok, &parts, span);
 		let err_ty = t.ty(self.err, span);
 		Expr::Cond(
-			Box::new(Expr::ident(err).binary("===", Expr::undefined())),
+			Box::new(Expr::ident(first).binary("===", Expr::undefined())),
+			Box::new(Expr::rt("Err", vec![Expr::As(Box::new(self.err_field()), err_ty)])),
 			Box::new(Expr::rt("Ok", vec![ok])),
-			Box::new(Expr::rt("Err", vec![Expr::As(Box::new(Expr::ident(err)), err_ty)])),
 		)
 	}
 }
@@ -455,6 +477,15 @@ fn build_plain<'tcx>(
 		}
 		Shape::Enum(..) => unreachable!("a slot's payload has no enum"),
 	}
+}
+
+/// Return `undefined` from a function that hands back its `Ok`'s parts, with its error
+/// `err` in the slot.
+fn slot_fail(slot: &Slotted<'_>, err: Expr, loc: Option<crate::ts::Loc>) -> Vec<Stmt> {
+	vec![
+		StmtKind::Expr(slot.err_field().assign(err)).at(None),
+		StmtKind::Return(Some(Expr::undefined())).at(loc),
+	]
 }
 
 /// Whether `ty` is a `&[u8]` or `&[u8; N]`, which is an `rt.ByteSlice`.
@@ -1581,8 +1612,8 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	}
 
 	/// The parts of what a function that hands back its `Ok`'s parts returns into `local`:
-	/// whether it is an error, then the slot's fields, read now before anything else can
-	/// write them, then the error.
+	/// whether it is an error, then what it returned and the slot's fields, read now before
+	/// anything else can write them, then the error.
 	fn slotted_call(
 		&mut self,
 		local: Local,
@@ -1592,28 +1623,39 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	) -> Vec<Option<(Expr, bool)>> {
 		let slotted = self.slotted_calls[&self.at.block].1.clone();
 		let call = self.slotted_raw(local, args, span, out);
-		let err = self.b.fresh("err");
-		let err_ty = self.b.t.ty(slotted.err, span);
-		self.steady.insert(err.clone());
-		self.scalar_binds.push((
-			err.clone(),
-			Type::Union(vec![err_ty.clone(), Type::Builtin("undefined")]),
-		));
-		let stmt = StmtKind::Expr(Expr::ident(&err).assign(call)).at(None);
-		self.emit(vec![stmt], false, out);
-		let mut parts = vec![Some((Expr::ident(&err).binary("!==", Expr::undefined()), true))];
 		let mut kinds = Vec::new();
 		slotted.ok.parts("", &mut kinds);
-		for (i, (_, part)) in kinds.into_iter().enumerate() {
+		let first = self.b.fresh("part");
+		let first_ty = self.b.t.part_ty(kinds[0].1, span);
+		self.steady.insert(first.clone());
+		self.scalar_binds.push((
+			first.clone(),
+			Type::Union(vec![first_ty.clone(), Type::Builtin("undefined")]),
+		));
+		let stmt = StmtKind::Expr(Expr::ident(&first).assign(call)).at(None);
+		self.emit(vec![stmt], false, out);
+		let failed = Expr::ident(&first).binary("===", Expr::undefined());
+		let mut parts = vec![
+			Some((failed.clone(), true)),
+			Some((Expr::As(Box::new(Expr::ident(&first)), first_ty), true)),
+		];
+		for (i, (_, part)) in kinds.into_iter().enumerate().skip(1) {
 			let ty = self.b.t.part_ty(part, span);
 			parts.push(Some(self.steady_value(slotted.field(i), "part", ty, out)));
 		}
-		parts.push(Some((Expr::As(Box::new(Expr::ident(&err)), err_ty), true)));
+		let err_ty = self.b.t.ty(slotted.err, span);
+		let err = Expr::Cond(
+			Box::new(failed),
+			Box::new(Expr::As(Box::new(slotted.err_field()), err_ty.clone())),
+			Box::new(Expr::undefined()),
+		);
+		let (err, _) = self.steady_value(err, "err", Type::Union(vec![err_ty.clone(), Type::Builtin("undefined")]), out);
+		parts.push(Some((Expr::As(Box::new(err), err_ty), true)));
 		parts
 	}
 
 	/// The call, ending the block being lowered, of a function that hands back its `Ok`'s
-	/// parts, into `local`: what it returns, its error or `undefined`.
+	/// parts, into `local`: what it returns, its `Ok`'s first part or `undefined`.
 	fn slotted_raw(&mut self, local: Local, args: &[Spanned<Operand<'tcx>>], span: Span, out: &mut Vec<Stmt>) -> Expr {
 		let instance = self.slotted_calls[&self.at.block].0;
 		let result = self.mir.local_decls[local].ty;
@@ -1733,7 +1775,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		let (result, _) = self.steady_value(value, "result", ty, out);
 		let check = StmtKind::If {
 			cond: result.clone().member("ok").not(),
-			then: vec![StmtKind::Return(Some(result.clone().member("error"))).at(loc)],
+			then: slot_fail(slot, result.clone().member("error"), loc),
 			els: Vec::new(),
 		};
 		self.emit(vec![check.at(None)], false, out);
@@ -1741,8 +1783,8 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		self.slot_write(slot, parts.into_iter().map(|(e, _)| Some(e)).collect(), span, out);
 	}
 
-	/// Return the result's `parts`: its error, if the flag says it is one, or else
-	/// `undefined` once the `Ok`'s parts are in the slot.
+	/// Return the result's `parts`: `undefined` once its error is in the slot, if the flag
+	/// says it is one, or else the `Ok`'s first part once the rest are.
 	fn slot_return_parts(&mut self, parts: Vec<Option<Expr>>, span: Span, out: &mut Vec<Stmt>) {
 		let slot = self.slot.clone().expect("a function with a slot");
 		let loc = self.b.t.loc(span);
@@ -1752,13 +1794,13 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		match &flag {
 			Expr::Lit(t) if t == "false" => {}
 			Expr::Lit(t) if t == "true" => {
-				self.emit(vec![StmtKind::Return(Some(err)).at(loc)], false, out);
+				self.emit(slot_fail(&slot, err, loc), false, out);
 				return;
 			}
 			_ => {
 				let check = StmtKind::If {
 					cond: flag,
-					then: vec![StmtKind::Return(Some(err)).at(loc)],
+					then: slot_fail(&slot, err, loc),
 					els: Vec::new(),
 				};
 				self.emit(vec![check.at(None)], false, out);
@@ -1767,13 +1809,16 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		self.slot_write(&slot, parts[1..=n].to_vec(), span, out);
 	}
 
-	/// Write the `Ok`'s parts `ok` into the slot, and return `undefined`.
+	/// Write the `Ok`'s parts `ok` but the first into the slot, and return the first.
 	fn slot_write(&mut self, slot: &Slotted<'tcx>, ok: Vec<Option<Expr>>, span: Span, out: &mut Vec<Stmt>) {
 		let loc = self.b.t.loc(span);
-		let mut stmts: Vec<Stmt> = (ok.into_iter().enumerate())
-			.map(|(i, part)| StmtKind::Expr(slot.field(i).assign(part.unwrap_or_else(Expr::undefined))).at(None))
+		let mut ok = ok.into_iter();
+		let first = ok.next().flatten().unwrap_or_else(Expr::undefined);
+		let mut stmts: Vec<Stmt> = ok
+			.enumerate()
+			.map(|(i, part)| StmtKind::Expr(slot.field(i + 1).assign(part.unwrap_or_else(Expr::undefined))).at(None))
 			.collect();
-		stmts.push(StmtKind::Return(Some(Expr::undefined())).at(loc));
+		stmts.push(StmtKind::Return(Some(first)).at(loc));
 		self.emit(stmts, false, out);
 	}
 

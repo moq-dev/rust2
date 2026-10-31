@@ -64,10 +64,7 @@ pub fn function<'a, 'tcx>(t: &mut Translator<'a, 'tcx>, instance: Instance<'tcx>
 		(true, ty::Adt(_, args)) => {
 			Type::Union(vec![fx.b.t.ty(args.type_at(0), ret_span), Type::Rt("Done", Vec::new())])
 		}
-		// The error, or `undefined` once the `Ok`'s parts are in the slot.
-		(_, ty::Adt(_, args)) if slotted.is_some() => {
-			Type::Union(vec![fx.b.t.ty(args.type_at(1), ret_span), Type::Builtin("undefined")])
-		}
+		(_, ty::Adt(..)) if let Some(slotted) = &slotted => fx.b.t.slot_ret_ty(slotted, ret_span),
 		_ => fx.b.t.ret_ty(ret_ty, ret_span),
 	};
 	Some(ts::Function {

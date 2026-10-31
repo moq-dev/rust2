@@ -687,14 +687,16 @@ they need.
   noise, and Node's varint decode at 1.11-1.15.
 - A function of the crate's that only translated code calls and that returns a `Result`
   of byte slices and scalars, such as `Result<(u64, &[u8]), E>`, whose error is one JS
-  value that is never `undefined`, returns the error or `undefined`. It writes the `Ok`'s
-  parts into a module-level slot, which every function returning that payload type
-  shares, named for the first of them in source order with its suffix, as `readOut` or
-  `leadOut$u16`, at its JS `return`, after its drops, and its caller reads them at once, so one
-  that returns another's result as is returns the call. The slot's fields start as
-  `undefined`, so V8 keeps them tagged: one that starts as a small integer would box
-  every `u64` past 2^31 that a function too big to inline writes. The function as a value
-  is an arrow that rebuilds the `Result`.
+  value, returns the `Ok`'s first part, or `undefined` for an error. It writes the rest of
+  the `Ok`'s parts, or the error, into a module-level slot, which every function returning
+  that payload type shares, named for the first of them in source order with its suffix,
+  as `readOut` or `leadOut$u16`, at its JS `return`, after its drops, and its caller
+  reads them at once, so one that returns another's result as is returns the call.
+  Returning the first part keeps a `u64` past 2^31, which a function too big to inline
+  boxes, out of the long-lived slot: Chrome's 8-byte leading-ones varints took 1.06-1.09x
+  `main`'s time writing it there, and 0.87-0.92x this way. The slot's fields start as
+  `undefined`, so V8 keeps them tagged. The function as a value is an arrow that rebuilds
+  the `Result`.
 - A `BTreeMap` is a B+ tree of up to 64 keys a node, O(log n) as std's B-tree is: its
   leaves hold the keys and values and link to their neighbors, which iterators walk from
   either end, and its branches hold each child's lower bound. A node's slots shift in a

@@ -134,9 +134,9 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 			// One that hands back its `Ok`'s parts, made whole here, before anything else can
 			// write its slot.
 			if let Some(slotted) = self.t.slotted(instance) {
-				let err = self.fresh("err");
-				out.push(StmtKind::decl(false, err.clone(), None, Some(call)).at(None));
-				let value = slotted.rebuild(self.t, &err, span);
+				let first = self.fresh("part");
+				out.push(StmtKind::decl(false, first.clone(), None, Some(call)).at(None));
+				let value = slotted.rebuild(self.t, &first, span);
 				let result = self.fresh("result");
 				let ty = self.t.ty(slotted.ret, span);
 				out.push(StmtKind::decl(false, result.clone(), Some(ty), Some(value)).at(None));
