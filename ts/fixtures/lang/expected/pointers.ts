@@ -1037,8 +1037,8 @@ export function waiters(dataData: Uint8Array, dataStart: number, dataLen: number
  * points at another variable, whose first is assigned after, and ones a callee gives back
  * only as a reference, through a borrow a closure keeps.
  */
-export function taken(data: rt.ByteSlice, out: rt.ByteVec): void {
-	for (const n of rt.byteSliceView(data)) {
+export function taken(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
 		const _10: rt.u8 = rt.u8Rem(n, 4);
 		if (_10 === 0) {
 			rt.iterExtendBytes(out, rt.iterSlice(readBefore(n)), undefined, true);
@@ -1121,13 +1121,24 @@ export function viewed(n: rt.u8): Uint8Array {
  * `UnsafeCell`, and `AtomicPtr` make and take them. Pointers to one array are equal however they were made, and to arrays of equal
  * bytes, or to parts at other offsets, are not.
  */
-export function bytes(data: rt.ByteSlice, out: rt.ByteVec): void {
-	for (const n of rt.byteSliceView(data)) {
+export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
 		const a: Uint8Array = Uint8Array.of(n, n ^ 1, n ^ 2, n ^ 3);
 		const b: Uint8Array = copy$array_u8(a);
 		const fromRef: rt.ByteSlice = rt.byteSliceFrom(a);
 		const fromRaw: rt.ByteSlice = rt.byteSliceFrom(a);
-		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.byteSliceSame(fromRef, rt.byteSliceFrom(a)) ? 1 : 0, rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0, rt.byteSliceSame(rt.byteSliceFrom(a), rt.byteSliceFrom(b)) ? 1 : 0, rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0, !rt.byteSliceSame(fromRef, rt.byteSliceFrom(b)) ? 1 : 0, rt.byteSliceSame(fromRef, rt.NULL) ? 1 : 0, sameBytes(rt.byteSliceFrom(a), rt.byteSliceFrom(a)) ? 1 : 0, sameBytes(rt.byteSliceFrom(a), rt.byteSliceFrom(b)) ? 1 : 0)), undefined, true);
+		const _19: rt.u8 = rt.byteSliceSame(fromRef, rt.byteSliceFrom(a)) ? 1 : 0;
+		const _23: rt.u8 = rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0;
+		const _25: rt.u8 = rt.byteSliceSame(rt.byteSliceFrom(a), rt.byteSliceFrom(b)) ? 1 : 0;
+		const _31: rt.u8 = rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0;
+		const _33: rt.u8 = !rt.byteSliceSame(fromRef, rt.byteSliceFrom(b)) ? 1 : 0;
+		const _36: rt.u8 = rt.byteSliceSame(fromRef, rt.NULL) ? 1 : 0;
+		const _41: rt.ByteSlice = rt.byteSliceFrom(a);
+		const _43: rt.ByteSlice = rt.byteSliceFrom(a);
+		const _39: rt.u8 = sameBytes(_41, _43.data, _43.start, _43.length) ? 1 : 0;
+		const _46: rt.ByteSlice = rt.byteSliceFrom(a);
+		const _48: rt.ByteSlice = rt.byteSliceFrom(b);
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_19, _23, _25, _31, _33, _36, _39, sameBytes(_46, _48.data, _48.start, _48.length) ? 1 : 0)), undefined, true);
 		rt.iterExtendBytes(out, rt.iterSlice(held(n)), undefined, true);
 		rt.iterExtendBytes(out, rt.iterSlice(parts(rt.byteSliceFrom(a))), undefined, true);
 		const _55: rt.u8 = rt.u8Rem(n, 4);
@@ -1144,8 +1155,8 @@ export function bytes(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 }
 
-export function sameBytes(p: rt.ByteSlice, q: rt.ByteSlice): boolean {
-	return rt.byteSliceSame(p, q);
+export function sameBytes(p: rt.ByteSlice, qData: Uint8Array, qStart: number, qLen: number): boolean {
+	return rt.byteSliceSame(p, new rt.ByteSlice(qData, qStart, qLen));
 }
 
 /**
@@ -1282,8 +1293,8 @@ export function exchanged(n: rt.u8): Uint8Array {
  * none of those pointers: each read out over a type parameter, as smallvec's `Drain`
  * reads its items, and kept past its array's next value.
  */
-export function loaded(data: rt.ByteSlice, out: rt.ByteVec): void {
-	for (const n of rt.byteSliceView(data)) {
+export function loaded(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
 		let pair: Loaded.Loaded[] = [{ _0: n, _1: 1 }, { _0: 2, _1: ~n & 0xff }];
 		const first: Loaded.Loaded = option_unwrapOr$0mkoact(nextRead$pointers_Loaded(rt.iterSlice(pair)), { _0: 0, _1: 0 });
 		pair = [{ _0: first._1, _1: n ^ 90 }, { _0: first._0, _1: n }];

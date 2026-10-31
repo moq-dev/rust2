@@ -1123,7 +1123,8 @@ export function torn(tag: rt.usize, key: rt.u8, mode: rt.u8): Torn.Torn {
  * the set operators, which build as `collect` does from what they yield, of sets that
  * `insert` built. Then zero-sized keys, which std's sort leaves as they are.
  */
-export function btrees(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function btrees(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const mode: rt.u8 = rt.u8Rem(kind, 5);
 	const keys: (a0: rt.ByteSlice) => Torn.Torn[] = (bytes: rt.ByteSlice): Torn.Torn[] => {
 		return rt.iterToArray(rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(bytes))), (_2: [rt.usize, rt.u8]): Torn.Torn => {

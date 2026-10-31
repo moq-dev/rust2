@@ -18,7 +18,8 @@ import * as Tilt from "./iters.Tilt.ts";
 import * as Wrapper from "./iters.Wrapper.ts";
 
 /** Adaptor chains over the input bytes, each consumed one way. */
-export function adaptors(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function adaptors(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	b0: {
 		const _4: rt.u8 = rt.u8Rem(kind, 8);
 		if (_4 === 0) {
@@ -80,7 +81,7 @@ export function adaptors(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 				rt.byteVecPush(out, skipped.length & 0xff);
 				rt.byteVecExtendFromSlice(out, rt.byteVecSlice(mapped));
 			} else if (_4 === 4) {
-				const words: rt.ByteVec[] = chunksByZero$iters_ChunksByZero_slice_u8(data);
+				const words: rt.ByteVec[] = chunksByZero$iters_ChunksByZero_slice_u8(data.data, data.start, data.length);
 				rt.byteVecExtendFromSlice(out, rt.byteVecSlice(rt.iterToByteVec(rt.iterFlatMap(rt.iterSlice(words), (w: rt.ByteVec): rt.Iter<rt.u8> => {
 					return rt.iterRev(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(w))));
 				}), "next")));
@@ -158,10 +159,10 @@ export function adaptors(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 }
 
 /** The runs between zero bytes. */
-export function chunksByZero$iters_ChunksByZero_slice_u8(self: rt.ByteSlice): rt.ByteVec[] {
+export function chunksByZero$iters_ChunksByZero_slice_u8(selfData: Uint8Array, selfStart: number, selfLen: number): rt.ByteVec[] {
 	const words: rt.ByteVec[] = [];
 	let word: rt.ByteVec = new rt.ByteVec();
-	for (const b of rt.byteSliceView(self)) {
+	for (const b of rt.byteSliceView(new rt.ByteSlice(selfData, selfStart, selfLen))) {
 		if (!(b === 0)) {
 			rt.byteVecPush(word, b);
 		} else {
@@ -175,7 +176,8 @@ export function chunksByZero$iters_ChunksByZero_slice_u8(self: rt.ByteSlice): rt
 }
 
 /** Consumers, and how far each reads: `log` records every item a closure sees. */
-export function consumers(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function consumers(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const log: rt.ByteVec = new rt.ByteVec();
 	const _5: rt.u8 = rt.u8Rem(kind, 6);
 	if (_5 === 0) {
@@ -314,7 +316,8 @@ export function consumers(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
  * `reduce`, `max_by`, and `min_by`, whose comparators log each pair they see, and
  * `Peekable`'s `peek_mut` and `next_if_eq`.
  */
-export function reducers(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function reducers(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const log: rt.ByteVec = new rt.ByteVec();
 	rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.iterMaxBy(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8, _3: rt.u8): rt.Ordering => {
 		const a: rt.u8 = _2;
@@ -387,9 +390,9 @@ export function eq$cmp_PartialEq_iters_Quarter_u8(self: rt.u8, other: Quarter.Qu
 	return rt.u8Rem(self, 4) === rt.u8Rem(other._0, 4);
 }
 
-export function eq$cmp_PartialEq_iters_Quarter_array2_u8(self: rt.ByteSlice, other: Quarter.Quarter): boolean {
+export function eq$cmp_PartialEq_iters_Quarter_array2_u8(selfData: Uint8Array, selfStart: number, selfLen: number, other: Quarter.Quarter): boolean {
 	rt.cellSet(other._1, rt.u8WrappingAdd(other._1.v, 64));
-	return rt.iterSum(rt.iterSlice(rt.byteSliceView(self)), rt.u8Add, 0) === other._0;
+	return rt.iterSum(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(selfData, selfStart, selfLen))), rt.u8Add, 0) === other._0;
 }
 
 export function eq$cmp_PartialEq_iters_Quarter_String(self: string, other: Quarter.Quarter): boolean {
@@ -402,7 +405,8 @@ export function eq$cmp_PartialEq_iters_Quarter_String(self: string, other: Quart
  * `PartialEq<T>`: std's across strings and slices, and the crate's own. Each matches the
  * first item, and a mismatch keeps the item for the next `next`.
  */
-export function peekedOthers(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function peekedOthers(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _3: (a0: rt.u8) => string = (b: rt.u8): string => {
 		const _42: rt.char = rt.u8Add(97, rt.u8Rem(b, 3)) as rt.char;
 		return rt.fmtToString((f: rt.Formatter) => rt.fmtCharDisplay(_42, f));
@@ -544,7 +548,9 @@ export function peekedOthers(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return p2[0];
 	}));
 	rt.byteVecPush(out, option_mapOr$0sl5app(rt.peekableNextIfEq(it9, { _0: 1, _1: calls }, (a2: Uint8Array, b8: Quarter.Quarter): boolean => {
-		return eq$cmp_PartialEq_iters_Quarter_array2_u8(rt.byteSliceFrom(a2), b8);
+		return ((a018: rt.ByteSlice, a114: Quarter.Quarter): boolean => {
+			return eq$cmp_PartialEq_iters_Quarter_array2_u8(a018.data, a018.start, a018.length, a114);
+		})(rt.byteSliceFrom(a2), b8);
 	}), 170, (p3: Uint8Array): rt.u8 => {
 		return p3[0];
 	}));
@@ -605,7 +611,7 @@ export function rotateFree$iters_RotateFree_u8(self: rt.u8): rt.u8 {
  * `nth` and `nth_back` through each adaptor, of a source whose reads `by_ref` or
  * `inspect` shows: each reads on past a `take`'s limit, or stops at it, as std's does.
  */
-export function skips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function skips(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let item!: rt.u8 | undefined;
 	let item2!: rt.u8 | undefined;
 	let item3!: rt.u8 | undefined;
@@ -634,6 +640,7 @@ export function skips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let item26!: rt.u8 | undefined;
 	let item27!: [rt.u8, rt.u8] | undefined;
 	let item28!: Uint8Array | undefined;
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const n: rt.usize = option_mapOr$1t0muvr(rt.byteSliceFirst(data), 0, (_2: rt.u8): rt.usize => {
 		return rt.usizeRem(_2 as rt.usize, 4);
 	});
@@ -1017,7 +1024,8 @@ export function skips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
  * `min_by_key` and `max_by_key` by keys that are tuples, `Reverse`s, `Option`s, and the
  * crate's own orders, `min` and `max` of such items, and `rposition` and `rfind`.
  */
-export function ranked(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function ranked(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _4: (a0: rt.ByteVec, a1: [rt.usize, rt.u8] | undefined) => undefined = (out2: rt.ByteVec, found2: [rt.usize, rt.u8] | undefined): undefined => {
 		rt.byteVecPush(out2, option_mapOr$06gg5x7(found2, 255, (_2: [rt.usize, rt.u8]): rt.u8 => {
 			return _2[0] & 0xff;
@@ -1145,7 +1153,8 @@ export function ranked(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Ranges as values and as iterators. */
-export function ranges(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function ranges(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const a: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data), 0);
 	const b: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, 1), 0);
 	const range: rt.Range<rt.u8> = new rt.Range(a, b);
@@ -1231,15 +1240,16 @@ export function ranges(data: rt.ByteSlice, out: rt.ByteVec): void {
 	for (const _295 of rt.iterToArray(rt.iterRev(rt.iterStepBy(new rt.Range(0, 48), 8)), undefined, 4, true)) {
 		rt.byteVecPush(out, _295 & 0xff);
 	}
-	updates(a, b, data, out);
+	updates(a, b, data.data, data.start, data.length, out);
 }
 
 /**
  * Struct update syntax on std's ranges: the fields written run before the base, and
  * the rest are read from it.
  */
-export function updates(a: rt.u8, b: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function updates(a: rt.u8, b: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let _29!: rt.u8;
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const base: rt.Range<rt.u8> = new rt.Range(a, b);
 	rt.byteVecPush(out, 208);
 	const _7: rt.u8 = rt.u8Div(b, 2);
@@ -1284,7 +1294,8 @@ export function fullRange(out: rt.ByteVec): undefined {
 }
 
 /** Iterators of `Option`, which keep each `None` apart from their end. */
-export function options(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function options(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _83: (a0: rt.u8, a1: rt.ByteVec) => rt.u8 | undefined = (b2: rt.u8, calls2: rt.ByteVec): rt.u8 | undefined => {
 		rt.byteVecPush(calls2, b2);
 		return option_map$0cs071d(rt.u8CheckedSub(b2, 1), (b3: rt.u8): rt.u8 => {
@@ -1392,7 +1403,8 @@ export function second$iter_Map_slice_Iter_u8_iters_options_closure0(items: rt.I
 }
 
 /** The crate's own iterators, through `for`, adaptors, and `next`. */
-export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function own(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const left: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data), 0);
 	const step: rt.u8 = rt.max(option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, 1), 1), 1);
 	const iter: iters_Countdown.Countdown = { left, step };
@@ -1443,20 +1455,22 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
  * The last two bytes of `data`, as a `slice::Iter` made from the second argument: a
  * `for` must iterate it, not the first.
  */
-export function tail(_head: rt.ByteSlice, data: rt.ByteSlice): rt.Iter<rt.u8> {
-	return rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, rt.usizeSaturatingSub(data.length, 2))));
+export function tail(_headData: Uint8Array, _headStart: number, _headLen: number, dataData: Uint8Array, dataStart: number, dataLen: number): rt.Iter<rt.u8> {
+	return rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(new rt.ByteSlice(dataData, dataStart, dataLen), rt.usizeSaturatingSub(dataLen, 2))));
 }
 
 /** The odd bytes, from a function returning `impl Iterator`. */
-export function odds(data: rt.ByteSlice): rt.Iter<rt.u8> {
-	return rt.iterFilter(rt.iterSlice(rt.byteSliceView(data)), (b: rt.u8): boolean => {
+export function odds(dataData: Uint8Array, dataStart: number, dataLen: number): rt.Iter<rt.u8> {
+	return rt.iterFilter(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), (b: rt.u8): boolean => {
 		return rt.u8Rem(b, 2) === 1;
 	});
 }
 
 /** Iterators as values: returned, stored, and printed. */
-export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
-	const iter: rt.Iter<rt.u8> = tail(rt.byteSliceFrom(Uint8Array.of(1, 2, 3)), data);
+export function values(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+	const _5: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of(1, 2, 3));
+	const iter: rt.Iter<rt.u8> = tail(_5.data, _5.start, _5.length, data.data, data.start, data.length);
 	while (true) {
 		const _8: rt.u8 | rt.Done = iter.next();
 		if (_8 === rt.DONE) {
@@ -1466,7 +1480,7 @@ export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 	const held: iters_Held.Held = { it: rt.iterSlice(rt.byteSliceView(data)) };
 	rt.byteVecPush(out, iters_Held.skipOne(held));
-	const iter2: rt.Iter<rt.u8> = odds(data);
+	const iter2: rt.Iter<rt.u8> = odds(data.data, data.start, data.length);
 	while (true) {
 		const _21: rt.u8 | rt.Done = iter2.next();
 		if (_21 === rt.DONE) {
@@ -1519,7 +1533,8 @@ export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
  * What std's `Option`-returning calls give, returned as is: an `Option`, whose `None`
  * stays apart from an item's own.
  */
-export function returned(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function returned(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _3: (a0: rt.u8 | undefined, a1: rt.ByteVec) => undefined = (b: rt.u8 | undefined, out2: rt.ByteVec): undefined => {
 		rt.byteVecPush(out2, option_mapOr$1surhce(b, 170, (b2: rt.u8): rt.u8 => {
 			return b2;
@@ -1578,13 +1593,13 @@ export function returned(data: rt.ByteSlice, out: rt.ByteVec): void {
 	_3(part12, out);
 	const part13 = borrowed(it);
 	_3(part13, out);
-	const part14 = secondOf(data);
+	const part14 = secondOf(data.data, data.start, data.length);
 	_3(part14, out);
 	const part15 = fromOne(n & 0xff);
 	_3(part15, out);
 	const part16 = peeked$iter_Copied_slice_Iter_u8(rt.iterPeekable(rt.iterSlice(rt.byteSliceView(data))));
 	_3(part16, out);
-	const part17 = at$u8(data, n);
+	const part17 = at$u8(data.data, data.start, data.length, n);
 	_3(part17, out);
 	const part18 = at$Option_u8(rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (b8: rt.u8): rt.u8 | undefined => {
 		if (!(rt.u8Rem(b8, 3) === 0)) {
@@ -1647,8 +1662,8 @@ export function borrowed(it: rt.Iter<rt.u8>): rt.u8 | undefined {
 }
 
 /** Of a slice's iterator the function makes. */
-export function secondOf(data: rt.ByteSlice): rt.u8 | undefined {
-	const it: rt.Iter<rt.u8> = rt.iterSlice(rt.byteSliceView(data));
+export function secondOf(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 | undefined {
+	const it: rt.Iter<rt.u8> = rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen)));
 	it.next();
 	return rt.iterToOption(it.next());
 }
@@ -1667,8 +1682,8 @@ export function at$Option_u8(items: Array<rt.u8 | undefined>, i: rt.usize): rt.u
 	return rt.sliceGet(items, i, rt.None);
 }
 
-export function at$u8(items: rt.ByteSlice, i: rt.usize): rt.u8 | undefined {
-	return rt.byteSliceGet(items, i);
+export function at$u8(itemsData: Uint8Array, itemsStart: number, itemsLen: number, i: rt.usize): rt.u8 | undefined {
+	return rt.byteSliceGet(new rt.ByteSlice(itemsData, itemsStart, itemsLen), i);
 }
 
 /**
@@ -1677,7 +1692,7 @@ export function at$u8(items: rt.ByteSlice, i: rt.usize): rt.u8 | undefined {
  * (`TrustedLen`, or only `TrustedRandomAccessNoCoerce`), and by `next` (neither), read by
  * each of std's consumers, and through adaptors that fold it or read it by `try_fold`.
  */
-export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function zips(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let _18!: [rt.ByteSlice, rt.ByteSlice];
 	const _40: (a0: [rt.u8, rt.u8]) => rt.u8 = (_2: [rt.u8, rt.u8]): rt.u8 => {
 		return _2[0] ^ _2[1];
@@ -1700,19 +1715,19 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _1101: (a0: [rt.u8, rt.u8]) => rt.u8 = (_221: [rt.u8, rt.u8]): rt.u8 => {
 		return _221[0] ^ _221[1];
 	};
-	const mid: number = rt.usizeRem(kind >> 5 as rt.usize, rt.usizeAdd(data.length, 1));
-	if (mid > data.length) {
+	const mid: number = rt.usizeRem(kind >> 5 as rt.usize, rt.usizeAdd(dataLen, 1));
+	if (mid > dataLen) {
 		rt.panic("mid > len");
 	}
 	if (!((kind & 8) === 0)) {
-		_18 = [new rt.ByteSlice(data.data, data.start + mid, data.length - mid), new rt.ByteSlice(data.data, data.start, mid)] as [rt.ByteSlice, rt.ByteSlice];
+		_18 = [new rt.ByteSlice(dataData, dataStart + mid, dataLen - mid), new rt.ByteSlice(dataData, dataStart, mid)] as [rt.ByteSlice, rt.ByteSlice];
 	} else {
-		_18 = [new rt.ByteSlice(data.data, data.start, mid), new rt.ByteSlice(data.data, data.start + mid, data.length - mid)] as [rt.ByteSlice, rt.ByteSlice];
+		_18 = [new rt.ByteSlice(dataData, dataStart, mid), new rt.ByteSlice(dataData, dataStart + mid, dataLen - mid)] as [rt.ByteSlice, rt.ByteSlice];
 	}
 	const a2: rt.ByteSlice = _18[0];
 	const b2: rt.ByteSlice = _18[1];
 	const other: boolean = (kind & 4) !== 0;
-	const n: rt.usize = option_mapOr$1t0muvr(rt.byteSliceFirst(data), 0, (_223: rt.u8): rt.usize => {
+	const n: rt.usize = option_mapOr$1t0muvr(rt.byteSliceFirst(new rt.ByteSlice(dataData, dataStart, dataLen)), 0, (_223: rt.u8): rt.usize => {
 		return rt.usizeRem(_223 as rt.usize, 4);
 	});
 	const log: rt.RefCell<rt.ByteVec> = new rt.RefCell(new rt.ByteVec());
@@ -1732,7 +1747,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.refMutRelease(_6239);
 				return x232;
 			}), [true, true]);
-			const _41: rt.usize = rt.usizeRem(data.length, 8);
+			const _41: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_41 === 0) {
 				rt.byteVecPush(out, rt.iterCount(z) & 0xff);
 			} else if (_41 === 1) {
@@ -1781,7 +1796,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				}));
 			}
 		} else {
-			const _79: rt.usize = rt.usizeRem(data.length, 8);
+			const _79: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_79 === 0) {
 				rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterMap(rt.iterSlice(rt.byteSliceView(a2)), (_2287: rt.u8): rt.u8 => {
 					const x228: rt.u8 = _2287;
@@ -1921,7 +1936,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 					rt.refMutRelease(_6219);
 					return x201;
 				}), "len");
-				const _202: rt.usize = rt.usizeRem(data.length, 8);
+				const _202: rt.usize = rt.usizeRem(dataLen, 8);
 				if (_202 === 0) {
 					rt.byteVecPush(out, rt.iterCount(z3) & 0xff);
 				} else if (_202 === 1) {
@@ -1970,7 +1985,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 					}));
 				}
 			} else {
-				const _240: rt.usize = rt.usizeRem(data.length, 8);
+				const _240: rt.usize = rt.usizeRem(dataLen, 8);
 				if (_240 === 0) {
 					rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterMap(rt.iterRev(rt.iterSlice(rt.byteSliceView(a2))), (_2256: rt.u8): rt.u8 => {
 						const x197: rt.u8 = _2256;
@@ -2108,7 +2123,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.refMutRelease(_6199);
 				return x170;
 			}), "len");
-			const _381: rt.usize = rt.usizeRem(data.length, 8);
+			const _381: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_381 === 0) {
 				rt.byteVecPush(out, rt.iterCount(z5) & 0xff);
 			} else if (_381 === 1) {
@@ -2157,7 +2172,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				}));
 			}
 		} else {
-			const _419: rt.usize = rt.usizeRem(data.length, 8);
+			const _419: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_419 === 0) {
 				rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterChain(rt.iterMap(rt.iterSlice(rt.byteSliceView(a2)), (_2225: rt.u8): rt.u8 => {
 					const x166: rt.u8 = _2225;
@@ -2295,7 +2310,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 					rt.refMutRelease(_6179);
 					return x139;
 				}), "len");
-				const _574: rt.usize = rt.usizeRem(data.length, 8);
+				const _574: rt.usize = rt.usizeRem(dataLen, 8);
 				if (_574 === 0) {
 					rt.byteVecPush(out, rt.iterCount(z7) & 0xff);
 				} else if (_574 === 1) {
@@ -2344,7 +2359,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 					}));
 				}
 			} else {
-				const _612: rt.usize = rt.usizeRem(data.length, 8);
+				const _612: rt.usize = rt.usizeRem(dataLen, 8);
 				if (_612 === 0) {
 					rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterMap(rt.iterSlice(rt.byteVecView(rt.byteSliceToByteVec(a2))), (x135: rt.u8): rt.u8 => {
 						const _6176: rt.RefCell<rt.ByteVec> = rt.refCellBorrowMut(log);
@@ -2465,7 +2480,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.refMutRelease(_6159);
 				return x108;
 			}), "len");
-			const _751: rt.usize = rt.usizeRem(data.length, 8);
+			const _751: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_751 === 0) {
 				rt.byteVecPush(out, rt.iterCount(z9) & 0xff);
 			} else if (_751 === 1) {
@@ -2514,7 +2529,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				}));
 			}
 		} else {
-			const _789: rt.usize = rt.usizeRem(data.length, 8);
+			const _789: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_789 === 0) {
 				rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterMap(rt.iterSkip(rt.iterSlice(rt.byteVecView(rt.byteSliceToByteVec(a2))), 1), (x104: rt.u8): rt.u8 => {
 					const _6156: rt.RefCell<rt.ByteVec> = rt.refCellBorrowMut(log);
@@ -2647,7 +2662,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.refMutRelease(_6139);
 				return x77;
 			}));
-			const _927: rt.usize = rt.usizeRem(data.length, 8);
+			const _927: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_927 === 0) {
 				rt.byteVecPush(out, rt.iterCount(z11) & 0xff);
 			} else if (_927 === 1) {
@@ -2696,7 +2711,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				}));
 			}
 		} else {
-			const _965: rt.usize = rt.usizeRem(data.length, 8);
+			const _965: rt.usize = rt.usizeRem(dataLen, 8);
 			if (_965 === 0) {
 				rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterFilter(rt.iterMap(rt.iterSlice(rt.byteSliceView(a2)), (_2157: rt.u8): rt.u8 => {
 					const x73: rt.u8 = _2157;
@@ -2858,7 +2873,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}), "len"), (_2123: [[rt.u8, rt.u8], rt.u8]): [rt.u8, rt.u8] => {
 			return [_2123[0][0] ^ _2123[1], _2123[0][1]] as [rt.u8, rt.u8];
 		});
-		const _1102: rt.usize = rt.usizeRem(data.length, 8);
+		const _1102: rt.usize = rt.usizeRem(dataLen, 8);
 		if (_1102 === 0) {
 			rt.byteVecPush(out, rt.iterCount(z13) & 0xff);
 		} else if (_1102 === 1) {
@@ -2907,7 +2922,7 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			}));
 		}
 	} else {
-		const _1140: rt.usize = rt.usizeRem(data.length, 8);
+		const _1140: rt.usize = rt.usizeRem(dataLen, 8);
 		if (_1140 === 0) {
 			rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterMap(rt.iterZip(rt.iterZip(rt.iterMap(rt.iterSlice(rt.byteSliceView(a2)), (_2115: rt.u8): rt.u8 => {
 				const x38: rt.u8 = _2115;
@@ -3106,7 +3121,8 @@ export function zips(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
  * std trims the longer side on the first pair it reads from the back, and a by-index zip
  * reads no item it never yields from a side that does not log, nor through `nth` it skips.
  */
-export function zipsBack(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function zipsBack(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _20: (a0: rt.ByteSlice) => rt.u8 = (c: rt.ByteSlice): rt.u8 => {
 		return c.length & 0xff;
 	};
@@ -3435,73 +3451,73 @@ export function zipsBack(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
  * takes and as its own, stepping up to its type's last value, past which std's debug
  * build panics, and ranges of `char` across the surrogates, which they skip.
  */
-export function rangeFroms(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
-	const a: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data), 0);
+export function rangeFroms(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const a: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceFirst(new rt.ByteSlice(dataData, dataStart, dataLen)), 0);
 	const near: rt.u8 = rt.u8Rem(a, 4);
 	const how: rt.u8 = kind >> 6;
 	const _12: rt.u8 = rt.u8Rem(kind, 16);
 	if (_12 === 0) {
-		fromTop$u8_iters_range_froms_closure0(rt.u8Sub(255, near), data, how, out, (x14: rt.u8, out15: rt.ByteVec): undefined => {
+		fromTop$u8_iters_range_froms_closure0(rt.u8Sub(255, near), dataData, dataStart, dataLen, how, out, (x14: rt.u8, out15: rt.ByteVec): undefined => {
 			rt.byteVecPush(out15, x14);
 		});
 	} else if (_12 === 1) {
-		fromTop$u16_iters_range_froms_closure1(rt.u16Sub(65535, near as rt.u16), data, how, out, (x13: rt.u16, out14: rt.ByteVec): undefined => {
+		fromTop$u16_iters_range_froms_closure1(rt.u16Sub(65535, near as rt.u16), dataData, dataStart, dataLen, how, out, (x13: rt.u16, out14: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out14, rt.iterSlice(rt.u16ToBeBytes(x13).reverse()), undefined, true);
 		});
 	} else if (_12 === 2) {
-		fromTop$u32_iters_range_froms_closure2(rt.u32Sub(4294967295, near as rt.u32), data, how, out, (x12: rt.u32, out13: rt.ByteVec): undefined => {
+		fromTop$u32_iters_range_froms_closure2(rt.u32Sub(4294967295, near as rt.u32), dataData, dataStart, dataLen, how, out, (x12: rt.u32, out13: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out13, rt.iterSlice(rt.u32ToBeBytes(x12).reverse()), undefined, true);
 		});
 	} else if (_12 === 3) {
-		fromTop$u64_iters_range_froms_closure3(rt.u64Sub({ hi: 0xffffffff, lo: 0xffffffff } as rt.u64, near as rt.u64), data, how, out, (x11: rt.u64, out12: rt.ByteVec): undefined => {
+		fromTop$u64_iters_range_froms_closure3(rt.u64Sub({ hi: 0xffffffff, lo: 0xffffffff } as rt.u64, near as rt.u64), dataData, dataStart, dataLen, how, out, (x11: rt.u64, out12: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out12, rt.iterSlice(rt.u64ToBeBytes(x11).reverse()), undefined, true);
 		});
 	} else if (_12 === 4) {
-		fromTop$u128_iters_range_froms_closure4(rt.u128Sub({ hi: 0xffffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128, near as rt.u128), data, how, out, (x10: rt.u128, out11: rt.ByteVec): undefined => {
+		fromTop$u128_iters_range_froms_closure4(rt.u128Sub({ hi: 0xffffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128, near as rt.u128), dataData, dataStart, dataLen, how, out, (x10: rt.u128, out11: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out11, rt.iterSlice(rt.u128ToBeBytes(x10).reverse()), undefined, true);
 		});
 	} else if (_12 === 5) {
-		fromTop$usize_iters_range_froms_closure5(rt.usizeSub(4294967295, near as rt.usize), data, how, out, (x9: rt.usize, out10: rt.ByteVec): undefined => {
+		fromTop$usize_iters_range_froms_closure5(rt.usizeSub(4294967295, near as rt.usize), dataData, dataStart, dataLen, how, out, (x9: rt.usize, out10: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out10, rt.iterSlice(rt.usizeToBeBytes(x9).reverse()), undefined, true);
 		});
 	} else if (_12 === 6) {
-		fromTop$i8_iters_range_froms_closure6(rt.i8Sub(127, (near << 24) >> 24), data, how, out, (x8: rt.i8, out9: rt.ByteVec): undefined => {
+		fromTop$i8_iters_range_froms_closure6(rt.i8Sub(127, (near << 24) >> 24), dataData, dataStart, dataLen, how, out, (x8: rt.i8, out9: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out9, rt.iterSlice(rt.i8ToBeBytes(x8).reverse()), undefined, true);
 		});
 	} else if (_12 === 7) {
-		fromTop$i16_iters_range_froms_closure7(rt.i16Sub(32767, near as rt.i16), data, how, out, (x7: rt.i16, out8: rt.ByteVec): undefined => {
+		fromTop$i16_iters_range_froms_closure7(rt.i16Sub(32767, near as rt.i16), dataData, dataStart, dataLen, how, out, (x7: rt.i16, out8: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out8, rt.iterSlice(rt.i16ToBeBytes(x7).reverse()), undefined, true);
 		});
 	} else if (_12 === 8) {
-		fromTop$i32_iters_range_froms_closure8(rt.i32Sub(2147483647, near as rt.i32), data, how, out, (x6: rt.i32, out7: rt.ByteVec): undefined => {
+		fromTop$i32_iters_range_froms_closure8(rt.i32Sub(2147483647, near as rt.i32), dataData, dataStart, dataLen, how, out, (x6: rt.i32, out7: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out7, rt.iterSlice(rt.i32ToBeBytes(x6).reverse()), undefined, true);
 		});
 	} else if (_12 === 9) {
-		fromTop$i64_iters_range_froms_closure9(rt.i64Sub({ hi: 0x7fffffff, lo: 0xffffffff } as rt.i64, near as rt.i64), data, how, out, (x5: rt.i64, out6: rt.ByteVec): undefined => {
+		fromTop$i64_iters_range_froms_closure9(rt.i64Sub({ hi: 0x7fffffff, lo: 0xffffffff } as rt.i64, near as rt.i64), dataData, dataStart, dataLen, how, out, (x5: rt.i64, out6: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out6, rt.iterSlice(rt.i64ToBeBytes(x5).reverse()), undefined, true);
 		});
 	} else if (_12 === 10) {
-		fromTop$i128_iters_range_froms_closure10(rt.i128Sub({ hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.i128, near as rt.i128), data, how, out, (x4: rt.i128, out5: rt.ByteVec): undefined => {
+		fromTop$i128_iters_range_froms_closure10(rt.i128Sub({ hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.i128, near as rt.i128), dataData, dataStart, dataLen, how, out, (x4: rt.i128, out5: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out5, rt.iterSlice(rt.i128ToBeBytes(x4).reverse()), undefined, true);
 		});
 	} else if (_12 === 11) {
-		fromTop$isize_iters_range_froms_closure11(rt.isizeSub(2147483647, near as rt.isize), data, how, out, (x3: rt.isize, out4: rt.ByteVec): undefined => {
+		fromTop$isize_iters_range_froms_closure11(rt.isizeSub(2147483647, near as rt.isize), dataData, dataStart, dataLen, how, out, (x3: rt.isize, out4: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out4, rt.iterSlice(rt.isizeToBeBytes(x3).reverse()), undefined, true);
 		});
 	} else if (_12 === 12) {
-		fromTop$u64_iters_range_froms_closure12(rt.u64Add(rt.u64Sub({ hi: 0x200000, lo: 0 } as rt.u64, 2), near as rt.u64), data, how, out, (x: rt.u64, out2: rt.ByteVec): undefined => {
+		fromTop$u64_iters_range_froms_closure12(rt.u64Add(rt.u64Sub({ hi: 0x200000, lo: 0 } as rt.u64, 2), near as rt.u64), dataData, dataStart, dataLen, how, out, (x: rt.u64, out2: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out2, rt.iterSlice(rt.u64ToBeBytes(x).reverse()), undefined, true);
 		});
-		fromTop$u128_iters_range_froms_closure13(rt.u128Add(rt.u128Sub(rt.u128Shl(1, 64), 2), near as rt.u128), data, how ^ 2, out, (x2: rt.u128, out3: rt.ByteVec): undefined => {
+		fromTop$u128_iters_range_froms_closure13(rt.u128Add(rt.u128Sub(rt.u128Shl(1, 64), 2), near as rt.u128), dataData, dataStart, dataLen, how ^ 2, out, (x2: rt.u128, out3: rt.ByteVec): undefined => {
 			rt.iterExtendBytes(out3, rt.iterSlice(rt.u128ToBeBytes(x2).reverse()), undefined, true);
 		});
 		rt.iterExtendBytes(out, rt.iterSlice(rt.i64ToBeBytes(option_unwrapOr$00uis1j(rt.iterNth(new rt.RangeFrom(rt.i64Sub(rt.i64Neg({ hi: 0x200000, lo: 0 } as rt.i64), 2), rt.i64Step), a as rt.usize), 0)).reverse()), undefined, true);
 	} else if (_12 === 13) {
-		chars(a, data, how, out);
+		chars(a, dataData, dataStart, dataLen, how, out);
 	} else if (_12 === 14) {
-		adapted(a, data, out);
+		adapted(a, dataData, dataStart, dataLen, out);
 	} else {
-		overflowed(a, data, out);
+		overflowed(a, dataData, dataStart, dataLen, out);
 	}
 }
 
@@ -3511,11 +3527,11 @@ export function rangeFroms(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): vo
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$char_iters_chars_closure0(start: rt.char, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.char, a1: rt.ByteVec) => undefined): void {
+export function fromTop$char_iters_chars_closure0(start: rt.char, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.char, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.char]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.charStep), "len");
+			const iter: rt.Iter<[rt.u8, rt.char]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.charStep), "len");
 			while (true) {
 				const _13: [rt.u8, rt.char] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3528,7 +3544,7 @@ export function fromTop$char_iters_chars_closure0(start: rt.char, data: rt.ByteS
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.charStep), "len"), (_26: [rt.u8, rt.char]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.charStep), "len"), (_26: [rt.u8, rt.char]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.char = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3536,7 +3552,7 @@ export function fromTop$char_iters_chars_closure0(start: rt.char, data: rt.ByteS
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.char, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.charStep), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.char, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.charStep), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.char, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3548,7 +3564,7 @@ export function fromTop$char_iters_chars_closure0(start: rt.char, data: rt.ByteS
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.charStep), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.char, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.charStep), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.char, rt.u8]): undefined => {
 				const x3: rt.char = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3564,11 +3580,11 @@ export function fromTop$char_iters_chars_closure0(start: rt.char, data: rt.ByteS
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$i128_iters_range_froms_closure10(start: rt.i128, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i128, a1: rt.ByteVec) => undefined): void {
+export function fromTop$i128_iters_range_froms_closure10(start: rt.i128, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i128, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.i128]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i128Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.i128]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i128Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.i128] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3581,7 +3597,7 @@ export function fromTop$i128_iters_range_froms_closure10(start: rt.i128, data: r
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i128Step), "len"), (_26: [rt.u8, rt.i128]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i128Step), "len"), (_26: [rt.u8, rt.i128]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.i128 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3589,7 +3605,7 @@ export function fromTop$i128_iters_range_froms_closure10(start: rt.i128, data: r
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.i128, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i128Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.i128, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i128Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.i128, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3601,7 +3617,7 @@ export function fromTop$i128_iters_range_froms_closure10(start: rt.i128, data: r
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i128Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.i128, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i128Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.i128, rt.u8]): undefined => {
 				const x3: rt.i128 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3617,11 +3633,11 @@ export function fromTop$i128_iters_range_froms_closure10(start: rt.i128, data: r
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$i16_iters_range_froms_closure7(start: rt.i16, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i16, a1: rt.ByteVec) => undefined): void {
+export function fromTop$i16_iters_range_froms_closure7(start: rt.i16, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i16, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.i16]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i16Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.i16]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i16Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.i16] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3634,7 +3650,7 @@ export function fromTop$i16_iters_range_froms_closure7(start: rt.i16, data: rt.B
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i16Step), "len"), (_26: [rt.u8, rt.i16]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i16Step), "len"), (_26: [rt.u8, rt.i16]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.i16 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3642,7 +3658,7 @@ export function fromTop$i16_iters_range_froms_closure7(start: rt.i16, data: rt.B
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.i16, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i16Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.i16, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i16Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.i16, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3654,7 +3670,7 @@ export function fromTop$i16_iters_range_froms_closure7(start: rt.i16, data: rt.B
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i16Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.i16, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i16Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.i16, rt.u8]): undefined => {
 				const x3: rt.i16 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3670,11 +3686,11 @@ export function fromTop$i16_iters_range_froms_closure7(start: rt.i16, data: rt.B
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$i32_iters_range_froms_closure8(start: rt.i32, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i32, a1: rt.ByteVec) => undefined): void {
+export function fromTop$i32_iters_range_froms_closure8(start: rt.i32, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i32, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.i32]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i32Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.i32]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i32Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.i32] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3687,7 +3703,7 @@ export function fromTop$i32_iters_range_froms_closure8(start: rt.i32, data: rt.B
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i32Step), "len"), (_26: [rt.u8, rt.i32]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i32Step), "len"), (_26: [rt.u8, rt.i32]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.i32 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3695,7 +3711,7 @@ export function fromTop$i32_iters_range_froms_closure8(start: rt.i32, data: rt.B
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.i32, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i32Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.i32, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i32Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.i32, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3707,7 +3723,7 @@ export function fromTop$i32_iters_range_froms_closure8(start: rt.i32, data: rt.B
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i32Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.i32, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i32Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.i32, rt.u8]): undefined => {
 				const x3: rt.i32 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3723,11 +3739,11 @@ export function fromTop$i32_iters_range_froms_closure8(start: rt.i32, data: rt.B
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$i64_iters_range_froms_closure9(start: rt.i64, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i64, a1: rt.ByteVec) => undefined): void {
+export function fromTop$i64_iters_range_froms_closure9(start: rt.i64, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i64, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.i64]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i64Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.i64]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i64Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.i64] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3740,7 +3756,7 @@ export function fromTop$i64_iters_range_froms_closure9(start: rt.i64, data: rt.B
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i64Step), "len"), (_26: [rt.u8, rt.i64]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i64Step), "len"), (_26: [rt.u8, rt.i64]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.i64 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3748,7 +3764,7 @@ export function fromTop$i64_iters_range_froms_closure9(start: rt.i64, data: rt.B
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.i64, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i64Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.i64, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i64Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.i64, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3760,7 +3776,7 @@ export function fromTop$i64_iters_range_froms_closure9(start: rt.i64, data: rt.B
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i64Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.i64, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i64Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.i64, rt.u8]): undefined => {
 				const x3: rt.i64 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3776,11 +3792,11 @@ export function fromTop$i64_iters_range_froms_closure9(start: rt.i64, data: rt.B
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$i8_iters_range_froms_closure6(start: rt.i8, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i8, a1: rt.ByteVec) => undefined): void {
+export function fromTop$i8_iters_range_froms_closure6(start: rt.i8, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.i8, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.i8]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i8Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.i8]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i8Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.i8] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3793,7 +3809,7 @@ export function fromTop$i8_iters_range_froms_closure6(start: rt.i8, data: rt.Byt
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.i8Step), "len"), (_26: [rt.u8, rt.i8]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.i8Step), "len"), (_26: [rt.u8, rt.i8]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.i8 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3801,7 +3817,7 @@ export function fromTop$i8_iters_range_froms_closure6(start: rt.i8, data: rt.Byt
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.i8, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i8Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.i8, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.i8Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.i8, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3813,7 +3829,7 @@ export function fromTop$i8_iters_range_froms_closure6(start: rt.i8, data: rt.Byt
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i8Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.i8, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.i8Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.i8, rt.u8]): undefined => {
 				const x3: rt.i8 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3829,11 +3845,11 @@ export function fromTop$i8_iters_range_froms_closure6(start: rt.i8, data: rt.Byt
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$isize_iters_range_froms_closure11(start: rt.isize, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.isize, a1: rt.ByteVec) => undefined): void {
+export function fromTop$isize_iters_range_froms_closure11(start: rt.isize, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.isize, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.isize]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.isizeStep), "len");
+			const iter: rt.Iter<[rt.u8, rt.isize]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.isizeStep), "len");
 			while (true) {
 				const _13: [rt.u8, rt.isize] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3846,7 +3862,7 @@ export function fromTop$isize_iters_range_froms_closure11(start: rt.isize, data:
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.isizeStep), "len"), (_26: [rt.u8, rt.isize]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.isizeStep), "len"), (_26: [rt.u8, rt.isize]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.isize = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3854,7 +3870,7 @@ export function fromTop$isize_iters_range_froms_closure11(start: rt.isize, data:
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.isize, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.isizeStep), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.isize, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.isizeStep), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.isize, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3866,7 +3882,7 @@ export function fromTop$isize_iters_range_froms_closure11(start: rt.isize, data:
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.isizeStep), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.isize, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.isizeStep), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.isize, rt.u8]): undefined => {
 				const x3: rt.isize = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3882,11 +3898,11 @@ export function fromTop$isize_iters_range_froms_closure11(start: rt.isize, data:
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$u128_iters_range_froms_closure13(start: rt.u128, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u128, a1: rt.ByteVec) => undefined): void {
+export function fromTop$u128_iters_range_froms_closure13(start: rt.u128, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u128, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.u128]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u128Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.u128]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u128Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.u128] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3899,7 +3915,7 @@ export function fromTop$u128_iters_range_froms_closure13(start: rt.u128, data: r
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u128Step), "len"), (_26: [rt.u8, rt.u128]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u128Step), "len"), (_26: [rt.u8, rt.u128]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.u128 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3907,7 +3923,7 @@ export function fromTop$u128_iters_range_froms_closure13(start: rt.u128, data: r
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.u128, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.u128, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.u128, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3919,7 +3935,7 @@ export function fromTop$u128_iters_range_froms_closure13(start: rt.u128, data: r
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.u128, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.u128, rt.u8]): undefined => {
 				const x3: rt.u128 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3935,11 +3951,11 @@ export function fromTop$u128_iters_range_froms_closure13(start: rt.u128, data: r
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$u128_iters_range_froms_closure4(start: rt.u128, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u128, a1: rt.ByteVec) => undefined): void {
+export function fromTop$u128_iters_range_froms_closure4(start: rt.u128, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u128, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.u128]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u128Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.u128]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u128Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.u128] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -3952,7 +3968,7 @@ export function fromTop$u128_iters_range_froms_closure4(start: rt.u128, data: rt
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u128Step), "len"), (_26: [rt.u8, rt.u128]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u128Step), "len"), (_26: [rt.u8, rt.u128]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.u128 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -3960,7 +3976,7 @@ export function fromTop$u128_iters_range_froms_closure4(start: rt.u128, data: rt
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.u128, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.u128, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.u128, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -3972,7 +3988,7 @@ export function fromTop$u128_iters_range_froms_closure4(start: rt.u128, data: rt
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.u128, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u128Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.u128, rt.u8]): undefined => {
 				const x3: rt.u128 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -3988,11 +4004,11 @@ export function fromTop$u128_iters_range_froms_closure4(start: rt.u128, data: rt
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$u16_iters_range_froms_closure1(start: rt.u16, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u16, a1: rt.ByteVec) => undefined): void {
+export function fromTop$u16_iters_range_froms_closure1(start: rt.u16, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u16, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.u16]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u16Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.u16]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u16Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.u16] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -4005,7 +4021,7 @@ export function fromTop$u16_iters_range_froms_closure1(start: rt.u16, data: rt.B
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u16Step), "len"), (_26: [rt.u8, rt.u16]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u16Step), "len"), (_26: [rt.u8, rt.u16]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.u16 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -4013,7 +4029,7 @@ export function fromTop$u16_iters_range_froms_closure1(start: rt.u16, data: rt.B
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.u16, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u16Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.u16, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u16Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.u16, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -4025,7 +4041,7 @@ export function fromTop$u16_iters_range_froms_closure1(start: rt.u16, data: rt.B
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u16Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.u16, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u16Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.u16, rt.u8]): undefined => {
 				const x3: rt.u16 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -4041,11 +4057,11 @@ export function fromTop$u16_iters_range_froms_closure1(start: rt.u16, data: rt.B
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$u32_iters_range_froms_closure2(start: rt.u32, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u32, a1: rt.ByteVec) => undefined): void {
+export function fromTop$u32_iters_range_froms_closure2(start: rt.u32, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u32, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.u32]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u32Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.u32]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u32Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.u32] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -4058,7 +4074,7 @@ export function fromTop$u32_iters_range_froms_closure2(start: rt.u32, data: rt.B
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u32Step), "len"), (_26: [rt.u8, rt.u32]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u32Step), "len"), (_26: [rt.u8, rt.u32]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.u32 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -4066,7 +4082,7 @@ export function fromTop$u32_iters_range_froms_closure2(start: rt.u32, data: rt.B
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.u32, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u32Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.u32, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u32Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.u32, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -4078,7 +4094,7 @@ export function fromTop$u32_iters_range_froms_closure2(start: rt.u32, data: rt.B
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u32Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.u32, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u32Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.u32, rt.u8]): undefined => {
 				const x3: rt.u32 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -4094,11 +4110,11 @@ export function fromTop$u32_iters_range_froms_closure2(start: rt.u32, data: rt.B
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$u64_iters_range_froms_closure12(start: rt.u64, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u64, a1: rt.ByteVec) => undefined): void {
+export function fromTop$u64_iters_range_froms_closure12(start: rt.u64, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u64, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.u64]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u64Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.u64]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u64Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.u64] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -4111,7 +4127,7 @@ export function fromTop$u64_iters_range_froms_closure12(start: rt.u64, data: rt.
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u64Step), "len"), (_26: [rt.u8, rt.u64]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u64Step), "len"), (_26: [rt.u8, rt.u64]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.u64 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -4119,7 +4135,7 @@ export function fromTop$u64_iters_range_froms_closure12(start: rt.u64, data: rt.
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.u64, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.u64, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.u64, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -4131,7 +4147,7 @@ export function fromTop$u64_iters_range_froms_closure12(start: rt.u64, data: rt.
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.u64, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.u64, rt.u8]): undefined => {
 				const x3: rt.u64 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -4147,11 +4163,11 @@ export function fromTop$u64_iters_range_froms_closure12(start: rt.u64, data: rt.
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$u64_iters_range_froms_closure3(start: rt.u64, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u64, a1: rt.ByteVec) => undefined): void {
+export function fromTop$u64_iters_range_froms_closure3(start: rt.u64, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u64, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.u64]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u64Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.u64]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u64Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.u64] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -4164,7 +4180,7 @@ export function fromTop$u64_iters_range_froms_closure3(start: rt.u64, data: rt.B
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u64Step), "len"), (_26: [rt.u8, rt.u64]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u64Step), "len"), (_26: [rt.u8, rt.u64]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.u64 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -4172,7 +4188,7 @@ export function fromTop$u64_iters_range_froms_closure3(start: rt.u64, data: rt.B
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.u64, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.u64, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.u64, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -4184,7 +4200,7 @@ export function fromTop$u64_iters_range_froms_closure3(start: rt.u64, data: rt.B
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.u64, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u64Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.u64, rt.u8]): undefined => {
 				const x3: rt.u64 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -4200,11 +4216,11 @@ export function fromTop$u64_iters_range_froms_closure3(start: rt.u64, data: rt.B
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$u8_iters_range_froms_closure0(start: rt.u8, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u8, a1: rt.ByteVec) => undefined): void {
+export function fromTop$u8_iters_range_froms_closure0(start: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.u8, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.u8]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u8Step), "len");
+			const iter: rt.Iter<[rt.u8, rt.u8]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u8Step), "len");
 			while (true) {
 				const _13: [rt.u8, rt.u8] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -4217,7 +4233,7 @@ export function fromTop$u8_iters_range_froms_closure0(start: rt.u8, data: rt.Byt
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.u8Step), "len"), (_26: [rt.u8, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.u8Step), "len"), (_26: [rt.u8, rt.u8]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.u8 = _26[1];
 				rt.byteVecPush(out, b4);
@@ -4225,7 +4241,7 @@ export function fromTop$u8_iters_range_froms_closure0(start: rt.u8, data: rt.Byt
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.u8, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u8Step), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.u8, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.u8Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.u8, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -4237,7 +4253,7 @@ export function fromTop$u8_iters_range_froms_closure0(start: rt.u8, data: rt.Byt
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u8Step), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.u8, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.u8Step), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.u8, rt.u8]): undefined => {
 				const x3: rt.u8 = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -4253,11 +4269,11 @@ export function fromTop$u8_iters_range_froms_closure0(start: rt.u8, data: rt.Byt
  * it steps once more than the data has, so it panics one item sooner; folded, std's zip
  * of two `TrustedLen` iterators reads only as many pairs as the data has.
  */
-export function fromTop$usize_iters_range_froms_closure5(start: rt.usize, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec, put: (a0: rt.usize, a1: rt.ByteVec) => undefined): void {
+export function fromTop$usize_iters_range_froms_closure5(start: rt.usize, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec, put: (a0: rt.usize, a1: rt.ByteVec) => undefined): void {
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(how, 4);
 		if (_6 === 0) {
-			const iter: rt.Iter<[rt.u8, rt.usize]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.usizeStep), "len");
+			const iter: rt.Iter<[rt.u8, rt.usize]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.usizeStep), "len");
 			while (true) {
 				const _13: [rt.u8, rt.usize] | rt.Done = iter.next();
 				if (_13 === rt.DONE) {
@@ -4270,7 +4286,7 @@ export function fromTop$usize_iters_range_froms_closure5(start: rt.usize, data: 
 			}
 		}
 		if (_6 === 1) {
-			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), new rt.RangeFrom(start, rt.usizeStep), "len"), (_26: [rt.u8, rt.usize]): undefined => {
+			rt.iterForEach(rt.iterZip(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), new rt.RangeFrom(start, rt.usizeStep), "len"), (_26: [rt.u8, rt.usize]): undefined => {
 				const b4: rt.u8 = _26[0];
 				const x4: rt.usize = _26[1];
 				rt.byteVecPush(out, b4);
@@ -4278,7 +4294,7 @@ export function fromTop$usize_iters_range_froms_closure5(start: rt.usize, data: 
 			});
 		} else {
 			if (_6 === 2) {
-				const iter2: rt.Iter<[rt.usize, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.usizeStep), rt.iterSlice(rt.byteSliceView(data)), "len");
+				const iter2: rt.Iter<[rt.usize, rt.u8]> = rt.iterZip(new rt.RangeFrom(start, rt.usizeStep), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len");
 				while (true) {
 					const _31: [rt.usize, rt.u8] | rt.Done = iter2.next();
 					if (_31 === rt.DONE) {
@@ -4290,7 +4306,7 @@ export function fromTop$usize_iters_range_froms_closure5(start: rt.usize, data: 
 					rt.byteVecPush(out, b2);
 				}
 			}
-			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.usizeStep), rt.iterSlice(rt.byteSliceView(data)), "len"), (_2: [rt.usize, rt.u8]): undefined => {
+			rt.iterForEach(rt.iterZip(new rt.RangeFrom(start, rt.usizeStep), rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), "len"), (_2: [rt.usize, rt.u8]): undefined => {
 				const x3: rt.usize = _2[0];
 				const b3: rt.u8 = _2[1];
 				put(x3, out);
@@ -4304,20 +4320,20 @@ export function fromTop$usize_iters_range_froms_closure5(start: rt.usize, data: 
  * `char` ranges of each kind across the surrogates, which std's `Step` skips, and up to
  * `char::MAX`, past which `start..` panics.
  */
-export function chars(a: rt.u8, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec): void {
+export function chars(a: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, how: rt.u8, out: rt.ByteVec): void {
 	const _8: (a0: rt.char, a1: rt.ByteVec) => undefined = (c2: rt.char, out2: rt.ByteVec): undefined => {
 		rt.iterExtendBytes(out2, rt.iterSlice(rt.u32ToBeBytes(c2 as rt.u32).reverse()), undefined, true);
 	};
 	const near: rt.u32 = rt.u8Rem(a, 4) as rt.u32;
 	const gap: rt.char = rt.optionUnwrap(rt.charFromU32(rt.u32Add(55293, near)));
-	fromTop$char_iters_chars_closure0(gap, data, how, out, (c3: rt.char, out3: rt.ByteVec): undefined => {
+	fromTop$char_iters_chars_closure0(gap, dataData, dataStart, dataLen, how, out, (c3: rt.char, out3: rt.ByteVec): undefined => {
 		rt.iterExtendBytes(out3, rt.iterSlice(rt.u32ToBeBytes(c3 as rt.u32).reverse()), undefined, true);
 	});
 	const top: rt.char = rt.optionUnwrap(rt.charFromU32(rt.u32Sub(1114111 as rt.u32, near)));
-	fromTop$char_iters_chars_closure0(top, data, how, out, (c4: rt.char, out4: rt.ByteVec): undefined => {
+	fromTop$char_iters_chars_closure0(top, dataData, dataStart, dataLen, how, out, (c4: rt.char, out4: rt.ByteVec): undefined => {
 		rt.iterExtendBytes(out4, rt.iterSlice(rt.u32ToBeBytes(c4 as rt.u32).reverse()), undefined, true);
 	});
-	const n: rt.usize = data.length;
+	const n: rt.usize = dataLen;
 	const end: rt.char = rt.optionUnwrap(rt.charFromU32(rt.u32Add(57344, near)));
 	const iter: rt.Iter<rt.char> = rt.iterStepBy(rt.iterRev(new rt.Range(gap, end, rt.charStep)), 2);
 	while (true) {
@@ -4357,7 +4373,8 @@ export function chars(a: rt.u8, data: rt.ByteSlice, how: rt.u8, out: rt.ByteVec)
  * `start..` as what each adaptor and consumer taking an `IntoIterator` takes, and as its
  * own receiver.
  */
-export function adapted(a: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function adapted(a: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const lo: rt.u8 = rt.u8Rem(a, 64);
 	const b: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, 1), 0);
 	const it: () => rt.Iter<rt.u8> = (): rt.Iter<rt.u8> => {
@@ -4429,9 +4446,9 @@ export function adapted(a: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
  * Consumers that step `start..` past its type's last value, which panics in std's
  * debug build, as the fixture is built.
  */
-export function overflowed(a: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function overflowed(a: rt.u8, _dataData: Uint8Array, _dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const top: rt.u8 = rt.max(a, 250);
-	const _5: rt.usize = rt.usizeRem(data.length, 8);
+	const _5: rt.usize = rt.usizeRem(dataLen, 8);
 	if (_5 === 0) {
 		rt.iterExtendBytes(out, new rt.RangeFrom(top, rt.u8Step), undefined, true);
 	} else if (_5 === 1) {
@@ -4459,15 +4476,17 @@ export function overflowed(a: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void 
  * width at their ends and past 2^53 and 2^64, `char`s at either side of the surrogates,
  * floats with NaN and the zeros, and unsigned `NonZero`s.
  */
-export function rangeMethods(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function rangeMethods(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: rt.usize[] = rt.arrayMap([0, 1], (i: rt.usize): rt.usize => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0) as rt.usize;
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0) as rt.usize;
 	});
 	const past53: rt.u64 = rt.u64Add({ hi: 0x200000, lo: 0 } as rt.u64, 1);
 	const past64: rt.u128 = rt.u128Add(rt.u128Shl(1, 64), 1);
 	const _17: rt.u8 = rt.u8Rem(kind, 19);
 	if (_17 === 0) {
-		stepped$u8(rt.byteSliceFrom(Uint8Array.of(0, 1, 2, 254, 255)), at, out);
+		const _19: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of(0, 1, 2, 254, 255));
+		stepped$u8(_19.data, _19.start, _19.length, at, out);
 	} else if (_17 === 1) {
 		65535 - 1;
 		stepped$u16([0, 1, 32767, 65534, 65535], at, out);
@@ -5718,7 +5737,8 @@ export function bounded$u64(table: rt.u64[], at: rt.usize[], out: rt.ByteVec): [
  * Each range type's comparisons of `a` and `b`, from `table`, against each of its
  * values, and their `Debug`.
  */
-export function bounded$u8(table: rt.ByteSlice, at: rt.usize[], out: rt.ByteVec): [rt.u8, rt.u8] {
+export function bounded$u8(tableData: Uint8Array, tableStart: number, tableLen: number, at: rt.usize[], out: rt.ByteVec): [rt.u8, rt.u8] {
+	const table: rt.ByteSlice = new rt.ByteSlice(tableData, tableStart, tableLen);
 	const _6: Uint8Array = rt.bytesMap(at, (i: rt.usize): rt.u8 => {
 		const _3: rt.usize = rt.usizeRem(i, table.length);
 		rt.idx(table, _3);
@@ -7839,15 +7859,16 @@ export function stepped$u64(table: rt.u64[], at: rt.usize[], out: rt.ByteVec): v
  * from either end, by `next` past its last item, which wraps it at its type's end, and
  * folded, which exhausts it at its end. Each is compared with fresh ranges and hashed.
  */
-export function stepped$u8(table: rt.ByteSlice, at: rt.usize[], out: rt.ByteVec): void {
+export function stepped$u8(tableData: Uint8Array, tableStart: number, tableLen: number, at: rt.usize[], out: rt.ByteVec): void {
 	let _20!: rt.i32;
 	let read!: rt.u8 | undefined;
+	const table: rt.ByteSlice = new rt.ByteSlice(tableData, tableStart, tableLen);
 	const _7: (a0: (a0: rt.Hasher) => undefined) => Uint8Array = (value: (a0: rt.Hasher) => undefined): Uint8Array => {
 		const h: rt.Hasher = rt.hasher();
 		value(h);
 		return rt.u64ToBeBytes(rt.hashFinish(h)).reverse();
 	};
-	const _6: [rt.u8, rt.u8] = bounded$u8(table, at, out);
+	const _6: [rt.u8, rt.u8] = bounded$u8(table.data, table.start, table.length, at, out);
 	const a: rt.u8 = _6[0];
 	const b: rt.u8 = _6[1];
 	const part2 = (h2: rt.Hasher): undefined => {
@@ -8030,7 +8051,7 @@ export function stepped$usize(table: rt.usize[], at: rt.usize[], out: rt.ByteVec
  * on after; of floats with NaN for 0xff, against a `Vec` by value; and of `start..`, which
  * never ends, and panics past its type's last value.
  */
-export function compares(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function compares(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let r!: rt.u8;
 	let r2!: rt.u8;
 	let r3!: rt.u8;
@@ -8038,6 +8059,7 @@ export function compares(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 	let r5!: rt.u8;
 	let r6!: rt.u8;
 	let r7!: rt.u8;
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _23: (a0: rt.Ordering | undefined) => rt.u8 = (o: rt.Ordering | undefined): rt.u8 => {
 		return option_mapOr$1e4a1e0(o, 9, (o2: rt.Ordering): rt.u8 => {
 			return o2 & 0xff;
