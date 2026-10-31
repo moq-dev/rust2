@@ -965,7 +965,7 @@ export function subslices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
 		const array: rt.u32[] = Array.from({ length: 5 }, (): rt.u32 => {
 			return 0;
 		});
-		const iter: rt.Iter<[rt.Place<rt.u32>, rt.u8]> = rt.iterZip(rt.iterSliceMut(array), rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, 2))), "index");
+		const iter: rt.Iter<[rt.Place<rt.u32>, rt.u8]> = rt.iterZip(rt.iterSliceMut(array), rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, 2))), [false, false]);
 		while (true) {
 			const _37: [rt.Place<rt.u32>, rt.u8] | rt.Done = iter.next();
 			if (_37 === rt.DONE) {
@@ -1345,7 +1345,7 @@ export function ranges(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const array: rt.u32[] = Array.from({ length: 5 }, (): rt.u32 => {
 			return 0;
 		});
-		const iter: rt.Iter<[rt.Place<rt.u32>, rt.u8]> = rt.iterZip(rt.iterSliceMut(array), rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, 2))), "index");
+		const iter: rt.Iter<[rt.Place<rt.u32>, rt.u8]> = rt.iterZip(rt.iterSliceMut(array), rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, 2))), [false, false]);
 		while (true) {
 			const _39: [rt.Place<rt.u32>, rt.u8] | rt.Done = iter.next();
 			if (_39 === rt.DONE) {
@@ -1761,7 +1761,7 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const array: rt.u32[] = Array.from({ length: 5 }, (): rt.u32 => {
 			return 0;
 		});
-		const iter: rt.Iter<[rt.Place<rt.u32>, rt.u8]> = rt.iterZip(rt.iterSliceMut(array), rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, 3))), "index");
+		const iter: rt.Iter<[rt.Place<rt.u32>, rt.u8]> = rt.iterZip(rt.iterSliceMut(array), rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, 3))), [false, false]);
 		while (true) {
 			const _53: [rt.Place<rt.u32>, rt.u8] | rt.Done = iter.next();
 			if (_53 === rt.DONE) {

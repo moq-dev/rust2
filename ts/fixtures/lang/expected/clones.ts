@@ -6620,7 +6620,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			return x69;
 		}, out);
 		const array: Uint8Array = Uint8Array.of(1, 2, 3, 4);
-		const iter: rt.Iter<[rt.Place<rt.u8>, rt.u8]> = rt.iterZip(rt.iterSliceMut(rt.byteSliceView(rt.byteSliceFrom(array))), rt.iterSlice(rt.byteSliceView(data)), "index");
+		const iter: rt.Iter<[rt.Place<rt.u8>, rt.u8]> = rt.iterZip(rt.iterSliceMut(rt.byteSliceView(rt.byteSliceFrom(array))), rt.iterSlice(rt.byteSliceView(data)), [false, false]);
 		while (true) {
 			const _25: [rt.Place<rt.u8>, rt.u8] | rt.Done = iter.next();
 			if (_25 === rt.DONE) {
@@ -6946,7 +6946,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const iterEnd: rt.usize = 2;
 		while ((_269 = iterStart++) < iterEnd) {
 			const skip: rt.usize = _269;
-			const zip: rt.Iter<[rt.u8, rt.u8]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(a2)), rt.iterSlice(rt.byteSliceView(b3)), "index");
+			const zip: rt.Iter<[rt.u8, rt.u8]> = rt.iterZip(rt.iterSlice(rt.byteSliceView(a2)), rt.iterSlice(rt.byteSliceView(b3)), [false, false]);
 			const _278: rt.usize = rt.usizeAdd(rt.min(a2.length, b3.length), skip);
 			let iterStart2: rt.usize = 0;
 			const iterEnd2: rt.usize = _278;
@@ -6975,7 +6975,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				return _244[0] ^ _244[1];
 			}, out);
 		}
-		turns$iter_Zip_slice_Iter_u8_slice_Iter_u8_clones_iters_closure115_clones_iters_closure116(rt.iterZip(rt.iterSlice(rt.byteSliceView(a2)), rt.iterSlice(rt.byteSliceView(b3)), "index"), (it28: rt.Iter<[rt.u8, rt.u8]>): [rt.u8, rt.u8] | undefined => {
+		turns$iter_Zip_slice_Iter_u8_slice_Iter_u8_clones_iters_closure115_clones_iters_closure116(rt.iterZip(rt.iterSlice(rt.byteSliceView(a2)), rt.iterSlice(rt.byteSliceView(b3)), [false, false]), (it28: rt.Iter<[rt.u8, rt.u8]>): [rt.u8, rt.u8] | undefined => {
 			return rt.iterToOption(it28.nextBack());
 		}, plan, (_247: [rt.u8, rt.u8]): rt.u8 => {
 			return _247[0] ^ _247[1];

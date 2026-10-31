@@ -364,41 +364,45 @@ export function order(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
  */
 export function iterate(chain: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	if (chain === 0) {
-		putUsize(out, rt.iterCount(rt.iterFilter(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_213: rt.u8): rt.u8 => {
-			return _213 >> 1;
-		}), (_214: rt.u8): boolean => {
-			return (_214 & 1) === 0;
+		putUsize(out, rt.iterCount(rt.iterFilter(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_214: rt.u8): rt.u8 => {
+			return _214 >> 1;
+		}), (_215: rt.u8): boolean => {
+			return (_215 & 1) === 0;
 		})));
 	} else if (chain === 1) {
-		rt.byteVecPush(out, rt.iterAny(rt.iterSlice(rt.byteSliceView(data)), (_212: rt.u8): boolean => {
-			return _212 === 255;
+		rt.byteVecPush(out, rt.iterAny(rt.iterSlice(rt.byteSliceView(data)), (_213: rt.u8): boolean => {
+			return _213 === 255;
 		}) ? 1 : 0);
 	} else if (chain === 2) {
-		putUsize(out, rt.iterToByteVec(rt.iterFilter(rt.iterSlice(rt.byteSliceView(data)), (_211: rt.u8): boolean => {
-			return (_211 & 1) === 1;
+		putUsize(out, rt.iterToByteVec(rt.iterFilter(rt.iterSlice(rt.byteSliceView(data)), (_212: rt.u8): boolean => {
+			return (_212 & 1) === 1;
 		}), "next").length);
 	} else if (chain === 3) {
-		harness_putU64(out, rt.iterSum(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_210: rt.u8): rt.u32 => {
-			return _210 as rt.u32;
+		harness_putU64(out, rt.iterSum(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_211: rt.u8): rt.u32 => {
+			return _211 as rt.u32;
 		}), rt.u32Add, 0) as rt.u64);
 	} else if (chain === 4) {
 		harness_putU64(out, rt.iterFold(rt.iterTake(rt.iterSkip(rt.iterSlice(rt.byteSliceView(data)), 16), 512), 0, (acc: rt.u32, _3: rt.u8): rt.u32 => {
 			return (acc ^ _3 as rt.u32) >>> 0;
 		}) as rt.u64);
 	} else if (chain === 6) {
-		putUsize(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), "len"), (_2: [rt.u8, rt.u8]): boolean => {
-			return _2[0] < _2[1];
+		putUsize(out, rt.iterCount(rt.iterFilter(rt.iterZip(rt.iterSlice(rt.byteSliceView(data)), rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), "len"), (_210: [rt.u8, rt.u8]): boolean => {
+			return _210[0] < _210[1];
+		})));
+	} else if (chain === 7) {
+		putUsize(out, rt.iterCount(rt.iterFilter(rt.iterRev(rt.iterZip(new rt.Range(0, rt.usizeMul(data.length, 64)), rt.iterSlice(rt.byteSliceView(data)), [false, false])), (_2: [rt.usize, rt.u8]): boolean => {
+			return (_2[0] & 0xff) < _2[1];
 		})));
 	} else {
 		let last: rt.usize = 0;
 		const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(data)));
 		while (true) {
-			const _39: [rt.usize, rt.u8] | rt.Done = iter.next();
-			if (_39 === rt.DONE) {
+			const _47: [rt.usize, rt.u8] | rt.Done = iter.next();
+			if (_47 === rt.DONE) {
 				break;
 			}
-			const i: rt.usize = _39[0];
-			if (_39[1] === 128) {
+			const i: rt.usize = _47[0];
+			if (_47[1] === 128) {
 				last = i;
 			}
 		}

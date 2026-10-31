@@ -1166,11 +1166,14 @@ pub fn zips(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 	out.extend_from_slice(&log.borrow());
 }
 
-/// `next_back` of a zip of sides that each log what they make: std trims the longer side
-/// first, a by-index zip only a side that logs, then reads both from the back.
+/// `next_back` of a zip of sides that each log what they make, or of ranges, slices, their
+/// `chunks` and `enumerate`, and zips of those, either side longer, read from either end:
+/// std trims the longer side on the first pair it reads from the back, and a by-index zip
+/// reads no item it never yields from a side that does not log, nor through `nth` it skips.
 pub fn zips_back(kind: u8, data: &[u8], out: &mut Vec<u8>) {
-	let split = (kind >> 3) as usize % (data.len() + 1);
+	let split = data.first().map_or(0, |&b| b as usize) % (data.len() + 1);
 	let (a, b) = data.split_at(split);
+	let n = (kind >> 5) as usize;
 	let log = std::cell::RefCell::new(Vec::new());
 	macro_rules! seen {
 		($tag:expr) => {
@@ -1180,24 +1183,63 @@ pub fn zips_back(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 			}
 		};
 	}
+	// `$zip`, its pairs made bytes by `$at`, read from the back and, by the case's bits,
+	// from the front first, through `nth`, and between back reads.
 	macro_rules! back {
-		($zip:expr) => {{
+		($zip:expr, $at:expr) => {{
 			let mut z = $zip;
-			if kind & 4 != 0 {
-				out.push(z.next().map_or(0xee, |(x, y)| x ^ y));
+			let at = $at;
+			if kind & 8 != 0 {
+				out.push(z.next().map_or(0xee, at));
 			}
-			while let Some((x, y)) = z.next_back() {
-				out.push(x ^ y);
-				out.push(z.len() as u8);
+			if kind & 16 != 0 {
+				out.push(z.nth(n).map_or(0xee, at));
 			}
-			out.push(z.next().map_or(0xee, |(x, y)| x ^ y));
+			while let Some(p) = z.next_back() {
+				out.push(at(p));
+				let (lower, upper) = z.size_hint();
+				out.extend([lower as u8, upper.map_or(0xee, |u| u as u8)]);
+				if kind & 24 == 24 {
+					out.push(z.next().map_or(0xee, at));
+				}
+			}
+			out.push(z.next().map_or(0xee, at));
 		}};
 	}
-	match kind % 4 {
-		0 => back!(a.iter().map(seen!(1)).zip(b.iter().copied())),
-		1 => back!(a.iter().copied().zip(b.iter().map(seen!(2)))),
-		2 => back!(a.iter().map(seen!(3)).zip(b.iter().map(seen!(4)))),
-		_ => back!(a.iter().rev().map(seen!(5)).zip(b.iter().map(seen!(6)))),
+	let len = |c: &[u8]| c.len() as u8;
+	match kind % 8 {
+		0 => back!(a.iter().map(seen!(1)).zip(b.iter().copied()), |(x, y)| x ^ y),
+		1 => back!(
+			a.iter().copied().zip(b.iter().map(seen!(2)).zip(0..data.len())),
+			|(x, (y, i)): (u8, (u8, usize))| x ^ y ^ i as u8
+		),
+		2 => back!(a.iter().map(seen!(3)).zip(b.iter().map(seen!(4))), |(x, y)| x ^ y),
+		// `TrustedLen`, not by index: `next_back` trims either side.
+		3 => back!(a.iter().rev().map(seen!(5)).zip(b.iter().map(seen!(6))), |(x, y)| x ^ y),
+		4 => {
+			let at = |(i, (&y, c)): (usize, (&u8, &[u8]))| i as u8 ^ y ^ len(c);
+			back!((0..a.len()).zip(b.iter().zip(data.chunks(2))), at)
+		}
+		5 => {
+			let at = |(c, (i, &y)): (&[u8], (usize, &u8))| len(c) ^ i as u8 ^ y;
+			back!(a.chunks(2).zip(b.iter().enumerate()), at)
+		}
+		6 => {
+			let logged = |c| {
+				log.borrow_mut().push(len(c));
+				c
+			};
+			let at = |(x, c): (u8, &[u8])| x ^ len(c);
+			back!((split as u8..data.len() as u8).zip(a.chunks(3).map(logged)), at)
+		}
+		_ => {
+			let logged = |(i, &x): (usize, &u8)| {
+				log.borrow_mut().push(i as u8);
+				x
+			};
+			let at = |(x, (i, c)): (u8, (usize, &[u8]))| x ^ i as u8 ^ len(c);
+			back!(a.iter().enumerate().map(logged).zip(b.chunks(2).enumerate()), at)
+		}
 	}
 	out.extend_from_slice(&log.borrow());
 }

@@ -649,7 +649,7 @@ pub fn call<'tcx>(
 			let (a, other_iter) = (sides.type_at(0), sides.type_at(1));
 			let other_item = b.t.iter_item(other_iter)?;
 			let droppers = vec![
-				zip_trusted(b, a, other_iter),
+				zip_trusted(b, a, other_iter, span),
 				b.t.dropper(item, span),
 				b.t.dropper(other_item, span),
 			];
@@ -1102,18 +1102,40 @@ fn flattens<'tcx>(b: &mut Body<'_, '_, 'tcx>, inner: Ty<'tcx>, span: Span) {
 }
 
 /// `rt.Trusted`, how std's `Zip` of `a` and `b` reads them, by the traits it specializes
-/// on: by index if both are `TrustedRandomAccess`, and folded by its size hint if both are
-/// `TrustedLen`, or `TrustedRandomAccessNoCoerce`, whose `fold` reads by index as many
-/// pairs as their exact size hints, but whose `next` reads as any other zip's does.
-fn zip_trusted<'tcx>(b: &Body<'_, '_, 'tcx>, a: Ty<'tcx>, other: Ty<'tcx>) -> Expr {
+/// on: by index if both are `TrustedRandomAccess`, as whether each may have side effects,
+/// and folded by its size hint if both are `TrustedLen`, or `TrustedRandomAccessNoCoerce`,
+/// whose `fold` reads by index as many pairs as their exact size hints, but whose `next`
+/// reads as any other zip's does.
+fn zip_trusted<'tcx>(b: &mut Body<'_, '_, 'tcx>, a: Ty<'tcx>, other: Ty<'tcx>, span: Span) -> Expr {
 	let both = |name: &str| implements(b.t, a, name) && implements(b.t, other, name);
 	if both("TrustedRandomAccess") {
-		Expr::Str("index".into())
+		let effects = [a, other].map(|ty| match may_have_side_effect(b.t, ty, span) {
+			Some(effect) => Expr::lit(effect.to_string()),
+			None => b.err(
+				span,
+				format!("a zip of `{ty}`, whose `MAY_HAVE_SIDE_EFFECT` does not evaluate"),
+			),
+		});
+		Expr::Array(effects.into())
 	} else if both("TrustedLen") || both("TrustedRandomAccessNoCoerce") {
 		Expr::Str("len".into())
 	} else {
 		Expr::undefined()
 	}
+}
+
+/// `<ty as TrustedRandomAccessNoCoerce>::MAY_HAVE_SIDE_EFFECT`, whether std's `Zip` reads
+/// an item of `ty` it never yields, evaluated as std's own constant.
+fn may_have_side_effect<'tcx>(t: &Translator<'_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Option<bool> {
+	let tcx = t.tcx;
+	let tr = core_trait(tcx, "TrustedRandomAccessNoCoerce")?;
+	let item = tcx
+		.associated_items(tr)
+		.in_definition_order()
+		.find(|item| item.name().as_str() == "MAY_HAVE_SIDE_EFFECT")?;
+	let uv = rustc_middle::mir::UnevaluatedConst::new(item.def_id, tcx.mk_args(&[ty.into()]));
+	let value = rustc_middle::mir::Const::Unevaluated(uv, tcx.types.bool);
+	value.eval(tcx, t.typing_env_pub(), span).ok()?.try_to_bool()
 }
 
 /// Whether `ty` implements `core`'s trait `name`, one std specializes on: an iterator
