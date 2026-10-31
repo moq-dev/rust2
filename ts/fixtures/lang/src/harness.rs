@@ -254,6 +254,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("pointers::bytes", |_, data, out| pointers::bytes(data, out)),
 		("pointers::loaded", |_, data, out| pointers::loaded(data, out)),
 		("orders::btrees", orders::btrees),
+		("iters::option_items", |_, data, out| iters::option_items(data, out)),
 		("pointers::reattached", |_, data, out| pointers::reattached(data, out)),
 	]
 }

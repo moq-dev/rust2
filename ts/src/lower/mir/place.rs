@@ -1060,8 +1060,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		Some(StmtKind::Expr(target.field(info.state).assign(Expr::lit(variant.as_u32().to_string()))).at(None))
 	}
 
-	/// The test that `scrut`, a `ty`, has the variant whose discriminant is `value`.
-	pub(super) fn variant_test(&mut self, scrut: &Expr, ty: Ty<'tcx>, value: u128, span: Span) -> Expr {
+	/// The test that `scrut`, a `ty`, has the variant whose discriminant is `value`, where
+	/// `next` says it is a whole `next` result, which holds the item or `rt.DONE`. Only the
+	/// place says so: a part of its item, as `*(next as Some).0`, lowers to the same name.
+	pub(super) fn variant_test(&mut self, scrut: &Expr, ty: Ty<'tcx>, value: u128, next: bool, span: Span) -> Expr {
 		let tcx = self.tcx;
 		match ty.kind() {
 			ty::Coroutine(def_id, args) => {
@@ -1086,12 +1088,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 							_ => flag,
 						}
 					}
-					Some(Std::Option) if matches!(scrut, Expr::Ident(n) if self.next_names.contains(n)) => {
-						match index.index() {
-							0 => scrut.clone().binary("===", Expr::Rt("DONE".into())),
-							_ => scrut.clone().binary("!==", Expr::Rt("DONE".into())),
-						}
-					}
+					Some(Std::Option) if next => match index.index() {
+						0 => scrut.clone().binary("===", Expr::Rt("DONE".into())),
+						_ => scrut.clone().binary("!==", Expr::Rt("DONE".into())),
+					},
 					Some(Std::Option) => match index.index() {
 						0 => scrut.clone().binary("===", self.b.t.none(args.type_at(0))),
 						_ => scrut.clone().binary("!==", self.b.t.none(args.type_at(0))),
@@ -1113,7 +1113,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 							AdtRepr::Struct { .. } | AdtRepr::Slots(_) => self.err(span, format!("a switch on `{ty}`")),
 						}
 					}
-					Some(Std::ControlFlow) => super::call::control_flow_test(self, scrut, ty, index),
+					Some(Std::ControlFlow) => super::call::control_flow_test(self, scrut, ty, index, next),
 					Some(Std::Entry) => crate::lower::collections::entry_test(*adt, index, scrut.clone()),
 					Some(Std::Cow) if let Some(elem) = crate::lower::library::cow_slice(tcx, ty) => {
 						let borrows = crate::lower::library::cow_borrows(scrut.clone(), elem);

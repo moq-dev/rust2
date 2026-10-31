@@ -30,7 +30,7 @@ import { values as hashes_values, random, bytes as hashes_bytes } from "./hashes
 import { hints, reserves } from "./hints.ts";
 import { holds } from "./holds.ts";
 import { u8Op, u16Op, u32Op, u64Op, u128Op, usizeOp, i8Op, i16Op, i32Op, i64Op, i128Op, isizeOp, i8Neg, i16Neg, i32Neg, i64Neg, i128Neg, isizeNeg, cast as ints_cast, convert, parses as ints_parses, widenings } from "./ints.ts";
-import { adaptors, consumers as iters_consumers, reducers, peekedOthers, skips, ranked as iters_ranked, ranges as iters_ranges, options as iters_options, own, values as iters_values, returned, zips, zipsBack, rangeFroms, rangeMethods, compares } from "./iters.ts";
+import { adaptors, consumers as iters_consumers, reducers, peekedOthers, skips, ranked as iters_ranked, ranges as iters_ranges, options as iters_options, optionItems, own, values as iters_values, returned, zips, zipsBack, rangeFroms, rangeMethods, compares } from "./iters.ts";
 import { joins } from "./joins.ts";
 import { keys as keys_keys, overrides, bytes as keys_bytes, lentKeys, lentValues, arrays, byteRefs } from "./keys.ts";
 import { locals } from "./locals.ts";
@@ -230,8 +230,10 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		pointers_bytes(data83, out84);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::loaded", (_2184: rt.u8, data84: rt.ByteSlice, out85: rt.ByteVec): undefined => {
 		loaded(data84, out85);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["orders::btrees", btrees as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::reattached", (_2185: rt.u8, data85: rt.ByteSlice, out86: rt.ByteVec): undefined => {
-		reattached(data85, out86);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["orders::btrees", btrees as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["iters::option_items", (_2185: rt.u8, data85: rt.ByteSlice, out86: rt.ByteVec): undefined => {
+		optionItems(data85, out86);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::reattached", (_2186: rt.u8, data86: rt.ByteSlice, out87: rt.ByteVec): undefined => {
+		reattached(data86, out87);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 

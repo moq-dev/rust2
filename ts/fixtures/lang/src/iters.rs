@@ -742,6 +742,143 @@ pub fn options(data: &[u8], out: &mut Vec<u8>) {
 	}
 }
 
+/// A trait without methods, whose objects are typed `{}`, which a `unique symbol` is
+/// assignable to, so a test against the wrong one type-checks.
+trait Badge {}
+
+impl Badge for u8 {}
+
+/// Loops over options, each item's own `Option` tested apart from the iterator's end, for
+/// each way JS holds `None`: `undefined`, `rt.None` where `Some` can be `undefined`, and
+/// nested.
+pub fn option_items(data: &[u8], out: &mut Vec<u8>) {
+	let maybe = |b: &u8| if b % 3 == 0 { None } else { Some(*b) };
+	let mut words: Vec<Option<u32>> = data.iter().map(|b| maybe(b).map(u32::from)).collect();
+	let mut units: Vec<Option<()>> = data.iter().map(|b| maybe(b).map(|_| ())).collect();
+	let mut nested: Vec<Option<Option<u8>>> = data
+		.iter()
+		.map(|&b| match b % 4 {
+			0 => None,
+			1 => Some(None),
+			_ => Some(Some(b)),
+		})
+		.collect();
+	let badges: Vec<Option<&dyn Badge>> = data.iter().map(|b| maybe(b).map(|_| b as &dyn Badge)).collect();
+	for a in &words {
+		if let Some(a) = a {
+			out.push(*a as u8);
+		} else {
+			out.push(0xa0);
+		}
+	}
+	for a in &units {
+		out.push(if let Some(()) = a { 0xa1 } else { 0xa2 });
+	}
+	for a in &nested {
+		match a {
+			Some(Some(b)) => out.push(*b),
+			Some(None) => out.push(0xa3),
+			None => out.push(0xa4),
+		}
+	}
+	for a in &badges {
+		out.push(matches!(a, Some(_)) as u8);
+	}
+	for a in &mut words {
+		match a {
+			Some(w) => *w += 1,
+			None => *a = Some(0xa5),
+		}
+	}
+	for a in &mut units {
+		*a = if let None = a { Some(()) } else { None };
+	}
+	for a in nested.iter_mut() {
+		if let Some(Some(b)) = a {
+			*b = b.wrapping_add(1);
+		} else if let Some(inner) = a {
+			*inner = Some(0xa6);
+		}
+	}
+	for a in words.iter() {
+		out.push(a.map_or(0xa7, |a| a as u8));
+	}
+	out.push(present(&units));
+	out.push(present(&nested));
+	out.push(present(&badges));
+	for a in units {
+		out.push(if let Some(()) = a { 0xa8 } else { 0xa9 });
+	}
+	for a in nested.clone() {
+		if let Some(Some(b)) = a {
+			out.push(b);
+		} else if a.is_none() {
+			out.push(0xaa);
+		}
+	}
+	let mut it = nested.into_iter();
+	while let Some(a) = it.next() {
+		match a {
+			Some(b) => out.push(b.unwrap_or(0xab)),
+			None => out.push(0xac),
+		}
+	}
+	let mut it = words.iter();
+	while let Some(found) = first_present(&mut it) {
+		out.push(found);
+	}
+	let mut weighed = Weighed {
+		inner: data.iter(),
+		weight: 0,
+	};
+	while let Some(b) = weighed.next() {
+		out.push(b);
+	}
+	out.push(weighed.weight);
+}
+
+/// The bytes up to the first multiple of 3, weighing each as it returns it.
+struct Weighed<'a> {
+	inner: std::slice::Iter<'a, u8>,
+	weight: u8,
+}
+
+impl Iterator for Weighed<'_> {
+	type Item = u8;
+
+	// MIR switches on the return place itself, which holds `rt.DONE` for `None`.
+	#[inline(never)]
+	fn next(&mut self) -> Option<u8> {
+		let item = self.inner.next().copied().filter(|b| b % 3 != 0);
+		match item {
+			Some(b) => self.weight = self.weight.wrapping_add(b),
+			None => self.weight = self.weight.wrapping_add(0xae),
+		}
+		item
+	}
+}
+
+/// How many items are `Some`, of a slice of options of any `T`.
+#[inline(never)]
+fn present<T>(items: &[Option<T>]) -> u8 {
+	let mut n = 0;
+	for a in items.iter() {
+		if let Some(_) = a {
+			n += 1;
+		}
+	}
+	n
+}
+
+/// The next item through `?`, which tests for the end, and then its own `None`.
+fn first_present(it: &mut std::slice::Iter<'_, Option<u32>>) -> Option<u8> {
+	let a = it.next()?;
+	match a {
+		Some(a) => Some(*a as u8),
+		None => Some(0xad),
+	}
+}
+
 /// The second item of an iterator of options, through `?`, which tests for its end.
 fn second(mut items: impl Iterator<Item = Option<u8>>) -> Option<u8> {
 	items.next()?;

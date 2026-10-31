@@ -22,7 +22,6 @@ generic std gap is planned here even when moq never calls it.
 - [Placeholders written to a crate's own fmt::Write](/quest/m3/ts-fmt-calls.md) - `write!` with placeholders into a crate's own writer translates, its `write_str` seeing each call std makes
 - [Waiting: type-check in process with tsrs](/quest/m3/ts-tsrs.md) - rust2-ts checks bindings through tsrs instead of `tsc` once it is a stable library
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
-- [An Option a loop borrows, tested as one](/quest/m3/ts-option-ref-loop.md) - `if let Some(x)` of the `&Option<T>` a `for` loop yields tests its `None`, not the iterator's end
 - [Judging writes in a body generic over a const](/quest/m3/ts-const-generic-writes.md) - a function generic over `const N` whose calls take a type holding `N` translates instead of panicking
 - [Arrays of bytes a flattened Option reference lends](/quest/m3/ts-flatten-byte-options.md) - `iter().flatten()` over `&[Option<[u8; N]>]` yields `rt.ByteSlice`s
 - [Raw pointers to a type parameter in a struct](/quest/m3/ts-generic-pointer-fields.md) - a `*mut T` field of a generic struct is typed as each instance stores it, or refuses
