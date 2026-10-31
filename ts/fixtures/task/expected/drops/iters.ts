@@ -383,7 +383,7 @@ export function collected(log: Log.Log, id: rt.u32): void {
 	const _172: [rt.u32, Guard.Guard] = [2, guard(18)];
 	v7.push(_172);
 	const _155: rt.Iter<[rt.u32, Guard.Guard]> = rt.iterSlice(v7, lib_drop$tuple2_u32_model_Guard);
-	const tree: rt.BTreeMap<rt.u32, Guard.Guard> = rt.btreeCollect(rt.btreeNew(rt.cmp) as rt.BTreeMap<rt.u32, Guard.Guard>, rt.iterToArray(_155, "next", 12, true), undefined, rt.drop);
+	const tree: rt.BTreeMap<rt.u32, Guard.Guard> = rt.btreeCollect(rt.btreeNew(rt.cmp) as rt.BTreeMap<rt.u32, Guard.Guard>, rt.iterToArray(_155, "next", 12, true), true, undefined, undefined, rt.drop);
 	const part3 = rt.btreeLen(tree);
 	const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(part3, f)];
 	Log.note(log, rt.fmtFormat(["tree ", args8[0]]));

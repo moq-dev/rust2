@@ -221,12 +221,6 @@ pub fn replace_pinned_ref<'a>(dst: &mut std::pin::Pin<&'a mut Noisy>, src: std::
 	*dst = src;
 }
 
-/// `copied` is given a reference to an array of bytes, a slice of it, which its mapping
-/// would copy as the array.
-pub fn copied_bytes(v: &[[u8; 2]]) -> [u8; 2] {
-	v.first().copied().unwrap_or_default()
-}
-
 /// Each copy of a closure has its own captures, which copies of an arrow function share.
 pub fn copied_closure(n: u8) -> u8 {
 	let mut a = [n];
@@ -1657,4 +1651,235 @@ pub fn ascii_in_tuple(mut pair: (u8, String)) -> String {
 pub fn ascii_part(mut s: String) -> String {
 	s[1..].make_ascii_uppercase();
 	s
+}
+
+pub struct Owned(pub u32, pub u32);
+
+fn owned_of(k: &mut Owned) -> *mut Owned {
+	&raw mut *k
+}
+
+/// A pointer a callee returns, taken through a reference to a variable's object, which
+/// the caller's assignment of the variable replaces.
+pub fn returned_rebound(n: u32) -> u32 {
+	let mut k = Owned(n, n);
+	let p = owned_of(&mut k);
+	k = Owned(0, 0);
+	unsafe { (*p).0 + k.1 }
+}
+
+pub struct Stored(pub u32);
+
+fn store_into(s: &mut Stored, slot: &mut *mut Stored) {
+	*slot = &raw mut *s;
+}
+
+/// A pointer a callee keeps behind a pointer, which the caller's `mem::replace` of the
+/// variable replaces.
+pub fn stored_rebound(n: u32) -> u32 {
+	let mut s = Stored(n);
+	let mut p = std::ptr::null_mut();
+	store_into(&mut s, &mut p);
+	let old = std::mem::replace(&mut s, Stored(0));
+	unsafe { (*p).0 + old.0 }
+}
+
+pub struct Passed(pub u32);
+
+fn pass_on(s: &mut Passed, kept: &mut Vec<*mut Passed>) {
+	kept.push(&raw mut *s);
+}
+
+/// A pointer a callee gives a call that keeps it, which the caller's assignment of the
+/// variable replaces.
+pub fn passed_rebound(n: u32) -> u32 {
+	let mut s = Passed(n);
+	let mut kept = Vec::new();
+	pass_on(&mut s, &mut kept);
+	s = Passed(0);
+	unsafe { (*kept[0]).0 + s.0 }
+}
+
+pub struct Counter {
+	pub count: u32,
+}
+
+fn count_of(t: &mut Counter) -> *mut u32 {
+	&raw mut t.count
+}
+
+/// A pointer a callee returns to a number in a variable's object, which the caller's
+/// assignment of the variable replaces.
+pub fn field_rebound(n: u32) -> u32 {
+	let mut t = Counter { count: n };
+	let p = count_of(&mut t);
+	t = Counter { count: 0 };
+	unsafe { *p + t.count }
+}
+
+pub struct Nest {
+	pub mid: Middle,
+}
+
+pub struct Middle {
+	pub inner: Core,
+}
+
+pub struct Core(pub u32);
+
+fn core_of(i: &mut Core) -> *mut Core {
+	&raw mut *i
+}
+
+/// A pointer a callee returns into a part of a variable, which the caller's assignment of
+/// the whole variable replaces.
+pub fn part_rebound(n: u32) -> u32 {
+	let mut d = Nest {
+		mid: Middle { inner: Core(n) },
+	};
+	let p = core_of(&mut d.mid.inner);
+	d = Nest {
+		mid: Middle { inner: Core(0) },
+	};
+	unsafe { (*p).0 + d.mid.inner.0 }
+}
+
+fn cell_of(c: &std::cell::UnsafeCell<u64>) -> *mut u64 {
+	c.get()
+}
+
+/// The pointer `UnsafeCell::get` gives a callee, the `rt.Cell` itself, which the caller's
+/// assignment of the variable replaces.
+pub fn cell_rebound(n: u64) -> u64 {
+	let mut cell = std::cell::UnsafeCell::new(n);
+	let p = cell_of(&cell);
+	cell = std::cell::UnsafeCell::new(0);
+	unsafe { *p + cell.into_inner() }
+}
+
+pub struct Target(pub u32);
+
+/// A pointer through a reference that `mem::replace` points at another variable, which an
+/// assignment of that variable replaces.
+pub fn retargeted(n: u32) -> u32 {
+	let mut a = Target(n);
+	let mut b = Target(n);
+	let mut r = &mut a;
+	let _ = std::mem::replace(&mut r, &mut b);
+	let p = &raw mut *r;
+	b = Target(0);
+	unsafe { (*p).0 + b.0 + a.0 }
+}
+
+/// A pointer through a reference that `mem::swap` points at another variable, which an
+/// assignment of that variable replaces.
+pub fn swap_retargeted(n: u32) -> u32 {
+	let mut a = (n, n);
+	let mut b = (n, n);
+	let mut r = &mut a;
+	let mut s = &mut b;
+	std::mem::swap(&mut r, &mut s);
+	let p = &raw mut *r;
+	b = (0, 0);
+	unsafe { (*p).0 + b.0 + a.0 }
+}
+
+pub struct Picked(pub u32);
+
+fn pick<'a>(a: &'a mut Picked, b: &'a mut Picked, first: bool) -> &'a mut Picked {
+	if first { a } else { b }
+}
+
+/// A pointer through a reference a call picks between two variables, one of which an
+/// assignment then replaces.
+pub fn picked_rebound(n: u32) -> u32 {
+	let mut a = Picked(n);
+	let mut b = Picked(n);
+	let p = &raw mut *pick(&mut a, &mut b, n > 1);
+	a = Picked(0);
+	unsafe { (*p).0 + a.0 + b.0 }
+}
+
+/// A pointer through a reference a loop's `mem::swap`s may point at either variable, one
+/// of which an assignment then replaces.
+pub fn swapped_in_loop(n: u32) -> u32 {
+	let mut a = (n, n);
+	let mut b = (n, 1);
+	let mut r = &mut a;
+	let mut s = &mut b;
+	for _ in 0..n {
+		std::mem::swap(&mut r, &mut s);
+	}
+	let p = &raw mut *r;
+	a = (0, 0);
+	unsafe { (*p).0 + a.0 }
+}
+
+/// Pointer operations on arrays of bytes that read the address or other bytes than the
+/// array's: comparing addresses only, copying, offsetting, casting to another pointee,
+/// hashing, and ordering.
+pub fn byte_pointer_ops(mut a: [u8; 4], b: [u8; 4]) -> u64 {
+	use std::hash::{Hash, Hasher};
+	let p: *mut [u8; 4] = &mut a;
+	let q: *const [u8; 4] = &b;
+	unsafe {
+		std::ptr::copy(q, p, 1);
+		std::ptr::copy_nonoverlapping(q, p, 1);
+		let same = std::ptr::addr_eq(p, q) || p < q.cast_mut();
+		let byte = *p.cast::<u8>() + *(q as *const u8) + (*p.add(0))[0] + (*q.offset(0))[1];
+		let slice: *const [u8] = q;
+		let mut h = std::collections::hash_map::DefaultHasher::new();
+		q.hash(&mut h);
+		let some = Some(std::ptr::NonNull::from(&a)) == Some(std::ptr::NonNull::from(&b));
+		h.finish() + u64::from(same) + u64::from(some) + u64::from(byte) + slice.len() as u64
+	}
+}
+
+/// Pointers to arrays of bytes that are parts of an array kept apart from it: a slice
+/// pattern's rest and an array's element.
+pub fn byte_pointer_parts(a: [u8; 4], b: [[u8; 2]; 3]) -> bool {
+	let [_, ref x @ ..] = a;
+	let [_, ref y @ ..] = a;
+	std::ptr::eq(x, y) || std::ptr::eq(&b[0], &b[1])
+}
+
+/// Pointers to an array of bytes in a variable assigned again while they point there,
+/// made of a reference and as a raw borrow.
+pub fn byte_pointer_rebound(n: u8) -> u8 {
+	let mut a = [n; 4];
+	let p: *const [u8; 4] = &a;
+	let q = &raw const a;
+	a = [n ^ 1; 4];
+	unsafe { (*p)[0] + (*q)[1] + a[2] }
+}
+
+pub struct Behind(pub u32);
+
+fn read_behind(b: &mut Behind) -> *mut Behind {
+	let p = &raw mut *b;
+	let held = (p,);
+	unsafe { std::ptr::read(&raw const held).0 }
+}
+
+/// A pointer a callee reads back through a pointer to where it put it, which the read
+/// holds, and returns.
+pub fn read_behind_rebound(n: u32) -> u32 {
+	let mut b = Behind(n);
+	let p = read_behind(&mut b);
+	b = Behind(0);
+	unsafe { (*p).0 + b.0 }
+}
+
+pub struct Unboxed(pub u32);
+
+fn unbox(u: &mut Unboxed) -> *mut Unboxed {
+	*Box::leak(Box::new(&raw mut *u))
+}
+
+/// A pointer a callee reads back out of a box it put it in, and returns.
+pub fn unboxed_rebound(n: u32) -> u32 {
+	let mut u = Unboxed(n);
+	let p = unbox(&mut u);
+	u = Unboxed(0);
+	unsafe { (*p).0 + u.0 }
 }

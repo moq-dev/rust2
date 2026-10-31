@@ -38,10 +38,11 @@ Each left is refused with a span where std's order is one JS's can't follow yet:
   adaptor whose `try_fold` is its source's, such as `map`, `filter`'s `next`, and `rev`'s
   through `try_rfold`, reads it that way, so `rt.Iter::folded` would follow through each,
   a hot path to measure on the [TS benchmark](/ts/README.md#bench).
-- A B-tree's `collect` of entries that drop, sorted by the crate's own `Ord`, as
-  `v.into_iter().collect::<BTreeSet<O>>()` of an `O` whose `Ord` is its own: an `Ord`
-  that disagrees with itself leaves equal keys in the order std's driftsort does, which
-  decides which of them drop.
+- A B-tree's `collect` of entries that drop, sorted and deduplicated by the crate's own
+  impls, as `v.into_iter().collect::<BTreeSet<O>>()` of an `O` whose `Ord`, `PartialOrd`,
+  or `PartialEq` is its own: one that panics or disagrees with itself leaves equal keys
+  in the order [std's sort](/quest/m3/ts-sort-order.md) does, which decides which of them
+  drop.
 
 Each `rt.Iter` has a `fold` and `rfold` that drop what it holds where std's do, and the
 by-value consumers std folds go through it: build on those rather than `rt.drop`.

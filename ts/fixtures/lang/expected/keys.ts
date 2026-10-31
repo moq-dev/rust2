@@ -4011,7 +4011,7 @@ export function taken$0_keys_byte_refs_closure1(dataData: Uint8Array, dataStart:
 		return [rt.byteSliceToArray(held[0]), rt.byteSliceToArray(held[1])];
 	}), undefined, undefined, undefined, 536870911);
 	const tree: rt.BTreeMap<Uint8Array, Uint8Array> = rt.btreeNew(rt.cmpBytes) as rt.BTreeMap<Uint8Array, Uint8Array>;
-	const _41: rt.Iter<[rt.ByteSlice, rt.ByteSlice]> = rt.iterZip(rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), "index");
+	const _41: rt.Iter<[rt.ByteSlice, rt.ByteSlice]> = rt.iterZip(rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), [false, false]);
 	rt.btreeExtend(tree, rt.iterMap(_41, (held2): [Uint8Array, Uint8Array] => {
 		return [rt.byteSliceToArray(held2[0]), rt.byteSliceToArray(held2[1])];
 	}));
@@ -4312,7 +4312,7 @@ export function taken$2_keys_byte_refs_closure0(dataData: Uint8Array, dataStart:
 		return [rt.byteSliceToArray(held[0]), rt.byteSliceToArray(held[1])];
 	}), undefined, undefined, undefined, 234881024);
 	const tree: rt.BTreeMap<Uint8Array, Uint8Array> = rt.btreeNew(rt.cmpBytes) as rt.BTreeMap<Uint8Array, Uint8Array>;
-	const _41: rt.Iter<[rt.ByteSlice, rt.ByteSlice]> = rt.iterZip(rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), "index");
+	const _41: rt.Iter<[rt.ByteSlice, rt.ByteSlice]> = rt.iterZip(rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), [false, false]);
 	rt.btreeExtend(tree, rt.iterMap(_41, (held2): [Uint8Array, Uint8Array] => {
 		return [rt.byteSliceToArray(held2[0]), rt.byteSliceToArray(held2[1])];
 	}));

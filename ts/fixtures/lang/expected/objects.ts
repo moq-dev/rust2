@@ -263,7 +263,7 @@ export function objects(dataData: Uint8Array, dataStart: number, dataLen: number
 		a2[Symbol.dispose]();
 		return _02;
 	}));
-	const iter2: rt.Iter<[rt.Place<rt.Arc<rt.u8>>, rt.u8]> = rt.iterZip(rt.iterSliceMut(v), rt.iterSlice(rt.byteSliceView(data)), "index");
+	const iter2: rt.Iter<[rt.Place<rt.Arc<rt.u8>>, rt.u8]> = rt.iterZip(rt.iterSliceMut(v), rt.iterSlice(rt.byteSliceView(data)), [false, false]);
 	while (true) {
 		const _71: [rt.Place<rt.Arc<rt.u8>>, rt.u8] | rt.Done = iter2.next();
 		if (_71 === rt.DONE) {

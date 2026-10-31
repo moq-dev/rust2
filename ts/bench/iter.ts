@@ -40,6 +40,12 @@ export function iterate(chain: number, data: Uint8Array): Uint8Array {
 			for (const a of data.values()) if (a < data[--back]) n++;
 			return u64(n);
 		}
+		case 7: {
+			// The pairs below the bytes' length, the range's excess past them never read.
+			let n = 0;
+			for (let i = data.length - 1; i >= 0; i--) if ((i & 0xff) < data[i]) n++;
+			return u64(n);
+		}
 		default: {
 			let last = 0;
 			let i = 0;

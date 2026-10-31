@@ -207,14 +207,14 @@ export class watchFuture {
 							continue;
 						}
 						if (this.#state === 4) {
-							bb0 = 24;
+							bb0 = 25;
 							continue;
 						}
 						if (this.#state === 5) {
-							bb0 = 44;
+							bb0 = 45;
 							continue;
 						}
-						bb0 = 52;
+						bb0 = 53;
 						continue;
 					}
 				case 6:
@@ -231,16 +231,16 @@ export class watchFuture {
 						this.#pending = Pending.new$model_Watch(new Watch.Watch(this.#rx, 1));
 						this.#saved = true;
 						this.#total = option_unwrapOr$1tvry1i(this.#first, 0);
-						bb0 = 22;
+						bb0 = 23;
 						continue;
 					}
 					this.#state = 3;
 					return rt.Pending;
-				case 22:
+				case 23:
 					this.#awaitee$2 = this.#pending;
-					bb0 = 24;
+					bb0 = 25;
 					continue;
-				case 24:
+				case 25:
 					const _38: rt.Poll<rt.u64 | undefined> = Pending.poll$Future_model_Watch(this.#awaitee$2, _2);
 					if (_38 !== rt.Pending) {
 						const result2: rt.u64 | undefined = _38;
@@ -252,29 +252,29 @@ export class watchFuture {
 							this.#total = rt.u64Add(this.#total, value);
 							const _62: Watch.Watch = Pending.derefMut$ops_DerefMut_model_Watch(this.#pending);
 							_62.index = rt.usizeAdd(_62.index, 1);
-							bb0 = 22;
+							bb0 = 23;
 							continue;
 						}
 						this.#saved = false;
 						this.#watch = Pending.intoInner$model_Watch(this.#pending);
 						this.#awaitee$3 = new closedFuture$kio_Consumer(this.#watch.rx);
-						bb0 = 44;
+						bb0 = 45;
 						continue;
 					}
 					this.#state = 4;
 					return rt.Pending;
-				case 44:
+				case 45:
 					if (this.#awaitee$3.poll(_2) !== rt.Pending) {
 						rt.drop(this.#awaitee$3);
 						this.#awaitee$4 = new waitFuture$kio_Consumer_model_watch_closure0_closure1_usize(this.#watch.rx, (queue: rt.u64[]): rt.Poll<rt.usize> => {
 							return queue.length;
 						});
-						bb0 = 52;
+						bb0 = 53;
 						continue;
 					}
 					this.#state = 5;
 					return rt.Pending;
-				case 52:
+				case 53:
 					const _82: rt.Poll<rt.Result<rt.usize, Closed.Closed>> = this.#awaitee$4.poll(_2);
 					if (_82 !== rt.Pending) {
 						const sent: rt.Result<rt.usize, Closed.Closed> = _82;
@@ -357,7 +357,7 @@ export class frontFuture {
 							bb0 = 4;
 							continue;
 						}
-						bb0 = 30;
+						bb0 = 33;
 						continue;
 					}
 				case 1:
@@ -382,19 +382,19 @@ export class frontFuture {
 									bb0 = 1;
 									continue;
 								}
-								bb0 = 20;
+								bb0 = 23;
 								continue;
 							}
 							this.#listing = undefined;
 							bb0 = 1;
 							continue;
 						}
-						bb0 = 20;
+						bb0 = 23;
 						continue;
 					}
 					this.#state = 3;
 					return rt.Pending;
-				case 20:
+				case 23:
 					const arg = this.#listing;
 					const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtOption(arg, f, (value: Listing.Listing, f: rt.Formatter) => Listing.fmt$fmt_Debug(value, f))];
 					const _32: string = rt.fmtFormat(["listing ", args2[0]]);
@@ -424,9 +424,9 @@ export class frontFuture {
 						}
 						return rt.Pending;
 					});
-					bb0 = 30;
+					bb0 = 33;
 					continue;
-				case 30:
+				case 33:
 					const _50: rt.Poll<rt.usize> = Pending.poll$Future_model_front_closure0_closure0(this.#awaitee$2, _2);
 					if (_50 !== rt.Pending) {
 						const closed: rt.usize = _50;
@@ -568,46 +568,42 @@ export class blocksFuture {
 		b0: {
 			b1: {
 				b2: {
-					b3: {
-						b4: {
-							if (this.#state === 0) {
-								this.#rx[Symbol.dispose]();
-								this.#guard[Symbol.dispose]();
-								return;
-							}
-							if (this.#state === 3) {
-								rt.drop(this.#awaitee);
-								this.#saved[Symbol.dispose]();
-								break b0;
-							}
-							if (this.#state === 4) {
-								rt.drop(this.#awaitee$2);
-								this.#saved[Symbol.dispose]();
-								break b1;
-							}
-							if (this.#state === 5) {
-								rt.drop(this.#awaitee$3);
-								break b2;
-							}
-							if (this.#state === 6) {
-								rt.drop(this.#awaitee$3);
-								break b3;
-							}
-							if (this.#state === 7) {
-								rt.drop(this.#awaitee$3);
-								break b4;
-							}
-							if (this.#state === 8) {
-								rt.drop(this.#awaitee$3);
-							} else if (this.#state === 9) {
-								rt.drop(this.#awaitee$4);
-							} else {
-								return;
-							}
-							this.#saved[Symbol.dispose]();
-							this.#nested[Symbol.dispose]();
-						}
+					if (this.#state === 0) {
+						this.#rx[Symbol.dispose]();
+						this.#guard[Symbol.dispose]();
+						return;
 					}
+					if (this.#state === 3) {
+						rt.drop(this.#awaitee);
+						this.#saved[Symbol.dispose]();
+						break b0;
+					}
+					if (this.#state === 4) {
+						rt.drop(this.#awaitee$2);
+						this.#saved[Symbol.dispose]();
+						break b1;
+					}
+					if (this.#state === 5) {
+						rt.drop(this.#awaitee$3);
+						break b2;
+					}
+					if (this.#state === 6) {
+						rt.drop(this.#awaitee$3);
+						break b2;
+					}
+					if (this.#state === 7) {
+						rt.drop(this.#awaitee$3);
+						break b2;
+					}
+					if (this.#state === 8) {
+						rt.drop(this.#awaitee$3);
+					} else if (this.#state === 9) {
+						rt.drop(this.#awaitee$4);
+					} else {
+						return;
+					}
+					this.#saved[Symbol.dispose]();
+					this.#nested[Symbol.dispose]();
 				}
 			}
 			rt.dropAll(this.#slots);
@@ -1379,10 +1375,10 @@ export class drainFuture {
 							continue;
 						}
 						if (this.#state === 4) {
-							bb0 = 15;
+							bb0 = 16;
 							continue;
 						}
-						bb0 = 22;
+						bb0 = 24;
 						continue;
 					}
 				case 1:
@@ -1393,28 +1389,28 @@ export class drainFuture {
 					}
 					if (this.#depth === 4) {
 						this.#awaitee = new level3Future(this.#rx);
-						bb0 = 15;
+						bb0 = 16;
 						continue;
 					}
 					this.#awaitee = new level15Future(this.#rx);
-					bb0 = 22;
+					bb0 = 24;
 					continue;
-				case 22:
+				case 24:
 					const _29: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
 					if (_29 !== rt.Pending) {
 						next = _29;
 						rt.drop(this.#awaitee);
-						bb0 = 27;
+						bb0 = 30;
 						continue;
 					}
 					this.#state = 5;
 					return rt.Pending;
-				case 15:
+				case 16:
 					const _18: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
 					if (_18 !== rt.Pending) {
 						next = _18;
 						rt.drop(this.#awaitee);
-						bb0 = 27;
+						bb0 = 30;
 						continue;
 					}
 					this.#state = 4;
@@ -1424,12 +1420,12 @@ export class drainFuture {
 					if (_7 !== rt.Pending) {
 						next = _7;
 						rt.drop(this.#awaitee);
-						bb0 = 27;
+						bb0 = 30;
 						continue;
 					}
 					this.#state = 3;
 					return rt.Pending;
-				case 27:
+				case 30:
 					if (next === undefined) {
 						const _40: rt.u64 = this.#total;
 						this.#rx[Symbol.dispose]();

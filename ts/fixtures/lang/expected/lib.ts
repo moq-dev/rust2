@@ -50,6 +50,14 @@ export function copy$Option_array0_u32(v: rt.u32[] | undefined): rt.u32[] | unde
 	return v === undefined ? v : copy$array_u32(v);
 }
 
+export function copy$Option_array0_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array1_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
 export function copy$Option_array275_u32(v: rt.u32[] | undefined): rt.u32[] | undefined {
 	return v === undefined ? v : copy$array_u32(v);
 }
@@ -75,6 +83,14 @@ export function copy$Option_array2_u64(v: rt.u64[] | undefined): rt.u64[] | unde
 }
 
 export function copy$Option_array2_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array3_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array40_u8(v: Uint8Array | undefined): Uint8Array | undefined {
 	return v === undefined ? v : copy$array_u8(v);
 }
 
@@ -136,6 +152,10 @@ export function copy$array_generics_Either_u8_shapes_Point(v: Either.Either<rt.u
 
 export function copy$array_keys_Hop(v: Hop.Hop[]): Hop.Hop[] {
 	return v.map(copy$keys_Hop);
+}
+
+export function copy$array_ptr_array4_u8(v: rt.ByteSlice[]): rt.ByteSlice[] {
+	return v.slice();
 }
 
 export function copy$array_ref_sync_Mutex_u8(v: rt.Mutex<rt.u8>[]): rt.Mutex<rt.u8>[] {
@@ -221,6 +241,13 @@ export function copy$locals_Twin(v: locals_Twin.Twin): locals_Twin.Twin {
 }
 
 export function copy$mem_MaybeUninit_array_u32(v: rt.u32[]): rt.u32[] {
+	if (v === undefined) {
+		return v;
+	}
+	return v.slice();
+}
+
+export function copy$mem_MaybeUninit_array_u8(v: Uint8Array): Uint8Array {
 	if (v === undefined) {
 		return v;
 	}

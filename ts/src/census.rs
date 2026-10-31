@@ -154,6 +154,7 @@ const VERBATIM: &[&str] = &[
 	"From::from",
 	"Hash::hash_slice",
 	"LowerExp",
+	"MAY_HAVE_SIDE_EFFECT",
 	"None",
 	"Octal",
 	"Option",

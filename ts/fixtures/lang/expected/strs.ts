@@ -1476,7 +1476,7 @@ export function hinted(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			_78.v = rt.stringExtendChars(_78.v, _79);
 		} else {
 			const _84: rt.Place<string> = rt.place(() => t, (value8) => t = value8);
-			const _85: rt.Iter<rt.char> = rt.iterMap(rt.iterZip(new rt.Range(0, n), new rt.Range(0, m), "index"), (_211: [rt.u32, rt.u32]): rt.char => {
+			const _85: rt.Iter<rt.char> = rt.iterMap(rt.iterZip(new rt.Range(0, n), new rt.Range(0, m), [false, false]), (_211: [rt.u32, rt.u32]): rt.char => {
 				return f(_211[0]);
 			});
 			_84.v = rt.stringExtendChars(_84.v, _85);
