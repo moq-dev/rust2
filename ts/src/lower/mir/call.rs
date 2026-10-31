@@ -86,10 +86,6 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					}
 					return;
 				}
-				if let Some(name) = self.var(dest.local) {
-					let name = name.to_string();
-					self.next_names.insert(name);
-				}
 				if self.stepped_array(&args[0].node) {
 					(self.stepped_next(&recv), true)
 				} else {
@@ -958,13 +954,6 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					return done(value, false);
 				}
 				// A `next`'s item or `rt.DONE` branches as itself.
-				if let Some(local) = dest.as_local()
-					&& self.next_results.contains(&local)
-					&& let Some(name) = self.var(local)
-				{
-					let name = name.to_string();
-					self.next_names.insert(name);
-				}
 				done(value, false)
 			}
 			("FromResidual", "from_residual") => {
@@ -1603,10 +1592,17 @@ fn flow<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> Flow {
 	}
 }
 
-/// The test that `scrut`, a `ControlFlow`, is `Continue` (variant 0) or `Break`.
-pub fn control_flow_test<'tcx>(fx: &mut Fx<'_, '_, '_, 'tcx>, scrut: &Expr, ty: Ty<'tcx>, variant: VariantIdx) -> Expr {
+/// The test that `scrut`, a `ControlFlow`, is `Continue` (variant 0) or `Break`, where
+/// `next` says it is what `?` on a `next` result branches to, which holds the same.
+pub fn control_flow_test<'tcx>(
+	fx: &mut Fx<'_, '_, '_, 'tcx>,
+	scrut: &Expr,
+	ty: Ty<'tcx>,
+	variant: VariantIdx,
+	next: bool,
+) -> Expr {
 	let continues = variant.index() == 0;
-	if matches!(scrut, Expr::Ident(n) if fx.next_names.contains(n)) {
+	if next {
 		return match continues {
 			true => scrut.clone().binary("!==", Expr::Rt("DONE".into())),
 			false => scrut.clone().binary("===", Expr::Rt("DONE".into())),

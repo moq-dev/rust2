@@ -182,8 +182,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			}
 			Rvalue::Discriminant(place) => {
 				let pty = place.ty(&self.mir.local_decls, tcx).ty;
+				let next = self.next_result(*place);
 				let scrut = self.place_expr(*place, span, out);
-				self.discriminant(scrut, pty, span, out)
+				self.discriminant(scrut, pty, next, span, out)
 			}
 			Rvalue::Aggregate(kind, ops) => self.aggregate(kind, ops, ty, dest, span, out)?,
 		})
@@ -367,8 +368,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		}
 	}
 
-	/// A discriminant as its number.
-	fn discriminant(&mut self, scrut: Expr, ty: Ty<'tcx>, span: Span, out: &mut Vec<Stmt>) -> Expr {
+	/// A discriminant as its number, of a whole `next` result if `next`.
+	fn discriminant(&mut self, scrut: Expr, ty: Ty<'tcx>, next: bool, span: Span, out: &mut Vec<Stmt>) -> Expr {
 		match ty.kind() {
 			ty::Coroutine(def_id, args) => {
 				let info = super::coroutine::info(self.b.t, *def_id, args, span);
@@ -386,7 +387,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				match Std::of(tcx, adt.did()) {
 					Some(Std::Option | Std::Poll | Std::Result | Std::Entry) => {
 						let scrut = self.path(scrut, "scrutinee", out);
-						let first = self.variant_test(&scrut, ty, discrs[0].1, span);
+						let first = self.variant_test(&scrut, ty, discrs[0].1, next, span);
 						Expr::Cond(
 							Box::new(first),
 							Box::new(int.lit(discrs[0].1 as i128)),
