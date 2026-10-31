@@ -195,6 +195,15 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: rt.ByteVec = rt.byteVecFrom(Uint8Array.of(7, 8));
 	rt.listExtend(from, rt.iterSlice(rt.byteVecView(_68)));
 	items(from, out);
+	const _75: rt.Iter<[rt.u8, rt.u8]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): [rt.u8, rt.u8] => {
+		const b: rt.u8 = _2;
+		return [b & (~1 & 0xff), b | 1] as [rt.u8, rt.u8];
+	});
+	const _74: [rt.LinkedList<rt.u8>, rt.LinkedList<rt.u8>] = rt.tupleExtend([rt.listNew() as rt.LinkedList<rt.u8>, rt.listNew() as rt.LinkedList<rt.u8>] as [rt.LinkedList<rt.u8>, rt.LinkedList<rt.u8>], _75, [rt.listPart(), rt.listPart()]);
+	const evens: rt.LinkedList<rt.u8> = _74[0];
+	const odds: rt.LinkedList<rt.u8> = _74[1];
+	items(evens, out);
+	items(odds, out);
 	const copy: rt.LinkedList<rt.u8> = rt.listClone(from, undefined);
 	rt.listCloneFrom(copy, whole);
 	items(copy, out);
@@ -205,18 +214,18 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, rt.listIter(rt.listNew()).len() & 0xff);
 	rt.byteVecPush(out, rt.iterToOption(rt.listIter(rt.listNew()).next()) === undefined ? 1 : 0);
 	rt.byteVecPush(out, rt.iterToOption(rt.listIter(rt.listNew()).next()) === undefined ? 1 : 0);
-	const _108: rt.Iter<rt.f64> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.f64 => {
-		const b: rt.u8 = _2;
-		if (!(b === 255)) {
-			return b as rt.f64;
+	const _117: rt.Iter<rt.f64> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_22: rt.u8): rt.f64 => {
+		const b2: rt.u8 = _22;
+		if (!(b2 === 255)) {
+			return b2 as rt.f64;
 		}
 		return NaN;
 	});
-	const floats: rt.LinkedList<rt.f64> = rt.listExtend(rt.listNew() as rt.LinkedList<rt.f64>, _108);
-	const _111: rt.Iter<rt.f64> = rt.iterMap(rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), (_22: rt.u8): rt.f64 => {
-		return _22 as rt.f64;
+	const floats: rt.LinkedList<rt.f64> = rt.listExtend(rt.listNew() as rt.LinkedList<rt.f64>, _117);
+	const _120: rt.Iter<rt.f64> = rt.iterMap(rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), (_23: rt.u8): rt.f64 => {
+		return _23 as rt.f64;
 	});
-	const other: rt.LinkedList<rt.f64> = rt.listExtend(rt.listNew() as rt.LinkedList<rt.f64>, _111);
+	const other: rt.LinkedList<rt.f64> = rt.listExtend(rt.listNew() as rt.LinkedList<rt.f64>, _120);
 	rt.byteVecPush(out, option_mapOr$1e4a1e0(rt.cmpList(rt.f64PartialCmp)(floats, other), 9, (o: rt.Ordering): rt.u8 => {
 		return o & 0xff;
 	}));
