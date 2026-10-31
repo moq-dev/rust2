@@ -3,8 +3,9 @@
 import * as rt from "./rt.ts";
 import { copy$iters_Bumped, copy$tuple2_u8_u8 } from "./lib.ts";
 import { thenSome$0b23a33, thenSome$0d5am30 } from "./core/bool.ts";
-import { unwrapOr$0k15iai as option_unwrapOr$0k15iai, unwrapOr$00uis1j as option_unwrapOr$00uis1j, unwrapOr$1tvry1i as option_unwrapOr$1tvry1i, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$14m5xjm as option_unwrapOr$14m5xjm, unwrapOrDefault$165pyh5 as option_unwrapOrDefault$165pyh5, unwrapOrDefault$0wx44sw as option_unwrapOrDefault$0wx44sw, map$1uo1d4o as option_map$1uo1d4o, map$1httady as option_map$1httady, map$0cs071d as option_map$0cs071d, mapOr$0lcrgk1 as option_mapOr$0lcrgk1, mapOr$1kiffmd as option_mapOr$1kiffmd, mapOr$1a3irjf as option_mapOr$1a3irjf, mapOr$0sl5app as option_mapOr$0sl5app, mapOr$0atjiti as option_mapOr$0atjiti, mapOr$0okqj9y as option_mapOr$0okqj9y, mapOr$1e4a1e0 as option_mapOr$1e4a1e0, mapOr$1lznlgz as option_mapOr$1lznlgz, mapOr$0tmtgfi as option_mapOr$0tmtgfi, mapOr$0ev76sb as option_mapOr$0ev76sb, mapOr$1surhce as option_mapOr$1surhce, mapOr$1t0muvr as option_mapOr$1t0muvr, mapOr$02k4ito as option_mapOr$02k4ito, mapOr$0a96v80 as option_mapOr$0a96v80, mapOr$0mmpeqx as option_mapOr$0mmpeqx, mapOr$1vjqo89 as option_mapOr$1vjqo89, mapOr$1h04da8 as option_mapOr$1h04da8, mapOr$0f73bb7 as option_mapOr$0f73bb7, mapOr$06gg5x7 as option_mapOr$06gg5x7, mapOr$1dmz9kd as option_mapOr$1dmz9kd, asDeref$0w8at8i as option_asDeref$0w8at8i, filter$0v80fk8 } from "./core/option.ts";
+import { unwrapOr$0k15iai as option_unwrapOr$0k15iai, unwrapOr$00uis1j as option_unwrapOr$00uis1j, unwrapOr$1tvry1i as option_unwrapOr$1tvry1i, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$14m5xjm as option_unwrapOr$14m5xjm, unwrapOrDefault$165pyh5 as option_unwrapOrDefault$165pyh5, unwrapOrDefault$0wx44sw as option_unwrapOrDefault$0wx44sw, map$1uo1d4o as option_map$1uo1d4o, map$1httady as option_map$1httady, map$0p22lts as option_map$0p22lts, map$0of9gds as option_map$0of9gds, map$1c7zybz as option_map$1c7zybz, map$0cs071d as option_map$0cs071d, mapOr$0lcrgk1 as option_mapOr$0lcrgk1, mapOr$1kiffmd as option_mapOr$1kiffmd, mapOr$1a3irjf as option_mapOr$1a3irjf, mapOr$0sl5app as option_mapOr$0sl5app, mapOr$0atjiti as option_mapOr$0atjiti, mapOr$0okqj9y as option_mapOr$0okqj9y, mapOr$1e4a1e0 as option_mapOr$1e4a1e0, mapOr$1lznlgz as option_mapOr$1lznlgz, mapOr$0tmtgfi as option_mapOr$0tmtgfi, mapOr$0ev76sb as option_mapOr$0ev76sb, mapOr$1surhce as option_mapOr$1surhce, mapOr$1t0muvr as option_mapOr$1t0muvr, mapOr$02k4ito as option_mapOr$02k4ito, mapOr$0a96v80 as option_mapOr$0a96v80, mapOr$0mmpeqx as option_mapOr$0mmpeqx, mapOr$1vjqo89 as option_mapOr$1vjqo89, mapOr$1h04da8 as option_mapOr$1h04da8, mapOr$0f73bb7 as option_mapOr$0f73bb7, mapOr$06gg5x7 as option_mapOr$06gg5x7, mapOr$1dmz9kd as option_mapOr$1dmz9kd, mapOr$1sxa8ki as option_mapOr$1sxa8ki, asDeref$0w8at8i as option_asDeref$0w8at8i, filter$0v80fk8 } from "./core/option.ts";
 import { unwrapOr$01jdcm7 as result_unwrapOr$01jdcm7 } from "./core/result.ts";
+import * as Badge from "./iters.Badge.ts";
 import * as Bumped from "./iters.Bumped.ts";
 import * as iters_Countdown from "./iters.Countdown.ts";
 import * as Doubled from "./iters.Doubled.ts";
@@ -15,6 +16,7 @@ import * as iters_Held from "./iters.Held.ts";
 import * as Quarter from "./iters.Quarter.ts";
 import * as Tag from "./iters.Tag.ts";
 import * as Tilt from "./iters.Tilt.ts";
+import * as Weighed from "./iters.Weighed.ts";
 import * as Wrapper from "./iters.Wrapper.ts";
 
 /** Adaptor chains over the input bytes, each consumed one way. */
@@ -1377,6 +1379,244 @@ export function options(data: rt.ByteSlice, out: rt.ByteVec): void {
 			return b10;
 		}));
 	}
+}
+
+/**
+ * Loops over options, each item's own `Option` tested apart from the iterator's end, for
+ * each way JS holds `None`: `undefined`, `rt.None` where `Some` can be `undefined`, and
+ * nested.
+ */
+export function optionItems(data: rt.ByteSlice, out: rt.ByteVec): void {
+	let _44!: rt.u8;
+	let _67!: boolean;
+	let _87!: undefined | rt.None;
+	let _138!: rt.u8;
+	const _3: (a0: rt.u8) => rt.u8 | undefined = (b4: rt.u8): rt.u8 | undefined => {
+		if (!(rt.u8Rem(b4, 3) === 0)) {
+			return b4;
+		}
+		return undefined;
+	};
+	const words: Array<rt.u32 | undefined> = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (b5: rt.u8): rt.u32 | undefined => {
+		return option_map$1c7zybz(_3(b5), (a0: rt.u8): rt.u32 => {
+			return a0 as rt.u32;
+		});
+	}), undefined, 8, true);
+	const units: Array<undefined | rt.None> = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (b6: rt.u8): undefined | rt.None => {
+		return option_map$0p22lts(_3(b6), (_2: rt.u8): undefined => {});
+	}), undefined, 1, true);
+	const nested: Array<rt.u8 | undefined | rt.None> = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_23: rt.u8): rt.u8 | undefined | rt.None => {
+		const b7: rt.u8 = _23;
+		const _45: rt.u8 = rt.u8Rem(b7, 4);
+		if (_45 === 0) {
+			return rt.None;
+		}
+		if (_45 === 1) {
+			return undefined;
+		}
+		return b7;
+	}), undefined, 2, true);
+	const badges: Array<Badge.Badge | undefined> = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (b8: rt.u8): Badge.Badge | undefined => {
+		return option_map$0of9gds(_3(b8), (_24: rt.u8): Badge.Badge => {
+			return new Badge.of$u8(b8);
+		});
+	}), undefined, 8, true);
+	for (const _26 of words) {
+		if (_26 !== undefined) {
+			rt.byteVecPush(out, _26 & 0xff);
+		} else {
+			rt.byteVecPush(out, 160);
+		}
+	}
+	for (const _39 of units) {
+		if (_39 !== rt.None) {
+			_44 = 161;
+		} else {
+			_44 = 162;
+		}
+		rt.byteVecPush(out, _44);
+	}
+	for (const _50 of nested) {
+		if (_50 === rt.None) {
+			rt.byteVecPush(out, 164);
+		} else if (_50 === undefined) {
+			rt.byteVecPush(out, 163);
+		} else {
+			rt.byteVecPush(out, _50);
+		}
+	}
+	for (const _61 of badges) {
+		if (_61 !== undefined) {
+			_67 = true;
+		} else {
+			_67 = false;
+		}
+		rt.byteVecPush(out, _67 ? 1 : 0);
+	}
+	const iter5: rt.Iter<rt.Place<rt.u32 | undefined>> = rt.iterSliceMut(words);
+	while (true) {
+		const _72: rt.Place<rt.u32 | undefined> | rt.Done = iter5.next();
+		if (_72 === rt.DONE) {
+			break;
+		}
+		if (_72.v === undefined) {
+			_72.v = 165;
+		} else {
+			_72.v = rt.u32Add(_72.v, 1);
+		}
+	}
+	const iter6: rt.Iter<rt.Place<undefined | rt.None>> = rt.iterSliceMut(units);
+	while (true) {
+		const _83: rt.Place<undefined | rt.None> | rt.Done = iter6.next();
+		if (_83 === rt.DONE) {
+			break;
+		}
+		if (_83.v === rt.None) {
+			_87 = undefined;
+		} else {
+			_87 = rt.None;
+		}
+		_83.v = _87;
+	}
+	const iter7: rt.Iter<rt.Place<rt.u8 | undefined | rt.None>> = rt.iterSliceMut(nested);
+	while (true) {
+		const _94: rt.Place<rt.u8 | undefined | rt.None> | rt.Done = iter7.next();
+		if (_94 === rt.DONE) {
+			break;
+		}
+		if (_94.v !== rt.None) {
+			if (_94.v !== undefined) {
+				_94.v = rt.u8WrappingAdd(_94.v, 1);
+				continue;
+			}
+		}
+		if (_94.v !== rt.None) {
+			_94.v = 166;
+		}
+	}
+	const iter8: rt.Iter<rt.u32 | undefined> = rt.iterSlice(words);
+	while (true) {
+		const _111: rt.u32 | undefined | rt.Done = iter8.next();
+		if (_111 === rt.DONE) {
+			break;
+		}
+		rt.byteVecPush(out, option_mapOr$1sxa8ki(_111, 167, (a4: rt.u32): rt.u8 => {
+			return a4 & 0xff;
+		}));
+	}
+	rt.byteVecPush(out, present$unit(units));
+	rt.byteVecPush(out, present$Option_u8(nested));
+	rt.byteVecPush(out, present$ref_dyn_iters_Badge(badges));
+	for (const a of units) {
+		if (a !== rt.None) {
+			_138 = 168;
+		} else {
+			_138 = 169;
+		}
+		rt.byteVecPush(out, _138);
+	}
+	for (const a2 of nested.slice()) {
+		if (a2 !== rt.None) {
+			if (a2 !== undefined) {
+				rt.byteVecPush(out, a2);
+				continue;
+			}
+		}
+		if (a2 === rt.None) {
+			rt.byteVecPush(out, 170);
+		}
+	}
+	const itS: Array<rt.u8 | undefined | rt.None> = nested;
+	let itI: number = 0;
+	while (true) {
+		const _157: rt.u8 | undefined | rt.None | rt.Done = itI < itS.length ? itS[itI++] : rt.DONE;
+		if (_157 !== rt.DONE) {
+			const a3: rt.u8 | undefined | rt.None = _157;
+			if (a3 === rt.None) {
+				rt.byteVecPush(out, 172);
+			} else {
+				rt.byteVecPush(out, option_unwrapOr$0r2bmpr(a3, 171));
+			}
+		} else {
+			break;
+		}
+	}
+	const it2: rt.Iter<rt.u32 | undefined> = rt.iterSlice(words);
+	while (true) {
+		const _167: rt.u8 | undefined = firstPresent(it2);
+		if (_167 !== undefined) {
+			rt.byteVecPush(out, _167);
+		} else {
+			break;
+		}
+	}
+	const weighed: Weighed.Weighed = { inner: rt.iterSlice(rt.byteSliceView(data)), weight: 0 };
+	while (true) {
+		const _174: rt.u8 | rt.Done = Weighed.next$iter_Iterator(weighed);
+		if (_174 !== rt.DONE) {
+			rt.byteVecPush(out, _174);
+		} else {
+			break;
+		}
+	}
+	rt.byteVecPush(out, weighed.weight);
+}
+
+/** How many items are `Some`, of a slice of options of any `T`. */
+export function present$Option_u8(items: Array<rt.u8 | undefined | rt.None>): rt.u8 {
+	let n: rt.u8 = 0;
+	const iter: rt.Iter<rt.u8 | undefined | rt.None> = rt.iterSlice(items);
+	while (true) {
+		const _6: rt.u8 | undefined | rt.None | rt.Done = iter.next();
+		if (_6 === rt.DONE) {
+			return n;
+		}
+		if (_6 !== rt.None) {
+			n = rt.u8Add(n, 1);
+		}
+	}
+}
+
+/** How many items are `Some`, of a slice of options of any `T`. */
+export function present$ref_dyn_iters_Badge(items: Array<Badge.Badge | undefined>): rt.u8 {
+	let n: rt.u8 = 0;
+	const iter: rt.Iter<Badge.Badge | undefined> = rt.iterSlice(items);
+	while (true) {
+		const _6: Badge.Badge | undefined | rt.Done = iter.next();
+		if (_6 === rt.DONE) {
+			return n;
+		}
+		if (_6 !== undefined) {
+			n = rt.u8Add(n, 1);
+		}
+	}
+}
+
+/** How many items are `Some`, of a slice of options of any `T`. */
+export function present$unit(items: Array<undefined | rt.None>): rt.u8 {
+	let n: rt.u8 = 0;
+	const iter: rt.Iter<undefined | rt.None> = rt.iterSlice(items);
+	while (true) {
+		const _6: undefined | rt.None | rt.Done = iter.next();
+		if (_6 === rt.DONE) {
+			return n;
+		}
+		if (_6 !== rt.None) {
+			n = rt.u8Add(n, 1);
+		}
+	}
+}
+
+/** The next item through `?`, which tests for the end, and then its own `None`. */
+export function firstPresent(it: rt.Iter<rt.u32 | undefined>): rt.u8 | undefined {
+	const _2: rt.u32 | undefined | rt.Done = it.next();
+	if (_2 !== rt.DONE) {
+		if (_2 === undefined) {
+			return 173;
+		}
+		return _2 & 0xff;
+	}
+	return undefined;
 }
 
 /** The second item of an iterator of options, through `?`, which tests for its end. */

@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 197
-- Function instances: 238
+- Refusals: 198
+- Function instances: 240
 - Generic functions no instance reached, lowered over their type parameters: 11
 
 ## By construct
@@ -70,6 +70,7 @@
 | 1 | comparing pointers to `_` in an atomic, which JS has no address of | fixtures/reject/src/lib.rs:786:15 |
 | 1 | comparing pointers to `_`, each a place JS makes of its own | fixtures/reject/src/lib.rs:605:2 |
 | 1 | comparing pointers to `_`, which has no bytes and so no address of its own | fixtures/reject/src/lib.rs:737:70 |
+| 1 | const generic types are not supported: `_` | fixtures/reject/src/lib.rs:1888:1 |
 | 1 | constructing `_` | fixtures/reject/src/lib.rs:356:53 |
 | 1 | hashing `_` as a key, which is not supported yet | fixtures/reject/src/lib.rs:242:75 |
 | 1 | hashing `_` by its address, which JS has no counterpart of | fixtures/reject/src/lib.rs:1832:5 |
@@ -141,6 +142,7 @@ The type or module each refused type or path belongs to.
 | 1 | `Behind` | fixtures/reject/src/lib.rs:1868:22 |
 | 1 | `Bits` | fixtures/reject/src/lib.rs:591:1 |
 | 1 | `Blank` | fixtures/reject/src/lib.rs:770:2 |
+| 1 | `Block` | fixtures/reject/src/lib.rs:1888:1 |
 | 1 | `ByBox` | fixtures/reject/src/lib.rs:1513:35 |
 | 1 | `ByClosure` | fixtures/reject/src/lib.rs:1528:35 |
 | 1 | `ByExchanged` | fixtures/reject/src/lib.rs:1574:30 |
@@ -350,6 +352,7 @@ The type or module each refused type or path belongs to.
 | 1 | comparing pointers to `_` in an atomic, which JS has no address of | `u32` | fixtures/reject/src/lib.rs:786:15 |
 | 1 | comparing pointers to `_`, each a place JS makes of its own | `u32` | fixtures/reject/src/lib.rs:605:2 |
 | 1 | comparing pointers to `_`, which has no bytes and so no address of its own | `Fused` | fixtures/reject/src/lib.rs:737:70 |
+| 1 | const generic types are not supported: `_` | `Block` | fixtures/reject/src/lib.rs:1888:1 |
 | 1 | constructing `_` | `std::borrow::Cow` | fixtures/reject/src/lib.rs:356:53 |
 | 1 | hashing `_` as a key, which is not supported yet | `std::collections::BTreeSet` | fixtures/reject/src/lib.rs:242:75 |
 | 1 | hashing `_` by its address, which JS has no counterpart of | `*const [u8; 4]` | fixtures/reject/src/lib.rs:1832:5 |
@@ -885,6 +888,12 @@ The type or module each refused type or path belongs to.
 <details><summary>comparing pointers to `_`, which has no bytes and so no address of its own (1)</summary>
 
 - fixtures/reject/src/lib.rs:737:70: comparing pointers to `Fused`, which has no bytes and so no address of its own
+
+</details>
+
+<details><summary>const generic types are not supported: `_` (1)</summary>
+
+- fixtures/reject/src/lib.rs:1888:1: const generic types are not supported: `Block`
 
 </details>
 

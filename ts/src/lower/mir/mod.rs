@@ -28,13 +28,14 @@ use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_hir::def::DefKind;
 use rustc_index::IndexVec;
 use rustc_middle::mir::{self, BasicBlock, Local, Operand, Place, Rvalue, StatementKind, TerminatorKind};
-use rustc_middle::ty::{self, EarlyBinder, Instance, Ty, TyCtxt};
+use rustc_middle::ty::{self, EarlyBinder, Instance, Ty, TyCtxt, TypingEnv};
 use rustc_span::{Span, Spanned};
 
 use self::cfg::Exit;
 pub use self::place::{slice_member, writes_captures};
 use super::Translator;
 use super::body::Body;
+use super::copy::field_ty;
 
 use crate::ts::{self, Expr, Param, Stmt, StmtKind, Type};
 
@@ -235,8 +236,9 @@ enum Slot<'tcx> {
 	/// A reference assigned once, read as the place it borrows, which is set once its
 	/// assignment is lowered.
 	Alias(Option<Expr>),
-	/// A discriminant only a `switchInt` reads: tested as the place's variant.
-	Discr(Option<(Expr, Ty<'tcx>)>),
+	/// A discriminant only a `switchInt` reads: tested as the place's variant, and whether
+	/// the place is a whole `next` result.
+	Discr(Option<(Expr, Ty<'tcx>, bool)>),
 	/// A discriminant only a `switchInt` reads, of a local held as its parts: its flag,
 	/// whether it is its second variant.
 	Flag(Option<Expr>),
@@ -327,8 +329,6 @@ pub struct Fx<'m, 'b, 'a, 'tcx> {
 	var_parts: FxHashMap<Local, Vec<Expr>>,
 	/// Locals holding what `Iterator::next` returns by the protocol: an item or `rt.DONE`.
 	next_results: FxHashSet<Local>,
-	/// Their names, which a switch on their variant tests against `rt.DONE`.
-	next_names: FxHashSet<String>,
 	/// Next results of a range of numbers stepped in place: each holds only the item, so
 	/// JS keeps it a number, and a flag holds whether there was one.
 	range_nexts: FxHashSet<Local>,
@@ -413,7 +413,6 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			ignored_sites: Vec::new(),
 			var_parts: FxHashMap::default(),
 			next_results: FxHashSet::default(),
-			next_names: FxHashSet::default(),
 			range_nexts: FxHashSet::default(),
 			range_flags: FxHashMap::default(),
 			stepped: FxHashSet::default(),
@@ -547,7 +546,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 								.any(|op| self.changes(op.ty(&mir.local_decls, self.tcx), part));
 							self.arg_use[local] = true;
 							self.arg_alone[local] = alone;
-							self.arg_kept[local] = kept || self.b.t.holds(result, part);
+							self.arg_kept[local] = kept || self.b.t.holds(self.b.t.typing_env_pub(), result, part);
 						}
 					}
 					self.def(*destination);
@@ -1177,6 +1176,11 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		if self.next {
 			self.next_results.insert(mir::RETURN_PLACE);
 		}
+	}
+
+	/// Whether `place` is a whole `next` result, which holds the item or `rt.DONE`.
+	fn next_result(&self, place: Place<'tcx>) -> bool {
+		place.as_local().is_some_and(|l| self.next_results.contains(&l))
 	}
 
 	/// Each `(hi as u64) << 32 | lo as u64` of halves of at most 32 bits, as moq's
@@ -2338,6 +2342,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						unreachable!("checked by discr_only")
 					};
 					let ty = p.ty(&self.mir.local_decls, self.tcx).ty;
+					let next = self.next_result(*p);
 					let target = self.place_expr(*p, span, out);
 					// A switch whose other variants can't exist tests nothing, so the read
 					// runs only for its effects.
@@ -2351,7 +2356,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 							Expr::undefined()
 						}
 					};
-					self.slots[local] = Slot::Discr(Some((target, ty)));
+					self.slots[local] = Slot::Discr(Some((target, ty, next)));
 					return;
 				}
 				Slot::Flag(_) => {
@@ -2626,14 +2631,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			_ => test,
 		};
 		let tests: Vec<(Expr, BasicBlock)> = match discr_local.map(|l| self.slots[l].clone()) {
-			Some(Slot::Discr(Some((scrut, ty)))) => {
+			Some(Slot::Discr(Some((scrut, ty, next)))) => {
 				if !arms.is_empty() && whole.is_none() {
 					self.switched.extend(scrut.path_key().map(|key| (key, ty)));
 				}
 				let tests: Vec<Expr> = arms
 					.iter()
 					.map(|&(value, _)| {
-						let test = self.variant_test(&scrut, ty, value, span);
+						let test = self.variant_test(&scrut, ty, value, next, span);
 						widen(test, &scrut)
 					})
 					.collect();
@@ -2898,8 +2903,8 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	fn changes(&self, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
 		use rustc_middle::ty::TypeVisitableExt;
 		let env = self.b.t.typing_env_pub();
-		let overlaps = |t: Ty<'tcx>| self.b.t.holds(t, part) || self.b.t.holds(part, t);
-		self.b.t.reaches(ty, |t| match t.kind() {
+		let overlaps = |t: Ty<'tcx>| self.b.t.holds(env, t, part) || self.b.t.holds(env, part, t);
+		self.b.t.reaches(env, ty, |t| match t.kind() {
 			ty::RawPtr(..) => true,
 			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => overlaps(*inner),
 			// Inside a binder, as a function pointer's signature, only its kind tells.
@@ -2923,12 +2928,13 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		if self.moves_copied(part) {
 			return true;
 		}
+		let env = self.b.t.typing_env_pub();
 		!translated
 			&& self.copied_parts(part).into_iter().any(|t| {
 				self.holds_behind(result, t)
 					|| args
 						.iter()
-						.any(|a| self.b.t.stores(a.node.ty(&self.mir.local_decls, self.tcx), t))
+						.any(|a| self.b.t.stores(env, a.node.ty(&self.mir.local_decls, self.tcx), t))
 			})
 	}
 
@@ -3011,7 +3017,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				adt.all_fields()
 					.any(|field| self.holds_behind(self.b.t.field_ty(field.did, args), part))
 			}
-			_ => self.b.t.holds(ty, part),
+			_ => self.b.t.holds(self.b.t.typing_env_pub(), ty, part),
 		}
 	}
 }
@@ -3033,25 +3039,25 @@ pub(super) fn whole(value: Expr, ty: Type) -> Result<Expr, Expr> {
 impl<'tcx> Translator<'_, 'tcx> {
 	/// Whether a value of `ty` reaches somewhere that could take a `part` in: a raw
 	/// pointer, or a mutable reference to or interior mutability around what could hold one.
-	pub(crate) fn stores(&self, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
+	/// `env` holds the bounds of the body naming `ty`.
+	pub(crate) fn stores(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
 		use rustc_middle::ty::TypeVisitableExt;
-		let env = self.typing_env_pub();
-		self.reaches(ty, |t| match t.kind() {
+		self.reaches(env, ty, |t| match t.kind() {
 			ty::RawPtr(..) => true,
-			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => self.holds(*inner, part),
-			_ => !t.has_escaping_bound_vars() && !t.is_freeze(self.tcx, env) && self.holds(t, part),
+			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => self.holds(env, *inner, part),
+			_ => !t.has_escaping_bound_vars() && !t.is_freeze(self.tcx, env) && self.holds(env, t, part),
 		})
 	}
 
 	/// Whether a value of `ty` could hold a `part`: holds its type, or hides what it holds.
-	pub(crate) fn holds(&self, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
+	pub(crate) fn holds(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
 		// An array and a slice of its element share storage through an unsizing coercion.
 		let storage = |t: Ty<'tcx>| match t.kind() {
 			ty::Array(elem, _) => Ty::new_slice(self.tcx, *elem),
 			_ => t,
 		};
 		let part = storage(part);
-		self.reaches(ty, |t| {
+		self.reaches(env, ty, |t| {
 			storage(t) == part
 				|| matches!(
 					t.kind(),
@@ -3061,8 +3067,8 @@ impl<'tcx> Translator<'_, 'tcx> {
 	}
 
 	/// Whether `f` holds for any type a value of `ty` holds: its type arguments, which are
-	/// what std's types hold, and the fields of the crate's own types.
-	pub(crate) fn reaches(&self, ty: Ty<'tcx>, mut f: impl FnMut(Ty<'tcx>) -> bool) -> bool {
+	/// what std's types hold, and the fields of the crate's own types, normalized in `env`.
+	pub(crate) fn reaches(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, mut f: impl FnMut(Ty<'tcx>) -> bool) -> bool {
 		let mut seen = FxHashSet::default();
 		let mut stack = vec![ty];
 		while let Some(ty) = stack.pop() {
@@ -3074,7 +3080,7 @@ impl<'tcx> Translator<'_, 'tcx> {
 					&& self.own(adt.did())
 					&& seen.insert(t)
 				{
-					stack.extend(adt.all_fields().map(|field| self.field_ty(field.did, args)));
+					stack.extend(adt.all_fields().map(|field| field_ty(self.tcx, env, field.did, args)));
 				}
 			}
 		}

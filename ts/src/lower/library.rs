@@ -7,7 +7,7 @@
 
 use rustc_hir::def::DefKind;
 use rustc_hir::def_id::DefId;
-use rustc_middle::ty::{self, GenericArgsRef, Instance, Ty, TyCtxt};
+use rustc_middle::ty::{self, GenericArgsRef, Instance, Ty, TyCtxt, TypingEnv};
 use rustc_span::Span;
 
 use super::Translator;
@@ -608,41 +608,42 @@ impl Inherited {
 }
 
 /// Whether `Clone` of `ty` only copies: `ty` is `Copy`, and no `Clone` written by hand
-/// runs for it or anything in it, as a derived or std `Clone` clones each field.
-pub fn clone_copies<'tcx>(t: &super::Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
-	t.is_copy(ty) && clone_only_copies(t, ty)
+/// runs for it or anything in it, as a derived or std `Clone` clones each field. `env`
+/// holds the bounds of the body naming `ty`.
+pub fn clone_copies<'tcx>(t: &super::Translator<'_, 'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>) -> bool {
+	t.tcx.type_is_copy_modulo_regions(env, ty) && clone_only_copies(t, env, ty)
 }
 
 /// Whether `Clone` of `ty` is the value itself, as JS holds it: a string, a function, or a
 /// closure that writes none of its captures, each of which only copies or clones so, as
 /// nothing else reaches what a closure owns to write it.
-pub fn clone_shares<'tcx>(t: &super::Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
+pub fn clone_shares<'tcx>(t: &super::Translator<'_, 'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>) -> bool {
 	match ty.kind() {
 		ty::FnDef(..) => true,
 		ty::Closure(_, args) => {
 			!super::mir::writes_captures(t.tcx, ty)
 				&& (args.as_closure().upvar_tys().iter())
-					.all(|capture| clone_copies(t, capture) || clone_shares(t, capture))
+					.all(|capture| clone_copies(t, env, capture) || clone_shares(t, env, capture))
 		}
 		_ => string(t.tcx, ty),
 	}
 }
 
 /// Whether `Clone` of `ty`, a `Copy` type, only copies.
-fn clone_only_copies<'tcx>(t: &super::Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
+fn clone_only_copies<'tcx>(t: &super::Translator<'_, 'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>) -> bool {
 	let tcx = t.tcx;
 	match ty.kind() {
 		ty::Bool | ty::Char | ty::Int(_) | ty::Uint(_) | ty::Float(_) | ty::Ref(..) | ty::FnPtr(..) | ty::Never => true,
-		ty::Tuple(fields) => fields.iter().all(|field| clone_only_copies(t, field)),
-		ty::Array(elem, _) => clone_only_copies(t, *elem),
+		ty::Tuple(fields) => fields.iter().all(|field| clone_only_copies(t, env, field)),
+		ty::Array(elem, _) => clone_only_copies(t, env, *elem),
 		// A binding's `Clone` is its own.
 		ty::Adt(adt, _) if t.bound_drops(adt.did()).is_some() => false,
-		ty::Adt(adt, args) if !t.crates.translates(adt.did()) => args.types().all(|arg| clone_only_copies(t, arg)),
+		ty::Adt(adt, args) if !t.crates.translates(adt.did()) => args.types().all(|arg| clone_only_copies(t, env, arg)),
 		ty::Adt(adt, args) => {
 			let Some(clone) = tcx.lang_items().clone_fn() else {
 				return false;
 			};
-			let derived = Instance::try_resolve(tcx, t.typing_env_pub(), clone, tcx.mk_args(&[ty.into()]))
+			let derived = Instance::try_resolve(tcx, env, clone, tcx.mk_args(&[ty.into()]))
 				.ok()
 				.flatten()
 				.and_then(|instance| tcx.impl_of_assoc(instance.def_id()))
@@ -650,7 +651,7 @@ fn clone_only_copies<'tcx>(t: &super::Translator<'_, 'tcx>, ty: Ty<'tcx>) -> boo
 			derived
 				&& adt
 					.all_fields()
-					.all(|field| clone_only_copies(t, t.subst(args, field.ty(tcx, args).skip_norm_wip())))
+					.all(|field| clone_only_copies(t, env, super::copy::field_ty(tcx, env, field.did, args)))
 		}
 		_ => false,
 	}
@@ -675,7 +676,7 @@ pub fn inherent_std(tcx: TyCtxt<'_>, def_id: DefId) -> Option<Std> {
 /// Not one taking a `&mut` or a raw pointer, whose writes the crate's analysis of what it
 /// writes into would miss, nor an `unsafe` one, nor one mapped below as one expression or
 /// as the runtime's panic.
-pub fn from_mir<'tcx>(t: &Translator<'_, 'tcx>, instance: Instance<'tcx>) -> bool {
+pub fn from_mir<'tcx>(t: &Translator<'_, 'tcx>, env: TypingEnv<'tcx>, instance: Instance<'tcx>) -> bool {
 	let tcx = t.tcx;
 	let ty::InstanceKind::Item(did) = instance.def else {
 		return false;
@@ -695,7 +696,7 @@ pub fn from_mir<'tcx>(t: &Translator<'_, 'tcx>, instance: Instance<'tcx>) -> boo
 	if let Some(tr) = tcx.trait_impl_of_assoc(did).map(|imp| tcx.impl_trait_id(imp))
 		&& tcx.is_lang_item(tr, rustc_attr_ir::LangItem::Clone)
 	{
-		return t.self_ty(instance).is_none_or(|ty| !clone_copies(t, ty));
+		return !clone_copies(t, env, super::copy::instantiate(tcx, env, self_ty, instance.args));
 	}
 	let std = match self_ty.kind() {
 		ty::Adt(adt, _) => Std::of(tcx, adt.did()),
@@ -704,10 +705,8 @@ pub fn from_mir<'tcx>(t: &Translator<'_, 'tcx>, instance: Instance<'tcx>) -> boo
 	// A `RefCell` key's `set` maps, as its body writes the cell in place.
 	let refcell_set = std == Some(Std::LocalKey)
 		&& name.as_str() == "set"
-		&& t.self_ty(instance).is_some_and(|key| {
-			matches!(key.kind(), ty::Adt(_, args)
-			if matches!(args.type_at(0).kind(), ty::Adt(adt, _) if Std::of(tcx, adt.did()) == Some(Std::RefCell)))
-		});
+		&& matches!(super::copy::instantiate(tcx, env, self_ty, instance.args).kind(), ty::Adt(_, args)
+			if matches!(args.type_at(0).kind(), ty::Adt(adt, _) if Std::of(tcx, adt.did()) == Some(Std::RefCell)));
 	// A lock's `unwrap_or_else` maps, to unwrap its guard in place.
 	let lock = std == Some(Std::Result)
 		&& name.as_str() == "unwrap_or_else"
@@ -1466,7 +1465,7 @@ fn mapping<'tcx>(
 					return vec_clone(b, value, args.type_at(0), span);
 				}
 				_ if let Some(elem) = cow_slice(tcx, ty) => cow_cloned(b, "Clone", value, elem, span),
-				ty::Tuple(tys) if !clone_copies(b.t, ty) => {
+				ty::Tuple(tys) if !clone_copies(b.t, b.t.typing_env_pub(), ty) => {
 					let clones = tys.iter().map(|t| super::collections::clone_fn(b, t, span)).collect();
 					Expr::rt("tupleClone", vec![value, Expr::Array(clones)])
 				}
@@ -1490,12 +1489,12 @@ fn mapping<'tcx>(
 				// Through the reference, a slice of the bytes.
 				_ if super::byte_array(ty) => Expr::rt("byteSliceToArray", vec![value]),
 				_ if b.t.std_iter(ty) => return super::iter::clone(b, ty, value, span),
-				ty::Closure(def_id, _) if !clone_shares(b.t, ty) => {
+				ty::Closure(def_id, _) if !clone_shares(b.t, b.t.typing_env_pub(), ty) => {
 					b.t.clone_closure(*def_id);
 					Expr::rt("closureClone", vec![value])
 				}
-				_ if clone_shares(b.t, ty) => value,
-				_ if clone_copies(b.t, ty) => b.t.copied(value, ty, span),
+				_ if clone_shares(b.t, b.t.typing_env_pub(), ty) => value,
+				_ if clone_copies(b.t, b.t.typing_env_pub(), ty) => b.t.copied(value, ty, span),
 				_ => return None,
 			}
 		}
@@ -1516,7 +1515,7 @@ fn mapping<'tcx>(
 			};
 			let reference = of.type_at(0);
 			let value = args.pop()?;
-			let copies = name == "copied" || clone_copies(b.t, inner);
+			let copies = name == "copied" || clone_copies(b.t, b.t.typing_env_pub(), inner);
 			let place = b.t.place_pointee(reference).is_some();
 			if copies && !place {
 				return Some(b.t.copied(value, option, span));
