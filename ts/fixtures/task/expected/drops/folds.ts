@@ -231,7 +231,7 @@ export function folded(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 			}, (): void => {
 				captured55[Symbol.dispose]();
 			}));
-			const tree: rt.BTreeMap<rt.u32, Guard.Guard> = rt.btreeCollect(rt.btreeNew(rt.cmp) as rt.BTreeMap<rt.u32, Guard.Guard>, rt.iterToArray(_205, "fold", 12, true), undefined, rt.drop);
+			const tree: rt.BTreeMap<rt.u32, Guard.Guard> = rt.btreeCollect(rt.btreeNew(rt.cmp) as rt.BTreeMap<rt.u32, Guard.Guard>, rt.iterToArray(_205, "fold", 12, true), true, undefined, undefined, rt.drop);
 			const _217: rt.usize = queue.n;
 			const _220: rt.usize = rt.btreeLen(tree);
 			const args16: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(_217, f), (f: rt.Formatter) => rt.usizeDisplay(_220, f)];
