@@ -96,7 +96,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					(crate::lower::iter::next(self.b, iter_ty, recv), true)
 				}
 			}
-			// What std lends of the `[u8; N]`s it holds, its mapping makes slices of.
+			// What std lends of the `[u8; N]`s it holds, its mapping makes slices of, and what
+			// it is given, views.
 			ty::FnDef(def_id, gargs) if matches!(lend::plan(self.b.t, def_id, gargs.skip_binder()), Plan::Lend(_)) => (
 				self.call_def(def_id, gargs.skip_binder(), args, result, span, &mut pre),
 				true,
@@ -301,7 +302,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				crate::lower::pointer::pointees(tcx, def_id)
 			}
 		};
-		let values = self.operands(local, &pointees, args, result, span, out);
+		let mut values = self.operands(local, &pointees, args, result, span, out);
+		// The slices of `[u8; N]`s std is given as a `&T`, as views of their bytes.
+		if let Plan::Lend(lent) = lend::plan(self.b.t, def_id, gargs) {
+			for &(i, (generic, ty)) in &lent.given {
+				let value = std::mem::replace(&mut values[i], Expr::undefined());
+				values[i] = lend::give(self.b, generic, ty, value, span);
+			}
+		}
 		self.b.call_def(def_id, gargs, values, span, out)
 	}
 
@@ -1033,7 +1041,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// The place a `&mut` operand borrows, as an assignable path, and through the
 	/// reference, which a store resolves: an alias of a borrowed place, not a copy of a
 	/// reference, which holds the object it points at, or an `rt.Place`, whose `v` it is,
-	/// or else the object it points at, written in place.
+	/// or else the object it points at, written in place. A `[u8; N]`'s is a copy of its
+	/// bytes instead, which the store writes in place.
 	fn borrowed_place(&mut self, op: &Operand<'tcx>, span: Span, out: &mut Vec<Stmt>) -> Option<Borrowed<'tcx>> {
 		let (Operand::Copy(place) | Operand::Move(place)) = op else {
 			return None;
@@ -1042,6 +1051,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			return None;
 		}
 		let deref = self.tcx.mk_place_deref(*place);
+		if self.in_bytes(deref) {
+			// Named before the copy, as the store names it.
+			let slice = self.place_expr(deref, span, out);
+			let slice = self.slice_path(slice, out);
+			return Some((Expr::rt("byteSliceToArray", vec![slice]), Some(deref)));
+		}
 		match &self.slots[place.local] {
 			Slot::Alias(Some(target)) if assignable(target) && self.alias_of_place(place.local) => {
 				Some((target.clone(), Some(deref)))

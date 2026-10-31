@@ -29,7 +29,6 @@ roots = [
     "skipped_zip",
     "zip_in_place",
     "replace_pinned_ref",
-    "copied_bytes",
     "copied_closure",
     "scanned_unit",
     "set_keys",

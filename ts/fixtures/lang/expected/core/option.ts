@@ -330,6 +330,13 @@ export function map$1diqi3e(self: rt.Place<rt.u8 | undefined> | undefined, f: (a
 	return undefined;
 }
 
+export function map$1jcn6wm(self: rt.ByteSlice | undefined, f: (a0: rt.ByteSlice) => Uint8Array): Uint8Array | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
 export function map$1k7m6zz(self: [rt.u8, rt.u8] | undefined, f: (a0: [rt.u8, rt.u8]) => [rt.u8, rt.u8]): [rt.u8, rt.u8] | undefined {
 	if (self === undefined) {
 		return undefined;

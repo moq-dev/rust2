@@ -375,7 +375,11 @@ collection's `keys`, `HashSet::get`, and `retain`'s closure, `Option::iter`,
 `slice::first`, and `filter`'s closure over `[u8; N]` items get one, is an `rt.ByteSlice`
 of its bytes, as a `&[u8; N]` is elsewhere; a `&mut` writes where std holds them. A
 `&[u8; N]` std was given and holds, as a `HashMap<&[u8; N], V>`'s keys, stays the slice it
-was, and `extend` by references to arrays copies each into its own `Uint8Array`. A `&mut` to a value a map holds that JS copies,
+was, and `extend` by references to arrays copies each into its own `Uint8Array`. A
+`&[u8; N]` std is given as a `&T`, as `Option<&T>::copied`, `slice::contains`, and
+`assert_eq!` take one, is a view of the slice's bytes, which std reads, copies, and
+writes through where the reference points; `mem::swap`, `replace`, and `take` through a
+`&mut [u8; N]` copy bytes in place. A `&mut` to a value a map holds that JS copies,
 such as a number, from `get_mut` or the entry API, is an `rt.Place` whose `v` reads and
 writes the map's slot. A hash map iterates in an order
 of the runtime's, mostly insertion order, which std leaves unspecified, and hashes a key

@@ -221,12 +221,6 @@ pub fn replace_pinned_ref<'a>(dst: &mut std::pin::Pin<&'a mut Noisy>, src: std::
 	*dst = src;
 }
 
-/// `copied` is given a reference to an array of bytes, a slice of it, which its mapping
-/// would copy as the array.
-pub fn copied_bytes(v: &[[u8; 2]]) -> [u8; 2] {
-	v.first().copied().unwrap_or_default()
-}
-
 /// Each copy of a closure has its own captures, which copies of an arrow function share.
 pub fn copied_closure(n: u8) -> u8 {
 	let mut a = [n];

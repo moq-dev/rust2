@@ -1,10 +1,11 @@
-//! The references std makes to the `[u8; N]`s it holds. Such an array is a `Uint8Array`,
-//! where a `&[u8; N]` is an `rt.ByteSlice` of its bytes, as a `&[u8]` is, but std's
-//! mappings hand out a reference to what they hold as the value itself. So each `&[u8; N]`
-//! std makes of an array it holds, which it returns or hands a closure, is lent as a slice
-//! of it. The function's generic signature tells such a reference from one std was given
-//! and holds, which is an `rt.ByteSlice` already: a `&T` where `T = [u8; N]`, not a `T`
-//! where `T = &[u8; N]`.
+//! The references to `[u8; N]`s that cross between translated code and std. Such an array
+//! is a `Uint8Array`, where a `&[u8; N]` is an `rt.ByteSlice` of its bytes, as a `&[u8]`
+//! is, but std's mappings take and hand out a reference to an array as the array itself.
+//! So each `&[u8; N]` std makes of an array it holds, which it returns or hands a closure,
+//! is lent as a slice of it, and each std is given as a `&T` of a `T = [u8; N]` is given
+//! as a view of the slice's bytes. The function's generic signature tells such a
+//! reference from one std takes as it is, which is an `rt.ByteSlice` on both sides: a `&T`
+//! where `T = [u8; N]`, not a `T` where `T = &[u8; N]`.
 
 use rustc_hir::def_id::DefId;
 use rustc_middle::ty::{self, EarlyBinder, GenericArgsRef, Instance, Ty, TypingEnv};
@@ -19,21 +20,24 @@ use crate::ts::{Expr, Param, Stmt, StmtKind};
 pub enum Plan<'tcx> {
 	/// It lends none, or its mapping makes each slice itself.
 	Untouched,
-	/// It lends some, which [`lend_closure`] and [`lend`] make slices.
+	/// It lends some, which [`lend_closure`] and [`lend`] make slices, or is given some,
+	/// which [`give`] makes views.
 	Lend(Lent<'tcx>),
-	/// It lends one where neither can make it a slice.
+	/// It lends or is given one where none of them can.
 	Refused,
 }
 
 /// A type in std's generic code, and as instantiated.
 pub type Pair<'tcx> = (Ty<'tcx>, Ty<'tcx>);
 
-/// Where a call lends `&[u8; N]`s.
+/// Where a call lends `&[u8; N]`s, or is given them.
 pub struct Lent<'tcx> {
 	/// The closures it lends them to.
 	pub closures: Vec<Closure<'tcx>>,
 	/// What the call returns, if it lends one.
 	pub output: Option<Pair<'tcx>>,
+	/// The inputs, by index, it is given them in.
+	pub given: Vec<(usize, Pair<'tcx>)>,
 }
 
 /// A closure std lends a `&[u8; N]` to.
@@ -66,6 +70,8 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 				// The runtime compares and hashes bytes in whichever form it is given them.
 				("PartialOrd" | "Ord" | "PartialEq", _) | ("Hash", "hash") => true,
 				("slice", "iter" | "iter_mut") | ("array", "each_ref" | "each_mut") => true,
+				// Lowered from MIR, which writes through the slice.
+				("mem", "swap" | "replace" | "take") => true,
 				("IntoIterator", "into_iter") => self_ty.is_some_and(|s| {
 					let s = super::iter::unbox_ref(tcx, s).peel_refs();
 					matches!(s.kind(), ty::Slice(_) | ty::Array(..)) || t.std_of(s) == Some(Std::Vec)
@@ -85,6 +91,7 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 	let mut lent = Lent {
 		closures: Vec::new(),
 		output: None,
+		given: Vec::new(),
 	};
 	for (i, (generic, ty)) in sig.inputs().enumerate() {
 		if let Some((params, output, by_ref)) = sig.called(t, i) {
@@ -117,6 +124,7 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 		match lends(t, generic, ty) {
 			Some(false) => {}
 			Some(true) if reads => {}
+			Some(true) if gives(t, generic, ty) => lent.given.push((i, (generic, ty))),
 			_ => return Plan::Refused,
 		}
 	}
@@ -126,7 +134,7 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 		Some(true) => lent.output = Some((generic, ty)),
 		None => return Plan::Refused,
 	}
-	match lent.closures.is_empty() && lent.output.is_none() {
+	match lent.closures.is_empty() && lent.output.is_none() && lent.given.is_empty() {
 		true => Plan::Untouched,
 		false => Plan::Lend(lent),
 	}
@@ -298,15 +306,55 @@ pub fn holds_bytes_ref(ty: Ty<'_>) -> bool {
 /// mapping hands out as the `Uint8Array`, an `rt.ByteSlice` of it. It shares the bytes,
 /// which nothing writes through a `&`, and a `&mut` writes where std holds them.
 pub fn lend<'tcx>(b: &mut Body<'_, '_, 'tcx>, generic: Ty<'tcx>, ty: Ty<'tcx>, value: Expr, span: Span) -> Expr {
+	cross(b, generic, ty, value, Way::Lent, span)
+}
+
+/// `value`, a `ty` translated code gives std's mapping as an input whose type in std's
+/// generic code is `generic`, as the mapping reads it: each `&[u8; N]` where it takes a
+/// `&T`, which it reads, copies, and writes through as the array, an `rt.byteSliceView`
+/// of the `rt.ByteSlice`. It shares the bytes for as long as the reference lives, so
+/// whatever the mapping keeps of it reads and writes where the reference does.
+pub fn give<'tcx>(b: &mut Body<'_, '_, 'tcx>, generic: Ty<'tcx>, ty: Ty<'tcx>, value: Expr, span: Span) -> Expr {
+	cross(b, generic, ty, value, Way::Given, span)
+}
+
+/// Which way a `&[u8; N]` crosses between translated code and std's mapping.
+#[derive(Clone, Copy, PartialEq)]
+enum Way {
+	/// To translated code, from the `Uint8Array` std holds: [`lend`].
+	Lent,
+	/// To std's mapping, from the `rt.ByteSlice` translated code holds: [`give`].
+	Given,
+}
+
+/// Whether [`give`] reaches each `&[u8; N]` std is given in a `ty`, whose type in std's
+/// generic code is `generic`: by itself, or in a tuple or an `Option`. An iterator's items
+/// it does not reach, which std's own iterator holds as arrays already.
+fn gives<'tcx>(t: &Translator<'_, 'tcx>, generic: Ty<'tcx>, ty: Ty<'tcx>) -> bool {
+	match (generic.kind(), ty.kind()) {
+		(ty::Param(_) | ty::Alias(..), _) => true,
+		(_, ty::Ref(_, inner, _)) if super::byte_array(*inner) => true,
+		(ty::Tuple(generics), ty::Tuple(parts)) => {
+			std::iter::zip(generics.iter(), parts.iter()).all(|(g, part)| gives(t, g, part))
+		}
+		_ if let (Some(g), Some(inner)) = (option_of(t, generic), option_of(t, ty)) => gives(t, g, inner),
+		_ => lends(t, generic, ty) == Some(false),
+	}
+}
+
+/// [`lend`] or [`give`], as `way` says.
+fn cross<'tcx>(b: &mut Body<'_, '_, 'tcx>, generic: Ty<'tcx>, ty: Ty<'tcx>, value: Expr, way: Way, span: Span) -> Expr {
 	if lends(b.t, generic, ty) != Some(true) {
 		return value;
 	}
 	if let (Some(g), Some(inner)) = (option_of(b.t, generic), option_of(b.t, ty)) {
-		let f = lend_fn(b, g, inner, span);
+		let f = cross_fn(b, g, inner, way, span);
 		return Expr::rt("optionMap", vec![value, f]);
 	}
-	if let Some((Some(g), item)) = item(b.t, ty) {
-		let f = lend_fn(b, g, item, span);
+	if way == Way::Lent
+		&& let Some((Some(g), item)) = item(b.t, ty)
+	{
+		let f = cross_fn(b, g, item, way, span);
 		return Expr::rt("iterLend", vec![value, f]);
 	}
 	if let (ty::Tuple(generics), ty::Tuple(parts)) = (generic.kind(), ty.kind())
@@ -314,28 +362,38 @@ pub fn lend<'tcx>(b: &mut Body<'_, '_, 'tcx>, generic: Ty<'tcx>, ty: Ty<'tcx>, v
 	{
 		let parts: Vec<Expr> = std::iter::zip(generics.iter(), parts.iter())
 			.enumerate()
-			.map(|(i, (g, part))| lend(b, g, part, value.clone().index(Expr::lit(i.to_string())), span))
+			.map(|(i, (g, part))| cross(b, g, part, value.clone().index(Expr::lit(i.to_string())), way, span))
 			.collect();
 		return Expr::Array(parts);
 	}
-	lend_fn(b, generic, ty, span).call(vec![value])
+	cross_fn(b, generic, ty, way, span).call(vec![value])
 }
 
-/// A function that [`lend`]s a `ty`.
-fn lend_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, generic: Ty<'tcx>, ty: Ty<'tcx>, span: Span) -> Expr {
+/// A function that [`cross`]es a `ty`.
+fn cross_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, generic: Ty<'tcx>, ty: Ty<'tcx>, way: Way, span: Span) -> Expr {
 	if let ty::Ref(_, inner, _) = ty.kind()
 		&& super::byte_array(*inner)
 	{
-		return Expr::Rt("byteSliceFrom".into());
+		return Expr::Rt(
+			match way {
+				Way::Lent => "byteSliceFrom",
+				Way::Given => "byteSliceView",
+			}
+			.into(),
+		);
 	}
 	let name = b.fresh("held");
-	let body = lend(b, generic, ty, Expr::ident(&name), span);
+	let body = cross(b, generic, ty, Expr::ident(&name), way, span);
 	let param = Param { name, ty: None };
-	Expr::Arrow(
-		vec![param],
-		b.t.ty(ty, span),
-		vec![StmtKind::Return(Some(body)).at(None)],
-	)
+	match way {
+		Way::Lent => Expr::Arrow(
+			vec![param],
+			b.t.ty(ty, span),
+			vec![StmtKind::Return(Some(body)).at(None)],
+		),
+		// What the mapping takes, which it infers.
+		Way::Given => Expr::Lambda(vec![param], Box::new(body)),
+	}
 }
 
 /// `f`, a closure std calls with `params`, each generic and instantiated, given each as
