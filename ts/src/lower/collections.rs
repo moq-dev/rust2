@@ -2321,13 +2321,13 @@ fn own_hash_slice<'tcx>(b: &Body<'_, '_, 'tcx>, elem: Ty<'tcx>, hasher: Ty<'tcx>
 
 /// `Clone::clone` of `ty`, as a function, or `undefined` where it is the value itself.
 pub fn clone_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Expr {
-	let tcx = b.t.tcx;
-	if library::clone_copies(b.t, ty)
+	let (tcx, env) = (b.t.tcx, b.t.typing_env_pub());
+	if library::clone_copies(b.t, env, ty)
 		&& let Some(copy) = b.t.copy_fn(ty, span)
 	{
 		return copy;
 	}
-	if library::clone_copies(b.t, ty) || library::clone_shares(b.t, ty) {
+	if library::clone_copies(b.t, env, ty) || library::clone_shares(b.t, env, ty) {
 		return Expr::undefined();
 	}
 	if let ty::Closure(def_id, _) = ty.kind() {

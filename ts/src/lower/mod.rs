@@ -897,19 +897,20 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// crate's own or std's from its MIR, rather than a mapping.
 	pub fn translated(&self, def_id: DefId, args: GenericArgsRef<'tcx>) -> bool {
 		match Instance::try_resolve(self.tcx, self.typing_env(), def_id, args) {
-			Ok(Some(instance)) => self.lowers(instance) || self.dispatches(instance),
+			Ok(Some(instance)) => self.lowers(self.typing_env(), instance) || self.dispatches(instance),
 			_ => false,
 		}
 	}
 
 	/// Whether `instance`'s body lowers from its MIR: the crate's own function, unless a
-	/// binding stands in for it, or one of std's that `library` leaves to its MIR.
-	pub fn lowers(&self, instance: Instance<'tcx>) -> bool {
+	/// binding stands in for it, or one of std's that `library` leaves to its MIR. `env`
+	/// holds the bounds of the body naming `instance`.
+	pub fn lowers(&self, env: TypingEnv<'tcx>, instance: Instance<'tcx>) -> bool {
 		match instance.def {
 			InstanceKind::Item(did) => {
 				self.bound_module(instance).is_none()
 					&& ((self.crates.translates(did) && !stock::maps(self.tcx, instance))
-						|| library::from_mir(self, instance))
+						|| library::from_mir(self, env, instance))
 			}
 			_ => false,
 		}
@@ -920,7 +921,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	pub fn mapped(&self, def_id: DefId, args: GenericArgsRef<'tcx>) -> bool {
 		match Instance::try_resolve(self.tcx, self.typing_env(), def_id, args) {
 			Ok(Some(instance)) => {
-				!self.lowers(instance) && !self.dispatches(instance) && self.bound_module(instance).is_none()
+				!self.lowers(self.typing_env(), instance)
+					&& !self.dispatches(instance)
+					&& self.bound_module(instance).is_none()
 			}
 			_ => true,
 		}
@@ -1759,7 +1762,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			self.err(span, format!("unsupported function `{}`", tcx.def_path_str(def_id)));
 			return;
 		};
-		if !self.lowers(instance) {
+		if !self.lowers(self.typing_env(), instance) {
 			self.err(span, format!("`{}` is from another crate", tcx.def_path_str(def_id)));
 			return;
 		}
