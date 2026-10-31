@@ -869,9 +869,12 @@ native Rust's first. The JS routes run minified, the same bundles whose size it 
 in Node, Bun, Chrome, and Firefox, with the WASM route's copies across the boundary timed
 apart from its compute, and an A/A copy of the
 translation to show the noise. Each route runs alone in a worker of its own, since routes
-in one realm share type profiles and run slower loaded second. Each round runs the JS
-routes and workloads in a new random order, so no route keeps a slot that runs it faster or slower than identical code
-in another; the report records the seed. It also records the host and engine versions,
+in one realm share type profiles and run slower loaded second, and each round starts every
+route's worker afresh: a worker keeps the inlining and deopts it settles into for the whole
+run, which put identical copies of a route up to 1.6x apart in Chrome, so a round is one
+sample of each workload from fresh workers. Each round warms up and times the routes and
+workloads in a new random order, so no route keeps a slot that runs it faster or slower
+than identical code in another; the report records the seed. It also records the host and engine versions,
 and each route's bundle size raw and gzipped. It sets no threshold; the nightly workflow
 runs it and posts the report to its summary. Each browser's page reports each step it
 starts, and one that runs 30 s fails the run, naming it.
@@ -891,6 +894,9 @@ nix develop .#bench --command just ts bench --route main="$HOME/rust2-main/ts/ta
 The route runs both fixtures' translations from that directory's `translated/` and
 `task/`, so a hand-edited translation can be timed by copying the directory and editing it.
 Read its gap from `translated` against A/A's, the noise of the same run. No route holds a
-fixed slot, so a gap past that noise is the change, and no reversed run is needed.
+fixed slot, so a gap past that noise is the change, and no reversed run is needed. Some
+workloads still settle into one of two speeds per worker, up to 2x apart, so on a 24-core desktop
+their A/A stayed 6-35% wide while the median workload's was 1-3%. The report's
+A/A line also gives the noise of a family's geometric mean, the steadier gauge.
 
 The bench shell adds Chromium, Firefox, and the wasm-bindgen that builds moq-wasm's package.

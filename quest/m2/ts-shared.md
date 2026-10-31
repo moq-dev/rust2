@@ -32,11 +32,13 @@ lock aborts, each with wasm32's message. Their `Clone`, `get_mut`, `into_inner`,
 A `thread_local!` key is an `rt.LocalKey`, a module's value that makes its value on
 first use, as wasm32's `LazyStorage` does, and never drops it. A `static` atomic is a
 module's value too, an `rt.Atomic` of the value the static's memory starts with.
-Left: the counters' cost, below.
+Left: the refused methods above.
 
 - `Send` and `Sync` bounds have no meaning in JS; accept them.
-- Measure the counter overhead on the [TS benchmark](/ts/README.md#bench). Pending as of
-  2026-10-29: the host's CI runners spoil A/A runs, so this waits until the maintainer
-  freezes them.
+- The counts cost the async handoff at most 3% on the [TS benchmark](/ts/README.md#bench),
+  within its A/A noise. On 2026-10-31, a hand-edited translation without `Weak`'s count
+  and without the clone and drop around `WaiterList::wake`'s `upgrade`, which the fixture
+  never observes, timed 0.99x the translation in Node and Chrome and 0.97x in Bun and
+  Firefox, the geometric mean over 3 depths and 3 runs, whose A/A gaps spanned 0.93-1.12.
 
 Public API: the translator's output for shared and interior-mutable types.
