@@ -3,8 +3,8 @@
 //! reuse; pointers to numbers, to fields, and to whole values, read, written, swapped,
 //! and compared; pointers to the parts of a struct kept as objects; the pointers
 //! `UnsafeCell::get` gives; slots of fresh memory written whole before any pointer
-//! into them is taken, by index or through std's iterators over them; and pointers into
-//! nodes that an `AtomicPtr` and memory hold pointers to.
+//! into them is taken, by index or through std's iterators over them; pointers into
+//! nodes that an `AtomicPtr` and memory hold pointers to; and pointers to arrays of bytes.
 
 use std::cell::UnsafeCell;
 use std::mem::MaybeUninit;
@@ -1261,6 +1261,172 @@ fn viewed(n: u8) -> [u8; 2] {
 	bump(n);
 	v = Viewed(v.1, v.0);
 	[v.0, v.1]
+}
+
+/// Pointers to arrays of bytes, made of the array and of references to it and to parts of
+/// it: compared where they point, alone and held in other values, read, written whole and
+/// by index, swapped, and replaced, as `ptr`, `NonNull`, `Box`, `MaybeUninit`,
+/// `UnsafeCell`, and `AtomicPtr` make and take them. Pointers to one array are equal however they were made, and to arrays of equal
+/// bytes, or to parts at other offsets, are not.
+pub fn bytes(data: &[u8], out: &mut Vec<u8>) {
+	for &n in data {
+		let mut a = [n, n ^ 1, n ^ 2, n ^ 3];
+		let b = a;
+		let from_ref: *const [u8; 4] = &a;
+		let from_raw = &raw const a;
+		out.extend([
+			u8::from(ptr::eq(from_ref, &a)),
+			u8::from(ptr::eq(from_ref, from_raw)),
+			u8::from(ptr::eq(&a, &b)),
+			u8::from(from_ref == from_raw),
+			u8::from(from_ref != &raw const b),
+			u8::from(ptr::eq(from_ref, ptr::null())),
+			u8::from(same_bytes(&a, &a)),
+			u8::from(same_bytes(&a, &b)),
+		]);
+		out.extend(held(n));
+		let chunks = parts(&mut a);
+		out.extend(chunks);
+		match n % 4 {
+			0 => out.extend(moved(n)),
+			1 => out.extend(wrapped(n)),
+			2 => out.extend(in_vec(n)),
+			_ => out.extend(exchanged(n)),
+		}
+		out.extend(a);
+	}
+}
+
+fn same_bytes(p: *const [u8; 4], q: &[u8; 4]) -> bool {
+	ptr::eq(p, q)
+}
+
+#[derive(PartialEq)]
+struct Pointing(*const [u8; 4]);
+
+/// Pointers compared in a tuple, an array, a vector, an `Option`, and a derived
+/// `PartialEq`.
+fn held(n: u8) -> [u8; 6] {
+	let (a, b) = ([n; 4], [n; 4]);
+	let (p, q, r): (*const [u8; 4], *const [u8; 4], *const [u8; 4]) = (&a, &a, &b);
+	[
+		u8::from((p, 1) == (q, 1)),
+		u8::from([p] == [r]),
+		u8::from(vec![r, p].contains(&q)),
+		u8::from(Some(p) == Some(q)),
+		u8::from(Some(p) == Some(r)),
+		u8::from(Pointing(p) == Pointing(q)),
+	]
+}
+
+/// Pointers to parts of an array at each offset, compared, and one written through.
+fn parts(a: &mut [u8; 4]) -> [u8; 5] {
+	let first: *const [u8; 2] = a.first_chunk().unwrap();
+	let last: *const [u8; 2] = a.last_chunk().unwrap();
+	let again: *const [u8; 2] = a[..3].first_chunk().unwrap();
+	let (_, middle) = a.split_first_chunk::<1>().unwrap();
+	let middle: *const [u8; 2] = middle.first_chunk().unwrap();
+	let written: *mut [u8; 2] = a.last_chunk_mut().unwrap();
+	unsafe { (*written)[0] ^= 0x80 };
+	[
+		u8::from(ptr::eq(first, last)),
+		u8::from(ptr::eq(first, again)),
+		u8::from(ptr::eq(first, middle)),
+		u8::from(ptr::eq(last, written)),
+		unsafe { (*last)[0] },
+	]
+}
+
+/// `ptr::read`, `write`, `swap`, and `replace`, a whole write and a write by index
+/// through a pointer, and a reference made again of one.
+fn moved(n: u8) -> [u8; 16] {
+	let mut a = [n; 4];
+	let mut b = [1, 2, 3, n];
+	let p = &raw mut a;
+	let q: *mut [u8; 4] = &mut b;
+	let (read, old, through) = unsafe {
+		let read = p.read();
+		ptr::swap(p, q);
+		ptr::swap(p, p);
+		let old = ptr::replace(q, [n ^ 0x0f; 4]);
+		(*p)[0] = old[1];
+		q.write([read[0], 7, 8, 9]);
+		*p = [(*p)[0], (*p)[1], (*q)[1], n];
+		let r: &mut [u8; 4] = &mut *q;
+		r[3] ^= 0x40;
+		(read, old, [r[0], r[1], (*p)[3]])
+	};
+	[
+		read[0], read[1], old[0], old[2], a[0], a[1], a[2], a[3], b[0], b[1], b[2], b[3], through[0], through[1],
+		through[2], n,
+	]
+}
+
+/// Pointers `NonNull`, `Box`, `MaybeUninit`, and `UnsafeCell` make, and the references
+/// made again of them.
+fn wrapped(n: u8) -> [u8; 14] {
+	let mut a = [n, 1, 2, 3];
+	let mut non_null = NonNull::from(&mut a);
+	let shared = NonNull::from(&a);
+	let same = non_null == shared;
+	unsafe {
+		non_null.as_mut()[1] = n ^ 0x55;
+		let viewed = shared.as_ref()[1];
+		let as_ref = non_null.as_ptr().as_ref().unwrap()[0];
+		let boxed = Box::into_raw(Box::new([n; 3]));
+		(*boxed)[2] = 9;
+		let boxed = *Box::from_raw(boxed);
+		let mut uninit = MaybeUninit::<[u8; 2]>::uninit();
+		let whole: *mut MaybeUninit<[u8; 2]> = &mut uninit;
+		let slot = (*whole).as_mut_ptr();
+		(*whole).write([n, n]);
+		(*slot)[1] ^= 0x22;
+		let aliased = ptr::eq(whole.cast::<[u8; 2]>(), slot);
+		let uninit = uninit.assume_init();
+		let cell = UnsafeCell::new([n; 2]);
+		(*cell.get())[0] = 4;
+		let cell = cell.into_inner();
+		[
+			u8::from(same),
+			u8::from(aliased),
+			viewed,
+			as_ref,
+			boxed[0],
+			boxed[2],
+			uninit[0],
+			uninit[1],
+			cell[0],
+			cell[1],
+			a[0],
+			a[1],
+			a[2],
+			a[3],
+		]
+	}
+}
+
+/// Pointers to parts of a vector's bytes, compared and written through.
+fn in_vec(n: u8) -> [u8; 5] {
+	let mut v = vec![n; 6];
+	let p: *mut [u8; 2] = v.first_chunk_mut().unwrap();
+	let q: *const [u8; 2] = v.first_chunk().unwrap();
+	let r: *const [u8; 2] = v.last_chunk().unwrap();
+	unsafe {
+		(*p)[1] = 9;
+		p.write([(*r)[0] ^ 1, (*q)[1]]);
+	}
+	[u8::from(ptr::eq(p, q)), u8::from(ptr::eq(q, r)), v[0], v[1], v[5]]
+}
+
+/// An `AtomicPtr` to an array, exchanged only for a pointer to it.
+fn exchanged(n: u8) -> [u8; 3] {
+	let mut a = [n; 2];
+	let mut b = [n ^ 1; 2];
+	let at = AtomicPtr::new(&raw mut a);
+	let missed = at.compare_exchange(&raw mut b, &raw mut b, SeqCst, SeqCst).is_err();
+	let hit = at.compare_exchange(&mut a, &mut b, SeqCst, SeqCst).is_ok();
+	unsafe { (*at.load(SeqCst))[0] = 3 };
+	[u8::from(missed), u8::from(hit), b[0]]
 }
 
 /// Values std's reads load through pointers a closure makes of references, which hold

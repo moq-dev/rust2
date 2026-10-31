@@ -55,10 +55,13 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					}
 				}
 				let value = self.place_expr(*place, span, out);
-				// A borrow of an array of bytes is a slice of all of it, sharing its bytes.
-				match byte_array(place.ty(&self.mir.local_decls, tcx).ty) && !self.in_bytes(*place) {
-					true => Expr::rt("byteSliceFrom", vec![value]),
-					false => value,
+				// A borrow of an array of bytes is a slice of all of it, sharing its bytes. One of
+				// a `MaybeUninit` of them through a raw pointer is a view of the pointer's bytes.
+				let pointee = place.ty(&self.mir.local_decls, tcx).ty;
+				match (byte_array(pointee), self.in_bytes(*place)) {
+					(true, false) => Expr::rt("byteSliceFrom", vec![value]),
+					(false, true) => Expr::rt("byteSliceView", vec![value]),
+					_ => value,
 				}
 			}
 			// A bounds check of a `&mut` slice reads its length through a raw pointer that
@@ -74,6 +77,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				let pointee = place.ty(&self.mir.local_decls, tcx).ty;
 				match self.b.t.pointee(pointee) {
 					Pointee::Object => self.place_expr(*place, span, out),
+					// A slice of all of an array's bytes, as a borrow of it is.
+					Pointee::Bytes => {
+						let value = self.place_expr(*place, span, out);
+						match self.in_bytes(*place) {
+							true => value,
+							false => Expr::rt("byteSliceFrom", vec![value]),
+						}
+					}
 					// `&raw mut *p` is `p`. A pointer to `()` is an identity, which only another
 					// pointer is: not the `rt.Place` of a place or of a `&mut`, each borrow's own.
 					Pointee::Place => match place.projection.as_slice() {
@@ -297,6 +308,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 							let value = self.operand(op, span, out);
 							match crate::lower::bytes_ref(from) {
 								true => value,
+								// A raw pointer to a slice is an `rt.Place` of one, which one to an array is not.
+								false if from.is_raw_ptr() => {
+									self.err(span, format!("a coercion of `{from}` to `{to}`, a pointer to a slice"))
+								}
 								false => Expr::rt("byteSliceFrom", vec![value]),
 							}
 						}

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `rt.btreeCollect` takes whether it sorts and the keys' `!ne` after the entries, and
+  `rt.btreeCollectKeys` the keys' `PartialOrd::lt` and `!ne`, as in
+  `rt.btreeCollect(m, entries, true, Key.eq$cmp_PartialEq)`; neither takes a test for keys
+  whose impls are derived or std's. `rt.btreeFromSorted` takes the keys' `!ne` too, and
+  what drops a key.
 - `rt.cmpTuple` takes the tuple type it compares and what it returns, `rt.Ordering` for
   `Ord::cmp` or `rt.Ordering | undefined` for `PartialOrd::partial_cmp`, as type
   arguments, as in `rt.cmpTuple<[rt.u8, Key], rt.Ordering>([rt.cmp, Key.cmp$cmp_Ord])`.

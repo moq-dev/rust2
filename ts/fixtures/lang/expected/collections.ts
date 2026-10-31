@@ -883,11 +883,11 @@ export function btreeMaps(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
 			const b5: rt.u8 = _2;
 			return [{ _0: b5 }, b5] as [collections_Nibble.Nibble, rt.u8];
 		});
-		const collected: rt.BTreeMap<collections_Nibble.Nibble, rt.u8> = rt.btreeExtend(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeMap<collections_Nibble.Nibble, rt.u8>, _430, true, undefined, undefined, undefined, 2, true);
+		const collected: rt.BTreeMap<collections_Nibble.Nibble, rt.u8> = rt.btreeCollect(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeMap<collections_Nibble.Nibble, rt.u8>, rt.iterToArray(_430, undefined, 2, true), true, collections_Nibble.eq$cmp_PartialEq);
 		const _433: rt.Iter<collections_Nibble.Nibble> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_216: rt.u8): collections_Nibble.Nibble => {
 			return { _0: _216 };
 		});
-		const keys: rt.BTreeSet<collections_Nibble.Nibble> = rt.btreeExtendKeys(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, _433, true, undefined, undefined, 1, true);
+		const keys: rt.BTreeSet<collections_Nibble.Nibble> = rt.btreeCollectKeys(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.iterToArray(_433, undefined, 1, true), rt.cmpLt(collections_Nibble.partialCmp$cmp_PartialOrd), collections_Nibble.eq$cmp_PartialEq);
 		const _437: rt.Iter<collections_Nibble.Nibble> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_219: rt.u8): collections_Nibble.Nibble => {
 			return { _0: _219 ^ 48 };
 		});
@@ -2035,11 +2035,11 @@ export function setOpsOf$collections_Nibble(left: rt.ByteSlice, right: rt.ByteSl
 	const _7: rt.Iter<collections_Nibble.Nibble> = rt.iterMap(rt.iterSlice(rt.byteSliceView(left)), (_2: rt.u8): collections_Nibble.Nibble => {
 		return make(_2);
 	});
-	const a: rt.BTreeSet<collections_Nibble.Nibble> = rt.btreeExtendKeys(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, _7, true, undefined, undefined, 1, true);
+	const a: rt.BTreeSet<collections_Nibble.Nibble> = rt.btreeCollectKeys(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.iterToArray(_7, undefined, 1, true), rt.cmpLt(collections_Nibble.partialCmp$cmp_PartialOrd), collections_Nibble.eq$cmp_PartialEq);
 	const _12: rt.Iter<collections_Nibble.Nibble> = rt.iterMap(rt.iterSlice(rt.byteSliceView(right)), (_22: rt.u8): collections_Nibble.Nibble => {
 		return make(_22);
 	});
-	const b: rt.BTreeSet<collections_Nibble.Nibble> = rt.btreeExtendKeys(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, _12, true, undefined, undefined, 1, true);
+	const b: rt.BTreeSet<collections_Nibble.Nibble> = rt.btreeCollectKeys(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.iterToArray(_12, undefined, 1, true), rt.cmpLt(collections_Nibble.partialCmp$cmp_PartialOrd), collections_Nibble.eq$cmp_PartialEq);
 	const iter: rt.Iter<[rt.BTreeSet<collections_Nibble.Nibble>, rt.BTreeSet<collections_Nibble.Nibble>]> = rt.iterSlice([[a, b] as [rt.BTreeSet<collections_Nibble.Nibble>, rt.BTreeSet<collections_Nibble.Nibble>], [b, a] as [rt.BTreeSet<collections_Nibble.Nibble>, rt.BTreeSet<collections_Nibble.Nibble>]]);
 	while (true) {
 		const _25: [rt.BTreeSet<collections_Nibble.Nibble>, rt.BTreeSet<collections_Nibble.Nibble>] | rt.Done = iter.next();
@@ -2059,7 +2059,7 @@ export function setOpsOf$collections_Nibble(left: rt.ByteSlice, right: rt.ByteSl
 		rt.byteVecPush(out, option_mapOr$0q0ymkh(rt.iterToOption(rt.btreeDifference(_25[0], _25[1]).next()), 221, put));
 		rt.byteVecPush(out, option_mapOr$0q0ymkh(rt.iterToOption(rt.btreeSymmetricDifference(_25[0], _25[1]).next()), 221, put));
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.btreeIsSubset(_25[0], _25[1]) ? 1 : 0, rt.btreeIsSuperset(_25[0], _25[1]) ? 1 : 0, rt.btreeIsDisjoint(_25[0], _25[1]) ? 1 : 0)), undefined, true);
-		const iter2: rt.Iter<rt.BTreeSet<collections_Nibble.Nibble>> = rt.iterSlice([rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeUnion(_25[0], _25[1])), rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeIntersection(_25[0], _25[1])), rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeDifference(_25[0], _25[1])), rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeSymmetricDifference(_25[0], _25[1]))]);
+		const iter2: rt.Iter<rt.BTreeSet<collections_Nibble.Nibble>> = rt.iterSlice([rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeUnion(_25[0], _25[1]), collections_Nibble.eq$cmp_PartialEq), rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeIntersection(_25[0], _25[1]), collections_Nibble.eq$cmp_PartialEq), rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeDifference(_25[0], _25[1]), collections_Nibble.eq$cmp_PartialEq), rt.btreeFromSorted(rt.btreeNew(collections_Nibble.cmp$cmp_Ord) as rt.BTreeSet<collections_Nibble.Nibble>, rt.btreeSymmetricDifference(_25[0], _25[1]), collections_Nibble.eq$cmp_PartialEq)]);
 		while (true) {
 			const _81: rt.BTreeSet<collections_Nibble.Nibble> | rt.Done = iter2.next();
 			if (_81 === rt.DONE) {
