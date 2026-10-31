@@ -16,8 +16,10 @@ it after is undefined in both Stacked and Tree Borrows, and
 [ts-unsafe](/quest/m3/ts-unsafe.md) owes undefined behavior nothing. Miri agreed on each
 of #350's six cases and #355's two, which all read a struct with no cell after it was
 assigned again: both models report the read as undefined. With cells in their place,
-the same eight shapes are defined under Tree Borrows. That cleared 184 of the 187 left
-after [#355](https://github.com/moq-dev/rust2/pull/355).
+the same eight shapes are defined under Tree Borrows. Comparing such a pointer's address
+after is defined, so a type whose pointers the crate compares still counts: each
+translation run notes them, and the next judges its borrows by them. That cleared 184 of
+the 187 left after [#355](https://github.com/moq-dev/rust2/pull/355).
 
 What remains: `rs/moq-clock/src/timer.rs:290` (`Option<moq_clock::Sleep>`) and the
 `kio::Pending` futures at `rs/moq-net/src/ietf/publisher.rs:1860` and

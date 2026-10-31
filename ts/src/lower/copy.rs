@@ -98,7 +98,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	pub fn compare(&mut self, ty: Ty<'tcx>) {
 		let (tcx, env) = (self.tcx, self.typing_env());
 		let kept = (ty.has_param() || ty.is_freeze(tcx, env))
-			&& self.writes.contains(&self.writes.taken, false, tcx, ty, self.polymorphic());
+			&& self
+				.writes
+				.contains(&self.writes.taken, false, tcx, ty, self.polymorphic());
 		if kept {
 			self.comparing.insert(storage(tcx, ty));
 		}
@@ -108,7 +110,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// any.
 	fn compared(&self, ty: Ty<'tcx>) -> bool {
 		let ty = storage(self.tcx, ty);
-		self.compared.iter().any(|&compared| compared == ty || compared.has_param())
+		self.compared
+			.iter()
+			.any(|&compared| compared == ty || compared.has_param())
 	}
 
 	/// `value`, a `ty` read out of where it is kept, as a value of its own, as Rust's read
