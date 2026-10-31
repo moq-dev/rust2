@@ -2,7 +2,7 @@
 //! output is written.
 
 #![allow(dead_code, reason = "each item is a translation root, not called from Rust")]
-#![feature(cow_is_borrowed, f16, is_ascii_octdigit)]
+#![feature(cow_is_borrowed, f16, is_ascii_octdigit, linked_list_retain)]
 
 pub fn float(a: f16) -> f16 {
 	a * 2.0
@@ -1882,4 +1882,13 @@ pub fn unboxed_rebound(n: u32) -> u32 {
 	let p = unbox(&mut u);
 	u = Unboxed(0);
 	unsafe { (*p).0 + u.0 }
+}
+
+/// `LinkedList`'s unstable `retain`, which no mapping covers, as none does its other
+/// unstable methods; its `clone_from` of items whose own `clone_from` it would call; and
+/// an empty `IterMut` of bytes, whose places nothing makes.
+pub fn lists(l: &mut std::collections::LinkedList<u8>, r: &mut std::collections::LinkedList<Reused>) -> usize {
+	l.retain(|x| *x > 1);
+	r.clone_from(&std::collections::LinkedList::new());
+	std::collections::linked_list::IterMut::<u8>::default().count()
 }
