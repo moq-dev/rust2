@@ -3,7 +3,7 @@
 //
 // usage: bun main.ts --translated <dir> --wasm <file> --native <bin> --moq <checkout>
 //                    --moq-wasm <dir> --task <dir> --task-wasm <file> --task-native <bin>
-//                    --out <dir> [--sample-ms 10] [--rounds 15] [--seed <u32>] [--route <name>=<dir>]
+//                    --out <dir> [--sample-ms 2] [--rounds 25] [--seed <u32>] [--route <name>=<dir>]
 //
 // The task fixture's async handoff runs beside the codec, against moq's way with promises.
 // `--route` times the translations in another run's `--out` as one more route, for A/B runs.
@@ -35,8 +35,8 @@ const { values: args } = parseArgs({
 		"task-wasm": { type: "string" },
 		"task-native": { type: "string" },
 		out: { type: "string" },
-		"sample-ms": { type: "string", default: "10" },
-		rounds: { type: "string", default: "15" },
+		"sample-ms": { type: "string", default: "2" },
+		rounds: { type: "string", default: "25" },
 		seed: { type: "string" },
 		route: { type: "string" },
 	},
@@ -239,8 +239,8 @@ async function script(command: string): Promise<Engine> {
 	return JSON.parse(result);
 }
 
-// The page's longest step is a timing round, one or two samples of each of a few hundred
-// bodies: a few seconds at the default 10 ms, so this long a silence is a hang.
+// The page's longest step is a round's warm-up, a few samples of each of a few hundred
+// bodies: a few seconds at the default 2 ms, so this long a silence is a hang.
 const stallMs = Math.max(30_000, 1000 * sampleMs);
 
 /** A browser `browser()` drives: `argv` opens `url` headless on a fresh `profile`. */
@@ -372,7 +372,7 @@ function render(): string {
 		"iterator helpers (`bench/iter.ts`), for `btree/` a sorted array (`bench/sorted.ts`), and",
 		"for `time/` conversions `bigint`, as moq's `js/hang` converts timescales (`bench/rescale.ts`),",
 		"and for `time/checked-add` and `time/ord` moq's own `Timestamp` (`bench/timestamp.ts`).",
-		"Each JS route and `wasm` runs alone in a worker of its own. `A/A` is the translation again: its",
+		"Each JS route and `wasm` runs alone in a worker of its own, a fresh one each round. `A/A` is the translation again: its",
 		"gap from `translated` is the noise. A `reads` decode is the frame headers above as they",
 		"arrive that many bytes at a time, so a header cut by a read comes up short and is",
 		"decoded again on the next: its gap from the whole decode is the error path's price.",
@@ -392,12 +392,17 @@ function render(): string {
 	for (const engine of engines) {
 		const all = [...host.timings, ...engine.timings];
 		const median = (w: Workload, route: string) => stats(find(all, w, route).ns).median;
-		const aa = list.map((w) => Math.abs(median(w, "A/A") / median(w, "translated") - 1)).sort((a, b) => a - b);
+		const ratio = (w: Workload) => median(w, "A/A") / median(w, "translated");
+		const aa = list.map((w) => Math.abs(ratio(w) - 1)).sort((a, b) => a - b);
+		// A family is a workload's first name segment and its op, such as `varint decode`.
+		const families = Map.groupBy(list, (w) => `${w.name.split("/")[0]} ${w.op}`);
+		const geomean = (ws: Workload[]) => Math.exp(ws.reduce((sum, w) => sum + Math.log(ratio(w)), 0) / ws.length);
+		const family = Math.max(...[...families.values()].map((ws) => Math.abs(geomean(ws) - 1)));
 		lines.push(
 			"",
 			`## ${engine.engine}`,
 			"",
-			`A/A differs from translated by ${percent(aa[aa.length >> 1])} at the median workload and ${percent(aa[aa.length - 1])} at most.`,
+			`A/A differs from translated by ${percent(aa[aa.length >> 1])} at the median workload, ${percent(aa[aa.length - 1])} at most, and ${percent(family)} at most over a family's geometric mean.`,
 			"",
 			`| workload | op | ${routes.join(" | ")} | translated ÷ hand-written |`,
 			`| --- | --- |${" ---: |".repeat(routes.length + 1)}`,
