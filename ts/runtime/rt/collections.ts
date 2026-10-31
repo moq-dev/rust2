@@ -14,7 +14,7 @@
 // A function that may drop a key, value, or item std's would, rather than return or keep
 // it, takes what drops each that does, as `k`, `v`, or `f`, and drops it where std's does.
 
-import { ByteSlice, ByteVec, byteVecPush, type None, type Place, panic, type RangeBound, rangeCheck } from "../rt.ts";
+import { ByteSlice, ByteVec, byteVecPush, type None, type Place, panic, type RangeBound, rangeCheck, sliceSort } from "../rt.ts";
 import type { Hashing } from "./hash.ts";
 import { type Limbs, lt } from "./int.ts";
 import {
@@ -1805,33 +1805,48 @@ export function btreeExtendKeys<K>(m: BTreeSet<K>, keys: Iter<K>, last = false, 
 
 /**
  * `collect` and `from` into `m`, an empty map, of `entries`, which std's collects into a
- * `Vec` first: it sorts them by key, stably, and builds the tree of each but the last of
- * equal keys, which drop in order.
+ * `Vec` first. It sorts them stably by `Ord::cmp` of their keys if `sorts`, as std's sort
+ * does all but zero-sized ones, and builds the tree of each but those whose key `same`,
+ * `!ne`, finds equal to the next one's, which drop in order. Without `same`, the keys'
+ * impls agree, so JS's sort and `Ord` alone build the same tree faster.
  */
-export function btreeCollect<K, V>(m: BTreeMap<K, V>, entries: [K, V][], k?: (key: K) => void, v?: (value: V) => void): BTreeMap<K, V> {
-	const sorted = entries.sort((a, b) => m.c(a[0], b[0]));
+export function btreeCollect<K, V>(m: BTreeMap<K, V>, entries: [K, V][], sorts = false, same?: Test<K>, k?: (key: K) => void, v?: (value: V) => void): BTreeMap<K, V> {
+	if (same === undefined) entries.sort((a, b) => m.c(a[0], b[0]));
+	else if (sorts) sliceSort(entries, (a, b) => m.c(a[0], b[0]) === -1);
 	const keys: K[] = [];
 	const values: V[] = [];
-	for (let i = 0; i < sorted.length; i++) {
-		const [key, value] = sorted[i];
-		if (i + 1 === sorted.length || m.c(key, sorted[i + 1][0]) !== 0) {
+	const n = entries.length;
+	for (let i = 0; i < n; i++) {
+		const [key, value] = entries[i];
+		if (i + 1 === n || (same === undefined ? m.c(key, entries[i + 1][0]) !== 0 : !same(key, entries[i + 1][0]))) {
 			keys.push(key);
 			values.push(value);
-			continue;
-		}
-		dropPair(key, value, k, v);
+		} else dropPair(key, value, k, v);
 	}
 	build(m, keys, values);
+	// std's makes no root of none.
+	m.r = n > 0;
 	return m;
 }
 
-/** `collect` and `from` into `m`, an empty set, of `keys`, as `btreeCollect`. */
-export function btreeCollectKeys<K>(m: BTreeSet<K>, keys: K[], k?: (key: K) => void): BTreeSet<K> {
-	return btreeCollect(
-		m,
-		keys.map((key) => [key, undefined]),
-		k,
-	);
+/**
+ * `collect` and `from` into `m`, an empty set, of `keys`, as `btreeCollect`, but sorted by
+ * `less`, their `PartialOrd::lt`, or not at all if zero-sized.
+ */
+export function btreeCollectKeys<K>(m: BTreeSet<K>, keys: K[], less?: Test<K>, same?: Test<K>, k?: (key: K) => void): BTreeSet<K> {
+	if (same === undefined) {
+		return btreeCollect(
+			m,
+			keys.map((key) => [key, undefined]),
+			true,
+			undefined,
+			k,
+		);
+	}
+	if (less !== undefined) sliceSort(keys, less);
+	btreeFromSorted(m, iterSlice(keys), same, k);
+	m.r = keys.length > 0;
+	return m;
 }
 
 /** `clone`, with each key and value through its `Clone`, or as itself without one. */
@@ -2122,9 +2137,23 @@ export function btreeIsDisjoint<K>(a: BTreeSet<K>, b: BTreeSet<K>): boolean {
 	return btreeIntersection(a, b).next() === DONE;
 }
 
-/** What a set operator builds: `m`, an empty set, of `keys`, which are in order and distinct. */
-export function btreeFromSorted<K>(m: BTreeSet<K>, keys: Iter<K>): BTreeSet<K> {
-	const held = [...keys];
+/**
+ * std's sorted bulk build of `m`, an empty set, which its operators make: of `keys`, in
+ * order, but for each that `same`, `!ne`, finds equal to the next, which drops. It reads
+ * the next key before it tests one, as std's peeks. Without `same`, the keys are distinct.
+ */
+export function btreeFromSorted<K>(m: BTreeSet<K>, keys: Iter<K>, same?: Test<K>, k?: (key: K) => void): BTreeSet<K> {
+	let held: K[];
+	if (same === undefined) held = [...keys];
+	else {
+		held = [];
+		for (let key = keys.next(); key !== DONE; ) {
+			const next = keys.next();
+			if (next === DONE || !same(key, next)) held.push(key);
+			else k?.(key);
+			key = next;
+		}
+	}
 	build(
 		m,
 		held,

@@ -253,6 +253,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("pointers::taken", |_, data, out| pointers::taken(data, out)),
 		("pointers::bytes", |_, data, out| pointers::bytes(data, out)),
 		("pointers::loaded", |_, data, out| pointers::loaded(data, out)),
+		("orders::btrees", orders::btrees),
 	]
 }
 
