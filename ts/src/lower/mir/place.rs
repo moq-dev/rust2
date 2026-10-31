@@ -1078,12 +1078,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 							_ => flag,
 						}
 					}
-					Some(Std::Option) if next => {
-						match index.index() {
-							0 => scrut.clone().binary("===", Expr::Rt("DONE".into())),
-							_ => scrut.clone().binary("!==", Expr::Rt("DONE".into())),
-						}
-					}
+					Some(Std::Option) if next => match index.index() {
+						0 => scrut.clone().binary("===", Expr::Rt("DONE".into())),
+						_ => scrut.clone().binary("!==", Expr::Rt("DONE".into())),
+					},
 					Some(Std::Option) => match index.index() {
 						0 => scrut.clone().binary("===", self.b.t.none(args.type_at(0))),
 						_ => scrut.clone().binary("!==", self.b.t.none(args.type_at(0))),
