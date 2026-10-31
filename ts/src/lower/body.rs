@@ -278,7 +278,10 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 		{
 			let sym = match self.t.bound_fn(instance, span) {
 				Some(sym) => Some(sym),
-				None => self.t.lowers(self.t.typing_env_pub(), instance).then(|| self.t.callee(instance, span)),
+				None => self
+					.t
+					.lowers(self.t.typing_env_pub(), instance)
+					.then(|| self.t.callee(instance, span)),
 			};
 			if let Some(sym) = sym {
 				return match sig.output().is_unit() {

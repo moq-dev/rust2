@@ -583,7 +583,10 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 				| ty::FnPtr(..) => {}
 				ty::Array(elem, _) | ty::Slice(elem) | ty::Pat(elem, _) => stack.push(*elem),
 				ty::Tuple(tys) => stack.extend(tys.iter()),
-				ty::Adt(adt, args) => stack.extend(adt.all_fields().map(|field| field_ty(self.t.tcx, self.env, field.did, args))),
+				ty::Adt(adt, args) => stack.extend(
+					adt.all_fields()
+						.map(|field| field_ty(self.t.tcx, self.env, field.did, args)),
+				),
 				_ => return true,
 			}
 		}
@@ -717,7 +720,10 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 			| ty::RawPtr(..) => Vec::new(),
 			ty::Array(elem, _) | ty::Slice(elem) | ty::Pat(elem, _) => vec![*elem],
 			ty::Tuple(tys) => tys.to_vec(),
-			ty::Adt(adt, args) => adt.all_fields().map(|field| field_ty(self.t.tcx, self.env, field.did, args)).collect(),
+			ty::Adt(adt, args) => adt
+				.all_fields()
+				.map(|field| field_ty(self.t.tcx, self.env, field.did, args))
+				.collect(),
 			_ => return None,
 		})
 	}

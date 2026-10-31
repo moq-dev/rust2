@@ -325,12 +325,22 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 
 /// The type of field `did` of an ADT with `args`, normalized in `env`, the bounds of the
 /// body naming it.
-pub fn field_ty<'tcx>(tcx: TyCtxt<'tcx>, env: ty::TypingEnv<'tcx>, did: DefId, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
+pub fn field_ty<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	env: ty::TypingEnv<'tcx>,
+	did: DefId,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Ty<'tcx> {
 	instantiate(tcx, env, tcx.type_of(did).instantiate_identity().skip_norm_wip(), args)
 }
 
 /// `ty`, over an item's own type parameters, with `args` for them, normalized in `env`.
-pub fn instantiate<'tcx>(tcx: TyCtxt<'tcx>, env: ty::TypingEnv<'tcx>, ty: Ty<'tcx>, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
+pub fn instantiate<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	env: ty::TypingEnv<'tcx>,
+	ty: Ty<'tcx>,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Ty<'tcx> {
 	let ty = EarlyBinder::bind(tcx, ty);
 	tcx.try_instantiate_and_normalize_erasing_regions(args, env, ty)
 		.unwrap_or_else(|_| ty.instantiate(tcx, args).skip_norm_wip())

@@ -34,8 +34,8 @@ use rustc_span::{Span, Spanned};
 use self::cfg::Exit;
 pub use self::place::{slice_member, writes_captures};
 use super::Translator;
-use super::copy::field_ty;
 use super::body::Body;
+use super::copy::field_ty;
 
 use crate::ts::{self, Expr, Param, Stmt, StmtKind, Type};
 

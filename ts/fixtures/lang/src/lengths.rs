@@ -25,9 +25,13 @@ fn each<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
 	joined(data, vec![[0xa5; N], std::array::from_fn(|i| i as u8)], out);
 	retagged(&rows, out);
 	recloned(&wide, out);
-	filled(data, [0u8; N], out);
-	filled(data, [0x0102_0304u32; N], out);
-	filled(data, [[0x5au8; N]; 2], out);
+	filled_bytes::<N>(data, std::array::from_fn(|i| i as u8), out);
+	filled_words::<N>(data, std::array::from_fn(|i| 0x0102_0304 * i as u32), out);
+	filled_rows::<N>(
+		data,
+		std::array::from_fn(|i| std::array::from_fn(|j| (i * N + j) as u8)),
+		out,
+	);
 	swapped(data, &rows, out);
 	swapped(data, &wide, out);
 }
@@ -73,27 +77,39 @@ fn recloned<T: Copy + Into<u32>, const N: usize>(rows: &[[T; N]], out: &mut Vec<
 	}
 }
 
-/// Slots of `MaybeUninit` arrays, each written whole through an iterator while nothing
-/// points into them, then changed through a pointer to a part of one and read back.
-fn filled<T: Copy + Put, const N: usize>(data: &[u8], fill: [T; N], out: &mut Vec<u8>) {
-	let mut slots: [MaybeUninit<([T; N], u8)>; 3] = [const { MaybeUninit::uninit() }; 3];
-	for (slot, at) in slots.iter_mut().zip(0u8..) {
-		slot.write((fill, at));
-	}
-	for &byte in data {
-		let slot = unsafe { slots[usize::from(byte) % 3].assume_init_mut() };
-		let tag = &raw mut slot.1;
-		unsafe {
-			*tag ^= byte;
-			out.push(*tag);
+/// Slots of `MaybeUninit` arrays of `$elem`, each written whole through an iterator
+/// while nothing points into them, then changed in place, a pair of tags through a pointer
+/// to it, and read back. Over the length alone: a type parameter's values would be types
+/// std's iterators may run the crate's code on.
+macro_rules! filled {
+	($name:ident, $elem:ty) => {
+		fn $name<const N: usize>(data: &[u8], fill: [$elem; N], out: &mut Vec<u8>) {
+			let mut slots: [MaybeUninit<([$elem; N], (u8, u8))>; 3] = [const { MaybeUninit::uninit() }; 3];
+			for (slot, at) in slots.iter_mut().zip(0u8..) {
+				slot.write((fill, (at, !at)));
+			}
+			for &byte in data {
+				let slot = unsafe { slots[usize::from(byte) % 3].assume_init_mut() };
+				slot.0.rotate_left(usize::from(byte) % N.max(1));
+				let tags = &raw mut slot.1;
+				unsafe {
+					(*tags).0 ^= byte;
+					(*tags).1 = (*tags).1.wrapping_add(byte);
+					out.extend([(*tags).0, (*tags).1]);
+				}
+			}
+			for slot in &slots {
+				let (values, (a, b)) = unsafe { slot.assume_init_ref() };
+				values.iter().for_each(|v| v.put(out));
+				out.extend([*a, *b]);
+			}
 		}
-	}
-	for slot in &slots {
-		let (values, tag) = unsafe { slot.assume_init_ref() };
-		values.iter().for_each(|v| v.put(out));
-		out.push(*tag);
-	}
+	};
 }
+
+filled!(filled_bytes, u8);
+filled!(filled_words, u32);
+filled!(filled_rows, [u8; N]);
 
 /// A value's bytes.
 trait Put {
@@ -133,7 +149,10 @@ fn swapped<T: Copy + Into<u32>, const N: usize>(data: &[u8], rows: &[[T; N]], ou
 		let row = grid[0];
 		grid[0] = grid[1];
 		grid[1] = row;
-		if let (Some(x), Some(&y)) = (grid[usize::from(byte) % 2].first_mut(), rows[usize::from(byte) % rows.len()].last()) {
+		if let (Some(x), Some(&y)) = (
+			grid[usize::from(byte) % 2].first_mut(),
+			rows[usize::from(byte) % rows.len()].last(),
+		) {
 			*x = y;
 		}
 		out.extend(row.iter().chain(grid.iter().flatten()).map(|&x| x.into() as u8));

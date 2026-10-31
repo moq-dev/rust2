@@ -684,7 +684,9 @@ pub fn call<'tcx>(
 			};
 			// A `Clone` written by hand may do other than copy, even for a `Copy` type. A JS
 			// string is a value already.
-			let copies = name == "copied" || library::clone_copies(b.t, b.t.typing_env_pub(), *inner) || library::string(tcx, *inner);
+			let copies = name == "copied"
+				|| library::clone_copies(b.t, b.t.typing_env_pub(), *inner)
+				|| library::string(tcx, *inner);
 			let copy = match () {
 				// Each item through its `Clone`.
 				_ if !copies => Some(clone(b)?),
