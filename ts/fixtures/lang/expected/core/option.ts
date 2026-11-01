@@ -3,6 +3,7 @@
 import * as rt from "../rt.ts";
 import { opaque as args_opaque, len as args_len } from "../args.ts";
 import type * as borrows_Noisy from "../borrows.Noisy.ts";
+import type * as borrows_Tagged from "../borrows.Tagged.ts";
 import type * as bounds_Item from "../bounds.Item.ts";
 import * as clones_Logged from "../clones.Logged.ts";
 import type * as ByRef from "../collections.ByRef.ts";
@@ -1112,6 +1113,13 @@ export function mapOr$1w1gbwl(self: rt.ByteSlice | undefined, default_: rt.u8, f
 }
 
 export function mapOr$0qqbaqw(self: borrows_Noisy.Noisy | undefined, default_: rt.u8, f: (a0: borrows_Noisy.Noisy) => rt.u8): rt.u8 {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
+export function mapOr$1dvn0au(self: borrows_Tagged.Tagged | undefined, default_: rt.u8, f: (a0: borrows_Tagged.Tagged) => rt.u8): rt.u8 {
 	if (self === undefined) {
 		return default_;
 	}

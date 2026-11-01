@@ -165,5 +165,6 @@ roots = [
     "byte_pointer_rebound",
     "block_cloned",
     "lists",
+    "mapped_closure",
 ]
 printable = ["Meters"]
