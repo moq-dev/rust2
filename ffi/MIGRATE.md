@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Every export writes `python/<prefix>.py`, so an export fails when two items take the same
+  Python name, such as a type `Foo` beside an error type's `FooException`, or when one
+  takes a name the Python's runtime uses unqualified, each starting with `_`: give it
+  another name with a `rename`. The crate it writes has a build script, and a `python`
+  feature that builds the CPython extension the Python loads.
 - Kotlin returns bytes as a `Bytes`, not a `ByteArray`: Rust's buffer as `bytes.buffer`, a
   read-only `ByteBuffer`, copied up to 1 KiB and otherwise a direct one lent uncopied
   until `bytes.close()` frees it. Read it in `use { }`, or copy it out with
