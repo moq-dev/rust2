@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Every translation needs `tsc` 7.0 or later on `PATH`, not only one with bindings: it
+  type-checks the output, and fails at the Rust span of each error, where it succeeded
+  before.
 - A function the config's roots don't name takes each `&[u8]` or `&[u8; N]` parameter
   whose object its body never makes as its `data`, `start`, and `length`:
   `read(buf, form)` is `read(buf.data, buf.start, buf.length, form)`. A caller takes

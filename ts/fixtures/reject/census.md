@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
 - Refusals: 217
-- Function instances: 269
+- Function instances: 272
 - Generic functions no instance reached, lowered over their type parameters: 13
 
 ## By construct
