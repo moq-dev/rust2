@@ -1,7 +1,8 @@
 //! Well-known crates that translation maps itself, as it maps std, so a consumer binds
 //! none of them: `bytes`' `Bytes`, which is the `rt.ByteSlice` a `&[u8]` is, and
-//! `BytesMut`, which is `rt.BytesMut`, and `rand`'s thread-local generator, which draws
-//! from the platform's cryptographic source. The rest of `bytes`, such as most of `Buf`'s
+//! `BytesMut`, which is `rt.BytesMut`, `hashbrown`'s tables, which std's `HashMap` and
+//! `HashSet` are, and `rand`'s thread-local generator, which draws from the platform's
+//! cryptographic source. The rest of `bytes`, such as most of `Buf`'s
 //! provided methods of the crate's own buffers, translates from its MIR. `tracing`'s
 //! events are left out where they are written, by [`super::Translator::ignored_site`].
 
@@ -23,8 +24,28 @@ pub fn of(tcx: TyCtxt<'_>, did: DefId) -> Option<Std> {
 		("bytes", "Bytes") => Some(Std::Bytes),
 		("bytes", "BytesMut") => Some(Std::BytesMut),
 		("rand", "ThreadRng") => Some(Std::ThreadRng),
+		("hashbrown", "HashMap") => Some(Std::HashMap),
+		("hashbrown", "HashSet") => Some(Std::HashSet),
+		("hashbrown", "HashTable") => Some(Std::HashTable),
+		// foldhash's, which hashbrown's are, seed each state at random, as std's do, so
+		// which hash a key gets is never observable.
+		("hashbrown", "DefaultHashBuilder") => Some(Std::RandomState),
+		("hashbrown", "DefaultHasher") => Some(Std::Hasher),
+		("hashbrown", "Entry" | "OccupiedEntry" | "VacantEntry" | "AbsentEntry") => {
+			match tcx.opt_item_name(tcx.parent(did))?.as_str() {
+				"map" => (tcx.item_name(did).as_str() != "AbsentEntry").then_some(Std::Entry),
+				"table" => Some(Std::TableEntry),
+				_ => None,
+			}
+		}
 		_ => None,
 	}
+}
+
+/// Whether `did` is an item of `hashbrown`, whose tables are std's, so its functions map
+/// as std's do.
+pub fn as_std(tcx: TyCtxt<'_>, did: DefId) -> bool {
+	is_stock(tcx, did) && tcx.crate_name(did.krate).as_str() == "hashbrown"
 }
 
 /// Whether `did` is an item of one of these crates, rather than of the crate translated,
@@ -36,13 +57,13 @@ pub fn is_stock(tcx: TyCtxt<'_>, did: DefId) -> bool {
 /// Whether `krate`, a dependency, is one of these crates, whose functions map, or translate
 /// only where [`maps`] says they don't.
 pub fn is_stock_crate(tcx: TyCtxt<'_>, krate: CrateNum) -> bool {
-	matches!(tcx.crate_name(krate).as_str(), "bytes" | "rand")
+	matches!(tcx.crate_name(krate).as_str(), "bytes" | "hashbrown" | "rand")
 }
 
 /// Whether `krate` is one of these crates of which nothing translates: `rand`, whose
-/// generators would have to be its own.
+/// generators would have to be its own, and `hashbrown`, whose tables are the runtime's.
 pub fn is_opaque_crate(tcx: TyCtxt<'_>, krate: CrateNum) -> bool {
-	tcx.crate_name(krate).as_str() == "rand"
+	matches!(tcx.crate_name(krate).as_str(), "hashbrown" | "rand")
 }
 
 /// Whether `did`, an item of `bytes`, has a mapping in place of its MIR: `Bytes`,
@@ -227,6 +248,9 @@ pub fn call<'tcx>(
 		return Err(args);
 	};
 	let self_std = call.args.types().next().and_then(|t| b.t.std_of(t.peel_refs()));
+	if as_std(tcx, call.def_id) {
+		return Err(args);
+	}
 	if is_stock(tcx, call.def_id) {
 		return Ok(match tcx.crate_name(call.def_id.krate).as_str() {
 			"bytes" => bytes(b, call, &owner, &name, args, out),
