@@ -328,7 +328,12 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 		let fields: Vec<(String, Type, Expr)> = err.into_iter().chain(held).collect();
 		self.program.items.push(crate::ts::Item::Value {
 			sym,
-			ty: Type::Object(fields.iter().map(|(field, ty, _)| (field.clone(), ty.clone())).collect()),
+			ty: Type::Object(
+				fields
+					.iter()
+					.map(|(field, ty, _)| (field.clone(), ty.clone()))
+					.collect(),
+			),
 			doc: None,
 			value: Expr::Object(
 				(fields.into_iter())
@@ -461,7 +466,10 @@ impl<'tcx> Slotted<'tcx> {
 	/// (a name), read at once: the `Ok` of the slot's parts, or the `Err`.
 	pub fn rebuild(&self, t: &mut crate::lower::Translator<'_, 'tcx>, ret: &str, span: Span) -> Expr {
 		let first = self.returned.then(|| Expr::ident(ret));
-		let parts: Vec<Expr> = first.into_iter().chain((self.held()..self.fields.len()).map(|i| self.field(i))).collect();
+		let parts: Vec<Expr> = first
+			.into_iter()
+			.chain((self.held()..self.fields.len()).map(|i| self.field(i)))
+			.collect();
 		let ok = build_plain(t, &self.ok, &parts, span);
 		let err_ty = t.ty(self.err, span);
 		let (failed, err) = match self.returned {
