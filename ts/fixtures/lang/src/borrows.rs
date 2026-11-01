@@ -569,7 +569,8 @@ pub fn tries(data: &[u8], out: &mut Vec<u8>) {
 				out.extend_from_slice(format!("{bytes:?} {:?}", number.borrow_mut()).as_bytes());
 				drop(bytes);
 				let pair = RefCell::new((op, "pair"));
-				out.extend_from_slice(format!("{:?} {:#?}", pair.borrow(), pair.borrow_mut()).as_bytes());
+				out.extend_from_slice(format!("{:?} ", pair.borrow()).as_bytes());
+				out.extend_from_slice(format!("{:#?}", pair.borrow_mut()).as_bytes());
 				let tried = Ref::try_map(pair.borrow(), |p| if p.0 & 1 == 0 { Ok(&p.1) } else { Err(p.0) });
 				out.extend_from_slice(format!("{tried:?}").as_bytes());
 			}
