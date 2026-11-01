@@ -46,7 +46,8 @@ pub extern "C" fn output() -> *const u8 {
 /// abort; its length is `message_len`.
 #[unsafe(no_mangle)]
 pub extern "C" fn message() -> *const u8 {
-	MESSAGE.lock().unwrap().as_ref().map_or(std::ptr::null(), |message| message.as_ptr())
+	let message = MESSAGE.lock().unwrap();
+	message.as_ref().map_or(std::ptr::null(), |message| message.as_ptr())
 }
 
 /// The length of the panic's message.
