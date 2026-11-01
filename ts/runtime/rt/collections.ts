@@ -31,6 +31,7 @@ import {
 	sliceSort,
 	type Vec,
 	vecCapacity,
+	vecSetCapacity,
 	vecExtendFromSlice,
 	vecHold,
 	vecMax,
@@ -2418,7 +2419,8 @@ export function dequeFromVec<T>(v: Vec<T>, size: number): VecDeque<T> {
  * reads, keeping its capacity.
  */
 export function dequeFromIntoIter<T>(it: Iter<T>, size: number, take?: Take): VecDeque<T> {
-	const cap = it instanceof DequeIter ? dequeCapacity(it.q, size) : sourceCapacity(it, size)[0];
+	const [cap, unsure] = it instanceof DequeIter ? [it.cap ?? dequeCapacity(it.q, size), false] : sourceCapacity(it, size);
+	if (unsure) throw new Error("rust2-ts: a `VecDeque` in place of a `Vec<u8>` taken from `bytes`' storage, whose capacity depends on whether other handles of it dropped");
 	const q = dequeFromVec(iterToArray(it, take, undefined, true), size);
 	q.c = cap;
 	return q;
@@ -2645,6 +2647,8 @@ export class DequeIter<T> extends Iter<T> implements Disposable {
 	private front: number;
 	private back: number;
 	private readonly drop: ((item: T) => void) | undefined;
+	/** The capacity of the deque a clone of `into_iter` owns, a new one of what was left, if not `q`'s. */
+	cap: number | undefined;
 
 	constructor(q: VecDeque<T>, front: number, back: number, drop?: (item: T) => void) {
 		super();
@@ -2664,7 +2668,11 @@ export class DequeIter<T> extends Iter<T> implements Disposable {
 
 	/** std's: where it is, or of `into_iter`, what it has left, each cloned in order by `h.v`. */
 	override clone(h?: Clones): Iter<T> {
-		if (h?.v === undefined) return new DequeIter(this.q, this.front, this.back, this.drop);
+		if (h?.v === undefined) {
+			const it = new DequeIter(this.q, this.front, this.back, this.drop);
+			it.cap = this.back - this.front;
+			return it;
+		}
 		const clone = h.v as (item: T) => T;
 		const items: T[] = [];
 		for (let i = this.front; i < this.back; i++) items.push(clone(this.q.b[at(this.q, i)] as T));
@@ -3439,7 +3447,9 @@ export function peekMutDerefMut<T>(p: PeekMut<T>): void {
 	const d = p.h.d;
 	if (d.length > 1) {
 		p.t = d;
+		// std's sets the length to 1, keeping the allocation, which a forgotten guard leaves.
 		p.h.d = [d[0]];
+		vecSetCapacity(p.h.d, d.cap ?? d.length);
 	}
 }
 

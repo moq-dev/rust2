@@ -59,7 +59,7 @@ fn vec_steps<T: Clone + Ord>(data: &[u8], make: fn(u8) -> T, out: &mut Vec<u8>) 
 	put(out, v.capacity());
 	for step in steps.chunks(2) {
 		let (op, arg) = (step[0], step.get(1).copied().unwrap_or(0));
-		match op % 24 {
+		match op % 25 {
 			0 | 1 => v.push(make(arg)),
 			2 => drop(v.pop()),
 			3 => v.reserve(amount(arg, v.len(), size)),
@@ -102,6 +102,15 @@ fn vec_steps<T: Clone + Ord>(data: &[u8], make: fn(u8) -> T, out: &mut Vec<u8>) 
 			}
 			21 if !v.is_empty() => drop(v.swap_remove(usize::from(arg) % v.len())),
 			22 => v.dedup(),
+			// A clone of one read from the front, a new `Vec` of what was left.
+			23 => {
+				let mut it = v.into_iter();
+				for _ in 0..arg % 4 {
+					drop(it.next());
+				}
+				v = it.clone().collect();
+				put(out, it.collect::<Vec<T>>().capacity());
+			}
 			_ => v = vec![make(arg); usize::from(arg % 6)],
 		}
 		put(out, v.len());
@@ -124,7 +133,7 @@ fn deque_steps<T: Clone + Ord>(data: &[u8], make: fn(u8) -> T, out: &mut Vec<u8>
 	put(out, q.capacity());
 	for step in steps.chunks(2) {
 		let (op, arg) = (step[0], step.get(1).copied().unwrap_or(0));
-		match op % 20 {
+		match op % 21 {
 			0 => q.push_back(make(arg)),
 			1 => q.push_front(make(arg)),
 			2 => drop(q.pop_front()),
@@ -151,6 +160,14 @@ fn deque_steps<T: Clone + Ord>(data: &[u8], make: fn(u8) -> T, out: &mut Vec<u8>
 				let mut keep = alternate();
 				q = q.into_iter().filter(|_| keep()).collect();
 			}
+			19 => {
+				let mut it = q.into_iter();
+				for _ in 0..arg % 4 {
+					drop(it.next());
+				}
+				q = it.clone().collect();
+				put(out, it.collect::<VecDeque<T>>().capacity());
+			}
 			_ => q = VecDeque::from([make(arg), make(arg), make(arg)]),
 		}
 		put(out, q.len());
@@ -174,7 +191,7 @@ fn heap_steps<T: Clone + Ord>(data: &[u8], make: fn(u8) -> T, out: &mut Vec<u8>)
 	let mut other = BinaryHeap::new();
 	for step in steps.chunks(2) {
 		let (op, arg) = (step[0], step.get(1).copied().unwrap_or(0));
-		match op % 12 {
+		match op % 13 {
 			0 | 1 => h.push(make(arg)),
 			2 => drop(h.pop()),
 			3 => h.reserve(amount(arg, h.len(), size)),
@@ -189,6 +206,13 @@ fn heap_steps<T: Clone + Ord>(data: &[u8], make: fn(u8) -> T, out: &mut Vec<u8>)
 				put(out, other.capacity());
 			}
 			10 => drop(h.drain()),
+			// A guard that hid all but the top, forgotten, which leaves the allocation.
+			11 => {
+				if let Some(mut top) = h.peek_mut() {
+					*top = make(arg);
+					mem::forget(top);
+				}
+			}
 			_ => h = BinaryHeap::from(h.into_vec()),
 		}
 		put(out, h.len());

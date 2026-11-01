@@ -730,7 +730,7 @@ const asciiCases = [
  * grows and shrinks it; and each way `collects` makes one, of each length it tries.
  */
 const capacityCases = [
-	...[["capacity::vecs", 24], ["capacity::deques", 20], ["capacity::heaps", 12]].flatMap(([name, steps]) =>
+	...[["capacity::vecs", 25], ["capacity::deques", 21], ["capacity::heaps", 13]].flatMap(([name, steps]) =>
 		Array.from({ length: 5 * 2 * (steps as number) * 4 }, (_, i) => {
 			const [kind, first, step, arg] = [i % 5, (Math.floor(i / 5) % 2) * 0x11, Math.floor(i / 10) % (steps as number), [3, 0xc1, 0xe3, 0x16][Math.floor(i / (10 * (steps as number)))]];
 			return Uint8Array.of(op(name as string), kind, first, ...[0, 1, 0, 2, 0, 3, 0, 4, 0, 5].map((b, j) => (j % 2 === 0 ? b : b * 41)), step, arg, step, arg ^ 1);

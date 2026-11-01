@@ -1253,6 +1253,7 @@ export function sourceCapacity(it: Iter<unknown>, size: number): [number, boolea
 		else at = undefined;
 		if (at === undefined) throw new Error("rust2-ts: a `collect` in place of an iterator whose `Vec` it can't find");
 	}
+	if (at.cap !== undefined) return [at.cap, false];
 	if (at.bytes !== undefined) return [at.bytes.data.length, at.bytes.unsure === true];
 	return [vecCapacity(at.s as Vec<unknown>, size), false];
 }
@@ -1268,7 +1269,7 @@ function inPlace(it: Iter<unknown>, srcSize: number, size: number, bare: boolean
 	if (!bare) return [Math.floor((cap * srcSize) / size), unsure];
 	const src = it as SliceIter<unknown>;
 	const len = src.back - src.front;
-	if (src.front === 0 || len >= Math.floor(cap / 2)) return [cap, unsure];
+	if (src.front === src.start || len >= Math.floor(cap / 2)) return [cap, unsure];
 	return [capReserve(0, 0, len, size), false];
 }
 
@@ -1533,6 +1534,12 @@ class SliceIter<T> extends Iter<T> implements Disposable {
 	private readonly drop: Drop<T> | undefined;
 	/** The `Vec<u8>` whose bytes `s` views, which its `into_iter` owns. */
 	readonly bytes: ByteVec | undefined;
+	/**
+	 * Where in `s` the `Vec` it owns starts, and that one's capacity if not `s`'s: a clone's
+	 * is a new one of what was left, which it shares `s` for rather than copy.
+	 */
+	start = 0;
+	cap: number | undefined;
 
 	constructor(s: ArrayLike<T>, drop?: Drop<T>, bytes?: ByteVec) {
 		super();
@@ -1570,8 +1577,9 @@ class SliceIter<T> extends Iter<T> implements Disposable {
 			return new SliceIter(items, this.drop);
 		}
 		const it = new SliceIter(this.s, this.drop);
-		it.front = this.front;
+		it.front = it.start = this.front;
 		it.back = this.back;
+		it.cap = this.back - this.front;
 		return it;
 	}
 
