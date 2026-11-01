@@ -11,12 +11,12 @@ export function put(out: rt.ByteVec, n: rt.usize): void {
 }
 
 /**
- * `hashbrown::HashMap` by std's hasher and by its own, of keys that are JS primitives
+ * `hashbrown::HashMap` and `HashSet` by its own hasher, of keys that are JS primitives
  * and keys that are not, through each pair of bytes: a step and its key.
  */
 export function map(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const own: rt.HashMap<rt.u16, rt.u32> = rt.hashNew() as rt.HashMap<rt.u16, rt.u32>;
-	const std: rt.HashMap<[rt.u8, rt.u8], rt.u32> = rt.hashNew(rt.hashing(rt.hashTuple([rt.hash8, rt.hash8]), rt.eqTuple([rt.same, rt.same]))) as rt.HashMap<[rt.u8, rt.u8], rt.u32>;
+	const pairs: rt.HashMap<[rt.u8, rt.u8], rt.u32> = rt.hashNew(rt.hashing(rt.hashTuple([rt.hash8, rt.hash8]), rt.eqTuple([rt.same, rt.same]))) as rt.HashMap<[rt.u8, rt.u8], rt.u32>;
 	const set: rt.HashSet<string> = rt.hashWithCapacity(rt.usizeDiv(data.length, 4), 117440512) as rt.HashSet<string>;
 	const iter: rt.Iter<rt.ByteSlice> = rt.byteSliceChunks(data, 2);
 	while (true) {
@@ -35,19 +35,19 @@ export function map(data: rt.ByteSlice, out: rt.ByteVec): void {
 			put(out, option_mapOr$1vcgixw(rt.hashInsert(own, key, op as rt.u32), 256, (v9: rt.u32): rt.usize => {
 				return v9 as rt.usize;
 			}));
-			put(out, option_mapOr$1vcgixw(rt.hashInsert(std, pair, op as rt.u32), 256, (v10: rt.u32): rt.usize => {
+			put(out, option_mapOr$1vcgixw(rt.hashInsert(pairs, pair, op as rt.u32), 256, (v10: rt.u32): rt.usize => {
 				return v10 as rt.usize;
 			}));
 		} else if (_35 === 2) {
 			put(out, option_mapOr$1vcgixw(rt.hashRemove(own, key), 256, (v7: rt.u32): rt.usize => {
 				return v7 as rt.usize;
 			}));
-			put(out, option_mapOr$1vcgixw(rt.hashRemove(std, pair), 256, (v8: rt.u32): rt.usize => {
+			put(out, option_mapOr$1vcgixw(rt.hashRemove(pairs, pair), 256, (v8: rt.u32): rt.usize => {
 				return v8 as rt.usize;
 			}));
 		} else if (_35 === 3) {
 			rt.byteVecPush(out, rt.hashContains(own, key) ? 1 : 0);
-			put(out, option_mapOr$1vcgixw(rt.hashGet(std, pair), 256, (_29: rt.u32): rt.usize => {
+			put(out, option_mapOr$1vcgixw(rt.hashGet(pairs, pair), 256, (_29: rt.u32): rt.usize => {
 				return _29 as rt.usize;
 			}));
 		} else if (_35 === 4) {
@@ -56,13 +56,13 @@ export function map(data: rt.ByteSlice, out: rt.ByteVec): void {
 				_67.v = rt.u32Add(_67.v, 1);
 			}
 			const _73: rt.u32 = arg as rt.u32;
-			const _74: rt.Place<rt.u32> = rt.entryOrInsertMut(rt.entry(std, pair), 7);
+			const _74: rt.Place<rt.u32> = rt.entryOrInsertMut(rt.entry(pairs, pair), 7);
 			_74.v = rt.u32Add(_74.v, _73);
 		} else if (_35 === 5) {
 			rt.hashRetainMut(own, (k4: rt.u16, v5: rt.Place<rt.u32>): boolean => {
 				return rt.u16Rem(rt.u16Add(k4, v5.v & 0xffff), 3) !== 0;
 			});
-			rt.hashRetainMut(std, (k5: [rt.u8, rt.u8], _3: rt.Place<rt.u32>): boolean => {
+			rt.hashRetainMut(pairs, (k5: [rt.u8, rt.u8], _3: rt.Place<rt.u32>): boolean => {
 				return k5[0] !== rt.u8Rem(arg, 4);
 			});
 		} else if (_35 === 6) {
@@ -87,7 +87,7 @@ export function map(data: rt.ByteSlice, out: rt.ByteVec): void {
 			}), rt.u32Add, 0) as rt.usize);
 		}
 		put(out, rt.hashLen(own));
-		put(out, rt.hashLen(std));
+		put(out, rt.hashLen(pairs));
 		put(out, rt.hashLen(set));
 	}
 	const own2: [rt.u16, rt.u32][] = rt.iterToArray(rt.hashIter(own), "next", 8);
@@ -98,11 +98,11 @@ export function map(data: rt.ByteSlice, out: rt.ByteVec): void {
 		put(out, k as rt.usize);
 		put(out, v as rt.usize);
 	}
-	const std2: [[rt.u8, rt.u8], rt.u32][] = rt.iterToArray(rt.iterMap(rt.hashIter(std), (_210: [[rt.u8, rt.u8], rt.u32]): [[rt.u8, rt.u8], rt.u32] => {
+	const pairs2: [[rt.u8, rt.u8], rt.u32][] = rt.iterToArray(rt.iterMap(rt.hashIter(pairs), (_210: [[rt.u8, rt.u8], rt.u32]): [[rt.u8, rt.u8], rt.u32] => {
 		return [_210[0], _210[1]] as [[rt.u8, rt.u8], rt.u32];
 	}), "next", 8);
-	rt.sliceSort(std2, rt.cmpLt(rt.cmpTuple<[[rt.u8, rt.u8], rt.u32], rt.Ordering | undefined>([rt.cmpTuple<[rt.u8, rt.u8], rt.Ordering | undefined>([rt.cmp, rt.cmp]), rt.cmp])));
-	for (const _174 of std2) {
+	rt.sliceSort(pairs2, rt.cmpLt(rt.cmpTuple<[[rt.u8, rt.u8], rt.u32], rt.Ordering | undefined>([rt.cmpTuple<[rt.u8, rt.u8], rt.Ordering | undefined>([rt.cmp, rt.cmp]), rt.cmp])));
+	for (const _174 of pairs2) {
 		const a: rt.u8 = _174[0][0];
 		const b: rt.u8 = _174[0][1];
 		const v2: rt.u32 = _174[1];

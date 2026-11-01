@@ -15,11 +15,11 @@ fn put(out: &mut Vec<u8>, n: usize) {
 	out.extend_from_slice(&(n as u32).to_le_bytes());
 }
 
-/// `hashbrown::HashMap` by std's hasher and by its own, of keys that are JS primitives
+/// `hashbrown::HashMap` and `HashSet` by its own hasher, of keys that are JS primitives
 /// and keys that are not, through each pair of bytes: a step and its key.
 pub fn map(data: &[u8], out: &mut Vec<u8>) {
 	let mut own: HashMap<u16, u32> = HashMap::new();
-	let mut std: HashMap<(u8, u8), u32, RandomState> = HashMap::default();
+	let mut pairs: HashMap<(u8, u8), u32> = HashMap::default();
 	let mut set: HashSet<String> = HashSet::with_capacity(data.len() / 4);
 	for step in data.chunks(2) {
 		let (op, arg) = (step[0], step.get(1).copied().unwrap_or(0));
@@ -29,26 +29,26 @@ pub fn map(data: &[u8], out: &mut Vec<u8>) {
 			0 | 1 => {
 				let old = own.insert(key, u32::from(op));
 				put(out, old.map_or(0x100, |v| v as usize));
-				let old = std.insert(pair, u32::from(op));
+				let old = pairs.insert(pair, u32::from(op));
 				put(out, old.map_or(0x100, |v| v as usize));
 			}
 			2 => {
 				put(out, own.remove(&key).map_or(0x100, |v| v as usize));
-				put(out, std.remove(&pair).map_or(0x100, |v| v as usize));
+				put(out, pairs.remove(&pair).map_or(0x100, |v| v as usize));
 			}
 			3 => {
 				out.push(own.contains_key(&key) as u8);
-				put(out, std.get(&pair).map_or(0x100, |&v| v as usize));
+				put(out, pairs.get(&pair).map_or(0x100, |&v| v as usize));
 			}
 			4 => {
 				if let Some(v) = own.get_mut(&key) {
 					*v += 1;
 				}
-				*std.entry(pair).or_insert(7) += u32::from(arg);
+				*pairs.entry(pair).or_insert(7) += u32::from(arg);
 			}
 			5 => {
 				own.retain(|k, v| (*k + *v as u16) % 3 != 0);
-				std.retain(|k, _| k.0 != arg % 4);
+				pairs.retain(|k, _| k.0 != arg % 4);
 			}
 			6 => {
 				out.push(set.insert(format!("{key}")) as u8);
@@ -65,7 +65,7 @@ pub fn map(data: &[u8], out: &mut Vec<u8>) {
 			}
 		}
 		put(out, own.len());
-		put(out, std.len());
+		put(out, pairs.len());
 		put(out, set.len());
 	}
 	let mut own: Vec<(u16, u32)> = own.into_iter().collect();
@@ -74,9 +74,9 @@ pub fn map(data: &[u8], out: &mut Vec<u8>) {
 		put(out, usize::from(k));
 		put(out, v as usize);
 	}
-	let mut std: Vec<((u8, u8), u32)> = std.iter().map(|(k, v)| (*k, *v)).collect();
-	std.sort();
-	for ((a, b), v) in std {
+	let mut pairs: Vec<((u8, u8), u32)> = pairs.iter().map(|(k, v)| (*k, *v)).collect();
+	pairs.sort();
+	for ((a, b), v) in pairs {
 		out.extend_from_slice(&[a, b]);
 		put(out, v as usize);
 	}

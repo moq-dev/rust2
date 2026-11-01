@@ -27,6 +27,10 @@ pub fn of(tcx: TyCtxt<'_>, did: DefId) -> Option<Std> {
 		("hashbrown", "HashMap") => Some(Std::HashMap),
 		("hashbrown", "HashSet") => Some(Std::HashSet),
 		("hashbrown", "HashTable") => Some(Std::HashTable),
+		// foldhash's, which hashbrown's are, seed each state at random, as std's do, so
+		// which hash a key gets is never observable.
+		("hashbrown", "DefaultHashBuilder") => Some(Std::RandomState),
+		("hashbrown", "DefaultHasher") => Some(Std::Hasher),
 		("hashbrown", "Entry" | "OccupiedEntry" | "VacantEntry" | "AbsentEntry") => {
 			match tcx.opt_item_name(tcx.parent(did))?.as_str() {
 				"map" => Some(Std::Entry).filter(|_| tcx.item_name(did).as_str() != "AbsentEntry"),

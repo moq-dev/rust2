@@ -8,7 +8,7 @@ import { atomics } from "./atomics.ts";
 import { borrows as borrows_borrows, guards, maps as borrows_maps } from "./borrows.ts";
 import { bounds as bounds_bounds } from "./bounds.ts";
 import { boxes, places as boxes_places } from "./boxes.ts";
-import { vecs as capacity_vecs, deques as capacity_deques, heaps as capacity_heaps, collects } from "./capacity.ts";
+import { vecs as capacity_vecs, deques as capacity_deques, heaps as capacity_heaps, collects, maps as capacity_maps } from "./capacity.ts";
 import { captures } from "./captures.ts";
 import { cells as cells_cells } from "./cells.ts";
 import { chars as chars_chars } from "./chars.ts";
@@ -267,7 +267,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		capacity_deques(a0153, a1153.data, a1153.start, a1153.length, a2153);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::heaps", (a0154: rt.u8, a1154: rt.ByteSlice, a2154: rt.ByteVec): undefined => {
 		capacity_heaps(a0154, a1154.data, a1154.start, a1154.length, a2154);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::maps", capacity_maps as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */
