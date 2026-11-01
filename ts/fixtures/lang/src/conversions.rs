@@ -178,13 +178,25 @@ struct Held<T> {
 /// view, and [`searched`] of those that order.
 pub fn conversions(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 	match kind % 12 {
-		0 => ordered::<u32>(data, out),
+		0 => {
+			ordered::<u32>(data, out);
+			lent_through::<u32>(data, out);
+		}
 		1 => ordered::<u64>(data, out),
-		2 => ordered::<String>(data, out),
-		3 => ordered::<Option<u16>>(data, out),
+		2 => {
+			ordered::<String>(data, out);
+			lent_through::<String>(data, out);
+		}
+		3 => {
+			ordered::<Option<u16>>(data, out);
+			lent_through::<Option<u16>>(data, out);
+		}
 		4 => ordered::<[u8; 0]>(data, out),
 		5 => ordered::<[u8; 1]>(data, out),
-		6 => ordered::<[u8; 3]>(data, out),
+		6 => {
+			ordered::<[u8; 3]>(data, out);
+			lent_through::<[u8; 3]>(data, out);
+		}
 		7 => ordered::<[u8; 40]>(data, out),
 		8 => ordered::<[u32; 2]>(data, out),
 		9 => ordered::<Named>(data, out),
@@ -225,6 +237,20 @@ fn write_first<T: Value>(s: &mut [T], value: T) -> T {
 	let old = std::mem::replace(&mut s[0], value.clone());
 	s[0] = value;
 	old
+}
+
+/// A slice of what a `&mut` whose place only the caller knows points at, written through:
+/// one to a value JS copies or to an array of bytes, which a whole write reaches, unlike
+/// an object's slot.
+fn lent_param<T: Value>(to: &mut T, value: T) -> T {
+	write_first(std::slice::from_mut(to), value)
+}
+
+/// [`lent_param`] of an element.
+fn lent_through<T: Value>(data: &[u8], out: &mut Vec<u8>) {
+	let mut v = vec![T::make(data, 2), T::make(data, 4)];
+	lent_param(&mut v[1], T::make(data, 18)).put(out);
+	v[1].put(out);
 }
 
 /// A cell of what a `&mut` whose place only the caller knows points at, written through.

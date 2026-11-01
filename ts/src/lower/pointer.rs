@@ -376,7 +376,8 @@ pub fn keeps<'tcx>(tcx: ty::TyCtxt<'tcx>, def_id: rustc_hir::def_id::DefId, args
 /// rather than what it points at: a `MaybeUninit`'s, which it points into, an `Arc`'s that
 /// `make_mut` replaces, a `String`'s that a drain edits as it drops, a `Result`'s whose
 /// payload JS copies, which `iter_mut` lends as a place that writes the whole `Result`,
-/// one `ptr::from_mut` makes a pointer of, and a well-known crate's, such as a `Bytes` that `Buf::advance` moves past its front.
+/// one `ptr::from_mut` makes a pointer of, and a well-known crate's, such as a `Bytes`
+/// that `Buf::advance` moves past its front.
 fn takes_place<'tcx>(
 	t: &Translator<'_, 'tcx>,
 	def_id: rustc_hir::def_id::DefId,

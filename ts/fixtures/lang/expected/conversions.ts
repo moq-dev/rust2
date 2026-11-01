@@ -154,18 +154,22 @@ export function conversions(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): v
 	const _5: rt.u8 = rt.u8Rem(kind, 12);
 	if (_5 === 0) {
 		ordered$u32(data, out);
+		lentThrough$u32(data, out);
 	} else if (_5 === 1) {
 		ordered$u64(data, out);
 	} else if (_5 === 2) {
 		ordered$String(data, out);
+		lentThrough$String(data, out);
 	} else if (_5 === 3) {
 		ordered$Option_u16(data, out);
+		lentThrough$Option_u16(data, out);
 	} else if (_5 === 4) {
 		ordered$array0_u8(data, out);
 	} else if (_5 === 5) {
 		ordered$array1_u8(data, out);
 	} else if (_5 === 6) {
 		ordered$array3_u8(data, out);
+		lentThrough$array3_u8(data, out);
 	} else if (_5 === 7) {
 		ordered$array40_u8(data, out);
 	} else if (_5 === 8) {
@@ -526,6 +530,76 @@ export function writeFirst$u64(s: rt.u64[], value: rt.u64): rt.u64 {
 	rt.idx(s, 0);
 	s[0] = _10;
 	return old;
+}
+
+/**
+ * A slice of what a `&mut` whose place only the caller knows points at, written through:
+ * one to a value JS copies or to an array of bytes, which a whole write reaches, unlike
+ * an object's slot.
+ */
+export function lentParam$Option_u16(to: rt.Place<rt.u16 | undefined>, value: rt.u16 | undefined): rt.u16 | undefined {
+	return writeFirst$Option_u16(rt.sliceOfPlace(to), value);
+}
+
+/**
+ * A slice of what a `&mut` whose place only the caller knows points at, written through:
+ * one to a value JS copies or to an array of bytes, which a whole write reaches, unlike
+ * an object's slot.
+ */
+export function lentParam$String(to: rt.Place<string>, value: string): string {
+	return writeFirst$String(rt.sliceOfPlace(to), value);
+}
+
+/**
+ * A slice of what a `&mut` whose place only the caller knows points at, written through:
+ * one to a value JS copies or to an array of bytes, which a whole write reaches, unlike
+ * an object's slot.
+ */
+export function lentParam$array3_u8(to: rt.ByteSlice, value: Uint8Array): Uint8Array {
+	return writeFirst$array3_u8(rt.sliceOfPlace(rt.bytesPlace(rt.byteSliceView(to))), value);
+}
+
+/**
+ * A slice of what a `&mut` whose place only the caller knows points at, written through:
+ * one to a value JS copies or to an array of bytes, which a whole write reaches, unlike
+ * an object's slot.
+ */
+export function lentParam$u32(to: rt.Place<rt.u32>, value: rt.u32): rt.u32 {
+	return writeFirst$u32(rt.sliceOfPlace(to), value);
+}
+
+/** [`lent_param`] of an element. */
+export function lentThrough$Option_u16(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const v: Array<rt.u16 | undefined> = [make$conversions_Value_Option_u16(data, 2), make$conversions_Value_Option_u16(data, 4)];
+	const at = rt.idx(v, 1);
+	const _12: rt.u16 | undefined = make$conversions_Value_Option_u16(data, 18);
+	put$conversions_Value_Option_u16(lentParam$Option_u16(rt.place(() => v[at], (value) => v[at] = value), _12), out);
+	put$conversions_Value_Option_u16(v[rt.idx(v, 1)], out);
+}
+
+/** [`lent_param`] of an element. */
+export function lentThrough$String(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const v: string[] = [make$conversions_Value_String(data, 2), make$conversions_Value_String(data, 4)];
+	const at = rt.idx(v, 1);
+	const _12: string = make$conversions_Value_String(data, 18);
+	put$conversions_Value_String(lentParam$String(rt.place(() => v[at], (value) => v[at] = value), _12), out);
+	put$conversions_Value_String(v[rt.idx(v, 1)], out);
+}
+
+/** [`lent_param`] of an element. */
+export function lentThrough$array3_u8(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const v: Uint8Array[] = copy$array_array3_u8([make$conversions_Value_array3_u8(data, 2), make$conversions_Value_array3_u8(data, 4)]).map(copy$array_u8);
+	put$conversions_Value_array3_u8(rt.byteSliceFrom(lentParam$array3_u8(rt.byteSliceFrom(v[rt.idx(v, 1)]), make$conversions_Value_array3_u8(data, 18))), out);
+	put$conversions_Value_array3_u8(rt.byteSliceFrom(v[rt.idx(v, 1)]), out);
+}
+
+/** [`lent_param`] of an element. */
+export function lentThrough$u32(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const v: rt.u32[] = [make$conversions_Value_u32(data, 2), make$conversions_Value_u32(data, 4)];
+	const at = rt.idx(v, 1);
+	const _12: rt.u32 = make$conversions_Value_u32(data, 18);
+	put$conversions_Value_u32(lentParam$u32(rt.place(() => v[at], (value) => v[at] = value), _12), out);
+	put$conversions_Value_u32(v[rt.idx(v, 1)], out);
 }
 
 /** A cell of what a `&mut` whose place only the caller knows points at, written through. */

@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 217
-- Function instances: 273
+- Refusals: 220
+- Function instances: 277
 - Generic functions no instance reached, lowered over their type parameters: 13
 
 ## By construct
@@ -16,13 +16,13 @@
 | 5 | `_` with a mutable reference to a value JS copies, which its mapping would copy | fixtures/reject/src/lib.rs:1237:22 |
 | 5 | a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet | fixtures/reject/src/lib.rs:681:10 |
 | 4 | a variant of `_`, which is not supported: either is the same JS string | fixtures/reject/src/lib.rs:338:2 |
+| 3 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | fixtures/reject/src/lib.rs:21:4 |
 | 3 | a copy of a closure that changes what it captured | fixtures/reject/src/lib.rs:231:14 |
 | 3 | an assignment through a reference to `_` | fixtures/reject/src/lib.rs:90:2 |
 | 3 | replacing the value behind a reference to `_` | fixtures/reject/src/lib.rs:98:2 |
 | 3 | unsupported type `_` | fixtures/reject/src/lib.rs:7:14 |
 | 2 | `_` is not supported: its `None` and `Some` would both be `rt.None` | fixtures/reject/src/lib.rs:16:15 |
 | 2 | `_` of `_`, whose `None` is `rt.None`, which is not supported yet | fixtures/reject/src/lib.rs:37:4 |
-| 2 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | fixtures/reject/src/lib.rs:21:4 |
 | 2 | `_`, a trait object of another crate's trait, which is not supported yet | fixtures/reject/src/lib.rs:11:16 |
 | 2 | `_`, a trait object of the generic trait `_`, which is not supported yet | fixtures/reject/src/lib.rs:466:23 |
 | 2 | a cast from a pointer to `_` to one to `_`, which reads the bytes of one type as another | fixtures/reject/src/lib.rs:557:27 |
@@ -64,6 +64,8 @@
 | 1 | a raw pointer to `_` behind a reference, which is the object and not where it is kept | fixtures/reject/src/lib.rs:579:10 |
 | 1 | a reference through which a raw pointer may be made into `_` in an element, a payload, or a union field, which is not supported yet | fixtures/reject/src/lib.rs:1366:11 |
 | 1 | a scalar constant of type `_` | fixtures/reject/src/lib.rs:8:2 |
+| 1 | a slice of one byte's place, which a byte slice can view only in an array of bytes | fixtures/reject/src/lib.rs:2170:2 |
+| 1 | a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there | fixtures/reject/src/lib.rs:2176:2 |
 | 1 | a trait object of `_`, which is not supported yet | fixtures/reject/src/lib.rs:483:26 |
 | 1 | a zero-sized constant of type `_` | fixtures/reject/src/lib.rs:50:2 |
 | 1 | an upcast from `_` to `_`, which is not supported yet | fixtures/reject/src/lib.rs:534:32 |
@@ -101,6 +103,7 @@ The type or module each refused type or path belongs to.
 | 3 | `*const [u8; 4]` | fixtures/reject/src/lib.rs:1715:33 |
 | 3 | `Mid` | fixtures/reject/src/lib.rs:1357:34 |
 | 3 | `Outer` | fixtures/reject/src/lib.rs:1357:34 |
+| 3 | `Reused` | fixtures/reject/src/lib.rs:21:4 |
 | 3 | `std::ptr` | fixtures/reject/src/lib.rs:1712:3 |
 | 3 | `std::vec::Vec` | fixtures/reject/src/lib.rs:317:16 |
 | 3 | `{closure}` | fixtures/reject/src/lib.rs:326:13 |
@@ -111,7 +114,6 @@ The type or module each refused type or path belongs to.
 | 2 | `InWritten` | fixtures/reject/src/lib.rs:1328:9 |
 | 2 | `Inside` | fixtures/reject/src/lib.rs:1847:20 |
 | 2 | `Poll` | fixtures/reject/src/lib.rs:79:20 |
-| 2 | `Reused` | fixtures/reject/src/lib.rs:21:4 |
 | 2 | `Scaled` | fixtures/reject/src/lib.rs:466:23 |
 | 2 | `[u8; 2]` | fixtures/reject/src/lib.rs:1728:37 |
 | 2 | `[u8; 3]` | fixtures/reject/src/lib.rs:1728:15 |
@@ -166,6 +168,7 @@ The type or module each refused type or path belongs to.
 | 1 | `BytesMut` | fixtures/reject/src/lib.rs:390:6 |
 | 1 | `Called` | fixtures/reject/src/lib.rs:1088:28 |
 | 1 | `Chosen` | fixtures/reject/src/lib.rs:1908:17 |
+| 1 | `Clone` | fixtures/reject/src/lib.rs:2181:4 |
 | 1 | `Closed` | fixtures/reject/src/lib.rs:2080:15 |
 | 1 | `Compared` | fixtures/reject/src/lib.rs:1875:22 |
 | 1 | `Copied` | fixtures/reject/src/lib.rs:1178:31 |
@@ -229,6 +232,7 @@ The type or module each refused type or path belongs to.
 | 1 | `std::iter::Map` | fixtures/reject/src/lib.rs:216:40 |
 | 1 | `std::iter::Zip` | fixtures/reject/src/lib.rs:209:8 |
 | 1 | `std::iter` | fixtures/reject/src/lib.rs:1237:22 |
+| 1 | `std::mem` | fixtures/reject/src/lib.rs:2186:2 |
 | 1 | `std::net::AddrParseError` | fixtures/reject/src/lib.rs:440:32 |
 | 1 | `std::net::Ipv4Addr` | fixtures/reject/src/lib.rs:440:32 |
 | 1 | `std::num` | fixtures/reject/src/lib.rs:1279:4 |
@@ -277,6 +281,7 @@ The type or module each refused type or path belongs to.
 | 1 | `_` is not supported: its field `_` is `_`, typed `_`, whose `Pending` would be `rt.OuterPending` as `_` | `Waiting`, `poll`, `Poll`, `rt.Poll`, `Poll` | fixtures/reject/src/lib.rs:504:2 |
 | 1 | `_` of `_` by `_`, which is not supported yet | `HashMap::contains_key`, `std::collections::HashMap`, `u8` | fixtures/reject/src/lib.rs:260:6 |
 | 1 | `_` of `_`, which is not supported yet | `std::any::Any::type_id`, `dyn std::any::Any` | fixtures/reject/src/lib.rs:540:4 |
+| 1 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | `Clone::clone_from`, `std::vec::Vec` | fixtures/reject/src/lib.rs:2181:4 |
 | 1 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | `slice::clone_from_slice`, `Reused` | fixtures/reject/src/lib.rs:293:4 |
 | 1 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | `slice::fill`, `Reused` | fixtures/reject/src/lib.rs:21:4 |
 | 1 | `_` with a mutable reference to a value JS copies, which its mapping would copy | `std::collections::LinkedList::retain` | fixtures/reject/src/lib.rs:2119:4 |
@@ -370,6 +375,7 @@ The type or module each refused type or path belongs to.
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:1657:18 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `std::option::Option` | fixtures/reject/src/lib.rs:2110:13 |
 | 1 | a scalar constant of type `_` | `f16` | fixtures/reject/src/lib.rs:8:2 |
+| 1 | a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there | `Reused` | fixtures/reject/src/lib.rs:2176:2 |
 | 1 | a trait object of `_`, which is not supported yet | `[u8; 4]` | fixtures/reject/src/lib.rs:483:26 |
 | 1 | a zero-sized constant of type `_` | `{async closure}` | fixtures/reject/src/lib.rs:50:2 |
 | 1 | an assignment through a reference to `_` | `std::sync::MutexGuard` | fixtures/reject/src/lib.rs:90:2 |
@@ -397,10 +403,10 @@ The type or module each refused type or path belongs to.
 | 1 | unsupported call to `_` | `<std::ops::RangeFrom as std::ops::RangeBounds>::contains` | fixtures/reject/src/lib.rs:986:32 |
 | 1 | unsupported call to `_` | `<std::option::Option as std::cmp::PartialEq>::eq` | fixtures/reject/src/lib.rs:376:2 |
 | 1 | unsupported call to `_` | `<std::slice::IterMut as std::iter::Iterator>::is_sorted` | fixtures/reject/src/lib.rs:768:15 |
-| 1 | unsupported call to `_` | `<std::vec::Vec as std::clone::Clone>::clone_from` | fixtures/reject/src/lib.rs:888:10 |
 | 1 | unsupported call to `_` | `<u8 as std::hash::Hash>::hash` | fixtures/reject/src/lib.rs:308:10 |
 | 1 | unsupported call to `_` | `std::any::TypeId::of` | fixtures/reject/src/lib.rs:540:17 |
 | 1 | unsupported call to `_` | `std::borrow::Cow::is_borrowed` | fixtures/reject/src/lib.rs:350:2 |
+| 1 | unsupported call to `_` | `std::mem::size_of_val` | fixtures/reject/src/lib.rs:2186:2 |
 | 1 | unsupported call to `_` | `std::num::is_ascii_octdigit` | fixtures/reject/src/lib.rs:1279:4 |
 | 1 | unsupported call to `_` | `std::ops::Range::contains` | fixtures/reject/src/lib.rs:167:8 |
 | 1 | unsupported call to `_` | `std::ops::Range::is_empty` | fixtures/reject/src/lib.rs:991:9 |
@@ -486,7 +492,6 @@ The type or module each refused type or path belongs to.
 - fixtures/reject/src/lib.rs:569:11: unsupported call to `std::alloc::alloc`
 - fixtures/reject/src/lib.rs:572:3: unsupported call to `std::alloc::dealloc`
 - fixtures/reject/src/lib.rs:768:15: unsupported call to `<std::slice::IterMut<'_, u8> as std::iter::Iterator>::is_sorted`
-- fixtures/reject/src/lib.rs:888:10: unsupported call to `<std::vec::Vec<u8> as std::clone::Clone>::clone_from`
 - fixtures/reject/src/lib.rs:986:11: unsupported call to `std::ops::RangeTo::<u8>::contains::<Key>`
 - fixtures/reject/src/lib.rs:986:32: unsupported call to `<std::ops::RangeFrom<u8> as std::ops::RangeBounds<u8>>::contains::<Key>`
 - fixtures/reject/src/lib.rs:991:9: unsupported call to `std::ops::Range::<&mut u8>::is_empty`
@@ -498,6 +503,7 @@ The type or module each refused type or path belongs to.
 - fixtures/reject/src/lib.rs:1715:56: unsupported call to `std::ptr::mut_ptr::<impl *mut [u8; 4]>::add`
 - fixtures/reject/src/lib.rs:1715:73: unsupported call to `std::ptr::const_ptr::<impl *const [u8; 4]>::offset`
 - fixtures/reject/src/lib.rs:1719:58: unsupported call to `std::ptr::const_ptr::<impl *const [u8]>::len`
+- fixtures/reject/src/lib.rs:2186:2: unsupported call to `std::mem::size_of_val::<dyn std::fmt::Debug>`
 
 </details>
 
@@ -594,6 +600,14 @@ The type or module each refused type or path belongs to.
 
 </details>
 
+<details><summary>`_` of `_`, whose `clone_from` is its own, which is not supported yet (3)</summary>
+
+- fixtures/reject/src/lib.rs:21:4: `slice::fill` of `Reused`, whose `clone_from` is its own, which is not supported yet
+- fixtures/reject/src/lib.rs:293:4: `slice::clone_from_slice` of `Reused`, whose `clone_from` is its own, which is not supported yet
+- fixtures/reject/src/lib.rs:2181:4: `Clone::clone_from` of `std::vec::Vec<Reused>`, whose `clone_from` is its own, which is not supported yet
+
+</details>
+
 <details><summary>a copy of a closure that changes what it captured (3)</summary>
 
 - fixtures/reject/src/lib.rs:231:14: a copy of a closure that changes what it captured
@@ -637,13 +651,6 @@ The type or module each refused type or path belongs to.
 
 - fixtures/reject/src/lib.rs:37:4: `Iterator::scan` of `Option<std::option::Option<u8>>`, whose `None` is `rt.None`, which is not supported yet
 - fixtures/reject/src/lib.rs:237:11: `Iterator::scan` of `Option<()>`, whose `None` is `rt.None`, which is not supported yet
-
-</details>
-
-<details><summary>`_` of `_`, whose `clone_from` is its own, which is not supported yet (2)</summary>
-
-- fixtures/reject/src/lib.rs:21:4: `slice::fill` of `Reused`, whose `clone_from` is its own, which is not supported yet
-- fixtures/reject/src/lib.rs:293:4: `slice::clone_from_slice` of `Reused`, whose `clone_from` is its own, which is not supported yet
 
 </details>
 
@@ -900,6 +907,18 @@ The type or module each refused type or path belongs to.
 <details><summary>a scalar constant of type `_` (1)</summary>
 
 - fixtures/reject/src/lib.rs:8:2: a scalar constant of type `f16`
+
+</details>
+
+<details><summary>a slice of one byte's place, which a byte slice can view only in an array of bytes (1)</summary>
+
+- fixtures/reject/src/lib.rs:2170:2: a slice of one byte's place, which a byte slice can view only in an array of bytes
+
+</details>
+
+<details><summary>a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there (1)</summary>
+
+- fixtures/reject/src/lib.rs:2176:2: a slice or a cell of a mutable reference to `Reused` that names no place, which a whole write would replace only there
 
 </details>
 

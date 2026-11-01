@@ -542,7 +542,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			("raw" | "array", "from_mut") | ("Cell", "from_mut")
 				if owner != "raw" || library::std_path(tcx, def_id) == ["slice", "raw", "from_mut"] =>
 			{
-				let made = self.from_mut(owner == "Cell", targ(0)?, &args[0].node, span, out)?;
+				let made = self.one_of(owner == "Cell", targ(0)?, &args[0].node, span, out)?;
 				done(made, true)
 			}
 			// A range of numbers steps in place, with nothing between it and the loop.
@@ -1158,7 +1158,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// moves or copies a value out. A slice of an object no place names is refused, as a
 	/// whole write of its element would give the slice another object, not the place, as
 	/// is a cell of an object JS can't write a whole value into.
-	fn from_mut(
+	fn one_of(
 		&mut self,
 		cell: bool,
 		ty: Ty<'tcx>,
@@ -1174,7 +1174,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			false => Expr::rt("sliceOfPlace", vec![made]),
 		};
 		if !cell && matches!(ty.kind(), ty::Uint(ty::UintTy::U8)) {
-			return Some(self.err(span, "a slice of one `u8`'s place, which an `rt.ByteSlice` can't view"));
+			return Some(self.err(
+				span,
+				"a slice of one byte's place, which a byte slice can view only in an array of bytes",
+			));
 		}
 		if self.in_bytes(deref) {
 			let slice = self.place_expr(deref, span, out);
@@ -1203,7 +1206,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		Some(self.err(
 			span,
 			format!(
-				"a slice or a cell of a `&mut` to `{ty}` that names no place, which a whole write would replace only there"
+				"a slice or a cell of a mutable reference to `{ty}` that names no place, which a whole write would replace only there"
 			),
 		))
 	}
