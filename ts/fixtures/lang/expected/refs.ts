@@ -4,6 +4,7 @@ import * as rt from "./rt.ts";
 import { copy$Option_tuple2_u8_u8, copy$array_u32 } from "./lib.ts";
 import { thenSome$0xksuo2, then$0ozmvid } from "./core/bool.ts";
 import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$0x6fy3l as option_unwrapOr$0x6fy3l, unwrapOr$11c0we2 as option_unwrapOr$11c0we2, unwrapOrDefault$165pyh5 as option_unwrapOrDefault$165pyh5, unwrapOrDefault$0wx44sw as option_unwrapOrDefault$0wx44sw, map$1k7m6zz as option_map$1k7m6zz, map$1fmzefe as option_map$1fmzefe, map$0cs071d as option_map$0cs071d, mapOr$1xztl8h as option_mapOr$1xztl8h, mapOr$0lcrgk1 as option_mapOr$0lcrgk1, mapOr$1giiemz as option_mapOr$1giiemz, mapOr$1surhce as option_mapOr$1surhce, mapOr$0mmpeqx as option_mapOr$0mmpeqx, mapOr$1m2xzon as option_mapOr$1m2xzon, andThen$101gy6h as option_andThen$101gy6h, filter$033ccod, or$1loyskh as option_or$1loyskh } from "./core/option.ts";
+import { err$1nqzzwu, asRef$0ssaoss } from "./core/result.ts";
 import * as Counts from "./refs.Counts.ts";
 import * as Cursor from "./refs.Cursor.ts";
 import type * as Fetch from "./refs.Fetch.ts";
@@ -1375,6 +1376,92 @@ export function toRefs(data: rt.ByteSlice, out: rt.ByteVec): void {
 		let _273: (a0: rt.u8) => rt.u8 = counted;
 		rt.byteVecPush(out, callTwice$boxed_Box_mut_mut_refs_to_refs_closure3(rt.place(() => _273, (value21) => _273 = value21)));
 	}
+}
+
+/** `Ok` for an even byte, else `Err`. */
+export function parity(b: rt.u8): rt.Result<rt.u8, rt.u8> {
+	if (!(rt.u8Rem(b, 2) === 0)) {
+		return rt.Err(b);
+	}
+	return rt.Ok(b);
+}
+
+/**
+ * A `&mut` to a `Vec`, an `Option`, or a `Result` of bytes that an adaptor is given,
+ * beside items of no places, lends each element as its place to write through. One a
+ * consumer is given compares as values.
+ */
+export function adapted(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const v: rt.ByteVec = rt.byteSliceToByteVec(data);
+	let opt: rt.u8 | undefined = rt.byteSliceFirst(data);
+	let res: rt.Result<rt.u8, rt.u8> = parity(option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, 1), 4));
+	const iter: rt.Iter<[rt.u8, rt.Place<rt.u8>]> = rt.iterZip(rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), rt.iterSliceMut(rt.byteVecView(v)), "len");
+	while (true) {
+		const _16: [rt.u8, rt.Place<rt.u8>] | rt.Done = iter.next();
+		if (_16 === rt.DONE) {
+			break;
+		}
+		_16[1].v = rt.intRotateLeft(rt.u8WrappingAdd(_16[1].v, _16[0]), 1, 8, false);
+	}
+	const iter2: rt.Iter<[rt.u8, rt.Place<rt.u8>]> = rt.iterZip(new rt.RangeFrom(1, rt.u8Step), rt.iterOption(rt.optionAsMut(rt.place(() => opt, (value) => opt = value))), "len");
+	while (true) {
+		const _29: [rt.u8, rt.Place<rt.u8>] | rt.Done = iter2.next();
+		if (_29 === rt.DONE) {
+			break;
+		}
+		_29[1].v = _29[1].v ^ ((_29[0] << 6) & 0xff);
+	}
+	const iter3: rt.Iter<[rt.u8, rt.Place<rt.u8>]> = rt.iterZip(new rt.RangeFrom(3, rt.u8Step), rt.iterOption(rt.resultAsMut(rt.place(() => res, (value2) => res = value2))), "len");
+	while (true) {
+		const _42: [rt.u8, rt.Place<rt.u8>] | rt.Done = iter3.next();
+		if (_42 === rt.DONE) {
+			break;
+		}
+		_42[1].v = rt.u8WrappingMul(_42[1].v, _42[0]);
+	}
+	const iter4: rt.Iter<[[rt.u8, rt.Place<rt.u8>], rt.Place<rt.u8>]> = rt.iterZip(rt.iterZip(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(v))), rt.iterOption(rt.optionAsMut(rt.place(() => opt, (value3) => opt = value3))), "len"), rt.iterOption(rt.resultAsMut(rt.place(() => res, (value4) => res = value4))), "len");
+	while (true) {
+		const _58: [[rt.u8, rt.Place<rt.u8>], rt.Place<rt.u8>] | rt.Done = iter4.next();
+		if (_58 === rt.DONE) {
+			break;
+		}
+		const swapped = _58[0][1].v;
+		_58[0][1].v = _58[1].v;
+		_58[1].v = swapped;
+		_58[1].v = _58[1].v ^ _58[0][0];
+	}
+	const iter5: rt.Iter<rt.Place<rt.u8>> = rt.iterChain(rt.iterChain(rt.iterChain(rt.iterOption(undefined as rt.Place<rt.u8> | undefined), rt.iterSliceMut(rt.byteVecView(v))), rt.iterOption(rt.optionAsMut(rt.place(() => opt, (value5) => opt = value5)))), rt.iterOption(rt.resultAsMut(rt.place(() => res, (value6) => res = value6))));
+	while (true) {
+		const _76: rt.Place<rt.u8> | rt.Done = iter5.next();
+		if (_76 === rt.DONE) {
+			break;
+		}
+		_76.v = rt.u8WrappingAdd(_76.v, 5);
+	}
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(v)), undefined, true);
+	rt.iterExtendBytes(out, rt.iterOption(opt), undefined, true);
+	rt.iterExtendBytes(out, rt.iterChain(rt.iterResult(res), rt.iterOption(err$1nqzzwu(asRef$0ssaoss(res)))), undefined, true);
+	const copy: rt.ByteVec = rt.byteVecFrom(rt.byteVecView(v));
+	let other: rt.u8 | undefined = option_map$0cs071d(opt, (x: rt.u8): rt.u8 => {
+		return x ^ 1;
+	});
+	const _114: boolean = rt.iterEq(rt.iterOption(opt), rt.iterOption(rt.optionAsMut(rt.place(() => other, (value7) => other = value7))), (a04: rt.u8, a14: rt.Place<rt.u8>): boolean => {
+		return a04 === a14.v;
+	}, true);
+	const _118: boolean = rt.iterEq(rt.iterResult(res), rt.iterOption(rt.optionAsMut(rt.place(() => opt, (value8) => opt = value8))), (a05: rt.u8, a15: rt.Place<rt.u8>): boolean => {
+		return a05 === a15.v;
+	}, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap([rt.iterEq(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(copy))), rt.iterSliceMut(rt.byteVecView(v)), (a0: rt.u8, a1: rt.Place<rt.u8>): boolean => {
+		return a0 === a1.v;
+	}, true), !rt.iterEq(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(copy))), rt.iterSliceMut(rt.byteVecView(v)), (a02: rt.u8, a12: rt.Place<rt.u8>): boolean => {
+		return a02 === a12.v;
+	}, true), rt.iterEq(rt.iterSkip(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(copy))), 1), rt.iterSliceMut(rt.byteVecView(v)), (a03: rt.u8, a13: rt.Place<rt.u8>): boolean => {
+		return a03 === a13.v;
+	}, true), _114, _118, !rt.iterEq(rt.iterSlice(rt.byteSliceView(data)), rt.iterOption(rt.resultAsMut(rt.place(() => res, (value9) => res = value9))), (a06: rt.u8, a16: rt.Place<rt.u8>): boolean => {
+		return a06 === a16.v;
+	}, true)], (a07: boolean): rt.u8 => {
+		return a07 ? 1 : 0;
+	})), undefined, true);
 }
 
 //# sourceMappingURL=refs.ts.map

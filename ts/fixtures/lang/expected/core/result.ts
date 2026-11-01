@@ -488,6 +488,13 @@ export function err$0jf6smd(self: rt.Result<rt.i8, rt.ParseIntError>): rt.ParseI
 	return self.error;
 }
 
+export function err$1nqzzwu(self: rt.Result<rt.u8, rt.u8>): rt.u8 | undefined {
+	if (self.ok) {
+		return undefined;
+	}
+	return self.error;
+}
+
 export function err$05f656d(self: rt.Result<rt.u8, rt.u16>): rt.u16 | undefined {
 	if (self.ok) {
 		return undefined;
@@ -517,6 +524,13 @@ export function asRef$10maq8w(self: rt.Result<rt.u32, rt.u8>): rt.Result<rt.u32,
 }
 
 export function asRef$1glrxiq(self: rt.Result<rt.u8, rt.u16>): rt.Result<rt.u8, rt.u16> {
+	if (self.ok) {
+		return rt.Ok(self.value);
+	}
+	return rt.Err(self.error);
+}
+
+export function asRef$0ssaoss(self: rt.Result<rt.u8, rt.u8>): rt.Result<rt.u8, rt.u8> {
 	if (self.ok) {
 		return rt.Ok(self.value);
 	}
