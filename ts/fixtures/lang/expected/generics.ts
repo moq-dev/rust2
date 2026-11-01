@@ -2,10 +2,14 @@
 
 import * as rt from "./rt.ts";
 import { copy$array_generics_Either_u8_shapes_Point, copy$generics_Wrap_shapes_Point, copy$generics_Wrap_u8, copy$shapes_Gauge } from "./lib.ts";
-import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr } from "./core/option.ts";
+import { then$0h950d8, then$1i9qaz4 } from "./core/bool.ts";
+import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOrDefault$001fvl5 as option_unwrapOrDefault$001fvl5, unwrapOrDefault$1q0ps0j as option_unwrapOrDefault$1q0ps0j } from "./core/option.ts";
 import { put as fmt_put } from "./fmt.ts";
 import type * as fmt_Pair from "./fmt.Pair.ts";
 import * as Either from "./generics.Either.ts";
+import type * as Lends from "./generics.Lends.ts";
+import * as generics_Run from "./generics.Run.ts";
+import * as Runs from "./generics.Runs.ts";
 import * as generics_Tagged from "./generics.Tagged.ts";
 import * as Wrap from "./generics.Wrap.ts";
 import * as shapes_Gauge from "./shapes.Gauge.ts";
@@ -99,6 +103,126 @@ export function reset$shapes_Gauge(xs: shapes_Gauge.Gauge[]): void {
 		}
 		Object.assign(_5, copy$shapes_Gauge(shapes_Gauge.default$Default()));
 	}
+}
+
+/** Writes `item` over each element of `run`, through a `&mut` to a field. */
+export function fill$u16(run: rt.u16[], item: rt.u16): void {
+	const iter: rt.Iter<rt.Place<rt.u16>> = rt.iterSliceMut(run);
+	while (true) {
+		const _5: rt.Place<rt.u16> | rt.Done = iter.next();
+		if (_5 === rt.DONE) {
+			break;
+		}
+		_5.v = item;
+	}
+}
+
+/** Writes `item` over each element of `run`, through a `&mut` to a field. */
+export function fill$u8(run: rt.ByteSlice, item: rt.u8): void {
+	const iter: rt.Iter<rt.Place<rt.u8>> = rt.iterSliceMut(rt.byteSliceView(run));
+	while (true) {
+		const _5: rt.Place<rt.u8> | rt.Done = iter.next();
+		if (_5 === rt.DONE) {
+			break;
+		}
+		_5.v = item;
+	}
+}
+
+/** [`Runs`] and [`Run`] at `u8`, whose runs JS keeps as bytes, and at `u16`. */
+export function runs(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const data2: rt.ByteVec = rt.iterToByteVec(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.u8 => {
+		return _2;
+	}), undefined, true);
+	const n: rt.u8 = option_unwrapOrDefault$1q0ps0j(rt.byteSliceFirst(rt.byteVecSlice(data2)));
+	const _13: rt.ByteVec = rt.byteVecFrom(rt.byteVecView(data2));
+	const _15: rt.ByteSlice = rt.byteVecSlice(data2);
+	const _17: rt.ByteSlice = rt.byteVecSlice(rt.byteVecFrom(rt.byteVecView(data2)));
+	const _20: rt.ByteCow = rt.byteVecSlice(data2);
+	const _23: Uint8Array[] = [];
+	const runs: Runs.Runs<rt.u8> = new Runs.Runs(rt.bytes(3).fill(n), _13, _15, _17, _20, _23, then$1i9qaz4(rt.usizeRem(data2.length, 2) === 0, (): rt.ByteVec => {
+		return new rt.ByteVec();
+	}));
+	const before: Runs.Runs<rt.u8> = Runs.clone$Clone_u8(runs);
+	const iter: rt.Iter<rt.u8> = rt.iterTake(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), 3);
+	while (true) {
+		const _38: rt.u8 | rt.Done = iter.next();
+		if (_38 === rt.DONE) {
+			break;
+		}
+		Runs.push$u8(runs, _38);
+	}
+	const _44: rt.ByteSlice | undefined = rt.optionMap(rt.sliceFirst(runs.pairs as Uint8Array[]), rt.byteSliceFrom);
+	if (_44 !== undefined) {
+		fill$u8(_44, n);
+	}
+	fill$u8(rt.byteSliceRange(rt.byteSliceFrom(runs.array as Uint8Array), 1), 7);
+	const taken3 = runs.list as rt.ByteVec;
+	(runs.list as rt.ByteVec) = new rt.ByteVec();
+	const taken: rt.ByteVec = taken3;
+	const _59: rt.ByteSlice = rt.byteVecSlice(taken);
+	const lent: Lends.Lends<rt.u8> = { run: _59, last: ((a0: rt.ByteSlice): rt.u8 | undefined => {
+		return rt.byteSliceLast(a0);
+	}) as (a0: rt.SliceOf<rt.u8>) => rt.Ptr<rt.u8> | undefined };
+	const last: rt.u8 | undefined = (lent.last as (a0: rt.ByteSlice) => rt.u8 | undefined)(runs.view as rt.ByteSlice);
+	const _65: rt.Place<rt.u8> | undefined = rt.sliceLastMut(rt.byteSliceView(_59));
+	if (_65 !== undefined) {
+		_65.v = n;
+	}
+	fill$u8(_59, 3);
+	const run: generics_Run.Run<rt.u8> = Runs.run$u8(runs);
+	const _80: rt.usize = Runs.total$u8(runs);
+	const _83: boolean = Runs.eq$cmp_PartialEq_u8(runs, before);
+	const _87: rt.u8 | undefined = generics_Run.first$u8(run);
+	const args2: rt.Fmt[] = [(f: rt.Formatter) => Runs.fmt$fmt_Debug_u8(runs, f), (f: rt.Formatter) => Runs.fmt$fmt_Debug_u8(before, f), (f: rt.Formatter) => rt.fmtList(rt.byteVecView(taken), f, rt.u8Debug), (f: rt.Formatter) => generics_Run.fmt$fmt_Debug_u8(run, f), (f: rt.Formatter) => rt.usizeDisplay(_80, f), (f: rt.Formatter) => rt.fmtBool(_83, f), (f: rt.Formatter) => rt.fmtOption(_87, f, rt.u8Debug), (f: rt.Formatter) => rt.fmtOption(last, f, rt.u8Debug)];
+	fmt_put(out, rt.fmtFormat([args2[0], " ", args2[1], " ", args2[2], " ", args2[3], " ", args2[4], " ", args2[5], " ", args2[6], " ", args2[7]]));
+	const data3: rt.u16[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_22: rt.u8): rt.u16 => {
+		return _22 as rt.u16;
+	}), undefined, 2, true);
+	const n2: rt.u16 = option_unwrapOrDefault$001fvl5(rt.sliceFirst(data3));
+	const _115: rt.u16[] = data3.slice();
+	const _117: rt.u16[] = data3;
+	const _119: rt.u16[] = data3.slice();
+	const _122: rt.Cow<rt.u16> = new rt.Borrowed(data3);
+	const _125: rt.u16[][] = [];
+	const runs2: Runs.Runs<rt.u16> = new Runs.Runs(Array.from({ length: 3 }, (): rt.u16 => {
+		return n2;
+	}), _115, _117, _119, _122, _125, then$0h950d8(rt.usizeRem(data3.length, 2) === 0, (): rt.u16[] => {
+		return [];
+	}));
+	const before2: Runs.Runs<rt.u16> = Runs.clone$Clone_u16(runs2);
+	const iter2: rt.Iter<rt.u16> = rt.iterTake(rt.iterSlice(data3), 3);
+	while (true) {
+		const _140: rt.u16 | rt.Done = iter2.next();
+		if (_140 === rt.DONE) {
+			break;
+		}
+		Runs.push$u16(runs2, _140);
+	}
+	const _146: rt.u16[] | undefined = rt.sliceFirst(runs2.pairs as rt.u16[][]);
+	if (_146 !== undefined) {
+		fill$u16(_146, n2);
+	}
+	fill$u16(rt.sliceRangeMut(runs2.array as rt.u16[], 1), 7 as rt.u16);
+	const taken4 = runs2.list as rt.u16[];
+	(runs2.list as rt.u16[]) = [];
+	const taken2: rt.u16[] = taken4;
+	const _161: rt.u16[] = taken2;
+	const lent2: Lends.Lends<rt.u16> = { run: _161, last: ((a02: rt.u16[]): rt.u16 | undefined => {
+		return rt.sliceLast(a02);
+	}) as (a0: rt.SliceOf<rt.u16>) => rt.Ptr<rt.u16> | undefined };
+	const last2: rt.u16 | undefined = (lent2.last as (a0: rt.u16[]) => rt.u16 | undefined)(runs2.view as rt.u16[]);
+	const _167: rt.Place<rt.u16> | undefined = rt.sliceLastMut(_161);
+	if (_167 !== undefined) {
+		_167.v = n2;
+	}
+	fill$u16(_161, 3 as rt.u16);
+	const run2: generics_Run.Run<rt.u16> = Runs.run$u16(runs2);
+	const _182: rt.usize = Runs.total$u16(runs2);
+	const _185: boolean = Runs.eq$cmp_PartialEq_u16(runs2, before2);
+	const _189: rt.u16 | undefined = generics_Run.first$u16(run2);
+	const args4: rt.Fmt[] = [(f: rt.Formatter) => Runs.fmt$fmt_Debug_u16(runs2, f), (f: rt.Formatter) => Runs.fmt$fmt_Debug_u16(before2, f), (f: rt.Formatter) => rt.fmtList(taken2, f, rt.u16Debug), (f: rt.Formatter) => generics_Run.fmt$fmt_Debug_u16(run2, f), (f: rt.Formatter) => rt.usizeDisplay(_182, f), (f: rt.Formatter) => rt.fmtBool(_185, f), (f: rt.Formatter) => rt.fmtOption(_189, f, rt.u16Debug), (f: rt.Formatter) => rt.fmtOption(last2, f, rt.u16Debug)];
+	fmt_put(out, rt.fmtFormat([args4[0], " ", args4[1], " ", args4[2], " ", args4[3], " ", args4[4], " ", args4[5], " ", args4[6], " ", args4[7]]));
 }
 
 //# sourceMappingURL=generics.ts.map

@@ -267,6 +267,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("arrays::flattened", arrays::flattened),
 		("args::args", args::args),
 		("returns::returns", returns::returns),
+		("generics::runs", |_, data, out| generics::runs(data, out)),
 	]
 }
 

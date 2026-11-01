@@ -47,6 +47,11 @@
   the form of, such as `*mut T`, `NonNull<T>`, or `&'a mut T`, is an `rt.Ptr<T>`, the
   object, an `rt.Place<T>`, or an `rt.ByteSlice`, rather than `rt.Place<T>` or `T`: a
   caller reading one casts it to what its instance holds, as the output does.
+- A generic type's field holding a run of a type parameter is an `rt.ArrayOf<T>` for
+  `[T; N]`, an `rt.SliceOf<T>` for `[T]` behind a reference or a `Box`, an `rt.VecOf<T>`
+  for `Vec<T>`, or an `rt.CowOf<T>` for `Cow<[T]>`, rather than `T[]` or `rt.Cow<T>`:
+  each also holds the byte form of its `u8` instance, which a caller reading one casts
+  it to, as the output does.
 - A closure, a `fn` pointer, a `dyn Fn`, or a function item as a value returns
   `undefined` for `()`, not `void`, as in `(a0: rt.u8) => undefined`: a caller passes such
   a parameter a function typed `=> undefined`.

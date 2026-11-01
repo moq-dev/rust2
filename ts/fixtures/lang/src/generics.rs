@@ -1,5 +1,7 @@
 //! Methods on generic structs and enums, each instance its own method.
 
+use std::borrow::Cow;
+
 use crate::fmt::{Pair, put};
 use crate::shapes::{Area, Meters, Point, Shape, Track};
 
@@ -186,4 +188,129 @@ pub fn reset<X: Default>(xs: &mut [X]) {
 	for x in xs.iter_mut() {
 		*x = X::default();
 	}
+}
+
+/// A generic type holding runs of its parameter in each form JS keeps a run of bytes
+/// apart in, which only an instance decides.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Runs<'a, T: Clone> {
+	pub array: [T; 3],
+	pub list: Vec<T>,
+	pub view: &'a [T],
+	pub boxed: Box<[T]>,
+	pub cow: Cow<'a, [T]>,
+	pub pairs: Vec<[T; 2]>,
+	pub maybe: Option<Vec<T>>,
+}
+
+/// An enum holding a run of its parameter in a variant.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Run<T> {
+	Listed(Vec<T>),
+	Fixed { array: [T; 2] },
+	Empty,
+}
+
+impl<T: Copy + Default> Runs<'_, T> {
+	fn total(&self) -> usize {
+		self.array.len() + self.list.len() + self.view.len() + self.boxed.len() + self.cow.len() + self.pairs.len()
+	}
+
+	fn push(&mut self, item: T) {
+		self.list.push(item);
+		self.cow.to_mut().push(item);
+		self.pairs.push([item; 2]);
+		self.array.rotate_left(1);
+		self.array[2] = item;
+		self.boxed[0] = item;
+		if let Some(maybe) = &mut self.maybe {
+			maybe.push(item);
+		}
+	}
+
+	fn run(&self) -> Run<T> {
+		match self.list.len() % 3 {
+			0 => Run::Listed(self.list.clone()),
+			1 => Run::Fixed {
+				array: [self.array[0], self.array[2]],
+			},
+			_ => Run::Empty,
+		}
+	}
+}
+
+impl<T: Copy> Run<T> {
+	fn first(&self) -> Option<T> {
+		match self {
+			Run::Listed(list) => list.first().copied(),
+			Run::Fixed { array } => Some(array[0]),
+			Run::Empty => None,
+		}
+	}
+}
+
+/// A generic type lending a run of its parameter, which it writes through, and a function
+/// of one.
+struct Lends<'a, T> {
+	run: &'a mut [T],
+	last: fn(&[T]) -> Option<&T>,
+}
+
+/// Writes `item` over each element of `run`, through a `&mut` to a field.
+fn fill<T: Copy>(run: &mut [T], item: T) {
+	for x in run {
+		*x = item;
+	}
+}
+
+/// [`Runs`] at bytes and at another element: made, written through its fields and
+/// through `&mut`s to them, copied, compared, and printed.
+macro_rules! runs_of {
+	($data:expr, $out:expr, $ty:ty) => {{
+		let data: Vec<$ty> = $data.iter().map(|&b| <$ty>::from(b)).collect();
+		let n = data.first().copied().unwrap_or_default();
+		let mut runs = Runs {
+			array: [n; 3],
+			list: data.clone(),
+			view: &data,
+			boxed: data.clone().into_boxed_slice(),
+			cow: Cow::Borrowed(&data),
+			pairs: Vec::new(),
+			maybe: (data.len() % 2 == 0).then(Vec::new),
+		};
+		let before = runs.clone();
+		for &x in data.iter().take(3) {
+			runs.push(x);
+		}
+		if let Some(pair) = runs.pairs.first_mut() {
+			fill(pair, n);
+		}
+		fill(&mut runs.array[1..], <$ty>::from(7u8));
+		let mut taken = std::mem::take(&mut runs.list);
+		let lent = Lends {
+			run: &mut taken,
+			last: <[$ty]>::last,
+		};
+		let last = (lent.last)(runs.view).copied();
+		if let Some(x) = lent.run.last_mut() {
+			*x = n;
+		}
+		fill(lent.run, <$ty>::from(3u8));
+		let run = runs.run();
+		put(
+			$out,
+			&format!(
+				"{runs:?} {before:?} {taken:?} {run:?} {} {} {:?} {last:?}",
+				runs.total(),
+				runs == before,
+				run.first(),
+			),
+		);
+	}};
+}
+
+/// [`Runs`] and [`Run`] at `u8`, whose runs JS keeps as bytes, and at `u16`.
+pub fn runs(data: &[u8], out: &mut Vec<u8>) {
+	runs_of!(data, out, u8);
+	runs_of!(data, out, u16);
 }

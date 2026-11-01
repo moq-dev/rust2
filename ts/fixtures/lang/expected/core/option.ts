@@ -240,6 +240,13 @@ export function unwrapOrDefault$0k1p6nh(self: [rt.u64 | undefined, defaults_Made
 	return self;
 }
 
+export function unwrapOrDefault$001fvl5(self: rt.u16 | undefined): rt.u16 {
+	if (self === undefined) {
+		return 0;
+	}
+	return self;
+}
+
 export function unwrapOrDefault$1q0ps0j(self: rt.u8 | undefined): rt.u8 {
 	if (self === undefined) {
 		return 0;
@@ -1813,6 +1820,20 @@ export function clone$14nprly(self: string | undefined): string | undefined {
 		return undefined;
 	}
 	return self;
+}
+
+export function clone$096c3ul(self: rt.u16[] | undefined): rt.u16[] | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return self.slice();
+}
+
+export function clone$1grnave(self: rt.ByteVec | undefined): rt.ByteVec | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return rt.byteVecFrom(rt.byteVecView(self));
 }
 
 export function clone$0vcwlo5(self: edits_Named.Named | undefined): edits_Named.Named | undefined {

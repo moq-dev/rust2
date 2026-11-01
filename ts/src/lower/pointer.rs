@@ -119,12 +119,11 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		if self.polymorphic() || !ty.has_param() {
 			return false;
 		}
-		let open = |ty: Ty<'tcx>| matches!(ty.kind(), ty::Param(_) | ty::Alias(..));
 		let ty = self.uninit_inner(ty);
 		match ty.kind() {
-			ty::Array(elem, _) => open(*elem),
+			ty::Array(elem, _) => self.open(*elem),
 			ty::Adt(adt, _) => self.bound_drops(adt.did()).is_some(),
-			_ => open(ty),
+			_ => self.open(ty),
 		}
 	}
 

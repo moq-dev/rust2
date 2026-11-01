@@ -132,6 +132,13 @@ export function then$0afp4no(self: boolean, f: () => rt.Result<rt.u8, rt.ParseIn
 	return f();
 }
 
+export function then$0h950d8(self: boolean, _: () => rt.u16[]): rt.u16[] | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return [];
+}
+
 export function then$1i9qaz4(self: boolean, _: () => rt.ByteVec): rt.ByteVec | undefined {
 	if (!self) {
 		return undefined;
