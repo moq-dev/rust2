@@ -1183,6 +1183,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					| library::Std::BTreeMap
 					| library::Std::BTreeSet
 					| library::Std::VecDeque
+					| library::Std::LinkedList
 					| library::Std::BinaryHeap
 					| library::Std::PeekMut
 					| library::Std::Entry
@@ -1542,6 +1543,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				| library::Std::HashSet
 				| library::Std::BTreeSet
 				| library::Std::VecDeque
+				| library::Std::LinkedList
 				| library::Std::BinaryHeap
 				| library::Std::PeekMut => {
 					let (name, n) = match std {
@@ -1552,6 +1554,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						library::Std::BTreeSet => ("BTreeSet", 1),
 						library::Std::BinaryHeap => ("BinaryHeap", 1),
 						library::Std::PeekMut => ("PeekMut", 1),
+						library::Std::LinkedList => ("LinkedList", 1),
 						_ => ("VecDeque", 1),
 					};
 					let tys: Vec<Ty<'tcx>> = args.types().take(n).collect();
