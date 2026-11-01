@@ -1,5 +1,6 @@
 // Collections, for rust2-ts output: std's `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`,
-// `VecDeque`, `LinkedList`, and `BinaryHeap`, with `Ordering`, which their keys need. `rt.ts`
+// `VecDeque`, `LinkedList`, and `BinaryHeap`, hashbrown's `HashTable`, which std's maps are
+// built on, and `Ordering`, which their keys need. `rt.ts`
 // re-exports all of it. Each collection is one type whose functions are free functions
 // here, so a bundler keeps only those a caller reaches.
 //
@@ -14,9 +15,9 @@
 // A function that may drop a key, value, or item std's would, rather than return or keep
 // it, takes what drops each that does, as `k`, `v`, or `f`, and drops it where std's does.
 
-import { ByteSlice, ByteVec, byteVecPush, byteVecReserve, type Capped, capHold, capOf, capReserve, capReserveExact, capSet, capShrink, type None, type Place, panic, type RangeBound, rangeCheck, sliceSort, vecExact, vecMax, vecReserve, vecWithCapacity } from "../rt.ts";
+import { ByteSlice, ByteVec, byteVecPush, byteVecReserve, type Capped, capHold, capOf, capReserve, capReserveExact, capSet, capShrink, Err, type None, Ok, type Place, panic, type RangeBound, type Result, rangeCheck, sliceSort, vecExact, vecMax, vecReserve, vecWithCapacity } from "../rt.ts";
 import type { Hashing } from "./hash.ts";
-import { type Limbs, lt } from "./int.ts";
+import { type Limbs, lt, type u64 } from "./int.ts";
 import {
 	type Clones,
 	DONE,
@@ -409,11 +410,11 @@ interface Slot<K, V> {
 }
 
 /**
- * `HashMap<K, V>`, and `HashSet<K>` as a map to `undefined`. A key that is a JS primitive,
- * a number, string, or boolean, is its own JS map key, as Rust compares it; a key that
- * is an object goes by its hash, to a chain of the keys `Eq` tells apart. Iteration
- * visits the first kind in insertion order and then the second by hash, an order Rust
- * leaves unspecified.
+ * `HashMap<K, V>`, and `HashSet<K>` as a map to `undefined`, std's or hashbrown's. A key
+ * that is a JS primitive, a number, string, or boolean, is its own JS map key, as Rust
+ * compares it; a key that is an object goes by its hash, to a chain of the keys `Eq`
+ * tells apart. Iteration visits the first kind in insertion order and then the second by
+ * hash, an order Rust leaves unspecified.
  */
 export interface HashMap<K, V> {
 	p: Map<K, V>;
@@ -422,6 +423,8 @@ export interface HashMap<K, V> {
 	n: number;
 	/** How to find a key that is an object, or `undefined` if no key is one. */
 	readonly h: Hashing<K> | undefined;
+	/** The capacity an operation last set it to, if any, which `hashCapacity` reads. */
+	cap?: number;
 }
 
 /** `HashSet<K>`. */
@@ -449,6 +452,59 @@ function slot<K, V>(m: HashMap<K, V>, key: K, hash?: number): Slot<K, V> | undef
 
 export function hashLen<K, V>(m: HashMap<K, V>): number {
 	return m.p.size + m.n;
+}
+
+// Capacity. std guarantees a hash collection's only past `capacity() >= len` and what
+// `with_capacity`, `reserve`, and `shrink_to` ask for, so a map holds one, as `cap`, only
+// where an operation sets it, and an insert never reads or writes it. Reading one doubles
+// it while short of the length, as inserts grow std's, and a removal keeps what it read,
+// as a table keeps its allocation.
+
+/** The least capacity a map holds once it holds anything. */
+const HASH_MIN = 3;
+
+/** `capacity` of a hash collection. */
+export function hashCapacity<K, V>(m: HashMap<K, V>): number {
+	const n = hashLen(m);
+	let c = m.cap ?? 0;
+	while (c < n) c = Math.max(c * 2, HASH_MIN);
+	return c;
+}
+
+/** Keep the capacity `m` reads before it holds fewer. */
+function hold<K, V>(m: HashMap<K, V>): void {
+	if ((m.cap ?? 0) < hashLen(m)) m.cap = hashCapacity(m);
+}
+
+/** `with_capacity`, of at most `max` entries, past which it panics, as hashbrown's does. */
+export function hashWithCapacity<K, V>(n: number, max: number, h?: Hashing<NoInfer<K>>): HashMap<K, V> {
+	if (n > max) panic("Hash table capacity overflow");
+	const m = hashNew<K, V>(h);
+	if (n > 0) m.cap = n;
+	return m;
+}
+
+/**
+ * `reserve`, of room for `additional` more, at least doubling, which panics past `max`
+ * entries. A `HashTable`'s takes its hasher, which it never calls, as it moves no item.
+ */
+export function hashReserve<K, V>(m: HashMap<K, V>, additional: number, max: number, _hasher?: (item: V) => u64): void {
+	const n = hashLen(m);
+	const cap = hashCapacity(m);
+	if (additional <= cap - n) return;
+	if (n + additional > max) panic("Hash table capacity overflow");
+	m.cap = Math.min(Math.max(cap * 2, n + additional), max);
+}
+
+/** `shrink_to`, and `shrink_to_fit` of 0: room for no fewer than `min` and what it holds. A table's hasher goes uncalled. */
+export function hashShrinkTo<K, V>(m: HashMap<K, V>, min: number, _hasher?: (item: V) => u64): void {
+	const target = Math.max(hashLen(m), min);
+	if (target < hashCapacity(m)) m.cap = target;
+}
+
+/** hashbrown's `allocation_size` of entries `size` bytes each: a slot and a control byte for each it has room for. */
+export function hashAllocationSize<K, V>(m: HashMap<K, V>, size: number): number {
+	return hashCapacity(m) * (size + 1);
 }
 
 /** `HashMap::get`: the value there, or else `none`, the `None` of an `Option` of a value that can be `undefined`. */
@@ -574,6 +630,7 @@ export function hashAdd<K>(m: HashSet<K>, key: K, k?: (key: K) => void): boolean
 
 /** `HashMap::remove_entry`: the key and value there, if any. */
 export function hashRemoveEntry<K, V>(m: HashMap<K, V>, key: K): [K, V] | undefined {
+	hold(m);
 	if (!hashed(m, key)) {
 		if (!m.p.has(key)) return undefined;
 		const value = m.p.get(key) as V;
@@ -606,6 +663,7 @@ export function hashRemove<K, V>(m: HashMap<K, V>, key: K, k?: (key: K) => void)
 export function hashRemove<K, V>(m: HashMap<K, V>, key: K, k: ((key: K) => void) | undefined, none: None): V | None;
 export function hashRemove<K, V>(m: HashMap<K, V>, key: K, k?: (key: K) => void, none?: None): V | None | undefined {
 	if (!hashed(m, key)) {
+		hold(m);
 		if (!m.p.has(key)) return none;
 		const old = m.p.get(key);
 		m.p.delete(key);
@@ -621,6 +679,7 @@ export function hashRemove<K, V>(m: HashMap<K, V>, key: K, k?: (key: K) => void,
 /** `HashSet::remove`: whether `key` was there. The key it held drops. */
 export function hashDelete<K>(m: HashSet<K>, key: K, k?: (key: K) => void): boolean {
 	if (!hashed(m, key)) {
+		hold(m);
 		if (!m.p.delete(key)) return false;
 		k?.(key);
 		return true;
@@ -634,6 +693,7 @@ export function hashDelete<K>(m: HashSet<K>, key: K, k?: (key: K) => void): bool
 export function hashKey<K>(m: HashSet<K>, key: K, take?: boolean): K | undefined;
 export function hashKey<K>(m: HashSet<K>, key: K, take: boolean, none: None): K | None;
 export function hashKey<K>(m: HashSet<K>, key: K, take = false, none?: None): K | None | undefined {
+	if (take) hold(m);
 	if (hashed(m, key) && take) {
 		const entry = hashRemoveEntry(m, key);
 		return entry === undefined ? none : entry[0];
@@ -657,6 +717,7 @@ export function hashDrop<K, V>(m: HashMap<K, V>, k: ((key: K) => void) | undefin
 
 /** `clear`, which drops each entry and leaves the map empty. */
 export function hashClear<K, V>(m: HashMap<K, V>, k?: (key: K) => void, v?: (value: V) => void): void {
+	hold(m);
 	if (k !== undefined || v !== undefined) hashDrop(m, k, v);
 	m.p.clear();
 	m.o = undefined;
@@ -675,6 +736,7 @@ export function hashRetainMut<K, V>(m: HashMap<K, V>, f: (key: K, value: Place<V
 
 /** `retain`, handing `f` each value or, if `lend`, its place. */
 function retainHash<K, V>(m: HashMap<K, V>, f: (key: K, value: V | Place<V>) => boolean, lend: boolean, k?: (key: K) => void, v?: (value: V) => void): void {
+	hold(m);
 	for (const [key, value] of m.p) {
 		if (f(key, lend ? new AtKey(m.p, key) : value)) continue;
 		const now = lend ? (m.p.get(key) as V) : value;
@@ -883,8 +945,9 @@ export function hashDrainKeys<K, V>(m: HashMap<K, V>, k?: (key: K) => void): Ite
 	return new HashIter<K, V, K>(taken(m), KEYS, k, undefined, true);
 }
 
-/** What `m` held, which it no longer does. */
+/** What `m` held, which it no longer does, with the room it had. */
 function taken<K, V>(m: HashMap<K, V>): HashMap<K, V> {
+	hold(m);
 	const out: HashMap<K, V> = { p: m.p, o: m.o, n: m.n, h: m.h };
 	m.p = new Map();
 	hashClear(m);
@@ -931,7 +994,7 @@ function vecExtending<C, T>(c: C, len: number, items: Iter<T>, add: (item: T) =>
  * iterator's lower bound: all of it, or half rounded up if `m` holds any, which panics past
  * `max` entries, the most its table holds.
  */
-function hashReserve<K, V>(m: HashMap<K, V>, additional: number, max: number | undefined): void {
+function extendReserve<K, V>(m: HashMap<K, V>, additional: number, max: number | undefined): void {
 	if (max === undefined) return;
 	const n = hashLen(m);
 	if (n + (n === 0 ? additional : Math.ceil(additional / 2)) > max) panic("Hash table capacity overflow");
@@ -939,11 +1002,11 @@ function hashReserve<K, V>(m: HashMap<K, V>, additional: number, max: number | u
 
 /**
  * `extend` of a map with `[key, value]`s, and `collect` into one through `hashNew`, which
- * reserves first as `hashReserve` does. Of equal keys, the first stays and each later one
+ * reserves first as `extendReserve` does. Of equal keys, the first stays and each later one
  * drops, then the value it replaced.
  */
 export function hashExtend<K, V>(m: HashMap<K, V>, items: Iter<[K, V]>, k?: (key: K) => void, v?: (value: V) => void, take?: Take, max?: number): HashMap<K, V> {
-	hashReserve(m, items.sizeHint()[0], max);
+	extendReserve(m, items.sizeHint()[0], max);
 	const add = (item: [K, V]) => {
 		const old = hashInsert(m, item[0], item[1], k);
 		if (old !== undefined) v?.(old);
@@ -953,7 +1016,7 @@ export function hashExtend<K, V>(m: HashMap<K, V>, items: Iter<[K, V]>, k?: (key
 
 /** `extend` of a set with keys, and `collect` into one, as `hashExtend`: a key already there drops. */
 export function hashExtendKeys<K>(m: HashSet<K>, keys: Iter<K>, k?: (key: K) => void, take?: Take, max?: number): HashSet<K> {
-	hashReserve(m, keys.sizeHint()[0], max);
+	extendReserve(m, keys.sizeHint()[0], max);
 	return extending(m, keys, (key) => hashAdd(m, key, k), take);
 }
 
@@ -961,8 +1024,10 @@ export function hashExtendKeys<K>(m: HashSet<K>, keys: Iter<K>, k?: (key: K) => 
 export function hashClone<K, V>(m: HashMap<K, V>, key: (k: K) => K = itself, value: (v: V) => V = itself): HashMap<K, V> {
 	const out = hashNew<K, V>(m.h);
 	for (const [k, v] of m.p) out.p.set(key(k), value(v));
-	for (const first of m.o?.values() ?? []) {
-		for (let s: Slot<K, V> | undefined = first; s !== undefined; s = s.next) add(out, key(s.k), value(s.v));
+	// Each clone keeps its original's hash, as hashbrown's copies its table without
+	// rehashing, and a table has no hasher to rehash by.
+	for (const [hash, first] of m.o ?? []) {
+		for (let s: Slot<K, V> | undefined = first; s !== undefined; s = s.next) add(out, key(s.k), value(s.v), hash);
 	}
 	return out;
 }
@@ -1009,6 +1074,158 @@ export function hashIsDisjoint<K>(a: HashSet<K>, b: HashSet<K>): boolean {
 	const [small, large] = hashLen(a) <= hashLen(b) ? [a, b] : [b, a];
 	for (const key of hashKeys(small)) if (hashContains(large, key)) return false;
 	return true;
+}
+
+// HashTable
+
+/**
+ * hashbrown's `HashTable<T>`: a map of nothing to each item, under the hash its caller
+ * gives rather than one of its own, which the caller's equality tells apart. So the map's
+ * functions read, iterate, drain, drop, and size it, of its values.
+ */
+export type HashTable<T> = HashMap<undefined, T>;
+
+/** The JS map key of a hash: the number, or one past 2^53 its limbs make. */
+function tableKey(hash: u64): number {
+	return typeof hash === "number" ? hash : hash.hi * 0x1_0000_0000 + hash.lo;
+}
+
+/** The slot of `t` under `hash` whose item `eq` accepts. */
+function tableSlot<T>(t: HashTable<T>, hash: number, eq: (item: T) => boolean): Slot<undefined, T> | undefined {
+	for (let s = t.o?.get(hash); s !== undefined; s = s.next) if (eq(s.v)) return s;
+	return undefined;
+}
+
+/** `HashTable::find`: the item under `hash` that `eq` accepts, or else `none`. */
+export function tableFind<T>(t: HashTable<T>, hash: u64, eq: (item: T) => boolean): T | undefined;
+export function tableFind<T>(t: HashTable<T>, hash: u64, eq: (item: T) => boolean, none: None): T | None;
+export function tableFind<T>(t: HashTable<T>, hash: u64, eq: (item: T) => boolean, none?: None): T | None | undefined {
+	const s = tableSlot(t, tableKey(hash), eq);
+	return s === undefined ? none : s.v;
+}
+
+/** `HashTable::find_mut` of items JS copies: the place of the item `eq` accepts. */
+export function tableFindMut<T>(t: HashTable<T>, hash: u64, eq: (item: T) => boolean): Place<T> | undefined {
+	return tableSlot(t, tableKey(hash), eq);
+}
+
+/**
+ * A `HashTable`'s `Entry`, `OccupiedEntry`, `VacantEntry`, or `AbsentEntry`: the table, the
+ * hash, and the slot it found, which is the place of its item while it is occupied.
+ */
+export class TableEntry<T> implements Place<T> {
+	readonly t: HashTable<T>;
+	private readonly h: number;
+	private s: Slot<undefined, T> | undefined;
+
+	constructor(t: HashTable<T>, h: number, s: Slot<undefined, T> | undefined) {
+		this.t = t;
+		this.h = h;
+		this.s = s;
+	}
+
+	get v(): T {
+		return (this.s as Slot<undefined, T>).v;
+	}
+
+	set v(item: T) {
+		(this.s as Slot<undefined, T>).v = item;
+	}
+
+	/** Whether it is occupied. */
+	get o(): boolean {
+		return this.s !== undefined;
+	}
+
+	/** Insert `item`, which it holds then. */
+	fill(item: T): this {
+		this.s = add(this.t, undefined, item, this.h);
+		return this;
+	}
+
+	/** Take its item out of the table, which leaves it vacant. */
+	take(): T {
+		const s = this.s as Slot<undefined, T>;
+		hold(this.t);
+		unlink(this.t, this.h, s);
+		this.s = undefined;
+		return s.v;
+	}
+}
+
+/** `HashTable::entry`: occupied by the item under `hash` that `eq` accepts, or else vacant. Its hasher goes uncalled. */
+export function tableEntry<T>(t: HashTable<T>, hash: u64, eq: (item: T) => boolean, _hasher?: (item: T) => u64): TableEntry<T> {
+	const h = tableKey(hash);
+	return new TableEntry(t, h, tableSlot(t, h, eq));
+}
+
+/** `HashTable::find_entry`: `tableEntry`'s, as `Ok` if occupied and else as an `AbsentEntry` in `Err`. */
+export function tableFindEntry<T>(t: HashTable<T>, hash: u64, eq: (item: T) => boolean): Result<TableEntry<T>, TableEntry<T>> {
+	const e = tableEntry(t, hash, eq);
+	return e.o ? Ok(e) : Err(e);
+}
+
+/** `HashTable::insert_unique`: the entry of `item`, inserted under `hash`. Its hasher goes uncalled. */
+export function tableInsertUnique<T>(t: HashTable<T>, hash: u64, item: T, _hasher?: (item: T) => u64): TableEntry<T> {
+	return new TableEntry(t, tableKey(hash), undefined).fill(item);
+}
+
+/** Whether `e` is `Entry::Occupied`. */
+export function tableOccupied<T>(e: TableEntry<T>): boolean {
+	return e.o;
+}
+
+/** `Entry::insert` and `VacantEntry::insert`: `e`, holding `item` in place of what it held, which drops. */
+export function tableEntryInsert<T>(e: TableEntry<T>, item: T, f?: (item: T) => void): TableEntry<T> {
+	if (!e.o) return e.fill(item);
+	const old = e.v;
+	e.v = item;
+	f?.(old);
+	return e;
+}
+
+/** `Entry::or_insert`: `e`, holding `item` if it was vacant, or else what it held, and `item` drops. */
+export function tableOrInsert<T>(e: TableEntry<T>, item: T, f?: (item: T) => void): TableEntry<T> {
+	if (!e.o) return e.fill(item);
+	f?.(item);
+	return e;
+}
+
+/** `Entry::or_insert_with`: `e`, holding `make()`'s item if it was vacant. */
+export function tableOrInsertWith<T>(e: TableEntry<T>, make: () => T): TableEntry<T> {
+	return e.o ? e : e.fill(make());
+}
+
+/** `Entry::and_modify`: `f` of its item, if occupied. */
+export function tableAndModify<T>(e: TableEntry<T>, f: (item: T) => void): TableEntry<T> {
+	if (e.o) f(e.v);
+	return e;
+}
+
+/** `Entry::and_modify` of items JS copies: `f` of its item's place, if occupied. */
+export function tableAndModifyMut<T>(e: TableEntry<T>, f: (item: Place<T>) => void): TableEntry<T> {
+	if (e.o) f(e);
+	return e;
+}
+
+/** `OccupiedEntry::remove`: its item, and itself, vacant. */
+export function tableRemove<T>(e: TableEntry<T>): [T, TableEntry<T>] {
+	return [e.take(), e];
+}
+
+/** `HashTable::retain`, which keeps each item `f` returns true for. Each goes, and drops by `d`, as `f` rejects it. */
+export function tableRetain<T>(t: HashTable<T>, f: (item: T) => boolean, d?: (item: T) => void): void {
+	retainHash(t, (_, item) => f(item as T), false, undefined, d);
+}
+
+/** `HashTable::retain` of items JS copies: `f` takes the place of each. */
+export function tableRetainMut<T>(t: HashTable<T>, f: (item: Place<T>) => boolean, d?: (item: T) => void): void {
+	retainHash(t, (_, item) => f(item as Place<T>), true, undefined, d);
+}
+
+/** `HashTable::drain`: every item, taken out at once, each it still holds dropping by `d` as it drops. */
+export function tableDrain<T>(t: HashTable<T>, d?: (item: T) => void): Iter<T> {
+	return new HashIter<undefined, T, T>(taken(t), VALUES, undefined, d, true);
 }
 
 // BTreeMap and BTreeSet
@@ -2330,6 +2547,7 @@ export function entryInsert<K, V>(e: Entry<K, V>, value: V): V {
 /** `OccupiedEntry::remove_entry`. */
 export function entryRemoveEntry<K, V>(e: Entry<K, V>): [K, V] {
 	const m = e.m;
+	if (isHash(m)) hold(m);
 	const value = entryGet(e);
 	if (!isHash(m)) removeAt(m, e.l as Leaf<K, V>, e.i);
 	else if (e.s !== undefined) unlink(m, e.h as number, e.s);
@@ -3565,10 +3783,10 @@ export function heapPart<T>(le: Test<T>, size?: number): Part<BinaryHeap<T>, T> 
 	);
 }
 
-/** A `HashMap`, which inserts each entry as `hashExtend` does, and reserves as `hashReserve`. */
+/** A `HashMap`, which inserts each entry as `hashExtend` does, and reserves as `extendReserve`. */
 export function hashPart<K, V>(k?: (key: K) => void, v?: (value: V) => void, max?: number): Part<HashMap<K, V>, [K, V]> {
 	return {
-		reserve: (m, additional) => hashReserve(m, additional, max),
+		reserve: (m, additional) => extendReserve(m, additional, max),
 		one: (m, item) => {
 			const old = hashInsert(m, item[0], item[1], k);
 			if (old !== undefined) v?.(old);
@@ -3580,7 +3798,7 @@ export function hashPart<K, V>(k?: (key: K) => void, v?: (value: V) => void, max
 /** A `HashSet`, which adds each key as `hashExtendKeys` does. */
 export function hashKeysPart<K>(k?: (key: K) => void, max?: number): Part<HashSet<K>, K> {
 	return {
-		reserve: (m, additional) => hashReserve(m, additional, max),
+		reserve: (m, additional) => extendReserve(m, additional, max),
 		one: (m, key) => {
 			hashAdd(m, key, k);
 			return m;

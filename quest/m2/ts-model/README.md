@@ -46,5 +46,5 @@ Public API: the translator's output for moq-net's model.
 
 ## Required
 
-- [hashbrown as the runtime's map](/quest/m2/ts-model/hashbrown.md) - hashlink's `hashbrown` tables translate as `rt.HashMap`, with std's capacity
 - [The std calls moq's main added to the model](/quest/m2/ts-model/main-std.md) - `VecDeque::range`, and `str::rsplit_once` and `split_terminator` by a `char`, translate
+- [A crate's own hasher](/quest/m2/ts-model/own-hasher.md) - hashlink's default hasher, a crate's own `Hasher`, hashes keys as native's does
