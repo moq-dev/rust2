@@ -10,6 +10,7 @@ import {
 	bytes,
 	byteVecExtendFromSlice,
 	byteVecPush,
+	byteVecReserve,
 	copyBytes,
 	type FmtResult,
 	type Formatter,
@@ -418,6 +419,43 @@ export function bytesMutPutFill(b: BytesMut, val: number, cnt: usize): void {
 	b.length += cnt;
 }
 
+// The provided `BufMut::put` and `put_bytes` that a `&mut` or a `Box` doesn't forward,
+// which write into the room `chunk_mut` makes, 64 bytes more once there is none, rather
+// than reserving what they write as the buffers' own do.
+
+/** A provided write of `cnt` bytes, which panics past `remaining_mut`. */
+function checkRoom(length: number, cnt: number): void {
+	if (cnt > ISIZE_MAX - length) panicAdvance(cnt, ISIZE_MAX - length);
+}
+
+/** `<BytesMut as BufMut>::chunk_mut`: how many bytes fit past the end, once it reserved 64 if none did. */
+function bytesMutRoom(b: BytesMut): number {
+	if (b.cap === b.length) bytesMutReserve(b, 64);
+	return b.cap - b.length;
+}
+
+/** The provided `BufMut::put_bytes` of a `BytesMut`. */
+export function bytesMutPutFillChunked(b: BytesMut, val: number, cnt: usize): void {
+	checkRoom(b.length, cnt);
+	for (let left = cnt as number; left > 0; ) {
+		const n = Math.min(bytesMutRoom(b), left);
+		b.data.fill(val, b.start + b.length, b.start + b.length + n);
+		b.length += n;
+		left -= n;
+	}
+}
+
+/** The provided `BufMut::put` into a `BytesMut` of a buffer whose bytes are `s`. */
+export function bytesMutPutChunked(b: BytesMut, s: ByteSlice): void {
+	checkRoom(b.length, s.length);
+	for (let done = 0; done < s.length; ) {
+		const n = Math.min(bytesMutRoom(b), s.length - done);
+		copyBytes(b.data, b.start + b.length, s.data, s.start + done, n);
+		b.length += n;
+		done += n;
+	}
+}
+
 /** `BytesMut::truncate`, and `clear` of 0. */
 export function bytesMutTruncate(b: BytesMut, len: usize): void {
 	if (len <= b.length) b.length = len;
@@ -502,6 +540,9 @@ export function bytesMutCopyToSlice(b: BytesMut, dst: ByteSlice): void {
 
 // BufMut of Vec<u8>
 
+// A write reserves what it writes, as `Vec::extend_from_slice` and `resize` do, so the
+// capacity grows as `bytes`' does.
+
 /** `BufMut::put` into a `Vec<u8>` of a `Buf` the crate implements, each chunk in turn. */
 export function byteVecPutBuf<B>(
 	v: ByteVec,
@@ -511,7 +552,7 @@ export function byteVecPutBuf<B>(
 	chunk: (src: B) => ByteSlice,
 	advance: (src: B, cnt: usize) => void,
 ): void {
-	if (v.length + remaining(src) > ISIZE_MAX) panic("capacity overflow");
+	byteVecReserve(v, remaining(src));
 	while (hasRemaining(src)) {
 		const s = chunk(src);
 		byteVecExtendFromSlice(v, s);
@@ -521,11 +562,13 @@ export function byteVecPutBuf<B>(
 
 /** `BufMut::put_u8` and the other writes of a narrow integer to a `Vec<u8>`, as `bytesMutPutWord`. */
 export function byteVecPutWord(v: ByteVec, value: number, n: number, le: boolean): void {
+	byteVecReserve(v, n);
 	for (let i = 0; i < n; i++) byteVecPush(v, value >>> (8 * (le ? i : n - 1 - i)));
 }
 
 /** `BufMut::put_*` of big-endian bytes to a `Vec<u8>`, reversed if `le`. */
 export function byteVecPutBytes(v: ByteVec, be: Uint8Array, le: boolean): void {
+	byteVecReserve(v, be.length);
 	for (let i = 0; i < be.length; i++) byteVecPush(v, be[le ? be.length - 1 - i : i]);
 }
 
@@ -537,6 +580,54 @@ export function byteVecPutInt(v: ByteVec, be: Uint8Array, nbytes: usize, le: boo
 
 /** `BufMut::put_bytes` to a `Vec<u8>`: its `resize`, which panics past what a vector holds. */
 export function byteVecPutFill(v: ByteVec, val: number, cnt: usize): void {
-	if (v.length + cnt > ISIZE_MAX) panic("capacity overflow");
-	for (let i = 0; i < cnt; i++) byteVecPush(v, val);
+	byteVecReserve(v, cnt);
+	v.data.fill(val, v.length, v.length + cnt);
+	v.length += cnt;
+}
+
+/** `<Vec<u8> as BufMut>::chunk_mut`: how many bytes fit past the end, once it reserved 64 if none did. */
+function byteVecRoom(v: ByteVec): number {
+	if (v.data.length === v.length) byteVecReserve(v, 64);
+	return v.data.length - v.length;
+}
+
+/** The provided `BufMut::put_bytes` of a `Vec<u8>`. */
+export function byteVecPutFillChunked(v: ByteVec, val: number, cnt: usize): void {
+	checkRoom(v.length, cnt);
+	for (let left = cnt as number; left > 0; ) {
+		const n = Math.min(byteVecRoom(v), left);
+		v.data.fill(val, v.length, v.length + n);
+		v.length += n;
+		left -= n;
+	}
+}
+
+/** The provided `BufMut::put` into a `Vec<u8>` of a buffer whose bytes are `s`. */
+export function byteVecPutChunked(v: ByteVec, s: ByteSlice): void {
+	checkRoom(v.length, s.length);
+	for (let done = 0; done < s.length; ) {
+		const n = Math.min(byteVecRoom(v), s.length - done);
+		copyBytes(v.data, v.length, s.data, s.start + done, n);
+		v.length += n;
+		done += n;
+	}
+}
+
+/** The provided `BufMut::put` into a `Vec<u8>` of a `Buf` the crate implements, each chunk cut to the room left. */
+export function byteVecPutBufChunked<B>(
+	v: ByteVec,
+	src: B,
+	hasRemaining: (src: B) => boolean,
+	remaining: (src: B) => usize,
+	chunk: (src: B) => ByteSlice,
+	advance: (src: B, cnt: usize) => void,
+): void {
+	if (remaining(src) > ISIZE_MAX - v.length) panicAdvance(remaining(src), ISIZE_MAX - v.length);
+	while (hasRemaining(src)) {
+		const s = chunk(src);
+		const n = Math.min(byteVecRoom(v), s.length);
+		copyBytes(v.data, v.length, s.data, s.start, n);
+		v.length += n;
+		advance(src, n as usize);
+	}
 }
