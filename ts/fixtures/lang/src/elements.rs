@@ -281,8 +281,11 @@ pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 			slice::from_raw_parts_mut(at, 1)[0] += 1;
 			out.push(at.add(1).sub(1).read() as u8);
 			out.push(at.add(1).offset_from(at) as u8);
+			out.push(slice::from_raw_parts(at, 0).as_ptr().offset_from(at) as u8);
 		}
 		out.push(lone as u8);
+		let byte = n ^ 0x5a;
+		out.push(unsafe { slice::from_raw_parts(&raw const byte, 1)[0] });
 		let mut a = [u32::from(n), 1, 2, 3];
 		let base = a.as_mut_ptr();
 		let part = &mut a[1..3];

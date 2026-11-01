@@ -111,7 +111,7 @@ export function segments(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.ptrCopy(p2, rt.byteSliceAsPtr(rt.byteSliceFrom(a)), rt.min(v.length, 4));
 	const byte: rt.Place<rt.u8> = rt.ptrAdd(rt.byteSliceAsPtr(rt.byteSliceFrom(a)), 1);
 	rt.ptrAdd(byte, 2).v = 85;
-	rt.byteVecExtendFromSlice(out, rt.ptrByteSlice(rt.ptrAdd(byte, -1), 4, false));
+	rt.byteVecExtendFromSlice(out, rt.ptrByteSlice(rt.ptrAdd(byte, -1), 4, true));
 	const one: rt.Place<rt.u8> = rt.sliceAsPtr(a, 2);
 	one.v = one.v ^ 15;
 	rt.byteVecPush(out, one.v);
@@ -223,7 +223,12 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 		_68[0] = rt.u32Add(_68[0], 1);
 		rt.byteVecPush(out, rt.ptrAdd(rt.ptrAdd(at, 1), -1).v & 0xff);
 		rt.byteVecPush(out, rt.ptrOffsetFrom(rt.ptrAdd(at, 1), at) & 0xff);
+		rt.byteVecPush(out, rt.ptrOffsetFrom(rt.sliceAsPtr(rt.ptrSlice(at, 0)), at) & 0xff);
 		rt.byteVecPush(out, lone & 0xff);
+		let byte: rt.u8 = n ^ 90;
+		const _97: rt.ByteSlice = rt.ptrByteSlice(rt.place(() => byte, (value2) => byte = value2), 1, true);
+		rt.idx(_97, 0);
+		rt.byteVecPush(out, _97.data[_97.start]);
 		const a: rt.u32[] = [n as rt.u32, 1, 2, 3];
 		const base: rt.Place<rt.u32> = rt.sliceAsPtr(a);
 		const part: rt.u32[] = rt.sliceRangeMut(a, 1, 3);
@@ -232,7 +237,7 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecPush(out, rt.ptrOffsetFrom(at2, base) & 0xff);
 		at2.v = rt.u32Add(at2.v, 5);
 		rt.byteVecPush(out, rt.ptrOffsetFrom(rt.sliceAsPtr(rt.ptrSlice(rt.ptrAdd(at2, 1), 0)), base) & 0xff);
-		rt.byteVecPush(out, rt.ptrOffsetFrom(rt.byteSliceAsPtr(rt.ptrByteSlice(rt.ptrAdd(rt.byteSliceAsPtr(rt.byteSliceFrom(bytes)), 2), 0, false)), p) & 0xff);
+		rt.byteVecPush(out, rt.ptrOffsetFrom(rt.byteSliceAsPtr(rt.ptrByteSlice(rt.ptrAdd(rt.byteSliceAsPtr(rt.byteSliceFrom(bytes)), 2), 0, true)), p) & 0xff);
 		rt.iterExtendBytes(out, rt.iterMap(rt.iterSlice(a), (_2: rt.u32): rt.u8 => {
 			return _2 & 0xff;
 		}), undefined, true);

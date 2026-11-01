@@ -708,8 +708,8 @@ pub fn call<'tcx>(
 				}
 				Some(why) => return Ok(Some(b.err(span, why))),
 				None if matches!(pointee().kind(), ty::Uint(ty::UintTy::U8)) => {
-					let mutable = !matches!(name, "from_raw_parts" | "slice_from_raw_parts");
-					Expr::rt("ptrByteSlice", vec![p, len, Expr::lit(mutable.to_string())])
+					let shared = name == "from_raw_parts";
+					Expr::rt("ptrByteSlice", vec![p, len, Expr::lit(shared.to_string())])
 				}
 				None => Expr::rt("ptrSlice", vec![p, len]),
 			};

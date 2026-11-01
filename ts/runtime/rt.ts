@@ -260,23 +260,24 @@ export function ptrCopy<T>(src: Place<T>, dst: Place<T>, n: number, copy?: (valu
 /** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` elements from `p`. */
 export function ptrSlice<T>(p: Place<T>, len: number): T[] {
 	// One of none from a dangling pointer points nowhere.
-	if (len === 0 && !(p instanceof AtIndex)) return [];
+	if (len === 0 && (p === NULL || p === DANGLING)) return [];
 	const at = elemOf(p);
 	const array = at.array as T[];
 	return at.index === 0 && len === array.length ? array : sliceView(array, at.index, at.index + len);
 }
 
 /**
- * `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` bytes from `p`, which
- * may be `mutable` only if they are in an array of bytes.
+ * `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` bytes from `p`. Only a
+ * `shared` reference to bytes in no array of bytes may be a copy of them, since nothing
+ * writes them while it lives.
  */
-export function ptrByteSlice(p: Place<number>, len: number, mutable: boolean): ByteSlice {
-	if (len === 0 && !(p instanceof AtIndex)) return new ByteSlice(new Uint8Array(0), 0, 0);
+export function ptrByteSlice(p: Place<number>, len: number, shared: boolean): ByteSlice {
+	if (len === 0 && (p === NULL || p === DANGLING)) return new ByteSlice(new Uint8Array(0), 0, 0);
 	const at = elemOf(p);
 	if (at.array instanceof Uint8Array) return new ByteSlice(at.array, at.index, len);
 	// A byte in no array, which no `Uint8Array` can share.
-	if (mutable) throw new Error("rust2-ts: a mutable slice of a byte in no array of bytes");
-	return new ByteSlice(Uint8Array.of(p.v), 0, len);
+	if (!shared) throw new Error("rust2-ts: a raw or mutable slice of a byte in no array of bytes");
+	return new ByteSlice(Uint8Array.from({ length: len }, () => p.v), 0, len);
 }
 
 /**
