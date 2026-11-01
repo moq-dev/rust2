@@ -382,10 +382,10 @@ export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const bytes: rt.BinaryHeap<rt.u8> = rt.heapFrom(rt.byteVecToVec(rt.byteSliceToByteVec(data)), rt.le, rt.ge, rt.lt);
 	rt.heapPush(bytes, data.length & 0xff, rt.le);
 	rt.iterExtendBytes(out, rt.iterSlice(rt.byteSliceView(rt.byteSliceFrom(Uint8Array.from(bytes.d)))), undefined, true);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(rt.heapIntoSortedVec(rt.heapClone(bytes, undefined, 1), rt.le, rt.ge, rt.lt))))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(rt.heapIntoSortedVec(rt.heapClone(bytes, undefined, 1), rt.le, rt.ge, rt.lt)))), undefined, true);
 	const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(bytes.d, f, rt.u8Debug)];
 	rt.iterExtendBytes(out, rt.strBytes(rt.fmtFormat([args2[0]])), undefined, true);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(bytes.d)))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(bytes.d))), undefined, true);
 	const least: rt.BinaryHeap<rt.u8> = rt.heapFrom(rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.u8 => {
 		return _2;
 	}), undefined, 1, true), rt.cmpLe(rt.cmpReverse(rt.cmp)), rt.cmpGe(rt.cmpReverse(rt.cmp)), rt.cmpLt(rt.cmpReverse(rt.cmp)));

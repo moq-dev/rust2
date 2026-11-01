@@ -1759,15 +1759,15 @@ export function heapSteps$u8(dataData: Uint8Array, dataStart: number, dataLen: n
 			}
 			Known.remade(k, false);
 		} else {
-			h = rt.heapFrom(rt.byteVecToVec(rt.byteVecFrom(Uint8Array.from(h.d))), rt.le, rt.ge, rt.lt);
+			h = rt.heapFrom(rt.byteVecToVec(rt.byteVecFromVec(h.d)), rt.le, rt.ge, rt.lt);
 		}
 		const _127: rt.usize = h.d.length;
 		const _129: rt.usize = rt.vecCapacity(h.d, 1);
 		Known.put(k, out, _127, _129);
 	}
-	const cloned: rt.ByteVec = rt.byteVecFrom(Uint8Array.from(rt.heapClone(h, undefined, 1).d));
+	const cloned: rt.ByteVec = rt.byteVecFromVec(rt.heapClone(h, undefined, 1).d);
 	Known.put(Known.new(0), out, cloned.length, cloned.data.length);
-	const sorted: rt.ByteVec = rt.byteVecFrom(Uint8Array.from(rt.heapIntoSortedVec(h, rt.le, rt.ge, rt.lt)));
+	const sorted: rt.ByteVec = rt.byteVecFromVec(rt.heapIntoSortedVec(h, rt.le, rt.ge, rt.lt));
 	Known.put(k, out, sorted.length, sorted.data.length);
 }
 
@@ -1947,7 +1947,7 @@ export function collects(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 		const _155: rt.usize = heap.d.length;
 		const _157: rt.usize = rt.vecCapacity(heap.d, 1);
 		Known.put(loose, out, _155, _157);
-		const v2: rt.ByteVec = rt.byteVecFrom(Uint8Array.from(heap.d));
+		const v2: rt.ByteVec = rt.byteVecFromVec(heap.d);
 		Known.put(loose, out, v2.length, v2.data.length);
 	} else {
 		const grown: rt.ByteVec = rt.byteVecFrom(rt.byteVecView(rt.byteVecOf(7, n)));
