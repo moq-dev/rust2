@@ -921,6 +921,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			return ty.is_bool() || ty.is_char() || crate::lower::num::Int::of(ty).is_some_and(|i| !i.big());
 		}
 		match (mir.local_decls[local].ty.kind(), rvalue) {
+			// A box's pointer to a value JS copies, or a copy of such a box that a `**b` reads
+			// it through, is the place holding the box, where a copy would be another value.
+			// Rust makes each for the one read or write it is made beside, while the box stays.
+			(ty::RawPtr(pointee, _), Rvalue::Cast(mir::CastKind::BoxDerefTransmute, ..))
+				if self.b.t.needs_place(*pointee) =>
+			{
+				true
+			}
+			(ty::Adt(adt, args), Rvalue::Use(Operand::Copy(_), _) | Rvalue::CopyForDeref(_))
+				if adt.is_box() && self.b.t.needs_place(args.type_at(0)) =>
+			{
+				true
+			}
 			// A borrow: borrow checking keeps the place as it is but through the borrow,
 			// unless the path to it goes through a reference held in a field or element,
 			// which can be replaced while the borrow lives.
