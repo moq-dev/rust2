@@ -9,8 +9,9 @@ grouped into milestones ordered by priority.
 
 m0 holds urgent fixes. m1 is the work with a consumer waiting on it now:
 the UniFFI fork moq switches to, the exporter spike that may replace it, and
-the fork's perf work. m2 is research: the TypeScript translator, a track moq
-compares against its WASM route, and the fork's gated or speculative work. m3
+the fork's perf work. m2 is research: the TypeScript translator, which moq's
+browser package adopts once it matches the handwritten one, and the fork's gated or
+speculative work. m3
 holds the build-speed tracks, which the
 [build-speed benchmark](/bench/build/README.md) rescopes before they start,
 and speculative work. m4 holds long-term research.
@@ -22,8 +23,6 @@ Decided with the maintainer on 2026-10-23, when rust2 was planned from moq
   parts: the nix flake and direnv, just, the quest tree, and agent docs and
   hooks.
 - moq is the first consumer of each project, and pins rust2 as a flake input.
-  moq's browser line still ships WASM first; the translator here does not
-  replace that plan.
 - The first quest that adds a crate also adds the Cargo workspace (moq's
   workspace lints, including a reason on every suppression) and the cargo
   steps of `just check`.
