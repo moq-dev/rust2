@@ -432,8 +432,8 @@ export class BorrowError {}
 /** `RefCell::try_borrow_mut`'s error: the cell is borrowed. */
 export class BorrowMutError {}
 
-const BORROW_ERROR: Result<never, BorrowError> = /* @__PURE__ */ Err(new BorrowError());
-const BORROW_MUT_ERROR: Result<never, BorrowMutError> = /* @__PURE__ */ Err(new BorrowMutError());
+const BORROW_ERROR: Result<never, BorrowError> = /* @__PURE__ */ Err(/* @__PURE__ */ new BorrowError());
+const BORROW_MUT_ERROR: Result<never, BorrowMutError> = /* @__PURE__ */ Err(/* @__PURE__ */ new BorrowMutError());
 
 /** `RefCell::try_borrow`: a shared borrow, or `BorrowError` while an exclusive one is held. */
 export function refCellTryBorrow<T>(cell: RefCell<T>): Result<RefCell<T>, BorrowError> {
