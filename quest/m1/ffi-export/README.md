@@ -47,7 +47,7 @@ Every generator on the C ABI:
 
 ## Required
 
-- [moq-clock's C names once it moves into kio](/quest/m1/ffi-export/crates.md) - `moq_now` and `moq_origin` become the clock's, after moq moves it into `kio::clock`
 - [Sessions on sans-IO QUIC](/quest/m1/ffi-export/session-quic.md) - bindings move UDP datagrams and drive the session's poll themselves, over moq's runtime-free QUIC driver once it lands
 - [C++ bindings on MSVC and Apple Clang](/quest/m1/ffi-export/cpp.md) - the nightly's MSVC and Apple Clang jobs pass the C++ checks
 - [Kotlin bindings on Android in the nightly](/quest/m1/ffi-export/kotlin-android.md) - the nightly's emulator job passes the Kotlin test, shrunk by R8, at API 24 and 35
+- [Waiting: moq-tokio within the recursion limit](/quest/m1/ffi-export/recursion-limit.md) - the exporter's moq pin moves past moq-dev/moq#7032 once moq-tokio's `Send` check fits the limit

@@ -28,6 +28,7 @@ The fork's feature quests folded into the [exporter](/quest/m1/ffi-export/README
 
 - [Byte slices without objects](/quest/m2/ts-byte-views/README.md) - reading through a translated cursor allocates no object per read
 - [Async in the TypeScript translator](/quest/m2/ts-async.md) - moq-net's and kio's async code translates with Rust's lazy futures
+- [Translate moq-net without moq-wasm](/quest/m2/ts-moq-pin.md) - the translator's moq pin moves past moq's WASM removal, back onto the exporter's
 - [Translate moq-net's model to TypeScript](/quest/m2/ts-model/README.md) - the model translates with kio, moq-clock, and moq-pattern, for moq to compare against WASM
 - [Waiting: Swift 6.4 in nixpkgs-unstable](/quest/m2/uniffi-swift-arm.md) - the nightly UniFFI fixtures move back to arm
 - [Waiting: ubrn reads UniFFI 0.32](/quest/m2/ubrn-release.md) - the binding benchmark's browser runner pins a ubrn release, not an open PR

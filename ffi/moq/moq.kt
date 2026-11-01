@@ -1,6 +1,6 @@
 // moq.c's script through the generated Kotlin: a broadcast's track, published and
 // subscribed to in one process, with every read a suspend fun, and an origin, with
-// moq-pattern, moq-clock, moq-tokio, hang, and moq-mux exported into the same library,
+// moq-pattern, kio, moq-tokio, hang, and moq-mux exported into the same library,
 // and the catalog lent to Kotlin for a call.
 //
 // The local reads need no runtime: each read that must wait resumes on a dispatcher the
@@ -86,8 +86,8 @@ fun main() {
 	val hello = frame!!
 	expect(hello.payload.use { it.toByteArray().decodeToString() } == "hello", "a frame has its payload")
 	expect(hello.timestamp == null, "an untimed frame has no timestamp")
-	// When it arrived: moq-clock's `Instant`, from moq-clock's own export.
-	expect(now().checkedDurationSince(hello.arrived()) != null, "a frame arrived before now")
+	// When it arrived: kio's clock's `Instant`, from kio's own export.
+	expect(clockNow().checkedDurationSince(hello.arrived()) != null, "a frame arrived before now")
 
 	// A timestamp is a `Copy` value behind a handle: passing it copies it out. The track is
 	// untimed, so a timestamped frame is refused.
@@ -140,8 +140,8 @@ fun main() {
 		try {
 			Path.new("/cam/")
 			expect(false, "a path with an empty segment is an error")
-		} catch (e: PathInvalidException) {
-			expect(e.error == PathInvalid.EMPTY_SEGMENT, "an empty segment is its own error")
+		} catch (e: PathErrorException) {
+			expect(e.error == PathError.EMPTY_SEGMENT, "an empty segment is its own error")
 		}
 		val cam = Path.new("cam")
 		expect(cam.asStr() == "cam", "a path builds from its segments")
@@ -157,7 +157,7 @@ fun main() {
 	// long as its waiter. It runs until every owner of the origin is gone.
 	var wakes = 0
 	val waiter = Waiter.new(Waker { wakes++ })
-	driver.poll(now(), waiter)
+	driver.poll(clockNow(), waiter)
 	// A client publishes the origin through moq-net's generic `with_publisher`, at each
 	// type that implements its bound, by reference, so Kotlin keeps its handle.
 	Client.new().withPublisherProducer(origin).close()
@@ -166,7 +166,7 @@ fun main() {
 	// The last owner's close wakes the driver, which then finishes, cleanly.
 	expect(wakes > before, "the last owner's close wakes the driver")
 	try {
-		driver.poll(now(), waiter)
+		driver.poll(clockNow(), waiter)
 		expect(false, "a driver whose origin is gone finishes")
 	} catch (e: ErrorException) {
 		expect(e.message == "closed", "a finished driver's error is Rust's")
@@ -340,7 +340,7 @@ fun main() {
 			expect(connection != null, "a client with a URL dials it")
 			val established = connection!!.established()
 
-			val subscriber = remote.requestBroadcast("live", null).track("video").subscribe(null)
+			val subscriber = remote.request("live", null).track("video").subscribe(null)
 			val frame = subscriber.recvGroup()?.readFrame()
 			expect(frame?.payload?.use { it.toByteArray().decodeToString() } == "hello", "a session reads the frame the server serves")
 

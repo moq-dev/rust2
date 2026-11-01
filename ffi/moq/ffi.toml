@@ -15,6 +15,7 @@ exclude = [
     "IntoBytes",
     "InvalidEpoch",
     "Path::from_static",
+    "Path::parts",
     "Server::accept",
     "Server::accept_request",
     "Timed",
@@ -25,6 +26,8 @@ exclude = [
     "announce::Announce",
     "announce::Consumer::poll_synced",
     "auth::EmptyToken",
+    "broadcast::Lister::poll_unwanted",
+    "broadcast::Lister::poll_wanted",
     "bytes",
     "frame::Buffer",
     "frame::Producer::group",
@@ -39,8 +42,6 @@ exclude = [
     "track::Resolving",
     "track::Subscribing",
     "transport::Error",
-    "transport::MaybeSend",
-    "transport::MaybeSync",
     "transport::memory::Chunks",
     "transport::memory::SendStream",
     "transport::poll::AcceptBi",
@@ -75,31 +76,9 @@ exclude = [
 # The rule makes both this type and `Path::relative` `moq_path_relative`.
 "path::Relative" = "relative"
 
-# Exported with moq-net, whose signatures name their types, such as `Patterns` and `Instant`.
+# Exported with moq-net, whose signatures name its types, such as `Patterns`.
 [crates.moq-pattern]
 exclude = ["Pattern::captures"]
-
-[crates.moq-clock]
-exclude = [
-    "Deadline::poll",
-    "Deadlines::enter",
-    "Elapsed",
-    "Entered",
-    "Instant::from_std",
-    "Instant::into_std",
-    "OutOfRange",
-    "Sleep",
-    "Timeout",
-    "drive",
-    "timeout",
-    "timeout_at",
-]
-
-[crates.moq-clock.rename]
-# The rule makes both this function and the type `Wall` `moq_wall`.
-"wall" = "now_wall"
-# The rule makes both this function and the type `Interval` `moq_interval`.
-"interval" = "interval_every"
 
 [crates.moq-tokio]
 exclude = [
@@ -134,38 +113,25 @@ exclude = [
     "panic::message",
     "quic::Error",
     "quic::driver::ApplicationClose",
-    "quic::driver::Chunk",
-    "quic::driver::ClosedStream",
     "quic::driver::ConfigError",
     "quic::driver::ConnectionClose",
     "quic::driver::ConnectionId",
     "quic::driver::ConnectionIdGenerator",
     "quic::driver::CreditStats",
-    "quic::driver::Dir",
     "quic::driver::EcnCodepoint",
     "quic::driver::FrameStats",
     "quic::driver::FrameType",
     "quic::driver::InvalidCid",
-    "quic::driver::Lease",
     "quic::driver::Limits",
     "quic::driver::LimitsError",
     "quic::driver::PathStats",
-    "quic::driver::ReadError",
-    "quic::driver::ReadExactError",
-    "quic::driver::ReadToEndError",
-    "quic::driver::RecvStream",
-    "quic::driver::ResetError",
-    "quic::driver::SendStream",
-    "quic::driver::StoppedError",
-    "quic::driver::StreamId",
+    "quic::driver::Rate",
     "quic::driver::Transmit",
     "quic::driver::TransportErrorCode",
     "quic::driver::UdpStats",
     "quic::driver::VarInt",
     "quic::driver::VarIntBoundsExceeded",
     "quic::driver::Version",
-    "quic::driver::WriteError",
-    "quic::driver::Written",
     "quic::driver::client",
     "quic::driver::connection::Connecting",
     "quic::driver::connection::Connection::accept_bi",
@@ -183,7 +149,6 @@ exclude = [
     "quic::driver::connection::Connection::set_limits",
     "quic::driver::connection::Connection::stats",
     "quic::driver::connection::Error",
-    "quic::driver::connection::SendDatagramError",
     "quic::driver::connection::Stats",
     "quic::driver::crypto",
     "quic::driver::endpoint::AsyncUdpSocket",
@@ -194,7 +159,16 @@ exclude = [
     "quic::driver::endpoint::Error",
     "quic::driver::endpoint::Incoming",
     "quic::driver::endpoint::Socket",
+    "quic::driver::recv::Error",
+    "quic::driver::recv::Lease",
+    "quic::driver::recv::Stream",
+    "quic::driver::send::Error",
+    "quic::driver::send::Finished",
+    "quic::driver::send::Offset",
+    "quic::driver::send::Options::group",
+    "quic::driver::send::Stream",
     "quic::driver::server",
+    "quic::driver::stream",
     "quic::driver::transport",
     "rustls",
     "secret::Secret::as_bytes",
@@ -244,6 +218,7 @@ exclude = [
 
 [crates.hang]
 exclude = [
+    "Catalog::contributions",
     "Catalog::from_reader",
     "Catalog::subscribe",
     "catalog::Audio::enabled",
@@ -347,11 +322,14 @@ exclude = [
     "container::ts::MultipleProgramsError",
     "container::ts::Programs::decode",
     "container::ts::Programs::finish",
+    "container::ts::Restart",
     "container::ts::stats::Export::streams",
     "container::ts::stats::Snapshot::streams",
     "follow::Event",
     "follow::Instances",
     "json::Consumer",
+    "select::Selected::audio",
+    "select::Selected::video",
 ]
 
 [crates.moq-mux.rename]
@@ -362,8 +340,10 @@ exclude = [
 "catalog::Consumer" = "mux_catalog_consumer"
 # The rule makes both this constant and `CatalogFormat`'s `Default` `moq_catalog_catalog_format_default`.
 "catalog::CatalogFormat::DEFAULT" = "catalog_catalog_format_fallback"
-# The rule makes both this constant and the method `Clock::timescale` `moq_clock_timescale`.
-"Clock::TIMESCALE" = "clock_fixed_timescale"
+# The rule makes this media clock's methods, such as `now`, kio's clock's: `moq_clock_now`.
+"Clock" = "mux_clock"
+# The rule makes both this constant and the method `Clock::timescale` `moq_mux_clock_timescale`.
+"Clock::TIMESCALE" = "mux_clock_fixed_timescale"
 # The rule makes each of these functions and its module's `Config` `moq_codec_<codec>_config`.
 "codec::aac::config" = "codec_aac_audio_config"
 "codec::mp3::config" = "codec_mp3_audio_config"
@@ -372,7 +352,8 @@ exclude = [
 "container::fmp4::Chunk::init" = "container_fmp4_chunk_into_init"
 "container::fmp4::Chunk::fragment" = "container_fmp4_chunk_into_fragment"
 
-# The waiter a driver's poll registers, which C makes from its waker and holds across polls.
+# The waiter a driver's poll registers, which C makes from its waker and holds across polls,
+# and the clock it polls at.
 [crates.kio]
 exclude = [
     "Bridge",
@@ -381,7 +362,6 @@ exclude = [
     "ConsumerWeak",
     "Lock",
     "LockGuard",
-    "MaybeSend",
     "Mut",
     "Park::hold",
     "Pending",
@@ -392,17 +372,37 @@ exclude = [
     "Ref",
     "Shared",
     "Task",
+    "TaskKey",
     "Tasks",
-    "Unused",
+    "Unwanted",
     "Waiter::batch",
     "Waiter::context",
     "Waiter::poll_future",
     "Waiter::waker",
     "Weak",
+    "clock::Deadline::poll",
+    "clock::Deadlines::enter",
+    "clock::Elapsed",
+    "clock::Entered",
+    "clock::Instant::from_std",
+    "clock::Instant::into_std",
+    "clock::OutOfRange",
+    "clock::Sleep",
+    "clock::Timeout",
+    "clock::drive",
+    "clock::timeout",
+    "clock::timeout_at",
     "coop::Budget::poll_yield",
     "log::Evicted",
     "log::Read",
     "log::Reader",
     "log::Writer",
+    "machine",
     "wait",
 ]
+
+[crates.kio.rename]
+# The rule makes both this function and the type `clock::Wall` `moq_clock_wall`.
+"clock::wall" = "clock_now_wall"
+# The rule makes both this function and the type `clock::Interval` `moq_clock_interval`.
+"clock::interval" = "clock_interval_every"
