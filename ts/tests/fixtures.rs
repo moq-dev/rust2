@@ -257,7 +257,6 @@ fn shake(out: &Path) {
 			"Panic",
 			"byteSliceFrom",
 			"checked",
-			"idx",
 			"max",
 			"panic",
 			"saturate",
@@ -267,6 +266,7 @@ fn shake(out: &Path) {
 			"usizeSub",
 			// The translation's, and the caller.
 			"new_",
+			"sliceOut",
 			"run",
 			"short",
 			"slice",

@@ -508,9 +508,9 @@ export function raw(tag: rt.u32): rt.Place<undefined> {
  * Writes through a `&mut` or a pointer to a value of no bytes, which have nothing to
  * read or write but still run their operands.
  */
-export function writes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function writes(kind: rt.u8, _dataData: Uint8Array, _dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	rt.atomicStore(LOG, 0, 0);
-	const n: rt.u8 = data.length & 0xff;
+	const n: rt.u8 = dataLen & 0xff;
 	const _9: rt.u8 = rt.u8Rem(kind, 5);
 	if (_9 === 0) {
 		leaked(1);
