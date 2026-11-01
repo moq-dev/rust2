@@ -264,6 +264,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		}),
 		("pointers::aimed", |_, data, out| pointers::aimed(data, out)),
 		("ascii::parts", ascii::parts),
+		("boxes::places", boxes::places),
 		("arrays::flattened", arrays::flattened),
 		("args::args", args::args),
 		("returns::returns", returns::returns),

@@ -4,7 +4,10 @@ import * as rt from "./rt.ts";
 import { copy$array_tuple2_u8_u16, copy$array_u16, copy$array_u8, copy$tuple2_u8_u16 } from "./lib.ts";
 import * as boxes_Held from "./boxes.Held.ts";
 import * as boxes_Logged from "./boxes.Logged.ts";
-import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$1j4op5y as option_unwrapOr$1j4op5y, mapOr$1e4a1e0 as option_mapOr$1e4a1e0 } from "./core/option.ts";
+import type * as Owner from "./boxes.Owner.ts";
+import { then$0ea5h05 } from "./core/bool.ts";
+import { unwrapOr$1iemzn8 as option_unwrapOr$1iemzn8, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$1j4op5y as option_unwrapOr$1j4op5y, unwrapOr$11c0we2 as option_unwrapOr$11c0we2, mapOr$1e4a1e0 as option_mapOr$1e4a1e0, asDeref$0w8at8i as option_asDeref$0w8at8i, asDeref$0w2m0zn as option_asDeref$0w2m0zn, asDeref$0avuzwv as option_asDeref$0avuzwv, flatten$08boupk as option_flatten$08boupk } from "./core/option.ts";
+import { map$0nfi04k as result_map$0nfi04k, asDeref$1fldd5d as result_asDeref$1fldd5d, asDeref$04i8i5u as result_asDeref$04i8i5u, unwrapOr$0e4foht as result_unwrapOr$0e4foht, copied$0bbq7yi } from "./core/result.ts";
 import { put as fmt_put } from "./fmt.ts";
 import { text } from "./strs.ts";
 
@@ -427,6 +430,287 @@ export function boxes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		back2 = back2 + "!";
 		fmt_put(out, back2);
 		fmt_put(out, collected4);
+	}
+}
+
+/** Adds `by` to what `x` borrows. */
+export function bump(x: rt.Place<rt.u32>, by: rt.u8): void {
+	x.v = rt.u32WrappingAdd(x.v, by as rt.u32);
+}
+
+/** Writes through a `&mut` to what a `Box<str>` holds, and to a part of it. */
+export function shout(s: rt.Place<string>, by: rt.u8): void {
+	const half: rt.usize = rt.usizeDiv(rt.stringLen(s.v), 2);
+	if (rt.u8Rem(by, 2) === 0) {
+		s.v = rt.strToAsciiUppercase(s.v);
+	} else {
+		const _9: rt.Place<string> = rt.strPart(s, 0, half);
+		_9.v = rt.strToAsciiLowercase(_9.v);
+	}
+}
+
+/** A box taken by value and written through before it is given back. */
+export function took(b: rt.u32, by: rt.u8): rt.u32 {
+	bump(rt.place(() => b, (value) => b = value), by);
+	return b;
+}
+
+/**
+ * A write through a pointer into what `a` holds, made before the reference holding `a`
+ * is aimed at `b`, still reaches `a`.
+ */
+export function reaimed(a: rt.Place<rt.u32>, b: rt.Place<rt.u32>, by: rt.u8): void {
+	let p!: rt.Place<rt.u32>;
+	let r: rt.Place<rt.u32> = a;
+	if (rt.u8Rem(by, 2) === 0) {
+		const borrowed = r;
+		p = rt.place(() => borrowed.v, (value2) => borrowed.v = value2);
+	} else {
+		const _9: rt.Place<rt.u32> = r;
+		p = rt.place(() => _9.v, (value) => _9.v = value);
+	}
+	r = b;
+	p.v = (p.v ^ by as rt.u32) >>> 0;
+	r.v = rt.u32WrappingAdd(r.v, 1);
+}
+
+/** What `&mut Owner` reaches of its boxes, each written by `by`. */
+export function reach(b: Owner.Owner, by: rt.u8): void {
+	const _3: rt.u8 = rt.u8Rem(by, 4);
+	if (_3 === 0) {
+		bump(rt.place(() => b.n, (value2) => b.n = value2), by);
+	} else if (_3 === 1) {
+		b.n = (b.n ^ by as rt.u32) >>> 0;
+	} else if (_3 === 2) {
+		bump(rt.place(() => b.nested, (value) => b.nested = value), by);
+	} else {
+		b.s = b.s + String.fromCodePoint(rt.u8Add(97, rt.u8Rem(by, 26)) as rt.char);
+	}
+}
+
+/**
+ * Writes reaching what boxes hold, each step by a byte, kept in a local, reassigned,
+ * nested, in a field, a `Vec`, an `Option`, and a `Result`, captured, passed, and leaked: through
+ * `&mut *b`, `DerefMut`, `AsMut`, `BorrowMut`, `as_deref_mut`, and a write through the box
+ * itself.
+ */
+export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	let n: rt.u32 = 7;
+	const pair: Uint8Array = Uint8Array.of(1, 2);
+	let s: string = "b";
+	let t: string = "aBc/D";
+	let nested: rt.u32 = 3;
+	let maybe: rt.u32 | undefined = undefined as rt.u32 | undefined;
+	const held: Owner.Owner = { n: 5, s: "", nested: 9 };
+	const v: rt.u32[] = [1, 2];
+	let o: rt.u32 | undefined = 4;
+	let res: rt.Result<rt.u32, rt.u8> = rt.Ok(2);
+	let said: rt.Result<string, rt.u8> = rt.Ok("r");
+	const words: rt.u32[] = [6, 8];
+	const someWords: rt.u32[] | undefined = [3, 5];
+	let named: string | undefined = "xY/z";
+	const leaked: rt.Place<rt.u32> = { v: 11 };
+	let deep = 1 as rt.u32 | undefined | rt.None;
+	const tup: rt.Result<[rt.u32, rt.u32], rt.u8> = rt.Ok([1, 2]);
+	let boxedOpt: rt.u32 | undefined = 3;
+	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(data)));
+	while (true) {
+		const _52: [rt.usize, rt.u8] | rt.Done = iter.next();
+		if (_52 === rt.DONE) {
+			break;
+		}
+		const i: rt.usize = _52[0];
+		const by: rt.u8 = _52[1];
+		const _58: rt.u8 = rt.u8Rem(by, 26);
+		if (_58 === 0) {
+			const r: rt.Place<rt.u32> = rt.place(() => n, (value28) => n = value28);
+			r.v = rt.u32WrappingMul(r.v, 3);
+		} else if (_58 === 1) {
+			bump(rt.place(() => n, (value27) => n = value27), by);
+		} else if (_58 === 2) {
+			const _65: rt.Place<rt.u32> = rt.place(() => n, (value25) => n = value25);
+			bump(rt.place(() => _65.v, (value26) => _65.v = value26), by);
+		} else if (_58 === 3) {
+			const _67: rt.Place<rt.u32> = rt.place(() => n, (value23) => n = value23);
+			bump(rt.place(() => _67.v, (value24) => _67.v = value24), by);
+		} else if (_58 === 4) {
+			const _69: rt.Place<rt.u32> = rt.place(() => n, (value21) => n = value21);
+			bump(rt.place(() => _69.v, (value22) => _69.v = value22), by);
+		} else if (_58 === 5) {
+			n = (n ^ by as rt.u32) >>> 0;
+		} else if (_58 === 6) {
+			n = rt.u32WrappingAdd(by as rt.u32, n);
+		} else if (_58 === 7) {
+			const r2: rt.ByteSlice = rt.byteSliceFrom(pair);
+			const _76: rt.usize = rt.usizeRem(by as rt.usize, 2);
+			if (!(_76 < 2)) {
+				rt.panic("index out of bounds: the len is " + 2 + " but the index is " + _76);
+			}
+			r2.data[r2.start + _76] = r2.data[r2.start + _76] ^ by;
+		} else if (_58 === 8) {
+			s = s + String.fromCodePoint(rt.u8Add(97, rt.u8Rem(by, 26)) as rt.char);
+		} else if (_58 === 9) {
+			s = s + "!?";
+		} else if (_58 === 10) {
+			s = rt.stringInsertStr(s, 0, "<");
+		} else if (_58 === 11) {
+			shout(rt.place(() => t, (value20) => t = value20), by);
+		} else if (_58 === 12) {
+			const _92: rt.Place<string> = rt.place(() => t, (value18) => t = value18);
+			shout(rt.place(() => _92.v, (value19) => _92.v = value19), by);
+		} else if (_58 === 13) {
+			const _94: rt.Place<string> = rt.place(() => t, (value17) => t = value17);
+			_94.v = rt.strToAsciiLowercase(_94.v);
+		} else if (_58 === 14) {
+			t = rt.strSlice(s, 0);
+		} else if (_58 === 15) {
+			bump(rt.place(() => nested, (value16) => nested = value16), by);
+		} else if (_58 === 16) {
+			nested = rt.u32WrappingAdd(nested, by as rt.u32);
+		} else if (_58 === 17) {
+			const _104: rt.u32 = by as rt.u32;
+			if (maybe === undefined) {
+				maybe = _104;
+			}
+			maybe = rt.u32Add(maybe as rt.u32, 1);
+			if (maybe !== undefined) {
+				bump(rt.place(() => maybe as rt.u32, (value15) => maybe = value15), by);
+			}
+		} else if (_58 === 18) {
+			reach(held, by);
+		} else if (_58 === 19) {
+			const at2 = rt.idx(v, rt.usizeRem(by as rt.usize, v.length));
+			const borrowed = v;
+			const borrowed2 = at2;
+			bump(rt.place(() => borrowed[borrowed2], (value14) => borrowed[borrowed2] = value14), by);
+			const _120: rt.Place<rt.u32> | undefined = rt.sliceLastMut(v);
+			if (_120 !== undefined) {
+				_120.v = (_120.v ^ 16) >>> 0;
+			}
+		} else if (_58 === 20) {
+			const iter2: rt.Iter<rt.Place<rt.u32>> = rt.iterSliceMut(v);
+			while (true) {
+				const _130: rt.Place<rt.u32> | rt.Done = iter2.next();
+				if (_130 === rt.DONE) {
+					break;
+				}
+				bump(rt.place(() => _130.v, (value13) => _130.v = value13), by);
+			}
+			v.push(by as rt.u32);
+		} else if (_58 === 21) {
+			const _140: rt.Place<rt.u32 | undefined> = rt.place(() => o, (value9) => o = value9);
+			if (_140.v !== undefined) {
+				_140.v = rt.u32WrappingAdd(_140.v, by as rt.u32);
+			}
+			const _147: rt.Place<rt.u32 | undefined> = rt.place(() => o, (value10) => o = value10);
+			const _146: rt.Place<rt.u32> | undefined = _147.v === undefined ? undefined : rt.place(() => _147.v as rt.u32, (value11) => _147.v = value11);
+			if (_146 !== undefined) {
+				bump(_146, by);
+			}
+			if (rt.usizeRem(i, 3) === 0) {
+				o = then$0ea5h05(o === undefined, (): rt.u32 => {
+					return by as rt.u32;
+				});
+			}
+			if (res.ok) {
+				res = rt.Ok(rt.u32WrappingMul(res.value, by as rt.u32));
+			}
+			const _165: rt.Place<rt.Result<string, rt.u8>> = rt.place(() => said, (value12) => said = value12);
+			if (_165.v.ok) {
+				_165.v = rt.Ok(_165.v.value + String.fromCodePoint(rt.u8Add(97, rt.u8Rem(by, 26)) as rt.char));
+			}
+			if (rt.usizeRem(i, 5) === 4) {
+				said = rt.Err(by);
+			}
+		} else if (_58 === 22) {
+			const _180: rt.u32 = by as rt.u32;
+			const _181: rt.usize = rt.usizeRem(by as rt.usize, 2);
+			rt.idx(words, _181);
+			words[_181] = rt.u32Add(words[_181], _180);
+			const _188: rt.u32[] | undefined = someWords;
+			if (_188 !== undefined) {
+				const _192: rt.u32 = by as rt.u32;
+				rt.idx(_188, 1);
+				_188[1] = (_188[1] ^ _192) >>> 0;
+			}
+			const _197: rt.Place<string> | undefined = named === undefined ? undefined : rt.place(() => named as string, (value4) => named = value4);
+			if (_197 !== undefined) {
+				shout(_197, by);
+			}
+			const _202: rt.Place<rt.u32 | undefined> | undefined = deep === rt.None ? undefined : rt.place(() => deep as rt.u32 | undefined, (value5) => deep = value5);
+			if (_202 !== undefined) {
+				if (_202.v !== undefined) {
+					_202.v = rt.u32Add(_202.v, by as rt.u32);
+				}
+			}
+			const _209: rt.Place<rt.u32 | undefined> | undefined = deep === rt.None ? undefined : rt.place(() => deep as rt.u32 | undefined, (value6) => deep = value6);
+			if (_209 !== undefined) {
+				if (!(rt.u8Rem(by, 4) === 0)) {
+					if (_209.v === undefined) {
+						_209.v = 9;
+					}
+				} else {
+					_209.v = undefined;
+				}
+			}
+			if (tup.ok) {
+				tup.value[0] = rt.u32Add(tup.value[0], by as rt.u32);
+				const _357: [rt.u32, rt.u32] = tup.value;
+				bump(rt.place(() => _357[1], (value7) => _357[1] = value7), by);
+			}
+			const _227: rt.Place<rt.u32> | undefined = boxedOpt === undefined ? undefined : rt.place(() => boxedOpt as rt.u32, (value8) => boxedOpt = value8);
+			if (_227 !== undefined) {
+				bump(_227, by);
+			}
+			if (boxedOpt !== undefined) {
+				boxedOpt = rt.u32Add(boxedOpt, 1);
+			}
+		} else if (_58 === 23) {
+			const _238: rt.Place<rt.u32> = rt.place(() => n, (value3) => n = value3);
+			const f: (a0: rt.u8) => undefined = (by2: rt.u8): undefined => {
+				bump(_238, by2);
+			};
+			f(by);
+			f(1);
+		} else if (_58 === 24) {
+			n = took(n, by);
+			reaimed(rt.place(() => n, (value) => n = value), rt.place(() => held.n, (value2) => held.n = value2), by);
+		} else {
+			bump(leaked, by);
+		}
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(n).reverse()), undefined, true);
+		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(pair));
+		fmt_put(out, s);
+		fmt_put(out, t);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(nested).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(option_unwrapOr$11c0we2(maybe, 238)).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(held.n).reverse()), undefined, true);
+		fmt_put(out, held.s);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(held.nested).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterFlatMap(rt.iterSlice(v), (b: rt.u32): Uint8Array => {
+			return rt.u32ToBeBytes(b).reverse();
+		}, (value: Uint8Array) => rt.iterSlice(value), false, 4), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(option_unwrapOr$11c0we2(option_asDeref$0avuzwv(o), 238)).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(result_unwrapOr$0e4foht(copied$0bbq7yi(result_asDeref$04i8i5u(res)), 238)).reverse()), undefined, true);
+		const _298: rt.Result<string, rt.u8> = said;
+		if (_298.ok) {
+			fmt_put(out, _298.value);
+		} else {
+			rt.byteVecPush(out, _298.error);
+		}
+		rt.iterExtendBytes(out, rt.iterFlatMap(rt.iterSlice(words), (w: rt.u32): Uint8Array => {
+			return rt.u32ToBeBytes(w).reverse();
+		}, (value: Uint8Array) => rt.iterSlice(value), false, 4), undefined, true);
+		rt.iterExtendBytes(out, rt.iterFlatMap(rt.iterFlatten(rt.iterOption(someWords), (value: rt.u32[]) => rt.iterSlice(value)), (w2: rt.u32): Uint8Array => {
+			return rt.u32ToBeBytes(w2).reverse();
+		}, (value: Uint8Array) => rt.iterSlice(value), false, 4), "next");
+		fmt_put(out, option_unwrapOr$1iemzn8(option_asDeref$0w8at8i(named), "-"));
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(leaked.v).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(option_unwrapOr$11c0we2(option_flatten$08boupk(option_asDeref$0w2m0zn(deep)), 238)).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(result_unwrapOr$0e4foht(result_map$0nfi04k(result_asDeref$1fldd5d(tup), (t2: [rt.u32, rt.u32]): rt.u32 => {
+			return (t2[0] ^ t2[1]) >>> 0;
+		}), 238)).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(option_unwrapOr$11c0we2(boxedOpt, 238)).reverse()), undefined, true);
 	}
 }
 

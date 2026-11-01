@@ -820,11 +820,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let tcx = self.tcx;
 		let (mut at, mut value, mut rebuilt) = (place, value, false);
 		loop {
-			if let [ProjectionElem::Deref, rest @ ..] = at.projection.as_slice()
-				&& self.alias_of_place(at.local)
-				&& let Some(mir::Rvalue::Ref(_, _, borrowed)) = self.def_rvalue(at.local)
+			let through = self.through_aliases(at);
+			if through != at {
+				at = through;
+				continue;
+			}
+			// A box is what it holds.
+			if let [rest @ .., ProjectionElem::Deref] = at.projection.as_slice()
+				&& Place::ty_from(at.local, rest, &self.mir.local_decls, tcx).ty.is_box()
 			{
-				at = borrowed.project_deeper(rest, tcx);
+				at = Place {
+					local: at.local,
+					projection: tcx.mk_place_elems(rest),
+				};
 				continue;
 			}
 			if let [ProjectionElem::Deref, rest @ ..] = at.projection.as_slice()
@@ -865,8 +873,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		matches!(self.slots[local], Slot::Alias(_))
 			&& match self.def_rvalue(local) {
 				// A reborrow of what an alias of a borrowed place points at borrows that place.
+				// A box's pointer is the box, so what it points at is the place holding the box.
 				Some(mir::Rvalue::Ref(_, _, p)) => match p.projection.as_slice() {
-					[ProjectionElem::Deref] => self.points_at_place(p.local),
+					[ProjectionElem::Deref] => self.points_at_place(p.local) || self.box_pointer(p.local),
 					[.., ProjectionElem::Deref] => false,
 					_ => true,
 				},
@@ -912,10 +921,54 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// The type of `place` if it is a variant's payload, whose JS path is its whole enum,
 	/// as `Some`'s is the `Option`.
 	pub(super) fn payload_ty(&mut self, place: Place<'tcx>, span: Span) -> Option<crate::ts::Type> {
+		let place = self.through_aliases(place);
 		let downcast = place.iter_projections().any(|(base, e)| {
 			matches!(e, ProjectionElem::Downcast(..)) && base.ty(&self.mir.local_decls, self.tcx).ty.is_enum()
 		});
 		downcast.then(|| self.b.t.ty(place.ty(&self.mir.local_decls, self.tcx).ty, span))
+	}
+
+	/// `place` with each alias it starts from replaced by the place the alias stands for,
+	/// as its JS path is: a borrowed place for what an alias of one points at, the box for a
+	/// copy of it, and what the box holds for what a box's pointer points at.
+	pub(super) fn through_aliases(&self, mut place: Place<'tcx>) -> Place<'tcx> {
+		let tcx = self.tcx;
+		loop {
+			if !matches!(self.slots[place.local], Slot::Alias(_)) {
+				return place;
+			}
+			let (base, rest) = match (self.def_rvalue(place.local), place.projection.as_slice()) {
+				(Some(mir::Rvalue::Ref(_, _, p)), [ProjectionElem::Deref, rest @ ..])
+					if self.alias_of_place(place.local) =>
+				{
+					(*p, rest)
+				}
+				(
+					Some(mir::Rvalue::Cast(mir::CastKind::BoxDerefTransmute, op, _)),
+					[ProjectionElem::Deref, rest @ ..],
+				) if let Some(p) = op.place()
+					&& let [inner @ .., ProjectionElem::Field(..)] = p.projection.as_slice() =>
+				{
+					let boxed = Place {
+						local: p.local,
+						projection: tcx.mk_place_elems(inner),
+					};
+					(tcx.mk_place_deref(boxed), rest)
+				}
+				(Some(mir::Rvalue::Use(Operand::Copy(p), _) | mir::Rvalue::CopyForDeref(p)), rest)
+					if self.mir.local_decls[place.local].ty.is_box() =>
+				{
+					(*p, rest)
+				}
+				_ => return place,
+			};
+			let mut projection = base.projection.to_vec();
+			projection.extend_from_slice(rest);
+			place = Place {
+				local: base.local,
+				projection: tcx.mk_place_elems(&projection),
+			};
+		}
 	}
 
 	/// `target`, the JS path of the borrowed `place`, with the objects and index it goes
@@ -923,7 +976,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// reads and writes it later.
 	pub(super) fn stable_target(&mut self, place: Place<'tcx>, target: Expr, span: Span, out: &mut Vec<Stmt>) -> Expr {
 		// A store into a `Result`'s value makes the `Result` again, which a path can't.
-		for (base, elem) in place.iter_projections() {
+		for (base, elem) in self.through_aliases(place).iter_projections() {
 			if let ProjectionElem::Downcast(..) = elem
 				&& let Some(std @ (Std::Result | Std::ControlFlow)) =
 					self.b.t.std_of(base.ty(&self.mir.local_decls, self.tcx).ty)
@@ -1047,7 +1100,11 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			projection: self.tcx.mk_place_elems(rest),
 		};
 		let base_ty = base.ty(&self.mir.local_decls, self.tcx).ty;
-		if self.b.t.place_pointee(base_ty).is_none() || base.as_local().is_some_and(|l| self.alias_of_place(l)) {
+		if self.b.t.place_pointee(base_ty).is_none()
+			|| base
+				.as_local()
+				.is_some_and(|l| self.alias_of_place(l) || self.box_pointer(l))
+		{
 			return None;
 		}
 		Some(self.place_expr(base, span, out))

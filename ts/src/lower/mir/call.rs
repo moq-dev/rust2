@@ -660,6 +660,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			{
 				self.same_place(args, dest, span, out)
 			}
+			// A box is what it holds, so the `&mut` borrows the place holding the box.
+			("DerefMut", "deref_mut") | ("AsMut", "as_mut") | ("BorrowMut", "borrow_mut")
+				if targ(0)
+					.and_then(|t| t.boxed_ty())
+					.is_some_and(|t| self.b.t.needs_place(t)) =>
+			{
+				self.same_place(args, dest, span, out)
+			}
 			// A place nothing else holds: the `String` leaked, or `Default`'s empty `str`.
 			("String", "leak") => {
 				let leaked = self.operand(&args[0].node, span, out);
@@ -729,8 +737,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				let base = self.read_as(dest, "taken");
 				done(self.swap_out(place, option, none, base, span, out), base.is_some())
 			}
-			// The place of the payload, if any: `as_mut`'s, or what `iter_mut` yields.
-			("Option", "as_mut" | "iter_mut") if self.b.t.needs_place(targ(0)?) => {
+			// The place of the payload, if any: `as_mut`'s, or what `iter_mut` yields. A box's is
+			// what it holds, which `as_deref_mut` lends.
+			("Option", "as_mut" | "iter_mut" | "as_deref_mut")
+				if match name.as_str() {
+					"as_deref_mut" => targ(0)?.boxed_ty().is_some_and(|t| self.b.t.needs_place(t)),
+					_ => self.b.t.needs_place(targ(0)?),
+				} =>
+			{
 				let (target, payload) = self.payload_place(&args[0].node, targ(0)?, span, out)?;
 				let Some(payload) = payload else {
 					return done(target, true);
@@ -739,8 +753,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				let place = self.make_place(payload, target, span, out);
 				let lent = Expr::Cond(Box::new(none), Box::new(Expr::undefined()), Box::new(place));
 				match name.as_str() {
-					"as_mut" => done(lent, true),
-					_ => done(Expr::rt("iterOption", vec![lent]), true),
+					"iter_mut" => done(Expr::rt("iterOption", vec![lent]), true),
+					_ => done(lent, true),
 				}
 			}
 			("Option", "get_or_insert" | "get_or_insert_with" | "get_or_insert_default" | "insert") => {
