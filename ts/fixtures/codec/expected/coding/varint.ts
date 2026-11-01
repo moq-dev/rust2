@@ -16,77 +16,65 @@ export function fromHalves(hi: rt.u32, lo: rt.u32): rt.u64 {
 }
 
 /** The bytes `value` takes on the wire in `form`, or [`BoundsExceeded`] if it does not fit. */
-export function size(value: rt.u64, form: Form.Form): rt.Result<rt.usize, BoundsExceeded.BoundsExceeded> {
-	let _6!: rt.usize;
+export function size(value: rt.u64, form: Form.Form): rt.usize | undefined {
 	const _5: [rt.u32, rt.u32] = toHalves(value);
-	b1: {
-		const hi: rt.u32 = _5[0];
-		const lo: rt.u32 = _5[1];
-		if (form.tag === "Quic") {
-			if (hi === 0) {
-				if (lo < 64) {
-					_6 = 1;
-					break b1;
-				}
-			}
-			if (hi === 0) {
-				if (lo < 16384) {
-					_6 = 2;
-					break b1;
-				}
-			}
-			if (hi === 0) {
-				if (lo < 1073741824) {
-					_6 = 4;
-					break b1;
-				}
-			}
-			if (!(hi < 1073741824)) {
-				return rt.Err({});
-			}
-			_6 = 8;
-		} else {
-			if (hi === 0) {
-				if (lo < 128) {
-					_6 = 1;
-					break b1;
-				}
-			}
-			if (hi === 0) {
-				if (lo < 16384) {
-					_6 = 2;
-					break b1;
-				}
-			}
-			if (hi === 0) {
-				if (lo < 2097152) {
-					_6 = 3;
-					break b1;
-				}
-			}
-			if (hi === 0) {
-				if (lo < 268435456) {
-					_6 = 4;
-					break b1;
-				}
-			}
-			if (!(hi < 8)) {
-				if (!(hi < 1024)) {
-					if (!(hi < 16777216)) {
-						_6 = 9;
-					} else {
-						_6 = 8;
-					}
-				} else {
-					_6 = 6;
-				}
-			} else {
-				_6 = 5;
+	const hi: rt.u32 = _5[0];
+	const lo: rt.u32 = _5[1];
+	if (form.tag === "Quic") {
+		if (hi === 0) {
+			if (lo < 64) {
+				return 1;
 			}
 		}
+		if (hi === 0) {
+			if (lo < 16384) {
+				return 2;
+			}
+		}
+		if (hi === 0) {
+			if (lo < 1073741824) {
+				return 4;
+			}
+		}
+		if (!(hi < 1073741824)) {
+			sizeOut.err = {};
+			return undefined;
+		}
+		return 8;
 	}
-	return rt.Ok(_6);
+	if (hi === 0) {
+		if (lo < 128) {
+			return 1;
+		}
+	}
+	if (hi === 0) {
+		if (lo < 16384) {
+			return 2;
+		}
+	}
+	if (hi === 0) {
+		if (lo < 2097152) {
+			return 3;
+		}
+	}
+	if (hi === 0) {
+		if (lo < 268435456) {
+			return 4;
+		}
+	}
+	if (!(hi < 8)) {
+		if (!(hi < 1024)) {
+			if (!(hi < 16777216)) {
+				return 9;
+			}
+			return 8;
+		}
+		return 6;
+	}
+	return 5;
 }
+
+export const sizeOut: { err: unknown } = { err: undefined };
 
 /**
  * Append the minimal encoding of `value` in `form`.

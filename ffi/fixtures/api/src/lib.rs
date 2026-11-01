@@ -1298,6 +1298,7 @@ pub fn file(dir: &std::path::Path, name: &str) -> std::path::PathBuf {
 }
 
 /// A path whose bytes are not UTF-8, as a Unix path may be.
+#[cfg(unix)]
 pub fn stray() -> std::path::PathBuf {
 	std::path::PathBuf::from(<std::ffi::OsString as std::os::unix::ffi::OsStringExt>::from_vec(vec![
 		0xff,

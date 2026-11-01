@@ -26,9 +26,10 @@ export interface Versions {
 
 /** Decode the version list. */
 export function decode$coding_decode_Decode_coding_varint_Form(r: Decoder.Decoder, version: Form.Form): rt.Result<Versions, DecodeError.DecodeError> {
-	const _3: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-	if (_3.ok) {
-		const count: rt.u64 = _3.value;
+	const part: rt.u64 | undefined = Decoder.varint(r);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const count: rt.u64 = part as rt.u64;
 		const vs: coding_version_Version.Version[] = [];
 		const iter: rt.Range<rt.u64> = new rt.Range(0, count, rt.u64Step);
 		while (iter.next() !== rt.DONE) {
@@ -41,7 +42,7 @@ export function decode$coding_decode_Decode_coding_varint_Form(r: Decoder.Decode
 		}
 		return rt.Ok({ _0: vs });
 	}
-	return _3;
+	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /** Encode the version list. */
@@ -75,7 +76,7 @@ export function encode$coding_encode_Encode_lite_version_Version(self: Versions,
 }
 
 export function from$convert_From_array2_coding_version_Version(vs: coding_version_Version.Version[]): Versions {
-	return { _0: vs.slice() };
+	return { _0: rt.vecExact(vs.slice(), 8) };
 }
 
 //# sourceMappingURL=version.Versions.ts.map

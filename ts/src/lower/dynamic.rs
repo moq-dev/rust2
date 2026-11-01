@@ -78,7 +78,8 @@ impl<'tcx> Translator<'_, 'tcx> {
 		})
 	}
 
-	/// The function trait that calls the closure or `dyn Fn*` that `ty` is, or boxes.
+	/// The function trait that calls the closure, async closure, or `dyn Fn*` that `ty` is,
+	/// or boxes.
 	pub fn owned_fn(&self, mut ty: Ty<'tcx>) -> Option<ty::ClosureKind> {
 		while let ty::Adt(adt, args) = ty.kind()
 			&& Std::of(self.tcx, adt.did()) == Some(Std::Box)
@@ -86,7 +87,7 @@ impl<'tcx> Translator<'_, 'tcx> {
 			ty = args.type_at(0);
 		}
 		match ty.kind() {
-			ty::Closure(_, args) => Some(args.as_closure().kind()),
+			ty::Closure(..) | ty::CoroutineClosure(..) => super::closure_kind(ty),
 			ty::Dynamic(..) => self.dyn_fn(ty).map(|f| f.kind),
 			_ => None,
 		}

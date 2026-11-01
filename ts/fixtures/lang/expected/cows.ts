@@ -158,7 +158,7 @@ export function cowOf(v: rt.u16[], owned: boolean): rt.Cow<rt.u16> {
 	if (!owned) {
 		return new rt.Borrowed(v);
 	}
-	return v.slice();
+	return rt.vecExact(v.slice(), 2);
 }
 
 export function putWords(out: rt.ByteVec, v: rt.u16[]): void {
@@ -226,7 +226,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		putWords(out, rt.cowIntoOwned(c));
 		const empty: rt.Cow<rt.u16> = [];
 		putWords(out, rt.cowSlice(empty));
-		const iter: rt.Iter<rt.Cow<rt.u16>> = rt.iterSlice([new rt.Borrowed(half), v.slice(), new rt.Borrowed(v), new rt.Borrowed([3, 1, 4]), rt.iterToArray(rt.iterRev(rt.iterSlice(v)), undefined, 2, true)]);
+		const iter: rt.Iter<rt.Cow<rt.u16>> = rt.iterSlice([new rt.Borrowed(half), rt.vecExact(v.slice(), 2), new rt.Borrowed(v), new rt.Borrowed([3, 1, 4]), rt.iterToArray(rt.iterRev(rt.iterSlice(v)), undefined, 2, true)]);
 		while (true) {
 			const _100: rt.Cow<rt.u16> | rt.Done = iter.next();
 			if (_100 === rt.DONE) {
@@ -278,7 +278,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const _201: rt.u16[] = rt.sliceRange(v, 0);
 		const _197: boolean = rt.eqSlice(rt.same)(rt.cowSlice(a), _201);
 		const _203: boolean = rt.eqSlice(rt.same)(rt.cowSlice(a), v);
-		const _209: rt.u16[] = half.slice();
+		const _209: rt.u16[] = rt.vecExact(half.slice(), 2);
 		const _206: boolean = !rt.eqSlice(rt.same)(rt.cowSlice(a), _209);
 		const _210: boolean = rt.eqSlice(rt.same)(half, rt.cowSlice(b));
 		const _213: boolean = rt.eqSlice(rt.same)(v, rt.cowSlice(a));
@@ -337,7 +337,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecPush(out, borrowed.slice.length & 0xff);
 		} else {
 			rt.vecTruncate(e as rt.u16[], 1);
-			const _336: rt.u16[] = half.slice();
+			const _336: rt.u16[] = rt.vecExact(half.slice(), 2);
 			(e as rt.u16[]) = _336;
 			rt.byteVecPush(out, (e as rt.u16[]).length & 0xff);
 		}
@@ -353,7 +353,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		b16: {
 			if (d instanceof rt.Borrowed) {
 				if ((d as rt.Borrowed<rt.u16>).slice.length > 1) {
-					_359 = rt.sliceRange((d as rt.Borrowed<rt.u16>).slice, 1).slice();
+					_359 = rt.vecExact(rt.sliceRange((d as rt.Borrowed<rt.u16>).slice, 1).slice(), 2);
 					break b16;
 				}
 			}
@@ -408,7 +408,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		if (!owned) {
 			c4 = new rt.Borrowed(rt.sliceRange(items, 0));
 		} else {
-			c4 = items.map(cows_Tally.clone$Clone);
+			c4 = rt.vecExact(items.map(cows_Tally.clone$Clone), 8);
 		}
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(rt.cellReplace(log, 0))));
 		const copy: rt.Cow<cows_Tally.Tally> = rt.cowClone(c4, cows_Tally.clone$Clone);

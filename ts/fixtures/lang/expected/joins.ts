@@ -125,7 +125,7 @@ export function joins(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		wides(rt.slicesJoin(slices, 2, [sep2]), out);
 		wides(rt.slicesJoin(slices, 2, rt.sliceRange(wideSeps, 0)), out);
 		const boxed2: rt.u16[][] = rt.iterToArray(rt.iterMap(rt.iterMap(rt.iterSlice(wide), (a015: rt.u16[]): rt.u16[] => {
-			return a015.slice();
+			return rt.vecExact(a015.slice(), 2);
 		}), (a016: rt.u16[]): rt.u16[] => {
 			return a016;
 		}), undefined, 8, true);
@@ -221,7 +221,7 @@ export function joins(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			if (rt.usizeRem(_212[0], 2) === 0) {
 				return new rt.Borrowed(rt.sliceRange(_212[1], 0));
 			}
-			return _212[1].slice();
+			return rt.vecExact(_212[1].slice(), 2);
 		}), undefined, 12, true);
 		wides(rt.slicesJoin(wide3, 2, undefined, rt.cowSlice), out);
 		wides(rt.slicesJoin(wide3, 2, [65535], rt.cowSlice), out);
