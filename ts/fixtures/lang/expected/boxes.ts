@@ -968,11 +968,11 @@ export function impls(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.dropAll(l2);
 	} else if (_23 === 2) {
 		const _395: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(data2));
-		boxed$3_boxed_Box_slice_u8(_395.length === 3 ? rt.Ok(rt.byteSliceToArray(_395)) : rt.Err(_395), out);
+		boxed$3_boxed_Box_slice_u8(_395.length === 3 ? rt.Ok(rt.byteSliceView(_395)) : rt.Err(_395), out);
 		const _398: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(data2));
-		boxed$0_boxed_Box_slice_u8(_398.length === 0 ? rt.Ok(rt.byteSliceToArray(_398)) : rt.Err(_398), out);
+		boxed$0_boxed_Box_slice_u8(_398.length === 0 ? rt.Ok(rt.byteSliceView(_398)) : rt.Err(_398), out);
 		const _400: rt.ByteVec = rt.byteSliceToByteVec(data2);
-		const r: rt.Result<Uint8Array, rt.ByteVec> = _400.length === 2 ? rt.Ok(rt.byteSliceToArray(rt.byteVecSlice(_400))) : rt.Err(_400);
+		const r: rt.Result<Uint8Array, rt.ByteVec> = _400.length === 2 ? rt.Ok(rt.byteSliceView(rt.byteVecSlice(_400))) : rt.Err(_400);
 		if (r.ok) {
 			bytes(rt.byteSliceFrom(r.value), out);
 		} else {
@@ -983,7 +983,7 @@ export function impls(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const spare: rt.ByteVec = new rt.ByteVec(32);
 		rt.byteVecExtendFromSlice(spare, data2);
 		const _417: rt.ByteVec = spare;
-		boxed$4_Vec_u8(_417.length === 4 ? rt.Ok(rt.byteSliceToArray(rt.byteVecSlice(_417))) : rt.Err(_417), out);
+		boxed$4_Vec_u8(_417.length === 4 ? rt.Ok(rt.byteSliceView(rt.byteVecSlice(_417))) : rt.Err(_417), out);
 		const w3: rt.u16[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data2)), (_2: rt.u8): rt.u16 => {
 			return rt.u16Mul(_2 as rt.u16, 3);
 		}), undefined, 2, true);

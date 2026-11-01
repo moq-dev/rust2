@@ -1430,8 +1430,9 @@ fn mapping<'tcx>(
 					Some(Std::Vec) => vec_boxed(from_value.clone(), *elem),
 					_ => from_value.clone(),
 				};
+				// The bytes keep their buffer, as std keeps the allocation.
 				let array = match is_u8(*elem) {
-					true => Expr::rt("byteSliceToArray", vec![boxed]),
+					true => Expr::rt("byteSliceView", vec![boxed]),
 					false => boxed,
 				};
 				return Some(Expr::Cond(
