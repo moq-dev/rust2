@@ -524,9 +524,13 @@ of them:
   as `bytes` does, and into a `BytesMut` is refused, as `bytes` picks those methods by its
   capacity. The provided `copy_to_bytes` of the crate's own `Buf`, whose `BytesMut` has
   the capacity it asks for, reads it chunk by chunk through its methods.
-  The rest of `bytes`, such as the other provided methods of the crate's own `Buf` and the
-  impls forwarding through a `&mut` or a `Box`, translates from its MIR, refused where
-  that is.
+  The impls forwarding through a `&mut` or a `Box` translate from `bytes`' MIR, and the
+  `BufMut` methods they don't forward map as the buffer's own, but `put` and `put_bytes`,
+  which grow it as their provided bodies do, 64 bytes at a time once it is full. `put` of
+  the crate's own `Buf` through them into a `BytesMut` is refused, as `bytes` advances it
+  by the room left in the capacity.
+  The rest of `bytes`, such as the other provided methods of the crate's own `Buf`,
+  translates from its MIR, refused where that is.
 - `rand::rng()` is an `rt.ThreadRng`, whose `random` of an integer or `bool` and
   `random_range` of an integer range map to `rt/rand.ts`. Each value comes from
   `crypto.getRandomValues`, uniform as `rand`'s are, though no seed reproduces them, as
@@ -893,8 +897,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
   slices and panics, how each is made and printed, that no event evaluates a field, and
   that each random value is in its range, every value of a small range drawn. It splits,
   freezes, grows, and writes a `BytesMut` by ops its input picks, ending with every
-  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, a buffer of
-  its own included. `caller.ts` names the inputs that reserve at the edges of
+  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, through a
+  `&mut` and a `Box` too, a buffer of its own included, ending with each vector's
+  capacity. `caller.ts` names the inputs that reserve at the edges of
   `BytesMut`'s 512 MiB limit.
 - `bind` binds `buf::Blob`, a renamed dependency's type with `unsafe` inside, and a function and a type of its own that read through raw
   pointers, the type dropping an `Arc` where Rust drops it, to the TS in `bind/`. It keys

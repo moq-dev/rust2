@@ -273,17 +273,38 @@ fn read_all<B: Buf>(buf: &mut B, ops: &[u8], read: fn(&mut B, usize) -> u128, ou
 }
 
 /// The same writes into a `Vec<u8>` and a `BytesMut`, which must match, and through the
-/// impl forwarding through a `&mut`.
+/// impls forwarding through a `&mut` and a `Box`, whose provided `put` and `put_bytes`
+/// grow by `chunk_mut` instead: the bytes, and each vector's capacity.
 pub fn writes(data: &[u8], out: &mut Vec<u8>) {
-	let mut vec = Vec::new();
-	let mut buf = BytesMut::new();
-	write_all(&mut vec, data);
-	write_all(&mut buf, data);
-	let (mut through_vec, mut through_buf) = (Vec::new(), BytesMut::new());
-	write_through(&mut &mut through_vec, data);
-	write_through(&mut &mut through_buf, data);
+	let [first, cap, data @ ..] = data else {
+		return;
+	};
+	let cap = usize::from(*cap % 24);
+	let (mut vec, mut buf) = (Vec::with_capacity(cap), BytesMut::with_capacity(cap));
+	let (mut through_vec, mut through_buf) = (Vec::with_capacity(cap), BytesMut::with_capacity(cap));
+	let (mut boxed_vec, mut boxed_buf) = (Box::new(Vec::with_capacity(cap)), Box::new(BytesMut::with_capacity(cap)));
+	// Each first in turn, so each one's panic is reached.
+	for i in 0..6 {
+		match first.wrapping_add(i) % 6 {
+			0 => write_all(&mut vec, data),
+			1 => write_all(&mut buf, data),
+			2 => write_all(&mut &mut through_vec, data),
+			3 => write_all(&mut &mut through_buf, data),
+			4 => write_all(&mut boxed_vec, data),
+			_ => write_all(&mut boxed_buf, data),
+		}
+	}
+	// A buffer of the crate's own, in chunks as long as the room `chunk_mut` gives.
+	vec.put(Pieces::new(data, data.len() / 2));
+	BufMut::put(&mut &mut through_vec, Pieces::new(data, data.len() / 2));
+	BufMut::put(&mut boxed_vec, Pieces::new(data, data.len() / 2));
+	for vec in [&vec, &through_vec, &boxed_vec] {
+		out.extend_from_slice(&(vec.capacity() as u32).to_le_bytes());
+	}
 	out.extend_from_slice(&through_vec);
 	out.extend_from_slice(&through_buf);
+	out.push((*boxed_vec == through_vec) as u8);
+	out.push((*boxed_buf == through_buf) as u8);
 	out.push((vec == buf) as u8);
 	out.push((vec.remaining_mut() == buf.remaining_mut()) as u8);
 	out.push(buf.has_remaining_mut() as u8);
@@ -297,7 +318,7 @@ fn write_all<B: BufMut>(buf: &mut B, data: &[u8]) {
 		data = rest;
 		let (op, n) = (*op, *n);
 		let v = u64::from(n) * 0x0101_0101_0101_0101;
-		match op % 16 {
+		match op % 20 {
 			0 => buf.put_u8(n),
 			1 => buf.put_i8(n as i8),
 			2 => buf.put_u16(v as u16),
@@ -310,33 +331,19 @@ fn write_all<B: BufMut>(buf: &mut B, data: &[u8]) {
 			9 => buf.put_uint(v, n as usize % 10),
 			10 => buf.put_int_le(v as i64, n as usize % 10),
 			11 => buf.put_slice(&[op, n]),
-			12 => buf.put_bytes(n, n as usize % 7),
+			// Past what a vector holds, which panics as `Vec` does directly, and as
+			// `remaining_mut` says through a `&mut`.
+			12 if n == 0xff => buf.put_bytes(n, usize::MAX),
+			12 => buf.put_bytes(n, n as usize % 100),
 			13 => buf.put(Bytes::from_static(b"put")),
-			14 => buf.put_f32(f32::from(n) / 3.0),
+			14 => buf.put(&[op; 70][..usize::from(n) % 71]),
+			15 => buf.put(BytesMut::from(&[n; 3][..])),
+			16 => buf.put_f32(f32::from(n) / 3.0),
+			17 => buf.put_int(v as i64, n as usize % 10),
+			18 => buf.put_uint_le(v, n as usize % 10),
 			_ => buf.put_f64(f64::from(n) / 3.0),
 		}
-	}
-}
-
-/// A write by each pair of `data`'s bytes, of those that `&mut T` forwards, and of those
-/// whose provided body calls only those.
-fn write_through<B: BufMut>(buf: &mut B, data: &[u8]) {
-	let mut data = data;
-	while let [op, n, rest @ ..] = data {
-		data = rest;
-		let (op, n) = (*op, *n);
-		let v = u64::from(n) * 0x0101_0101_0101_0101;
-		match op % 9 {
-			0 => buf.put_u8(n),
-			1 => buf.put_i8(n as i8),
-			2 => buf.put_u16_le(v as u16),
-			3 => buf.put_i32(v as i32),
-			4 => buf.put_u64(v),
-			5 => buf.put_slice(&[op, n]),
-			6 => buf.put_i128_le(i128::from(v) << 40),
-			7 => buf.put_f64(f64::from(n) / 3.0),
-			_ => buf.put_u8(buf.has_remaining_mut() as u8 + (buf.remaining_mut() % 7) as u8),
-		}
+		buf.put_u8(buf.has_remaining_mut() as u8 + (buf.remaining_mut() % 7) as u8);
 	}
 }
 
