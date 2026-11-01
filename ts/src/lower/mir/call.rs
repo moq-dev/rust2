@@ -229,9 +229,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		out: &mut Vec<Stmt>,
 	) -> Expr {
 		let tcx = self.tcx;
-		// Calling a closure or function value: `FnOnce::call_once(f, (args,))`.
+		// Calling a closure or function value: `FnOnce::call_once(f, (args,))`, or
+		// `AsyncFnOnce::async_call_once`.
 		if let Some(trait_id) = tcx.trait_of_assoc(def_id)
-			&& tcx.is_fn_trait(trait_id)
+			&& let Some(kind) = tcx
+				.fn_trait_kind_from_def_id(trait_id)
+				.or_else(|| tcx.async_fn_trait_kind_from_def_id(trait_id))
 			&& let [callee, tupled] = args
 		{
 			let callee_ty = gargs.type_at(0);
@@ -274,8 +277,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			}
 			// `FnOnce::call_once` of a closure that `Fn` or `FnMut` call, or of a box of one,
 			// drops it after, as rustc's shim does, where an `FnOnce` closure's body drops
-			// what it owns.
-			if tcx.fn_trait_kind_from_def_id(trait_id) == Some(ty::ClosureKind::FnOnce)
+			// what it owns; of an async closure, it makes the future of rustc's by-move body,
+			// which owns what the closure captured.
+			if kind == ty::ClosureKind::FnOnce
 				&& self
 					.b
 					.t
@@ -348,7 +352,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				| ("Result", "iter_mut")
 				| ("Arc" | "Rc", "get_mut" | "make_mut")
 				| ("Mutex" | "RwLock" | "RefCell" | "OnceCell" | "OnceLock", "get_mut")
-				| ("RefMut" | "RwLockWriteGuard" | "MappedRwLockWriteGuard", "map" | "filter_map" | "map_split") => true,
+				| (
+					"RefMut" | "MutexGuard" | "MappedMutexGuard" | "RwLockWriteGuard" | "MappedRwLockWriteGuard",
+					"map" | "filter_map" | "try_map" | "map_split",
+				) => true,
 				("IntoIterator", "into_iter") => gargs.types().next().is_some_and(|ty| {
 					let ty = crate::lower::iter::unbox_ref(tcx, ty);
 					ty.ref_mutability() == Some(ty::Mutability::Mut)

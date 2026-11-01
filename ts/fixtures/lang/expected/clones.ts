@@ -2694,7 +2694,7 @@ export function turns$iter_Flatten_vec_IntoIter_Vec_clones_Logged_clones_owned_c
 		}
 	}
 	const other: rt.Iter<clones_Logged.Logged> = it.clone({ i: { v: (a0: clones_Logged.Logged[]): clones_Logged.Logged[] => {
-		return a0.map(clones_Logged.clone$Clone);
+		return rt.vecExact(a0.map(clones_Logged.clone$Clone), 8);
 	} }, o: { v: clones_Logged.clone$Clone } });
 	rt.iterExtendBytes(out, rt.iterSlice(_44(it)), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(_44(other)), undefined, true);
@@ -7158,7 +7158,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}, plan, (x10: rt.u8): rt.u8 => {
 			return x10;
 		}, out);
-		turns$collections_vec_deque_IntoIter_u8_clones_iters_closure139_clones_iters_closure140(rt.dequeIter(rt.dequeClone(q, undefined)), (it8: rt.Iter<rt.u8>): rt.u8 | undefined => {
+		turns$collections_vec_deque_IntoIter_u8_clones_iters_closure139_clones_iters_closure140(rt.dequeIter(rt.dequeClone(q, undefined, 1)), (it8: rt.Iter<rt.u8>): rt.u8 | undefined => {
 			return rt.iterToOption(it8.nextBack());
 		}, plan, (x11: rt.u8): rt.u8 => {
 			return x11;
@@ -7409,10 +7409,9 @@ export function owned(data: rt.ByteSlice, plan: Plan.Plan, out: rt.ByteVec): voi
 		return _04;
 	}, out);
 	flush(log.value, out);
-	const _35: rt.Iter<clones_Logged.Logged> = rt.iterMap(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 4), (_22: rt.u8): clones_Logged.Logged => {
+	turns$collections_vec_deque_IntoIter_clones_Logged_clones_owned_closure5_clones_owned_closure6(rt.dequeIter(rt.dequeFromVec(rt.iterToArray(rt.iterMap(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 4), (_22: rt.u8): clones_Logged.Logged => {
 		return logged(_22 & 112);
-	});
-	turns$collections_vec_deque_IntoIter_clones_Logged_clones_owned_closure5_clones_owned_closure6(rt.dequeIter(rt.dequeExtend(rt.dequeNew() as rt.VecDeque<clones_Logged.Logged>, rt.iterSlice(rt.iterToArray(_35, undefined, 8, true))), rt.drop), (it7: rt.Iter<clones_Logged.Logged>): clones_Logged.Logged | undefined => {
+	}), undefined, 8, true)) as rt.VecDeque<clones_Logged.Logged>, rt.drop), (it7: rt.Iter<clones_Logged.Logged>): clones_Logged.Logged | undefined => {
 		return rt.iterToOption(it7.nextBack());
 	}, plan, (x2: clones_Logged.Logged): rt.u8 => {
 		const _07: rt.u8 = clones_Logged.id(x2);
@@ -7456,7 +7455,7 @@ export function owned(data: rt.ByteSlice, plan: Plan.Plan, out: rt.ByteVec): voi
 	rt.drop(rt.iterToOption(it4.next()));
 	rt.drop(rt.iterToOption(it4.nextBack()));
 	const clone4: rt.Iter<clones_Logged.Logged> = it4.clone({ i: { v: (a07: clones_Logged.Logged[]): clones_Logged.Logged[] => {
-		return a07.map(clones_Logged.clone$Clone);
+		return rt.vecExact(a07.map(clones_Logged.clone$Clone), 8);
 	} }, o: { v: clones_Logged.clone$Clone } });
 	flush(log.value, out);
 	rt.drop(it4);

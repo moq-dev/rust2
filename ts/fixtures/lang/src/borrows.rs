@@ -2,8 +2,9 @@
 //! tuples, and values that drop; borrowed shared and exclusive, held in bindings and
 //! dropped; and borrowed again while held, which panics as wasm32's does. `RefCell`s
 //! cloned, written through `get_mut`, taken apart, tried, and borrowed through mapped and
-//! cloned guards, each released as it drops; and guards mapped, filtered, and split to
-//! parts JS copies and parts it doesn't, written through, released as the last drops.
+//! cloned guards, each released as it drops; guards mapped, filtered, and split to parts
+//! JS copies and parts it doesn't, written through, released as the last drops; and
+//! guards tried on their parts, given back beside an error, and printed.
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::sync::{Arc, Mutex};
@@ -466,6 +467,137 @@ pub fn maps(data: &[u8], out: &mut Vec<u8>) {
 	out.extend_from_slice(&last.bytes);
 	drop(last);
 	drop(slot);
+	flush(&log, out);
+}
+
+/// Each byte an operation on `RefCell`s through guards tried on their parts, its value the
+/// operand, and printed by `Debug` and `Display`; each puts what it read and printed
+/// through them, what the cell holds after they drop, whether it is still borrowed, and
+/// what dropped.
+pub fn tries(data: &[u8], out: &mut Vec<u8>) {
+	let log = Arc::new(Mutex::new(Vec::new()));
+	let parts = RefCell::new(Parts {
+		n: 0,
+		text: String::new(),
+		bytes: Vec::new(),
+		tagged: Tagged {
+			id: 1,
+			n: 0,
+			log: log.clone(),
+		},
+		maybe: None,
+		quad: [1, 2, 3, 4],
+	});
+	let number = RefCell::new(0u32);
+	for &op in data {
+		match op % 4 {
+			// Tried exclusive, to a number JS copies, with an error that drops, and to a
+			// `Vec` with one that doesn't, each giving the guard back beside its error.
+			0 => {
+				let tried = RefMut::try_map(parts.borrow_mut(), |p| match p.maybe.as_mut() {
+					Some(m) => Ok(m),
+					None => Err(Noisy {
+						id: op,
+						log: log.clone(),
+					}),
+				});
+				match tried {
+					Ok(mut m) => {
+						*m = m.wrapping_add(u16::from(op));
+						out.push(borrowed(&parts));
+					}
+					Err((mut whole, noisy)) => {
+						whole.maybe = Some(u16::from(noisy.id));
+						out.push(borrowed(&parts));
+						drop(noisy);
+						flush(&log, out);
+						out.push(borrowed(&parts));
+					}
+				}
+				out.extend_from_slice(&[borrowed(&parts), parts.borrow().maybe.map_or(0xfd, |m| m as u8)]);
+				let tried = RefMut::try_map(parts.borrow_mut(), |p| match op & 0x10 {
+					0 => Ok(&mut p.bytes),
+					_ => Err(()),
+				});
+				match tried {
+					Ok(mut bytes) => {
+						bytes.push(op);
+						if op >> 5 == 7 {
+							*bytes = vec![op; 2];
+						}
+					}
+					Err((whole, ())) => out.push(0xf0 | whole.bytes.len() as u8),
+				}
+				out.push(borrowed(&parts));
+				out.extend_from_slice(&parts.borrow().bytes);
+				let mut n = RefMut::try_map(number.borrow_mut(), |n| Ok::<_, u8>(n)).unwrap();
+				*n += u32::from(op);
+				drop(n);
+				out.push(*number.borrow() as u8);
+			}
+			// Tried shared, and again on what that lends, and its guard back while another
+			// shares the cell.
+			1 => {
+				let other = parts.borrow();
+				match Ref::try_map(parts.borrow(), |p| p.bytes.last().ok_or(p.bytes.len())) {
+					Ok(last) => {
+						let tried = Ref::try_map(last, |b| if *b & 1 == 0 { Ok(b) } else { Err(*b) });
+						match tried {
+							Ok(b) => out.extend_from_slice(&[*b, borrowed(&parts)]),
+							Err((b, e)) => out.extend_from_slice(&[*b ^ e, borrowed(&parts)]),
+						}
+					}
+					Err((whole, len)) => out.extend_from_slice(&[whole.n as u8, len as u8]),
+				}
+				out.push(borrowed(&parts));
+				drop(other);
+				out.push(borrowed(&parts));
+			}
+			// Printed through guards, plain, mapped, and tried, by each trait and with options.
+			2 => {
+				parts.borrow_mut().text.push(char::from(b'a' + op % 26));
+				let text = Ref::map(parts.borrow(), |p| &p.text);
+				let quad = Ref::map(parts.borrow(), |p| &p.quad);
+				let n = number.borrow();
+				let printed = format!("{text} {text:?} [{text:>4}] {quad:?} {n:#?} {n:?} {n:>5}");
+				out.extend_from_slice(printed.as_bytes());
+				drop((text, quad, n));
+				let maybe = RefMut::map(parts.borrow_mut(), |p| &mut p.maybe);
+				out.extend_from_slice(format!("{maybe:?} {maybe:#?}").as_bytes());
+				drop(maybe);
+				let bytes = RefMut::map(parts.borrow_mut(), |p| &mut p.bytes);
+				out.extend_from_slice(format!("{bytes:?} {:?}", number.borrow_mut()).as_bytes());
+				drop(bytes);
+				let pair = RefCell::new((op, "pair"));
+				out.extend_from_slice(format!("{:?} ", pair.borrow()).as_bytes());
+				out.extend_from_slice(format!("{:#?}", pair.borrow_mut()).as_bytes());
+				let tried = Ref::try_map(pair.borrow(), |p| if p.0 & 1 == 0 { Ok(&p.1) } else { Err(p.0) });
+				out.extend_from_slice(format!("{tried:?}").as_bytes());
+			}
+			// Tried, as it borrows again while the guard it gave back holds it, which panics.
+			_ => match op >> 4 {
+				0xd => {
+					let (_whole, ()) = RefMut::try_map(parts.borrow_mut(), |_| Err::<&mut u32, _>(())).unwrap_err();
+					let _r = parts.borrow();
+				}
+				0xe => {
+					let _n = Ref::try_map(parts.borrow(), |p| Ok::<_, ()>(&p.n));
+					let _w = parts.borrow_mut();
+				}
+				0xf => {
+					let _n = RefMut::try_map(parts.borrow_mut(), |p| Ok::<_, ()>(&mut p.n));
+					let _r = parts.borrow();
+				}
+				_ => out.push(borrowed(&parts)),
+			},
+		}
+		flush(&log, out);
+	}
+	let last = parts.into_inner();
+	out.extend_from_slice(&[last.n as u8, last.maybe.map_or(0xfd, |m| m as u8)]);
+	out.extend_from_slice(last.text.as_bytes());
+	out.extend_from_slice(&last.bytes);
+	drop(last);
 	flush(&log, out);
 }
 

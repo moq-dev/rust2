@@ -159,13 +159,14 @@ export function ptrWrite<T extends object>(p: T, value: T): void {
 
 /**
  * `mem::replace` of what a `&mut` to an object points at, in place: `value`'s fields, or
- * its items for a JS array, moved into `p`, and what `p` held returned as an object of its own.
+ * its items and capacity for a JS array, moved into `p`, and what `p` held returned as an object of its own.
  */
 export function replaceIn<T extends object>(p: T, value: T): T {
 	if (Array.isArray(p)) {
-		const old = p.slice() as T;
+		const old: unknown[] & Capped = p.slice();
+		if ((p as Capped).cap !== undefined) old.cap = (p as Capped).cap;
 		vecAssign(p, value as unknown[]);
-		return old;
+		return old as T;
 	}
 	const old = Object.assign(Object.create(Object.getPrototypeOf(p)) as T, p);
 	Object.assign(p, value);
@@ -727,10 +728,11 @@ export function vecDedupByKeyMut<T, K>(v: T[], key: (item: Place<T>) => K, eq: (
 	vecDedupByMut(v, (a, b) => eq(key(a), key(b)), drop);
 }
 
-/** `*v = value` through a `&mut` to a `Vec<T>` other than of bytes, or to a boxed slice: `value`'s items, in place. */
-export function vecAssign<T>(v: T[], value: T[]): void {
+/** `*v = value` through a `&mut` to a `Vec<T>` other than of bytes, or to a boxed slice: `value`'s items and capacity, in place. */
+export function vecAssign<T>(v: T[] & Capped, value: T[] & Capped): void {
 	v.length = value.length;
 	for (let i = 0; i < value.length; i++) v[i] = value[i]!;
+	if (v.cap !== undefined || value.cap !== undefined) v.cap = value.cap;
 }
 
 /** `Vec::insert`: `item` at `i`, with those from `i` on moved up. */
@@ -998,11 +1000,14 @@ export function byteSliceToByteVec(s: ByteSlice): ByteVec {
 	return v;
 }
 
-/** `vec![value; n]`: `n - 1` clones of `value`, in order, then `value` itself; `clone` is `undefined` where a clone is the value. */
+/** `vec![value; n]`: `n - 1` clones of `value`, in order, then `value` itself, with room for exactly them; `clone` is `undefined` where a clone is the value. */
 export function vecFromElem<T>(value: T, n: number, clone: ((value: T) => T) | undefined): T[] {
-	const v: T[] = [];
+	const v: T[] & Capped = [];
 	for (let i = 1; i < n; i++) v.push(clone === undefined ? value : clone(value));
-	if (n > 0) v.push(value);
+	if (n > 0) {
+		v.push(value);
+		v.cap = n;
+	}
 	return v;
 }
 
@@ -1204,6 +1209,149 @@ export function byteVecDedupByMut(v: ByteVec, same: (a: Place<number>, b: Place<
 /** `Vec::dedup_by_key`, whose places `key` takes. */
 export function byteVecDedupByKeyMut<K>(v: ByteVec, key: (byte: Place<number>) => K, eq: (a: K, b: K) => boolean): void {
 	byteVecDedupByMut(v, (a, b) => eq(key(a), key(b)));
+}
+
+// Capacity. std leaves a vector's growth unspecified past `capacity() >= len` and what
+// `with_capacity` and `reserve` ask for, so a `Vec` or `VecDeque` holds one, as `cap`,
+// only where an operation sets it, and a push never reads or writes it. Reading one
+// doubles it while short of the length, from the least `RawVec` allocates, as std's
+// pushes grow it. An `rt.ByteVec`'s is its buffer's length.
+
+/** wasm32's `isize::MAX`, the most bytes std's `Layout` describes. */
+const ISIZE_MAX = 0x7fffffff;
+
+/** wasm32's `usize::MAX`. */
+const USIZE_MAX = 0xffffffff;
+
+/** A vector's storage, and `cap`, the capacity an operation last set it to, if any. */
+export interface Capped {
+	cap?: number;
+}
+
+/** How many `size`-byte elements a vector holds at most: `usize::MAX` of zero-sized ones. */
+export function vecMax(size: number): number {
+	return size === 0 ? USIZE_MAX : Math.floor(ISIZE_MAX / size);
+}
+
+/** The capacity of a vector holding `len` of `size`-byte elements, from `cap`, the one last set, as pushes grow std's. */
+export function capOf(len: number, cap: number | undefined, size: number): number {
+	if (size === 0) return USIZE_MAX;
+	let c = cap ?? 0;
+	while (c < len) c = Math.max(c * 2, size === 1 ? 8 : size <= 1024 ? 4 : 1);
+	return c;
+}
+
+/** `c`'s capacity set to `cap`, holding `len`, where reading it would not give that. */
+export function capSet(c: object & Capped, len: number, cap: number, size: number): void {
+	if (size !== 0 && (c.cap !== undefined || cap !== capOf(len, undefined, size))) c.cap = cap;
+}
+
+/** `c`'s capacity set to `cap`, which `reserve` asked for, so it holds as the length drops. */
+export function capHold(c: object & Capped, cap: number, size: number): void {
+	if (size !== 0) c.cap = cap;
+}
+
+/**
+ * The capacity `cap`, holding `len`, once `reserve` made room for `additional` more, as
+ * std's `RawVec::grow_amortized`: at least double, or a panic past what it may hold.
+ */
+export function capReserve(len: number, cap: number, additional: number, size: number): number {
+	if (additional <= cap - len) return cap;
+	const grown = Math.max(cap * 2, len + additional, size === 1 ? 8 : size <= 1024 ? 4 : 1);
+	if (grown > vecMax(size)) panic("capacity overflow");
+	return grown;
+}
+
+/** The capacity `cap`, holding `len`, once `reserve_exact` made room for `additional` more. */
+export function capReserveExact(len: number, cap: number, additional: number, size: number): number {
+	if (additional <= cap - len) return cap;
+	if (len + additional > vecMax(size)) panic("capacity overflow");
+	return len + additional;
+}
+
+/** The capacity `cap`, holding `len`, once `shrink_to` of `min` shrank it, as `shrink_to_fit` of 0 does. */
+export function capShrink(len: number, cap: number, min: number): number {
+	return cap > min ? Math.max(len, min) : cap;
+}
+
+/** `Vec::with_capacity` of `size`-byte elements, which panics past what it may hold. */
+export function vecWithCapacity<T>(n: number, size: number): T[] {
+	if (n > vecMax(size)) panic("capacity overflow");
+	const v: T[] & Capped = [];
+	capSet(v, 0, n, size);
+	return v;
+}
+
+/** `Vec::capacity` of `size`-byte elements. */
+export function vecCapacity<T>(v: T[] & Capped, size: number): number {
+	return capOf(v.length, v.cap, size);
+}
+
+/** `Vec::reserve` of `size`-byte elements. */
+export function vecReserve<T>(v: T[] & Capped, additional: number, size: number): void {
+	capHold(v, capReserve(v.length, vecCapacity(v, size), additional, size), size);
+}
+
+/** `Vec::reserve_exact` of `size`-byte elements. */
+export function vecReserveExact<T>(v: T[] & Capped, additional: number, size: number): void {
+	capHold(v, capReserveExact(v.length, vecCapacity(v, size), additional, size), size);
+}
+
+/** `Vec::shrink_to` of `size`-byte elements, and `shrink_to_fit` of 0. */
+export function vecShrinkTo<T>(v: T[] & Capped, min: number, size: number): void {
+	capSet(v, v.length, capShrink(v.length, vecCapacity(v, size), min), size);
+}
+
+/** `v`, a new `Vec` of `size`-byte elements, with room for exactly what it holds, as std's `clone` makes one. */
+export function vecExact<T>(v: T[], size: number): T[] {
+	capSet(v, v.length, v.length, size);
+	return v;
+}
+
+/** `v`'s storage moved to `cap` bytes. */
+function realloc(v: ByteVec, cap: number): void {
+	const data = bytes(cap);
+	data.set(v.data.subarray(0, v.length));
+	v.data = data;
+}
+
+/** The bytes of `v` as a `Vec<number>`, with its capacity, as a deque or heap takes it. */
+export function byteVecToVec(v: ByteVec): number[] {
+	const out = Array.from(byteVecView(v));
+	capSet(out, out.length, v.data.length, 1);
+	return out;
+}
+
+/** A `Vec<u8>` of the bytes in `v`, with its capacity, as a heap gives them up. */
+export function byteVecFromVec(v: number[] & Capped): ByteVec {
+	const out = new ByteVec(capOf(v.length, v.cap, 1));
+	out.data.set(v);
+	out.length = v.length;
+	return out;
+}
+
+/** `Vec::with_capacity` of bytes, which panics past what it may hold. */
+export function byteVecWithCapacity(n: number): ByteVec {
+	if (n > ISIZE_MAX) panic("capacity overflow");
+	return new ByteVec(n);
+}
+
+/** `Vec::reserve` of bytes. */
+export function byteVecReserve(v: ByteVec, additional: number): void {
+	const cap = capReserve(v.length, v.data.length, additional, 1);
+	if (cap !== v.data.length) realloc(v, cap);
+}
+
+/** `Vec::reserve_exact` of bytes. */
+export function byteVecReserveExact(v: ByteVec, additional: number): void {
+	const cap = capReserveExact(v.length, v.data.length, additional, 1);
+	if (cap !== v.data.length) realloc(v, cap);
+}
+
+/** `Vec::shrink_to` of bytes, and `shrink_to_fit` of 0. */
+export function byteVecShrinkTo(v: ByteVec, min: number): void {
+	const cap = capShrink(v.length, v.data.length, min);
+	if (cap !== v.data.length) realloc(v, cap);
 }
 
 // Cows of slices. An owned one is its `Vec` and a borrowed one its slice, told apart by

@@ -44,13 +44,6 @@ impl Drop for Noisy {
 	fn drop(&mut self) {}
 }
 
-/// An async closure is a coroutine closure, not an async body.
-pub fn async_closure() -> u8 {
-	let f = async || 1u8;
-	drop(f);
-	0
-}
-
 /// A pointer's address, which JS has no counterpart of.
 pub fn pointer(n: u8) -> String {
 	format!("{:p}", &n)

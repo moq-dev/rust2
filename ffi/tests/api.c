@@ -101,10 +101,27 @@ static void print_escaped(const char *before, api_buf buf, const char *after) {
 	printf("%s", before);
 	for (size_t i = 0; i < buf.len; i++) {
 		uint8_t b = buf.ptr[i];
-		if (b >= 0x20 && b < 0x7f && b != '\\' && b != '\'' && b != '"') {
-			putchar(b);
-		} else {
-			printf("\\x%02x", b);
+		switch (b) {
+		case '\t':
+			printf("\\t");
+			break;
+		case '\r':
+			printf("\\r");
+			break;
+		case '\n':
+			printf("\\n");
+			break;
+		case '\\':
+		case '\'':
+		case '"':
+			printf("\\%c", b);
+			break;
+		default:
+			if (b >= 0x20 && b < 0x7f) {
+				putchar(b);
+			} else {
+				printf("\\x%02x", b);
+			}
 		}
 	}
 	printf("%s", after);
@@ -708,7 +725,7 @@ static int script(void) {
 	}
 	api_buf_free(stray);
 	api_buf_free(in_stray);
-	api_buf file = api_file(str("dir"), str("f"));
+	api_buf file = api_file(str("dir"), str("f\\'\"\t"));
 	api_buf paths[] = {file, str("/")};
 	api_vec_option_path parents = api_parents((api_vec_path){.ptr = paths, .len = 2});
 	print_escaped("file ", file, "\n");
