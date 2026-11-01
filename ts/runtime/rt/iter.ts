@@ -22,7 +22,7 @@
 // `owned` functions follow it, dispatching on the kind, so a bundle that never drops an
 // item carries none of it.
 
-import { ByteSlice, ByteVec, byteVecExtendFromSlice, byteVecPush, byteVecReserve, byteVecWithCapacity, type Capped, capOf, capReserve, capSet, Err, type None, Ok, type Place, panic, place, type RangeBound, type Result, sliceView, vecCapacity, vecExtendFromSlice, vecMax, vecReserve, vecWithCapacity } from "../rt.ts";
+import { ByteSlice, ByteVec, byteVecExtendFromSlice, byteVecPush, byteVecReserve, byteVecWithCapacity, type Capped, capOf, capReserve, capSet, Err, type None, Ok, type Place, panic, place, type RangeBound, type Result, sliceView, vecCapacity, vecExtendFromSlice, vecMax, vecWithCapacity } from "../rt.ts";
 import { AtIndex, BTreeIter, HashIter, type Ordering } from "./collections.ts";
 import { type Hasher, hash8 } from "./hash.ts";
 import { charStep, intToBig, type Limbs, lt as wideLt, type Step } from "./int.ts";
@@ -612,7 +612,7 @@ export function iterExtend<T>(v: T[] & Capped, items: Iter<T>, take?: Take, size
 		if (take !== undefined) dispose(items);
 		return v;
 	}
-	if (size !== undefined) vecReserve(v, trustedUpper(items), size);
+	if (size !== undefined) capSet(v, v.length, capReserve(v.length, vecCapacity(v, size), trustedUpper(items), size), size);
 	if (take === undefined) {
 		const folded = items.folded(trusted);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) v.push(item);

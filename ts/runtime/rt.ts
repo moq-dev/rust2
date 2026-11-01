@@ -1229,6 +1229,11 @@ export function capSet(c: object & Capped, len: number, cap: number, size: numbe
 	if (size !== 0 && (c.cap !== undefined || cap !== capOf(len, undefined, size))) c.cap = cap;
 }
 
+/** `c`'s capacity set to `cap`, which `reserve` asked for, so it holds as the length drops. */
+export function capHold(c: object & Capped, cap: number, size: number): void {
+	if (size !== 0) c.cap = cap;
+}
+
 /**
  * The capacity `cap`, holding `len`, once `reserve` made room for `additional` more, as
  * std's `RawVec::grow_amortized`: at least double, or a panic past what it may hold.
@@ -1267,12 +1272,12 @@ export function vecCapacity<T>(v: T[] & Capped, size: number): number {
 
 /** `Vec::reserve` of `size`-byte elements. */
 export function vecReserve<T>(v: T[] & Capped, additional: number, size: number): void {
-	capSet(v, v.length, capReserve(v.length, vecCapacity(v, size), additional, size), size);
+	capHold(v, capReserve(v.length, vecCapacity(v, size), additional, size), size);
 }
 
 /** `Vec::reserve_exact` of `size`-byte elements. */
 export function vecReserveExact<T>(v: T[] & Capped, additional: number, size: number): void {
-	capSet(v, v.length, capReserveExact(v.length, vecCapacity(v, size), additional, size), size);
+	capHold(v, capReserveExact(v.length, vecCapacity(v, size), additional, size), size);
 }
 
 /** `Vec::shrink_to` of `size`-byte elements, and `shrink_to_fit` of 0. */

@@ -14,7 +14,7 @@
 // A function that may drop a key, value, or item std's would, rather than return or keep
 // it, takes what drops each that does, as `k`, `v`, or `f`, and drops it where std's does.
 
-import { ByteSlice, ByteVec, byteVecPush, byteVecReserve, type Capped, capOf, capReserve, capReserveExact, capSet, capShrink, type None, type Place, panic, type RangeBound, rangeCheck, sliceSort, vecExact, vecMax, vecReserve, vecWithCapacity } from "../rt.ts";
+import { ByteSlice, ByteVec, byteVecPush, byteVecReserve, type Capped, capHold, capOf, capReserve, capReserveExact, capSet, capShrink, type None, type Place, panic, type RangeBound, rangeCheck, sliceSort, vecExact, vecMax, vecReserve, vecWithCapacity } from "../rt.ts";
 import type { Hashing } from "./hash.ts";
 import { type Limbs, lt } from "./int.ts";
 import {
@@ -2392,12 +2392,12 @@ export function dequeCapacity<T>(q: VecDeque<T>, size: number): number {
 
 /** `VecDeque::reserve` of `size`-byte items. */
 export function dequeReserve<T>(q: VecDeque<T>, additional: number, size: number): void {
-	capSet(q, q.n, capReserve(q.n, dequeCapacity(q, size), additional, size), size);
+	capHold(q, capReserve(q.n, dequeCapacity(q, size), additional, size), size);
 }
 
 /** `VecDeque::reserve_exact` of `size`-byte items. */
 export function dequeReserveExact<T>(q: VecDeque<T>, additional: number, size: number): void {
-	capSet(q, q.n, capReserveExact(q.n, dequeCapacity(q, size), additional, size), size);
+	capHold(q, capReserveExact(q.n, dequeCapacity(q, size), additional, size), size);
 }
 
 /** `VecDeque::shrink_to` of `size`-byte items, and `shrink_to_fit` of 0. */
