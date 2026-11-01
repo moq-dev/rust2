@@ -4,8 +4,9 @@
 //! and compared; pointers to the parts of a struct kept as objects; the pointers
 //! `UnsafeCell::get` gives; slots of fresh memory written whole before any pointer
 //! into them is taken, by index or through std's iterators over them; pointers into
-//! nodes that an `AtomicPtr` and memory hold pointers to; pointers to arrays of bytes; and
-//! a pointer into a cell that other functions write whole through a `&mut` to it.
+//! nodes that an `AtomicPtr` and memory hold pointers to; pointers to arrays of bytes; a
+//! pointer into a cell that other functions write whole through a `&mut` to it; and
+//! pointers a generic type holds to its parameter, at each form a pointer takes.
 
 use std::cell::{Cell, UnsafeCell};
 use std::mem::MaybeUninit;
@@ -1451,8 +1452,8 @@ fn next_read<T>(items: &mut std::slice::Iter<'_, T>) -> Option<T> {
 
 /// Pointers callees keep, through references, to values with no cell in them, which their
 /// variables are assigned again past while they are kept: each made again before it is
-/// read, as zlib's stream takes its window each round, by a callee over a type parameter:
-/// one into an array and one into a struct.
+/// read, as zlib's stream takes its window each round, by a callee over a type parameter,
+/// into fields of one generic type: one into an array and one into a struct.
 pub fn reattached(data: &[u8], out: &mut Vec<u8>) {
 	let mut window = Window {
 		at: std::ptr::null_mut(),
