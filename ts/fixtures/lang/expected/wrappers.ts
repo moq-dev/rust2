@@ -342,8 +342,7 @@ export function wrappers(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 		rt.byteVecPush(out, rt.btreeLen(rt.btreeExtendKeys(rt.btreeNew(rt.cmp) as rt.BTreeSet<rt.u64>, rt.iterBorrow(_166), true, undefined, undefined, 8, true)) & 0xff);
 		bounds$ops_RangeInclusive_u64(out, keyed);
 		const queued: rt.RangeInclusive<rt.u64> = new rt.RangeInclusive(lo, hi, rt.u64Step);
-		const _176: rt.RangeInclusive<rt.u64> = queued;
-		rt.byteVecPush(out, rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.u64>, rt.iterBorrow(_176), undefined, 8, true).n & 0xff);
+		rt.byteVecPush(out, ((rt.dequeFromVec(rt.iterToArray(rt.iterBorrow(queued), undefined, 8, true)) as rt.VecDeque<rt.u64>)).n & 0xff);
 		bounds$ops_RangeInclusive_u64(out, queued);
 		const hashed: rt.RangeInclusive<rt.u64> = new rt.RangeInclusive(lo, hi, rt.u64Step);
 		const _186: rt.RangeInclusive<rt.u64> = hashed;

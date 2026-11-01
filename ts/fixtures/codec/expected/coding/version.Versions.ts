@@ -76,7 +76,7 @@ export function encode$coding_encode_Encode_lite_version_Version(self: Versions,
 }
 
 export function from$convert_From_array2_coding_version_Version(vs: coding_version_Version.Version[]): Versions {
-	return { _0: vs.slice() };
+	return { _0: rt.vecExact(vs.slice(), 8) };
 }
 
 //# sourceMappingURL=version.Versions.ts.map

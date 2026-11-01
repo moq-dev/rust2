@@ -429,7 +429,7 @@ export function peekedOthers(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}), undefined, 12, true);
 	const _12: string | undefined = rt.sliceFirst(words);
 	const first: string = option_unwrapOrDefault$165pyh5(_12 === undefined ? undefined : _12);
-	const it: rt.Peekable<string> = rt.iterPeekable(rt.iterSlice(words.slice()));
+	const it: rt.Peekable<string> = rt.iterPeekable(rt.iterSlice(rt.vecExact(words.slice(), 12)));
 	const part = option_asDeref$0w8at8i(rt.peekableNextIfEq(it, "a", (a0: string, a1: string): boolean => {
 		return a0 === a1;
 	}));
@@ -489,7 +489,7 @@ export function peekedOthers(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, _4(part11));
 	const part12 = option_asDeref$0w8at8i(rt.iterToOption(it5.next()));
 	rt.byteVecPush(out, _4(part12));
-	const part13 = option_asDeref$0w8at8i(rt.peekableNextIfEq(rt.iterPeekable(rt.iterSlice(words.slice())), first, (a012: string, a18: string): boolean => {
+	const part13 = option_asDeref$0w8at8i(rt.peekableNextIfEq(rt.iterPeekable(rt.iterSlice(rt.vecExact(words.slice(), 12))), first, (a012: string, a18: string): boolean => {
 		return a012 === a18;
 	}));
 	rt.byteVecPush(out, _4(part13));
@@ -1515,7 +1515,7 @@ export function optionItems(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 		rt.byteVecPush(out, _138);
 	}
-	for (const a2 of nested.slice()) {
+	for (const a2 of rt.vecExact(nested.slice(), 2)) {
 		if (a2 !== rt.None) {
 			if (a2 !== undefined) {
 				rt.byteVecPush(out, a2);
