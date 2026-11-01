@@ -77,15 +77,50 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 
 	/// Whether a `ty` is, or holds by value at any depth, a part that `object` says is a JS
 	/// object, into which a raw pointer may be made through a reference that the crate's
-	/// code can't follow back to where it was borrowed, by any body or by `body` alone.
+	/// code can't follow back to where it was borrowed, by any body or by `body` alone. A
+	/// part with no `UnsafeCell` counts only if the crate compares pointers to it or to what
+	/// it holds: an assignment of where it is disables a pointer made through a reference to
+	/// it, so a read through one after is undefined in both Stacked and Tree Borrows, but
+	/// comparing its address is not.
 	pub fn taken(&self, body: DefId, ty: Ty<'tcx>, object: &dyn Fn(Ty<'tcx>) -> bool) -> bool {
-		let (writes, polymorphic) = (&self.writes, self.polymorphic());
+		let (tcx, writes, polymorphic, env) = (self.tcx, &self.writes, self.polymorphic(), self.typing_env());
 		let local = writes.taken_in.get(&body);
-		by_value(self.tcx, self.typing_env(), ty).any(|part| {
+		by_value(tcx, env, ty).any(|part| {
 			object(part)
-				&& (writes.contains(&writes.taken, false, self.tcx, part, polymorphic)
-					|| local.is_some_and(|local| writes.contains(local, false, self.tcx, part, polymorphic)))
+				&& (!part.is_freeze(tcx, env) || by_value(tcx, env, part).any(|held| self.compared(held)))
+				&& (writes.contains(&writes.taken, false, tcx, part, polymorphic)
+					|| local.is_some_and(|local| writes.contains(local, false, tcx, part, polymorphic)))
 		})
+	}
+
+	/// Note a comparison of pointers to a `ty`, which [`Self::taken`] counts from the next
+	/// run on if a pointer may be made into it, or into what holds it, through a reference,
+	/// by any body.
+	pub fn compare(&mut self, ty: Ty<'tcx>) {
+		let (tcx, env, writes, polymorphic) = (self.tcx, self.typing_env(), &self.writes, self.polymorphic());
+		let stored = storage(tcx, ty);
+		let kept = (ty.has_param() || ty.is_freeze(tcx, env))
+			&& std::iter::once(&writes.taken)
+				.chain(writes.taken_in.values())
+				.any(|taken| {
+					writes.contains(taken, true, tcx, ty, polymorphic)
+						|| taken
+							.concrete
+							.iter()
+							.any(|&taken| by_value(tcx, env, taken).any(|part| storage(tcx, part) == stored))
+				});
+		if kept {
+			self.comparing.insert(stored);
+		}
+	}
+
+	/// Whether the runs before compared pointers to a `ty`, a type parameter standing for
+	/// any.
+	fn compared(&self, ty: Ty<'tcx>) -> bool {
+		let ty = storage(self.tcx, ty);
+		self.compared
+			.iter()
+			.any(|&compared| compared == ty || compared.has_param())
 	}
 
 	/// `value`, a `ty` read out of where it is kept, as a value of its own, as Rust's read
@@ -278,7 +313,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 							let slots = slots
 								.into_iter()
 								.map(|(name, slot_ty)| {
-									let slot_ty = self.instantiate(slot_ty, args);
+									let slot_ty = instantiate(tcx, self.typing_env(), slot_ty, args);
 									let value = self.snapshot(
 										v().member(name.clone()),
 										Ty::new_maybe_uninit(tcx, slot_ty),
@@ -317,18 +352,33 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		)
 	}
 
-	/// The type of field `did` of an ADT with `args`.
-	pub fn field_ty(&self, did: rustc_hir::def_id::DefId, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
-		self.instantiate(self.tcx.type_of(did).instantiate_identity().skip_norm_wip(), args)
+	/// The type of field `did` of an ADT with `args`, normalized in the translator's environment.
+	pub fn field_ty(&self, did: DefId, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
+		field_ty(self.tcx, self.typing_env(), did, args)
 	}
+}
 
-	/// `ty`, over an item's own type parameters, with `args` for them.
-	pub fn instantiate(&self, ty: Ty<'tcx>, args: ty::GenericArgsRef<'tcx>) -> Ty<'tcx> {
-		let ty = EarlyBinder::bind(self.tcx, ty);
-		self.tcx
-			.try_instantiate_and_normalize_erasing_regions(args, self.typing_env_pub(), ty)
-			.unwrap_or_else(|_| ty.instantiate(self.tcx, args).skip_norm_wip())
-	}
+/// The type of field `did` of an ADT with `args`, normalized in `env`, the bounds of the
+/// body naming it.
+pub fn field_ty<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	env: ty::TypingEnv<'tcx>,
+	did: DefId,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Ty<'tcx> {
+	instantiate(tcx, env, tcx.type_of(did).instantiate_identity().skip_norm_wip(), args)
+}
+
+/// `ty`, over an item's own type parameters, with `args` for them, normalized in `env`.
+pub fn instantiate<'tcx>(
+	tcx: TyCtxt<'tcx>,
+	env: ty::TypingEnv<'tcx>,
+	ty: Ty<'tcx>,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Ty<'tcx> {
+	let ty = EarlyBinder::bind(tcx, ty);
+	tcx.try_instantiate_and_normalize_erasing_regions(args, env, ty)
+		.unwrap_or_else(|_| ty.instantiate(tcx, args).skip_norm_wip())
 }
 
 /// The types the translated crates' code writes into in place: through a projection, as `p.x = 1`

@@ -1,5 +1,5 @@
 // Collections, for rust2-ts output: std's `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`,
-// and `VecDeque`, with `Ordering`, which their keys need. `rt.ts`
+// `VecDeque`, `LinkedList`, and `BinaryHeap`, with `Ordering`, which their keys need. `rt.ts`
 // re-exports all of it. Each collection is one type whose functions are free functions
 // here, so a bundler keeps only those a caller reaches.
 //
@@ -182,6 +182,27 @@ export function cmpDeque<T, O extends Ordering | undefined>(cmp: (a: T, b: T) =>
 			if (c !== 0) return c;
 		}
 		return (a.n < b.n ? -1 : a.n > b.n ? 1 : 0) as O;
+	};
+}
+
+/** `cmpSlice`'s of `LinkedList`s, as their `Iterator::cmp` and `partial_cmp` read them. */
+export function cmpList<T, O extends Ordering | undefined>(cmp: (a: T, b: T) => O): (a: LinkedList<T>, b: LinkedList<T>) => O {
+	return (a, b) => {
+		let [x, y] = [a.h, b.h];
+		for (; x !== undefined && y !== undefined; x = x.x, y = y.x) {
+			const c = cmp(x.v, y.v);
+			if (c !== 0) return c;
+		}
+		return (a.n < b.n ? -1 : a.n > b.n ? 1 : 0) as O;
+	};
+}
+
+/** `PartialEq::eq` of `LinkedList`s: their lengths, then each pair in order by `eq`, which std's `Iterator::eq` calls. */
+export function eqList<T>(eq: (a: T, b: T) => boolean): (a: LinkedList<T>, b: LinkedList<T>) => boolean {
+	return (a, b) => {
+		if (a.n !== b.n) return false;
+		for (let [x, y] = [a.h, b.h]; x !== undefined && y !== undefined; x = x.x, y = y.x) if (!eq(x.v, y.v)) return false;
+		return true;
 	};
 }
 
@@ -2831,6 +2852,316 @@ export function dequeClone<T>(q: VecDeque<T>, item: (value: T) => T = itself): V
 	return out;
 }
 
+// LinkedList
+
+/** A `LinkedList` node, linked to the one before, `p`, and after, `x`: the place of its item `v`. */
+export interface ListNode<T> {
+	v: T;
+	p: ListNode<T> | undefined;
+	x: ListNode<T> | undefined;
+}
+
+/** `LinkedList<T>`: `n` nodes, linked both ways from `h` to `t`, as std's are. */
+export interface LinkedList<T> {
+	h: ListNode<T> | undefined;
+	t: ListNode<T> | undefined;
+	n: number;
+}
+
+/** `LinkedList::new`. */
+export function listNew<T>(): LinkedList<T> {
+	return { h: undefined, t: undefined, n: 0 };
+}
+
+/** `push_back`, and `push_back_mut`, which lends the node it returns: the item's place. */
+export function listPushBack<T>(l: LinkedList<T>, item: T): ListNode<T> {
+	const node: ListNode<T> = { v: item, p: l.t, x: undefined };
+	if (l.t === undefined) l.h = node;
+	else l.t.x = node;
+	l.t = node;
+	l.n++;
+	return node;
+}
+
+/** `push_front`, and `push_front_mut`, as `listPushBack`. */
+export function listPushFront<T>(l: LinkedList<T>, item: T): ListNode<T> {
+	const node: ListNode<T> = { v: item, p: undefined, x: l.h };
+	if (l.h === undefined) l.t = node;
+	else l.h.p = node;
+	l.h = node;
+	l.n++;
+	return node;
+}
+
+/** `pop_front`: the first item, or else `none`. */
+export function listPopFront<T>(l: LinkedList<T>): T | undefined;
+export function listPopFront<T>(l: LinkedList<T>, none: None): T | None;
+export function listPopFront<T>(l: LinkedList<T>, none?: None): T | None | undefined {
+	const node = l.h;
+	if (node === undefined) return none;
+	l.h = node.x;
+	if (l.h === undefined) l.t = undefined;
+	else l.h.p = undefined;
+	l.n--;
+	return node.v;
+}
+
+/** `pop_back`: the last item, or else `none`. */
+export function listPopBack<T>(l: LinkedList<T>): T | undefined;
+export function listPopBack<T>(l: LinkedList<T>, none: None): T | None;
+export function listPopBack<T>(l: LinkedList<T>, none?: None): T | None | undefined {
+	const node = l.t;
+	if (node === undefined) return none;
+	l.t = node.p;
+	if (l.t === undefined) l.h = undefined;
+	else l.t.x = undefined;
+	l.n--;
+	return node.v;
+}
+
+/** `front`, and with `back`, `back`, or else `none`. */
+export function listEnd<T>(l: LinkedList<T>, back?: boolean): T | undefined;
+export function listEnd<T>(l: LinkedList<T>, back: boolean, none: None): T | None;
+export function listEnd<T>(l: LinkedList<T>, back = false, none?: None): T | None | undefined {
+	const node = back ? l.t : l.h;
+	return node === undefined ? none : node.v;
+}
+
+/** `front_mut` of an item JS copies, and with `back`, `back_mut`: its node, which is its place. */
+export function listEndMut<T>(l: LinkedList<T>, back = false): Place<T> | undefined {
+	return back ? l.t : l.h;
+}
+
+/** Drop the `n` items from `node` on by `f`, front to back. */
+function dropNodes<T>(node: ListNode<T> | undefined, n: number, f: (item: T) => void): void {
+	for (; n > 0; n--, node = node?.x) f((node as ListNode<T>).v);
+}
+
+/** Drop `l`: each item by `f`, front to back, as std's `pop_front_node` loop does. */
+export function listDrop<T>(l: LinkedList<T>, f: (item: T) => void): void {
+	dropNodes(l.h, l.n, f);
+}
+
+/** `clear`, which leaves the list empty and then drops each item, front to back. */
+export function listClear<T>(l: LinkedList<T>, f?: (item: T) => void): void {
+	const [h, n] = [l.h, l.n];
+	l.h = l.t = undefined;
+	l.n = 0;
+	if (f !== undefined) dropNodes(h, n, f);
+}
+
+/** `contains`, by `eq`. */
+export function listContains<T>(l: LinkedList<T>, item: T, eq: (a: T, b: T) => boolean): boolean {
+	for (let node = l.h; node !== undefined; node = node.x) if (eq(node.v, item)) return true;
+	return false;
+}
+
+/** `append`: each of `other`'s nodes linked after `l`'s, leaving `other` empty. */
+export function listAppend<T>(l: LinkedList<T>, other: LinkedList<T>): void {
+	if (other.h === undefined) return;
+	if (l.t === undefined) l.h = other.h;
+	else {
+		l.t.x = other.h;
+		other.h.p = l.t;
+	}
+	l.t = other.t;
+	l.n += other.n;
+	other.h = other.t = undefined;
+	other.n = 0;
+}
+
+/**
+ * `split_off`: the nodes from `at` on, unlinked from `l`, found from whichever end is
+ * nearer, as std's does. Past the end, it panics as std's does.
+ */
+export function listSplitOff<T>(l: LinkedList<T>, at: number): LinkedList<T> {
+	if (at > l.n) panic("Cannot split off at a nonexistent index");
+	const out = listNew<T>();
+	if (at === l.n) return out;
+	if (at === 0) {
+		listAppend(out, l);
+		return out;
+	}
+	// The last node `l` keeps.
+	let last = l.h as ListNode<T>;
+	if (at - 1 <= l.n - at) for (let i = 1; i < at; i++) last = last.x as ListNode<T>;
+	else {
+		last = l.t as ListNode<T>;
+		for (let i = l.n; i > at; i--) last = last.p as ListNode<T>;
+	}
+	out.h = last.x as ListNode<T>;
+	out.h.p = undefined;
+	out.t = l.t;
+	out.n = l.n - at;
+	last.x = undefined;
+	l.t = last;
+	l.n = at;
+	return out;
+}
+
+/**
+ * An iterator of `n` of a list's nodes, from `h` to `t`, which yields each item, or with
+ * `places`, each node, its place. With what drops each item, it owns them, as `into_iter`
+ * does, and drops those it still holds, front to back, as it drops.
+ */
+class ListIter<T> extends Iter<T | Place<T>> implements Disposable {
+	private h: ListNode<T> | undefined;
+	private t: ListNode<T> | undefined;
+	private n: number;
+	private readonly places: boolean;
+	private readonly drop: ((item: T) => void) | undefined;
+
+	constructor(l: LinkedList<T>, places: boolean, drop?: (item: T) => void) {
+		super();
+		this.h = l.h;
+		this.t = l.t;
+		this.n = l.n;
+		this.places = places;
+		this.drop = drop;
+	}
+
+	next(): T | Place<T> | Done {
+		const node = this.h;
+		if (this.n === 0 || node === undefined) return DONE;
+		this.n--;
+		this.h = node.x;
+		return this.places ? node : node.v;
+	}
+
+	override nextBack(): T | Place<T> | Done {
+		const node = this.t;
+		if (this.n === 0 || node === undefined) return DONE;
+		this.n--;
+		this.t = node.p;
+		return this.places ? node : node.v;
+	}
+
+	override len(): number {
+		return this.n;
+	}
+
+	override sizeHint(): SizeHint {
+		return exactHint(this.n);
+	}
+
+	override remaining(): Iterable<T> {
+		return new ListIter({ h: this.h, t: this.t, n: this.n }, false) as Iter<T>;
+	}
+
+	/** std's: where it is, or of `into_iter`, a list of what it has left, each cloned in order by `h.v`. */
+	override clone(h?: Clones): Iter<T | Place<T>> {
+		const rest = { h: this.h, t: this.t, n: this.n };
+		if (h?.v === undefined) return new ListIter(rest, this.places, this.drop);
+		return new ListIter(listClone(rest, h.v as (item: T) => T), false, this.drop);
+	}
+
+	[Symbol.dispose](): void {
+		if (this.drop === undefined) return;
+		const [h, n] = [this.h, this.n];
+		this.n = 0;
+		dropNodes(h, n, this.drop);
+	}
+}
+
+/** `iter`, and with what drops each item, `into_iter`. */
+export function listIter<T>(l: LinkedList<T>, drop?: (item: T) => void): Iter<T> {
+	return new ListIter(l, false, drop) as Iter<T>;
+}
+
+/** `iter_mut` of items JS copies: the place of each. */
+export function listIterMut<T>(l: LinkedList<T>): Iter<Place<T>> {
+	return new ListIter(l, true) as Iter<Place<T>>;
+}
+
+/**
+ * `extract_if`: each item `f` returns true for, unlinked as it is read, front to back. `f`
+ * is given each item or, with `places`, its place, and drops with the iterator; what it
+ * has not read stays.
+ */
+class ListExtractIf<T> extends Iter<T> implements Disposable {
+	private readonly l: LinkedList<T>;
+	private node: ListNode<T> | undefined;
+	private readonly f: (item: T | Place<T>) => boolean;
+	private readonly places: boolean;
+	/** How many it has left to read. */
+	private left: number;
+
+	constructor(l: LinkedList<T>, f: (item: T | Place<T>) => boolean, places: boolean) {
+		super();
+		this.l = l;
+		this.node = l.h;
+		this.f = f;
+		this.places = places;
+		this.left = l.n;
+	}
+
+	next(): T | Done {
+		for (let node = this.node; node !== undefined; node = this.node) {
+			this.node = node.x;
+			this.left--;
+			if (!this.f(this.places ? node : node.v)) continue;
+			if (node.p === undefined) this.l.h = node.x;
+			else node.p.x = node.x;
+			if (node.x === undefined) this.l.t = node.p;
+			else node.x.p = node.p;
+			this.l.n--;
+			return node.v;
+		}
+		return DONE;
+	}
+
+	override sizeHint(): SizeHint {
+		return [0, this.left];
+	}
+
+	[Symbol.dispose](): void {
+		dispose(this.f);
+	}
+}
+
+/** `extract_if`, handing `f` each item. */
+export function listExtractIf<T>(l: LinkedList<T>, f: (item: T) => boolean): Iter<T> {
+	return new ListExtractIf(l, f as (item: T | Place<T>) => boolean, false);
+}
+
+/** `extract_if` of items JS copies: `f` takes the place of each. */
+export function listExtractIfMut<T>(l: LinkedList<T>, f: (item: Place<T>) => boolean): Iter<T> {
+	return new ListExtractIf(l, f as (item: T | Place<T>) => boolean, true);
+}
+
+/** `extend`, and `collect` into a list through `listNew`: each item pushed at the back, read as `take` says. */
+export function listExtend<T>(l: LinkedList<T>, items: Iter<T>, take?: Take): LinkedList<T> {
+	return extending(l, items, (item) => listPushBack(l, item), take);
+}
+
+/** `clone`, with each item through its `Clone`, or as itself without one, front to back. */
+export function listClone<T>(l: LinkedList<T>, item: (value: T) => T = itself): LinkedList<T> {
+	const out = listNew<T>();
+	let node = l.h;
+	for (let n = l.n; n > 0; n--, node = node?.x) listPushBack(out, item((node as ListNode<T>).v));
+	return out;
+}
+
+/**
+ * `clone_from`: `l`'s items, front to back, each the clone of `source`'s beside it, which
+ * drops by `f` what it replaces, as `*elem = source.clone()` does; then those past
+ * `source`'s length popped from the back, each dropped as it is; then clones of the rest
+ * of `source`'s pushed.
+ */
+export function listCloneFrom<T>(l: LinkedList<T>, source: LinkedList<T>, item: (value: T) => T = itself, f?: (item: T) => void): void {
+	let [node, from]: (ListNode<T> | undefined)[] = [l.h, source.h];
+	for (; node !== undefined && from !== undefined; node = node.x, from = from.x) {
+		const old = node.v;
+		node.v = item(from.v);
+		f?.(old);
+	}
+	while (l.n > source.n) {
+		const old = listPopBack(l) as T;
+		f?.(old);
+	}
+	for (; from !== undefined; from = from.x) listPushBack(l, item(from.v));
+}
+
 // `BinaryHeap`: std's max-heap in an array, sifted as std's sifts it, so equal elements
 // leave in std's order and each comparison std makes runs. Every function that sifts is
 // given the elements' `PartialOrd` tests std's sifts make: `le` up, and `le`, `ge`, and
@@ -3191,6 +3522,16 @@ export function byteVecPart(): Part<ByteVec, number> {
 /** A `VecDeque` of `size`-byte elements, which pushes each at the back. */
 export function dequePart<T>(size?: number): Part<VecDeque<T>, T> {
 	return vectorPart((q) => q.n, dequePushBack, size);
+}
+
+/** A `LinkedList`, which pushes each at the back, and never reserves. */
+export function listPart<T>(): Part<LinkedList<T>, T> {
+	return {
+		one: (l, item) => {
+			listPushBack(l, item);
+			return l;
+		},
+	};
 }
 
 /** A `BinaryHeap` of `size`-byte elements, which pushes each, sifting it up by `le`. */

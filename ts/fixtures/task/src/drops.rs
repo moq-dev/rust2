@@ -26,6 +26,7 @@ mod closures;
 mod folds;
 mod inside;
 mod iters;
+mod lists;
 mod objects;
 mod once;
 
@@ -736,6 +737,11 @@ pub fn inside(log: &Log, id: u32, arg: u8) {
 /// Run scenario `arg % 9` of what std's comparisons of iterators drop.
 pub fn compared(log: &Log, id: u32, arg: u8) {
 	iters::compared(log, id, arg);
+}
+
+/// Run scenario `arg % 8` of what a `LinkedList` drops, and when.
+pub fn lists(log: &Log, id: u32, arg: u8) {
+	lists::run(log, id, arg);
 }
 
 /// Run scenario `arg % 9` of what a `Vec`'s edits, its, a tuple's, and a box's `clone`,

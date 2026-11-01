@@ -25,6 +25,7 @@ use rustc_span::Spanned;
 
 use super::{Fx, own};
 use crate::lower::Translator;
+use crate::lower::copy::field_ty;
 use crate::lower::library::Std;
 use crate::lower::pointer::{self, Derives};
 
@@ -378,7 +379,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		let ty::InstanceKind::Item(did) = instance.def else {
 			return None;
 		};
-		(self.t.lowers(instance)
+		(self.t.lowers(self.env, instance)
 			&& !crate::lower::library::is_std(tcx, did)
 			&& !tcx.is_closure_like(did)
 			&& tcx.def_kind(did).is_fn_like()
@@ -448,7 +449,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		self.runs_std(def_id, gargs, args)
 			&& !args.iter().any(|a| {
 				let t = a.node.ty(&self.mir.local_decls, self.t.tcx);
-				given.iter().any(|&h| self.t.stores(t, h))
+				given.iter().any(|&h| self.t.stores(self.env, t, h))
 			})
 	}
 
@@ -539,7 +540,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 	/// Whether a call of `def_id` with `args` runs a function whose body translates.
 	fn translated(&self, def_id: DefId, args: ty::GenericArgsRef<'tcx>) -> bool {
 		match Instance::try_resolve(self.t.tcx, self.env, def_id, args) {
-			Ok(Some(instance)) => self.t.lowers(instance) || self.t.dispatches(instance),
+			Ok(Some(instance)) => self.t.lowers(self.env, instance) || self.t.dispatches(instance),
 			_ => false,
 		}
 	}
@@ -548,7 +549,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 	/// keep what it is given: through the crate's own types, a trait object, a closure, or
 	/// a function pointer.
 	fn runs_own_code(&self, ty: Ty<'tcx>) -> bool {
-		self.t.reaches(ty, |t| match t.kind() {
+		self.t.reaches(self.env, ty, |t| match t.kind() {
 			ty::Adt(adt, _) => self.t.own(adt.did()),
 			ty::FnDef(def_id, args) => self.translated(*def_id, args.skip_binder()),
 			ty::Dynamic(..)
@@ -582,7 +583,10 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 				| ty::FnPtr(..) => {}
 				ty::Array(elem, _) | ty::Slice(elem) | ty::Pat(elem, _) => stack.push(*elem),
 				ty::Tuple(tys) => stack.extend(tys.iter()),
-				ty::Adt(adt, args) => stack.extend(adt.all_fields().map(|field| self.t.field_ty(field.did, args))),
+				ty::Adt(adt, args) => stack.extend(
+					adt.all_fields()
+						.map(|field| field_ty(self.t.tcx, self.env, field.did, args)),
+				),
 				_ => return true,
 			}
 		}
@@ -716,7 +720,10 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 			| ty::RawPtr(..) => Vec::new(),
 			ty::Array(elem, _) | ty::Slice(elem) | ty::Pat(elem, _) => vec![*elem],
 			ty::Tuple(tys) => tys.to_vec(),
-			ty::Adt(adt, args) => adt.all_fields().map(|field| self.t.field_ty(field.did, args)).collect(),
+			ty::Adt(adt, args) => adt
+				.all_fields()
+				.map(|field| field_ty(self.t.tcx, self.env, field.did, args))
+				.collect(),
 			_ => return None,
 		})
 	}

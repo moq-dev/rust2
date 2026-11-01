@@ -4,8 +4,9 @@
 use crate::{
 	args, arrays, ascii, atomics, borrows, bounds, boxes, captures, cells, chars, chunks, clones, collections,
 	combinators, counts, cows, cycles, defaults, durations, dyns, edits, errors, floats, fmt, folds, generics, hashes,
-	hints, holds, ints, iters, joins, keys, locals, locks, methods, nested, objects, orders, pointers, refs, returns,
-	saturates, separated, shapes, singles, slices, splits, statics, strs, tuples, utf8, wrappers, wraps, zeros,
+	hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods, nested, objects, orders, pointers,
+	refs, returns, saturates, separated, shapes, singles, slices, splits, statics, strs, tuples, utf8, wrappers, wraps,
+	zeros,
 };
 
 /// The native side's entry: [`run`], except that a case starting with 0xff prints a
@@ -254,7 +255,10 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("pointers::bytes", |_, data, out| pointers::bytes(data, out)),
 		("pointers::loaded", |_, data, out| pointers::loaded(data, out)),
 		("orders::btrees", orders::btrees),
+		("lengths::lengths", lengths::lengths),
 		("iters::option_items", |_, data, out| iters::option_items(data, out)),
+		("lists::lists", lists::lists),
+		("pointers::reattached", |_, data, out| pointers::reattached(data, out)),
 		("args::args", args::args),
 		("returns::returns", returns::returns),
 	]
