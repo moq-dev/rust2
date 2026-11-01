@@ -1563,12 +1563,22 @@ pub fn tuple_extend<'tcx>(
 	};
 	let (f, rest) = match (colls.as_slice(), fields.as_slice()) {
 		([coll], [field]) => {
+			let Some(mapped) = one_items(b, tuple, item, iter, target.is_none()) else {
+				return Some(unsupported(b, *coll, *field));
+			};
 			let (c, each) = (b.fresh("c"), b.fresh("items"));
 			let mut each_items = Expr::ident(&each);
 			if let Some(copy) = copy_borrowed(b, *coll, *field, span) {
 				each_items = Expr::rt("iterMap", vec![each_items, copy]);
 			}
-			let Some(extended) = extend(b, *coll, *field, Expr::ident(&c), each_items, iter, span) else {
+			let extended = match own_extend(b, *coll, *field, mapped, span) {
+				Some((f, place)) => Some(Expr::rt(
+					"ownExtend",
+					super::iter::tail(vec![Expr::ident(&c), each_items, f], vec![Expr::lit(place.to_string())]),
+				)),
+				None => extend(b, *coll, *field, Expr::ident(&c), each_items, mapped, span),
+			};
+			let Some(extended) = extended else {
 				return Some(unsupported(b, *coll, *field));
 			};
 			let params = [c, each].map(|name| Param { name, ty: None });
@@ -1609,7 +1619,17 @@ fn part<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, item: Ty<'tcx>, span: 
 		let parts = colls.iter().zip(items.iter()).map(|(c, i)| part(b, c, i, span));
 		return Some(Expr::rt("tuplePart", vec![Expr::Array(parts.collect::<Option<_>>()?)]));
 	}
-	let std = b.t.std_of(coll)?;
+	// The crate's own, whose `extend_one` is `extend` of `Some(item)`.
+	let Some(std) = b.t.std_of(coll) else {
+		if overrides_defaults(b.t, coll, item) {
+			return None;
+		}
+		let (f, place) = own_extend(b, coll, item, Ty::new_option(b.t.tcx, item), span)?;
+		return Some(Expr::rt(
+			"ownPart",
+			super::iter::tail(vec![f], vec![Expr::lit(place.to_string())]),
+		));
+	};
 	if std == Std::String {
 		let chars = !super::iter::text_items(b.t, item)?;
 		return Some(Expr::Rt(if chars { "STRING_CHARS_PART" } else { "STRING_PART" }.into()));
@@ -1651,6 +1671,67 @@ fn part<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, item: Ty<'tcx>, span: 
 	})
 }
 
+/// The crate's own `Extend::extend` of a collection of type `coll` by an iterator of type
+/// `iter` of `item`s, as a function of the collection and the iterator, and whether it
+/// takes the collection as an `rt.Place`: `None` for a collection of std's, or one whose
+/// `extend` doesn't translate. Stable Rust can't override `extend_reserve` or `extend_one`,
+/// which keep their defaults: nothing, and `extend` of `Some(item)`.
+fn own_extend<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	coll: Ty<'tcx>,
+	item: Ty<'tcx>,
+	iter: Ty<'tcx>,
+	span: Span,
+) -> Option<(Expr, bool)> {
+	let tcx = b.t.tcx;
+	if !matches!(coll.kind(), ty::Adt(..)) || b.t.std_of(coll).is_some() {
+		return None;
+	}
+	let extend = trait_fn_of(tcx, super::iter::core_trait(tcx, "Extend")?, "extend");
+	let args = tcx.mk_args(&[coll.into(), item.into(), iter.into()]);
+	if !b.t.translated(extend, args) {
+		return None;
+	}
+	Some((b.fn_value(extend, args, span), b.t.needs_place(coll)))
+}
+
+/// Whether `coll`'s own `Extend<item>` overrides what a tuple's `Extend` calls of it, as
+/// only a nightly crate can: `extend_one`, `extend_reserve`, or `extend_one_unchecked`.
+fn overrides_defaults<'tcx>(t: &Translator<'_, 'tcx>, coll: Ty<'tcx>, item: Ty<'tcx>) -> bool {
+	let tcx = t.tcx;
+	let Some(extend) = super::iter::core_trait(tcx, "Extend") else {
+		return true;
+	};
+	let args = tcx.mk_args(&[coll.into(), item.into()]);
+	["extend_one", "extend_reserve", "extend_one_unchecked"]
+		.into_iter()
+		.any(|name| {
+			let f = trait_fn_of(tcx, extend, name);
+			!matches!(Instance::try_resolve(tcx, t.typing_env_pub(), f, args), Ok(Some(i)) if i.def_id() == f)
+		})
+}
+
+/// The iterator std's `Extend` of a 1-tuple of type `tuple`, or its `FromIterator` if
+/// `collect`, gives the collection's own `extend`, from an iterator of type `iter` of
+/// `item`s: a `Map` of it to each item's field, typed as std's body makes it.
+fn one_items<'tcx>(
+	b: &Body<'_, '_, 'tcx>,
+	tuple: Ty<'tcx>,
+	item: Ty<'tcx>,
+	iter: Ty<'tcx>,
+	collect: bool,
+) -> Option<Ty<'tcx>> {
+	let tcx = b.t.tcx;
+	let extend = trait_fn_of(tcx, super::iter::core_trait(tcx, "Extend")?, "extend");
+	let by = match collect {
+		true => trait_fn(tcx, "FromIterator", "from_iter"),
+		false => extend,
+	};
+	let args = tcx.mk_args(&[tuple.into(), item.into(), iter.into()]);
+	let args = library::callee_args(b.t, by, args, |f| f == extend)?;
+	Some(args.type_at(2))
+}
+
 /// `Default::default` of a collection of type `coll` that a tuple's `Extend` takes, or of a
 /// tuple of them.
 fn default<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, span: Span) -> Option<Expr> {
@@ -1661,7 +1742,16 @@ fn default<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, span: Span) -> Opti
 		let defaults = colls.iter().map(|c| default(b, c, span));
 		return Some(Expr::Array(defaults.collect::<Option<_>>()?));
 	}
-	Some(match b.t.std_of(coll)? {
+	let Some(std) = b.t.std_of(coll) else {
+		let tcx = b.t.tcx;
+		let default = trait_fn(tcx, "Default", "default");
+		let args = tcx.mk_args(&[coll.into()]);
+		return b
+			.t
+			.translated(default, args)
+			.then(|| b.fn_value(default, args, span).call(Vec::new()));
+	};
+	Some(match std {
 		Std::String => Expr::Str(String::new()),
 		Std::Vec if matches!(arg(coll, 0).kind(), ty::Uint(ty::UintTy::U8)) => {
 			Expr::New(Box::new(Expr::Rt("ByteVec".into())), Vec::new())
@@ -2472,6 +2562,11 @@ pub fn trait_fn(tcx: ty::TyCtxt<'_>, tr: &str, item: &str) -> rustc_hir::def_id:
 	let tr = tcx
 		.get_diagnostic_item(rustc_span::Symbol::intern(tr))
 		.expect("a trait of std");
+	trait_fn_of(tcx, tr, item)
+}
+
+/// The function `item` of the trait `tr`.
+fn trait_fn_of(tcx: ty::TyCtxt<'_>, tr: DefId, item: &str) -> DefId {
 	tcx.associated_items(tr)
 		.filter_by_name_unhygienic(rustc_span::Symbol::intern(item))
 		.next()

@@ -2,7 +2,7 @@
 //! output is written.
 
 #![allow(dead_code, reason = "each item is a translation root, not called from Rust")]
-#![feature(cow_is_borrowed, f16, is_ascii_octdigit, linked_list_retain)]
+#![feature(cow_is_borrowed, extend_one, f16, is_ascii_octdigit, linked_list_retain)]
 
 pub fn float(a: f16) -> f16 {
 	a * 2.0
@@ -1259,26 +1259,26 @@ pub fn pushed_part_kept(n: u16) -> u16 {
 	unsafe { (*part).0 }
 }
 
-/// A collection of the crate's own, which std's tuple impls extend by its `extend_one`.
+/// A collection of the crate's own that overrides `extend_one`, which a tuple's `Extend`
+/// calls, as only a nightly crate can.
 #[derive(Default)]
-pub struct Tally(pub u8);
+pub struct Tens(pub u8);
 
-impl Extend<u8> for Tally {
+impl Extend<u8> for Tens {
 	fn extend<I: IntoIterator<Item = u8>>(&mut self, iter: I) {
 		for b in iter {
 			self.0 = self.0.wrapping_add(b);
 		}
 	}
+
+	fn extend_one(&mut self, item: u8) {
+		self.0 = self.0.wrapping_add(item).wrapping_mul(10);
+	}
 }
 
-/// A tuple of collections, one of them the crate's own.
-pub fn tallied(data: &[u8]) -> (Vec<u8>, Tally) {
+/// A tuple of collections, one of them the crate's own that overrides `extend_one`.
+pub fn tens(data: &[u8]) -> (Vec<u8>, Tens) {
 	data.iter().map(|&b| (b, b)).collect()
-}
-
-/// A 1-tuple of the crate's own collection, which std's impl extends by its `extend`.
-pub fn tallied_alone(data: &[u8]) -> (Tally,) {
-	data.iter().map(|&b| (b,)).collect()
 }
 
 /// `u8`'s unstable ASCII methods are not translated.
@@ -2127,4 +2127,24 @@ pub fn lists(l: &mut std::collections::LinkedList<u8>, r: &mut std::collections:
 	l.retain(|x| *x > 1);
 	r.clone_from(&std::collections::LinkedList::new());
 	std::collections::linked_list::IterMut::<u8>::default().count()
+}
+
+pub struct Parking<T> {
+	pub task: T,
+	pub park: Parked,
+}
+
+pub struct Parked(pub std::cell::Cell<i16>);
+
+fn parked_of<A>(a: &A) -> *const A {
+	a
+}
+
+/// A pointer a callee generic over what it points at makes into a cell, which the
+/// caller's assignment replaces, in a body that the census lowers over its own type
+/// parameter: the callee's instance for the cell's holder takes it.
+pub fn generic_park_rebound<T>(mut w: Parking<T>, next: Parking<T>) -> i16 {
+	let p = parked_of(&w.park);
+	w = next;
+	unsafe { (*p).0.get() + w.park.0.get() }
 }
