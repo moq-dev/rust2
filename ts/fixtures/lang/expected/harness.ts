@@ -5,7 +5,7 @@ import { args } from "./args.ts";
 import { fromFns, maps as arrays_maps, lent as arrays_lent, asSlices, given, flattened as arrays_flattened } from "./arrays.ts";
 import { bytes as ascii_bytes, chars as ascii_chars, slices as ascii_slices, parts as ascii_parts } from "./ascii.ts";
 import { atomics } from "./atomics.ts";
-import { borrows as borrows_borrows, guards, maps as borrows_maps } from "./borrows.ts";
+import { borrows as borrows_borrows, guards, maps as borrows_maps, tries } from "./borrows.ts";
 import { bounds as bounds_bounds } from "./bounds.ts";
 import { boxes, places as boxes_places } from "./boxes.ts";
 import { vecs as capacity_vecs, deques as capacity_deques, heaps as capacity_heaps, collects } from "./capacity.ts";
@@ -39,7 +39,7 @@ import { keys as keys_keys, overrides, bytes as keys_bytes, lentKeys, lentValues
 import { lengths } from "./lengths.ts";
 import { lists as lists_lists } from "./lists.ts";
 import { locals } from "./locals.ts";
-import { locks, relock, rwlocks, mapped } from "./locks.ts";
+import { locks, relock, rwlocks, mapped, mutexMapped, printed as locks_printed } from "./locks.ts";
 import { u8s as methods_u8s, u16s as methods_u16s, u32s as methods_u32s, u64s as methods_u64s, u128s as methods_u128s, usizes as methods_usizes, i8s as methods_i8s, i16s as methods_i16s, i32s as methods_i32s, i64s as methods_i64s, i128s as methods_i128s, isizes as methods_isizes } from "./methods.ts";
 import { nested as nested_nested } from "./nested.ts";
 import { objects } from "./objects.ts";
@@ -263,6 +263,12 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		borrows_maps(data92, out93);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::mapped", (_2193: rt.u8, data93: rt.ByteSlice, out94: rt.ByteVec): undefined => {
 		mapped(data93, out94);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::tries", (_2194: rt.u8, data94: rt.ByteSlice, out95: rt.ByteVec): undefined => {
+		tries(data94, out95);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::mutex_mapped", (_2195: rt.u8, data95: rt.ByteSlice, out96: rt.ByteVec): undefined => {
+		mutexMapped(data95, out96);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::printed", (_2196: rt.u8, data96: rt.ByteSlice, out97: rt.ByteVec): undefined => {
+		locks_printed(data96, out97);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::vecs", (a0152: rt.u8, a1152: rt.ByteSlice, a2152: rt.ByteVec): undefined => {
 		capacity_vecs(a0152, a1152.data, a1152.start, a1152.length, a2152);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::deques", (a0153: rt.u8, a1153: rt.ByteSlice, a2153: rt.ByteVec): undefined => {
