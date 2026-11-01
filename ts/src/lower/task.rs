@@ -134,6 +134,8 @@ pub fn call<'tcx>(
 	};
 	let self_ty = call.args.types().next();
 	let self_std = self_ty.and_then(std_of);
+	// A clone of a reference is that reference, not a clone of what it points at.
+	let owned_std = self_std.filter(|_| self_ty.is_some_and(|t| !t.is_ref()));
 	let e = match (owner, name) {
 		("Arc" | "Rc", "new") => Expr::New(Box::new(Expr::Rt("Arc".into())), args),
 		("Arc" | "Rc", "new_cyclic") => Expr::rt("arcNewCyclic", args),
@@ -202,10 +204,22 @@ pub fn call<'tcx>(
 			let [l, r] = two(args);
 			l.member("arc").binary("===", r.member("arc"))
 		}
-		("Clone", "clone") if self_std == Some(Std::Arc) => Expr::rt("arcClone", args),
-		("Clone", "clone") if self_std == Some(Std::Weak) => Expr::rt("weakClone", args),
+		("Clone", "clone") if owned_std == Some(Std::Arc) => Expr::rt("arcClone", args),
+		("Clone", "clone") if owned_std == Some(Std::Weak) => Expr::rt("weakClone", args),
+		// A `RefCell`'s clone borrows it, and a one-time cell's clones what it holds, if anything.
+		("Clone", "clone") if matches!(owned_std, Some(Std::RefCell | Std::OnceCell | Std::OnceLock)) => {
+			let inner = held(self_ty);
+			let clone = super::collections::clone_fn(b, inner, call.span);
+			match owned_std {
+				Some(Std::RefCell) => Expr::rt("refCellClone", vec![first(args), clone]),
+				_ => {
+					let none = b.t.none_arg(inner);
+					Expr::rt("onceClone", [first(args), clone].into_iter().chain(none).collect())
+				}
+			}
+		}
 		// A waker is the executor's, whose `clone` is its own.
-		("Clone", "clone") if self_std == Some(Std::Waker) => first(args).member("clone").call(vec![]),
+		("Clone", "clone") if owned_std == Some(Std::Waker) => first(args).member("clone").call(vec![]),
 		// A reference is the object it points at, which its own `Deref` gives: read out of a
 		// `&mut` that is an `rt.Place`, whose place `DerefMut` lends on.
 		("Deref", "deref") if let Some(ty) = self_ty.filter(|t| t.is_ref()) => b.t.pointee_value(ty, first(args)),
@@ -229,7 +243,11 @@ pub fn call<'tcx>(
 		// The mutex is its own guard, and a panic aborts, so nothing poisons it.
 		("Mutex", "lock") => Expr::result(true, Expr::rt("mutexLock", args)),
 		("Mutex", "try_lock") => Expr::rt("mutexTryLock", args),
-		("Mutex", "get_mut") => Expr::result(true, first(args).member("value")),
+		// What it holds, lent as where it is where JS copies it.
+		("Mutex" | "RwLock", "get_mut") => Expr::result(true, lend_value(b, call, first(args))),
+		("RefCell", "get_mut") => lend_value(b, call, first(args)),
+		("Mutex" | "RwLock", "into_inner") => Expr::result(true, first(args).member("value")),
+		("RefCell", "into_inner") => first(args).member("value"),
 		// A `PoisonError` is what it holds.
 		("PoisonError", "into_inner" | "get_ref" | "get_mut") => first(args),
 		// Mapped rather than lowered from core's MIR, so one of a lock unwraps its guard in place.
@@ -240,6 +258,15 @@ pub fn call<'tcx>(
 		("RefCell" | "RwLock", "new") => Expr::New(Box::new(Expr::Rt("RefCell".into())), args),
 		("RefCell", "borrow") => Expr::rt("refCellBorrow", args),
 		("RefCell", "borrow_mut") => Expr::rt("refCellBorrowMut", args),
+		("RefCell", "try_borrow") => Expr::rt("refCellTryBorrow", args),
+		("RefCell", "try_borrow_mut") => Expr::rt("refCellTryBorrowMut", args),
+		("Ref" | "RwLockReadGuard" | "MappedRwLockReadGuard", "map" | "filter_map" | "map_split") => {
+			guard_map(b, call, name, false, args, out)
+		}
+		("RefMut" | "RwLockWriteGuard" | "MappedRwLockWriteGuard", "map" | "filter_map" | "map_split") => {
+			guard_map(b, call, name, true, args, out)
+		}
+		("Ref", "clone") => Expr::rt("refClone", args),
 		("RefCell", "replace") => Expr::rt("refCellReplace", args),
 		("RefCell", "take") => {
 			let ty = call.args.type_at(0);
@@ -519,19 +546,123 @@ fn once<'tcx>(
 		"get" | "into_inner" => first(args).member("v"),
 		"take" => Expr::rt("onceTake", args.into_iter().chain(none).collect()),
 		"set" => Expr::rt("onceSet", args.into_iter().chain(none).collect()),
+		// The place of what it holds where JS copies that, which is the cell's own.
+		"get_mut" if b.t.needs_place(inner) => Expr::rt("optionAsMut", args.into_iter().chain(none).collect()),
+		"get_mut" => first(args).member("v"),
 		// With what drops `f`, as `discards` says, uncalled if the cell is set.
-		"get_or_init" => {
+		"get_or_init" | "get_or_try_init" => {
 			let Some(mut droppers) = b.t.droppers([call.args.type_at(1)], call.span) else {
 				return Ok(Some(Expr::undefined()));
 			};
 			if none.is_some() {
 				droppers.resize(1, Expr::undefined());
 			}
-			Expr::rt("onceGetOrInit", args.into_iter().chain(droppers).chain(none).collect())
+			let f = match name {
+				"get_or_init" => "onceGetOrInit",
+				_ => "onceGetOrTryInit",
+			};
+			Expr::rt(f, args.into_iter().chain(droppers).chain(none).collect())
 		}
 		_ => return Ok(None),
 	};
 	Ok(Some(e))
+}
+
+/// The type a cell or lock of type `ty` holds.
+fn held(ty: Option<Ty<'_>>) -> Ty<'_> {
+	match ty.map(|ty| ty.kind()) {
+		Some(ty::Adt(_, args)) => args.type_at(0),
+		_ => unreachable!("a cell or lock is a struct"),
+	}
+}
+
+/// `map`, `filter_map`, or `map_split` of a guard, `exclusive` for a `RefMut` or a write
+/// guard: its function called on what the guard lends, and a guard of each part that
+/// lends, which for an exclusive one is where the part is, so a write through it reaches.
+fn guard_map<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	call: &Call<'tcx>,
+	name: &str,
+	exclusive: bool,
+	args: Vec<Expr>,
+	out: &mut Vec<Stmt>,
+) -> Expr {
+	let tcx = b.t.tcx;
+	let [guard, f] = two(args);
+	let guard = match guard.is_path() {
+		true => guard,
+		false => b.spill(guard, "guard", out),
+	};
+	// The guarded value, then each part's type.
+	let mut tys = call.args.types();
+	let held = tys.next().expect("a guarded type");
+	let lent = match exclusive && b.t.needs_place(held) {
+		true => Expr::rt("valuePlace", vec![guard.clone()]),
+		false => guard.clone().member("value"),
+	};
+	let lent = f.call(vec![lent]);
+	// What the guard holds of a part: a `[u8; N]` as the array its `rt.ByteSlice` views, and
+	// for an exclusive one, where the part is: the place of one JS copies, and an object
+	// itself, which a whole value is written into in place.
+	let converts =
+		|b: &Body<'_, '_, 'tcx>, part: Ty<'tcx>| super::byte_array(part) || exclusive && !b.t.needs_place(part);
+	let at = |b: &mut Body<'_, '_, 'tcx>, part: Ty<'tcx>, value: Expr| {
+		let value = match super::byte_array(part) {
+			true => Expr::rt("byteSliceView", vec![value]),
+			false => value,
+		};
+		if !converts(b, part) || !exclusive {
+			value
+		} else if b.t.write_in(part).is_none() && part.is_sized(tcx, b.t.typing_env_pub()) {
+			b.err(
+				call.span,
+				format!("a mapped guard of `{part}`, which JS can't write in place"),
+			)
+		} else {
+			Expr::rt("partPlace", vec![value])
+		}
+	};
+	let part = tys.next().expect("a part's type");
+	let f = |name: &str| match exclusive {
+		true => format!("refMut{name}"),
+		false => format!("ref{name}"),
+	};
+	match name {
+		"map" => {
+			let at = at(b, part, lent);
+			Expr::rt(f("Map"), vec![guard, at])
+		}
+		"filter_map" if !converts(b, part) => Expr::rt(f("FilterMap"), vec![guard, lent]),
+		"filter_map" => {
+			let lent = b.spill(lent, "part", out);
+			let some = at(b, part, lent.clone());
+			let at = Expr::Cond(
+				Box::new(lent.binary("===", Expr::undefined())),
+				Box::new(Expr::undefined()),
+				Box::new(some),
+			);
+			Expr::rt(f("FilterMap"), vec![guard, at])
+		}
+		_ => {
+			let other = tys.next().expect("the other part's type");
+			if !converts(b, part) && !converts(b, other) {
+				return Expr::rt(f("MapSplit"), vec![guard, lent]);
+			}
+			let pair = b.spill(lent, "parts", out);
+			let a = at(b, part, pair.clone().index(Expr::lit("0")));
+			let other = at(b, other, pair.index(Expr::lit("1")));
+			Expr::rt(f("MapSplit"), vec![guard, Expr::Array(vec![a, other])])
+		}
+	}
+}
+
+/// What `get_mut` of `holder`, a `Mutex`, a `RefCell`, or an `RwLock`, lends: its value,
+/// or where that is where JS copies it.
+fn lend_value<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>, holder: Expr) -> Expr {
+	match b.t.needs_place(call.args.type_at(0)) {
+		true => Expr::rt("valuePlace", vec![holder]),
+		false => holder.member("value"),
+	}
 }
 
 /// `OnceCell::new()` or `OnceLock::new()` of `cell`: empty.

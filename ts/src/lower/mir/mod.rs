@@ -936,6 +936,39 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		)
 	}
 
+	/// `place` with each box's pointer or copy of a box it starts from replaced by the place
+	/// holding the box, which those aliases read in their place.
+	fn through_boxes(&self, mut place: Place<'tcx>) -> Place<'tcx> {
+		let tcx = self.tcx;
+		loop {
+			let (base, rest) = match (self.def_rvalue(place.local), place.projection.as_slice()) {
+				(
+					Some(Rvalue::Cast(mir::CastKind::BoxDerefTransmute, op, _)),
+					[mir::ProjectionElem::Deref, rest @ ..],
+				) if let Some(p) = op.place()
+					&& let Some(n) = (0..=p.projection.len()).rev().find(|&n| {
+						Place::ty_from(p.local, &p.projection[..n], &self.mir.local_decls, tcx)
+							.ty
+							.is_box()
+					}) =>
+				{
+					let boxed = Place {
+						local: p.local,
+						projection: tcx.mk_place_elems(&p.projection[..n]),
+					};
+					(boxed, rest)
+				}
+				(Some(Rvalue::Use(Operand::Copy(p), _) | Rvalue::CopyForDeref(p)), rest)
+					if self.mir.local_decls[place.local].ty.is_box() =>
+				{
+					(*p, rest)
+				}
+				_ => return place,
+			};
+			place = base.project_deeper(rest, tcx);
+		}
+	}
+
 	/// Whether `local` is a parameter.
 	fn is_arg(&self, local: Local) -> bool {
 		(1..=self.mir.arg_count).contains(&local.as_usize())
@@ -962,6 +995,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			return ty.is_bool() || ty.is_char() || crate::lower::num::Int::of(ty).is_some_and(|i| !i.big());
 		}
 		match (mir.local_decls[local].ty.kind(), rvalue) {
+			// A box's pointer to a value JS copies, or a copy of such a box that a `**b` reads
+			// it through, is the place holding the box, where a copy would be another value.
+			// Rust makes each for the one read or write it is made beside, while the box stays.
+			(ty::RawPtr(pointee, _), Rvalue::Cast(mir::CastKind::BoxDerefTransmute, ..))
+				if self.b.t.needs_place(*pointee) =>
+			{
+				true
+			}
+			(ty::Adt(adt, args), Rvalue::Use(Operand::Copy(_), _) | Rvalue::CopyForDeref(_))
+				if adt.is_box() && self.b.t.needs_place(args.type_at(0)) =>
+			{
+				true
+			}
 			// A borrow: borrow checking keeps the place as it is but through the borrow,
 			// unless the path to it goes through a reference held in a field or element,
 			// which can be replaced while the borrow lives.
@@ -973,7 +1019,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				false
 			}
 			(ty::Ref(..), Rvalue::Ref(_, _, place)) => {
-				self.stable(*place)
+				let place = self.through_boxes(*place);
+				self.stable(place)
 					&& place
 						.projection
 						.iter()
@@ -2243,8 +2290,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						.fold((effect, memory), |(e, m), p| (e || p.effect, m || p.memory));
 					let mut folded = self.fold_exprs(Vec::new(), vec![value], true, out);
 					let value = folded.pop().unwrap();
-					let parts =
-						parts.and_then(|rereadable| Some(parts_of(&value)?.into_iter().zip(rereadable).collect()));
+					let parts = parts.and_then(|rereadable| {
+						Some(
+							parts_of(&value, &self.b.t.slices)?
+								.into_iter()
+								.zip(rereadable)
+								.collect(),
+						)
+					});
 					let mut bare = &value;
 					while let Expr::Located(_, e) = bare {
 						bare = e;
@@ -2264,7 +2317,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						kind: StmtKind::Expr(Expr::Assign(_, value)),
 						..
 					}) = out.last()
-					&& let Some(parts) = parts_of(value)
+					&& let Some(parts) = parts_of(value, &self.b.t.slices)
 				{
 					self.var_parts.insert(local, parts);
 				}
@@ -3727,14 +3780,31 @@ fn visit_expr(e: &Expr, f: &mut dyn FnMut(&Expr)) {
 }
 
 /// The operands of an aggregate, from its expression.
-fn parts_of(value: &Expr) -> Option<Vec<Expr>> {
+fn parts_of(value: &Expr, slices: &FxHashSet<crate::ts::FieldId>) -> Option<Vec<Expr>> {
 	match value {
 		Expr::Array(items) => Some(items.clone()),
-		Expr::As(inner, _) => parts_of(inner),
+		Expr::As(inner, _) => parts_of(inner, slices),
 		Expr::Call(f, items) if matches!(&**f, Expr::Member(base, crate::ts::Key::Name(of)) if of == "of" && matches!(&**base, Expr::Ident(u) if u == "Uint8Array")) => {
 			Some(items.clone())
 		}
-		Expr::Object(props) => Some(props.iter().map(|(_, v)| v.clone()).collect()),
+		// A byte slice field held as its parts, `slices` its bytes', is one operand.
+		Expr::Object(props) => {
+			let mut parts = Vec::with_capacity(props.len());
+			let mut props = props.iter();
+			while let Some((key, value)) = props.next() {
+				parts.push(match key {
+					crate::ts::Key::Field(id) if slices.contains(id) => {
+						let (start, length) = (props.next()?.1.clone(), props.next()?.1.clone());
+						Expr::New(
+							Box::new(Expr::Rt("ByteSlice".into())),
+							vec![value.clone(), start, length],
+						)
+					}
+					_ => value.clone(),
+				});
+			}
+			Some(parts)
+		}
 		Expr::New(f, items) if matches!(&**f, Expr::Rt(name) if name == "Range" || name == "RangeFrom") => {
 			Some(items.clone())
 		}

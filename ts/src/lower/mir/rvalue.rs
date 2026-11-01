@@ -13,7 +13,7 @@ use super::{Capture, Env, Fx, Slot};
 use crate::lower::library::Std;
 use crate::lower::num::{self, Int};
 use crate::lower::pointer::Pointee;
-use crate::lower::{AdtRepr, byte_array, field_name};
+use crate::lower::{AdtRepr, StructField, byte_array, field_name};
 use crate::ts::{Expr, Key, Param, Stmt, StmtKind, Type};
 
 impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
@@ -514,6 +514,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				if let Some(same) = self.rebuilt_result(kind, ops, &values, ty, span, out) {
 					return Some(same);
 				}
+				let values = self.held_slices(ty, values, span, out);
 				self.adt(*def_id, *variant, args, values, ty, span)
 			}
 			_ => unreachable!(),
@@ -617,7 +618,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				}
 				(Std::Result, i) => Expr::result(i == 0, values.pop().unwrap()),
 				(Std::FmtError, _) => Expr::New(Box::new(Expr::Rt("FmtError".into())), Vec::new()),
-				(Std::ParseBoolError, _) => Expr::New(Box::new(Expr::Rt("ParseBoolError".into())), Vec::new()),
+				(std @ (Std::ParseBoolError | Std::BorrowError | Std::BorrowMutError), _) => {
+					Expr::New(Box::new(Expr::Rt(format!("{std:?}"))), Vec::new())
+				}
 				// `ResumeTy`, an async body's context.
 				(Std::Context, _) => values.pop().unwrap_or_else(Expr::undefined),
 				(Std::RangeTo | Std::RangeToInclusive, _) => {
@@ -673,7 +676,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						false => value.typed(),
 					}
 				};
-				let values = values.into_iter().enumerate().map(|(i, v)| field_arg(i, v)).collect();
+				let values = (def.fields.iter().zip(values).enumerate())
+					.map(|(i, (field, v))| {
+						let v = self.b.t.field_value(v, def_id, field.did, args, span);
+						field_arg(i, v)
+					})
+					.collect();
 				self.b.t.construct(info.sym, &ctor, &fields, values)
 			}
 			AdtRepr::Tags => {
@@ -692,6 +700,28 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				Expr::As(Box::new(Expr::Object(props)), ts_ty)
 			}
 		}
+	}
+
+	/// `values`, a struct `ty`'s fields', with each that its struct holds as a byte slice's
+	/// parts held in a path unless it is made of them, so each part is read once.
+	fn held_slices(&mut self, ty: Ty<'tcx>, values: Vec<Expr>, span: Span, out: &mut Vec<Stmt>) -> Vec<Expr> {
+		let ty::Adt(adt, _) = ty.kind() else {
+			return values;
+		};
+		if !adt.is_struct() || Std::of(self.tcx, adt.did()).is_some() || !self.b.t.own(adt.did()) {
+			return values;
+		}
+		let AdtRepr::Struct { fields, .. } = self.b.t.adt(*adt, span).repr else {
+			return values;
+		};
+		(values.into_iter().zip(fields))
+			.map(|(value, field)| match field {
+				StructField::Slice(_) if crate::lower::slice_parts(value.clone()).is_none() => {
+					self.path(value, "slice", out)
+				}
+				_ => value,
+			})
+			.collect()
 	}
 
 	/// A closure that captures nothing, as an arrow function.
@@ -765,9 +795,11 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				ty::Ref(..) => in_var && !self.stable_name(&value),
 				_ => true,
 			};
-			// A constant is its own snapshot, unless the closure reassigns it.
+			// A constant is its own snapshot, unless the closure reassigns it, and so are a
+			// slice's parts held where they read the same later.
 			let rebinds = rebound.contains(&field);
-			let constant = value.is_constant();
+			let constant = value.is_constant()
+				|| super::place::made_slice(&value).is_some_and(|parts| parts.iter().all(|p| self.steady_expr(p)));
 			let value = match snapshot && (rebinds || !constant) {
 				false => value,
 				true => {

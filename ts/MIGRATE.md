@@ -2,11 +2,9 @@
 
 ## Unreleased
 
-- A `Vec`, `VecDeque`, and `BinaryHeap` hold std's capacity. An `rt.VecDeque` holds it
-  as `c`, so one made by hand is `rt.dequeNew()` or `{ b, h, n, c }`, and a JS array as a
-  `Vec` holds it as `cap` where it differs from its length. The runtime's functions that
-  grow, shrink, or read one take its element size in bytes last, as in
-  `rt.vecPush(v, item, 4)`, `rt.dequePushBack(q, item, 4)`, and `rt.heapPush(h, item, le, 4)`.
+- Every translation needs `tsc` 7.0 or later on `PATH`, not only one with bindings: it
+  type-checks the output, and fails at the Rust span of each error, where it succeeded
+  before.
 - A function the config's roots don't name takes each `&[u8]` or `&[u8; N]` parameter
   whose object its body never makes as its `data`, `start`, and `length`:
   `read(buf, form)` is `read(buf.data, buf.start, buf.length, form)`. A caller takes
@@ -16,6 +14,9 @@
   that, or `undefined` for an error, and leaves the rest, or the error as `err`, in the
   slot, such as `readOut`. A root still takes an `rt.ByteSlice` and returns
   the `Result`.
+- A struct's private `&[u8]` or `&[u8; N]` field is three fields, its bytes, start, and
+  length, named for it: `buf` is `bufData`, `bufStart`, and `bufLen`, and a class's
+  constructor takes the three in its place. A `pub` field is still an `rt.ByteSlice`.
 - `rt.btreeCollect` takes whether it sorts and the keys' `!ne` after the entries, and
   `rt.btreeCollectKeys` the keys' `PartialOrd::lt` and `!ne`, as in
   `rt.btreeCollect(m, entries, true, Key.eq$cmp_PartialEq)`; neither takes a test for keys
@@ -48,6 +49,10 @@
   `rt.charStep` too, to step past the surrogates. One of unsigned `NonZero`s takes
   `rt.nonZeroStep` of its integer's `Step` and maximum, as in
   `new rt.RangeInclusive(lo, hi, rt.nonZeroStep(rt.u8Step, 255))`.
+- A generic type's field holding a reference or pointer to what only an instance decides
+  the form of, such as `*mut T`, `NonNull<T>`, or `&'a mut T`, is an `rt.Ptr<T>`, the
+  object, an `rt.Place<T>`, or an `rt.ByteSlice`, rather than `rt.Place<T>` or `T`: a
+  caller reading one casts it to what its instance holds, as the output does.
 - A closure, a `fn` pointer, a `dyn Fn`, or a function item as a value returns
   `undefined` for `()`, not `void`, as in `(a0: rt.u8) => undefined`: a caller passes such
   a parameter a function typed `=> undefined`.

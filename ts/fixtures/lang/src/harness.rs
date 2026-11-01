@@ -2,10 +2,10 @@
 //! case and the rest is its input.
 
 use crate::{
-	args, arrays, ascii, atomics, borrows, bounds, boxes, capacity, captures, cells, chars, chunks, clones,
-	collections, combinators, counts, cows, cycles, defaults, durations, dyns, edits, errors, floats, fmt, folds,
-	generics, hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods, nested, objects,
-	orders, pointers, refs, returns, saturates, separated, shapes, singles, slices, splits, statics, strs, tuples,
+	args, arrays, ascii, atomics, borrows, bounds, boxes, capacity, captures, cells, chars, chunks, clones, collections,
+	combinators, counts, cows, cycles, defaults, durations, dyns, edits, errors, fields, floats, fmt, folds, generics,
+	hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods, nested, objects, orders,
+	pointers, refs, results, returns, saturates, separated, shapes, singles, slices, splits, statics, strs, tuples,
 	utf8, wrappers, wraps, zeros,
 };
 
@@ -262,10 +262,18 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("pointers::part_written", |_, data, out| {
 			pointers::part_written(data, out)
 		}),
+		("pointers::aimed", |_, data, out| pointers::aimed(data, out)),
 		("ascii::parts", ascii::parts),
+		("boxes::places", boxes::places),
 		("arrays::flattened", arrays::flattened),
 		("args::args", args::args),
 		("returns::returns", returns::returns),
+		("borrows::guards", |_, data, out| borrows::guards(data, out)),
+		("results::results", results::results),
+		("fields::fields", fields::fields),
+		("strs::gets", strs::gets),
+		("borrows::maps", |_, data, out| borrows::maps(data, out)),
+		("locks::mapped", |_, data, out| locks::mapped(data, out)),
 		("capacity::vecs", capacity::vecs),
 		("capacity::deques", capacity::deques),
 		("capacity::heaps", capacity::heaps),

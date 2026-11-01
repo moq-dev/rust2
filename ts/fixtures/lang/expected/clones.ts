@@ -6603,7 +6603,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _263!: [rt.ByteSlice, rt.ByteSlice];
 	let _269!: rt.usize;
 	let it!: rt.Peekable<rt.u8>;
-	const plan: Plan.Plan = { data, at: kind as rt.usize };
+	const plan: Plan.Plan = { dataData: data.data, dataStart: data.start, dataLen: data.length, at: kind as rt.usize };
 	const n: rt.usize = option_mapOr$1surhce(rt.byteSliceFirst(data), 1, (_2: rt.u8): rt.u8 => {
 		return rt.u8Add(rt.u8Rem(_2, 4), 1);
 	}) as rt.usize;

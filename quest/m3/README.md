@@ -23,17 +23,16 @@ generic std gap is planned here even when moq never calls it.
 - [Waiting: type-check in process with tsrs](/quest/m3/ts-tsrs.md) - rust2-ts checks bindings through tsrs instead of `tsc` once it is a stable library
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
 - [Fresh writes in a body generic over a type](/quest/m3/ts-fresh-type-params.md) - a whole write into fresh memory holding a type parameter's values fills it, as one generic over a length alone does
-- [Result's iterators](/quest/m3/ts-result-iters.md) - `Result::iter`, `iter_mut`, `into_iter`, and `flatten` over `Result`s translate
-- [Raw pointers to a type parameter in a struct](/quest/m3/ts-generic-pointer-fields.md) - a `*mut T` field of a generic struct is typed as each instance stores it, or refuses
+- [A generic type's bytes at u8](/quest/m3/ts-generic-byte-fields.md) - a `[T; N]`, `Vec<T>`, or `&[T]` field of a generic type is typed as its `u8` instance holds it, or refused
 - [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are
-- [ptr::replace whose result nothing reads](/quest/m3/ts-ptr-replace-unread.md) - `ptr::replace` with its result discarded type-checks
+- [Places through an adaptor's argument](/quest/m3/ts-adaptor-places.md) - `iter.zip(&mut v)` of values JS copies lends places as `for x in &mut v` does
 - [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
-- [A &mut into a Box of a value JS copies](/quest/m3/ts-box-places.md) - a write through `&mut *b` of a `Box<u32>`, a `Box<String>`, or a `Box<str>` reaches the box's place
-- [A str's checked and inclusive parts](/quest/m3/ts-str-get.md) - `str::get` and indexing a `str` by `a..=b` or `..=b` translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
 - [The rest of a vector's methods](/quest/m3/ts-vec-rest.md) - `clone_from`, `append`, `resize`, `split_off`, `try_reserve`, and `Vec::from(VecDeque)` translate with std's capacity
+- [The rest of a guard's methods](/quest/m3/ts-guard-rest.md) - `Debug` of `RefCell` and `RwLock` guards, `MutexGuard::map`, and the guards' `try_map` translate
+- [Aborts in the differential](/quest/m3/ts-abort-differential.md) - the lang differential compares wasm32's aborts, so an `RwLock` locked again while held is tested
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained

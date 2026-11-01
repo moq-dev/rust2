@@ -95,6 +95,20 @@ export function optionAsMut<T>(p: Place<T | undefined | None>, none?: None): Pla
 	return p.v === none ? undefined : (p as Place<T>);
 }
 
+/**
+ * The payload's place of the `Result` at `p`, while it is `Ok`: writing it makes `p` a
+ * new `Ok`, as a `Result` is never changed in place.
+ */
+export function resultAsMut<T, E>(p: Place<Result<T, E>>): Place<T> | undefined {
+	if (!p.v.ok) return undefined;
+	return place(
+		() => (p.v as { readonly value: T }).value,
+		(value) => {
+			p.v = Ok(value);
+		},
+	);
+}
+
 /** The place `get` reads and `set` writes. */
 export function place<T>(get: () => T, set: (value: T) => void): Place<T> {
 	return new Accessed(get, set);
@@ -110,6 +124,12 @@ export const DANGLING: never = /* @__PURE__ */ Object.freeze({}) as never;
 
 /** A dangling pointer to `()`, std's every one: a place that holds only `()`. */
 export const DANGLING_UNIT: Place<undefined> = { v: undefined };
+
+/**
+ * A generic type's pointer or reference to a `T` that only an instance decides: the object,
+ * the `Place` of a value JS copies, or the `ByteSlice` of a `[u8; N]`'s bytes.
+ */
+export type Ptr<T> = T | Place<T> | ByteSlice;
 
 /**
  * `ptr::write` of `value` through a pointer to an object: `value` copied into it, one

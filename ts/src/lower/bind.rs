@@ -3,7 +3,7 @@
 //! defines, trait impls included, calls the binding file's export named for the Rust
 //! function: one export serves every instance, so a generic one is a generic TS function.
 //! `tsc` checks each export against every instance's translated signature once the output
-//! is written.
+//! is written, as [`crate::check`] does.
 
 use std::path::{Component, Path, PathBuf};
 
@@ -14,7 +14,7 @@ use rustc_middle::ty::{self, Instance, InstanceKind, TyCtxt, TypeVisitableExt};
 use rustc_span::Span;
 
 use super::{Translator, camel, names};
-use crate::program::{Bound, Check, ModPath, Program, SymKind, Symbol, module_file};
+use crate::program::{Bound, Check, ModPath, SymKind, Symbol, module_file};
 use crate::ts::{Expr, Function, Item, Param, StmtKind, SymId, Type};
 
 /// An item `ts.toml` binds.
@@ -439,167 +439,6 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			what,
 		});
 	}
-}
-
-/// The project `tsc` checks the check module in, beside it: the runtime's own settings, as
-/// `runtime/tsconfig.json` has them, but for the unused names a binding may leave, which
-/// are its author's to lint, and the ambient types a caller's `node_modules` may hold. A
-/// project of its own, since `tsc` refuses to check a file it names where a caller's
-/// `tsconfig.json` is above it.
-const TSCONFIG: &str = r#"{
-	"compilerOptions": {
-		"strict": true,
-		"noEmit": true,
-		"pretty": false,
-		"target": "es2022",
-		"lib": ["es2022", "esnext.disposable", "dom"],
-		"module": "esnext",
-		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		"verbatimModuleSyntax": true,
-		"erasableSyntaxOnly": true,
-		"skipLibCheck": true,
-		"types": []
-	},
-	"files": ["bind.ts"]
-}
-"#;
-
-/// Type-check the bindings the translation in `out` reaches against what it takes each
-/// for, reporting each that fails at its Rust item, and then removing the translation.
-pub fn typecheck(tcx: TyCtxt<'_>, program: &Program, out: &Path) {
-	if program.checks.is_empty() {
-		return;
-	}
-	let failed = |msg: String| {
-		tcx.dcx().err(format!("rust2-ts: {msg}"));
-		_ = crate::program::clean(out);
-	};
-	if let Err(err) = tsc_version() {
-		return failed(err);
-	}
-	// `tsc` names each file from its working directory, which the OS resolves through any
-	// symlink, so it's given the project by the real path too.
-	let real = match out.canonicalize() {
-		Ok(real) => real,
-		Err(err) => return failed(format!("resolving {}: {err}", out.display())),
-	};
-	let module = check_module();
-	let path = real.join(module_file(&module));
-	let items: Vec<&Item> = program.checks.iter().map(|check| &check.item).collect();
-	let printed = match crate::print::module(program, &module, &items, &path) {
-		Ok(printed) => printed,
-		Err(err) => return failed(err),
-	};
-	let project = path.with_extension("json");
-	if let Err(err) =
-		crate::program::write_file(&path, &printed.code).and_then(|()| crate::program::write_file(&project, TSCONFIG))
-	{
-		return failed(err);
-	}
-	let name = path.file_name().expect("a file name").to_string_lossy().into_owned();
-	let output = std::process::Command::new("tsc")
-		.arg("-p")
-		.arg(&project)
-		.current_dir(path.parent().expect("the runtime's directory"))
-		.output();
-	_ = std::fs::remove_file(&path);
-	_ = std::fs::remove_file(&project);
-	let output = match output {
-		Ok(output) => output,
-		Err(err) => return failed(format!("running tsc, which checks the bindings: {err}")),
-	};
-	if output.status.success() {
-		return;
-	}
-	// The check each line of the module is in, by the function it starts at.
-	let mut starts = Vec::new();
-	for (line, text) in printed.code.lines().enumerate() {
-		if let Some(rest) = text.split("function check$").nth(1)
-			&& let Some(index) = rest.split('(').next().and_then(|n| n.parse::<usize>().ok())
-		{
-			starts.push((line + 1, index));
-		}
-	}
-	let text = String::from_utf8_lossy(&output.stdout);
-	let prefix = format!("{name}(");
-	// Where the output is, which a message naming a module spells out.
-	let dir = format!("{}/", real.display());
-	// Each item's instances of a generic function fail alike, so each failure is reported once.
-	let mut reported = std::collections::HashSet::new();
-	for diagnostic in diagnostics(&text) {
-		// One in a binding's file names it from the runtime's directory.
-		let diagnostic = diagnostic.strip_prefix("../").unwrap_or(&diagnostic);
-		let diagnostic = diagnostic.replace(&dir, "");
-		let check = diagnostic
-			.strip_prefix(&prefix)
-			.and_then(|rest| rest.split([',', ')']).next())
-			.and_then(|line| line.parse::<usize>().ok())
-			.and_then(|line| starts.iter().rev().find(|&&(start, _)| start <= line))
-			.map(|&(_, index)| &program.checks[index]);
-		let msg = diagnostic.split_once(": ").map_or(diagnostic.as_str(), |(_, msg)| msg);
-		if !reported.insert((check.map(|check| check.span), msg.to_string())) {
-			continue;
-		}
-		match check {
-			Some(check) => {
-				_ = tcx.dcx().span_err(
-					check.span,
-					format!("rust2-ts: {} doesn't type-check: {msg}", check.what),
-				)
-			}
-			None => _ = tcx.dcx().err(format!("rust2-ts: tsc: {diagnostic}")),
-		}
-	}
-	if reported.is_empty() {
-		tcx.dcx().err(format!(
-			"rust2-ts: tsc failed: {text}{}",
-			String::from_utf8_lossy(&output.stderr)
-		));
-	}
-	_ = crate::program::clean(out);
-}
-
-/// The oldest `tsc` the check project is written for.
-const TSC_MAJOR: u32 = 7;
-
-/// Refuse a `tsc` on `PATH` older than [`TSC_MAJOR`], which would fail the check project's
-/// options rather than the bindings.
-fn tsc_version() -> Result<(), String> {
-	let output = std::process::Command::new("tsc")
-		.arg("--version")
-		.output()
-		.map_err(|err| format!("running tsc, which checks the bindings: {err}"))?;
-	let text = String::from_utf8_lossy(&output.stdout);
-	// `Version 7.0.2`.
-	let major = text
-		.split_whitespace()
-		.last()
-		.and_then(|version| version.split('.').next())
-		.and_then(|major| major.parse::<u32>().ok());
-	match major {
-		Some(major) if major >= TSC_MAJOR => Ok(()),
-		_ => Err(format!(
-			"tsc {}, which checks the bindings, must be {TSC_MAJOR}.0 or later",
-			text.trim()
-		)),
-	}
-}
-
-/// Each of `tsc`'s diagnostics, with the lines that go on with it.
-fn diagnostics(text: &str) -> Vec<String> {
-	let mut all: Vec<String> = Vec::new();
-	for line in text.lines() {
-		match all.last_mut() {
-			Some(last) if line.starts_with(char::is_whitespace) => {
-				last.push('\n');
-				last.push_str(line);
-			}
-			_ if line.trim().is_empty() => {}
-			_ => all.push(line.to_string()),
-		}
-	}
-	all
 }
 
 /// The module `tsc` checks the bindings in, which no Rust module or binding can be: the

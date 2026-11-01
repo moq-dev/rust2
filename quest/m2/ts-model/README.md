@@ -46,6 +46,5 @@ Public API: the translator's output for moq-net's model.
 
 ## Required
 
-- [Shared ownership](/quest/m2/ts-shared.md) - kio's waiters are `Arc`/`Weak` with observable counts, and its atomics and locks are plain values
 - [hashbrown as the runtime's map](/quest/m2/ts-model/hashbrown.md) - hashlink's `hashbrown` tables translate as `rt.HashMap`, with std's capacity
 - [Async in the TypeScript translator](/quest/m2/ts-async.md) - kio's producers and consumers are futures

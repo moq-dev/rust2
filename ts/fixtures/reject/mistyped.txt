@@ -1,0 +1,2 @@
+lib.Rows.ts:22:20 doesn't type-check, which is a bug in rust2-ts: error TS2339: Property 'data' does not exist on type 'u8[]'. at fixtures/reject/src/lib.rs:2153:3
+lib.ts:8:47 doesn't type-check, which is a bug in rust2-ts: error TS2740: Type 'ByteVec' is missing the following properties from type 'u8[]': pop, push, concat, join, and 28 more. at fixtures/reject/src/lib.rs:2159:4

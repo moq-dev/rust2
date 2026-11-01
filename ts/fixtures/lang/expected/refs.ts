@@ -272,7 +272,7 @@ export function refs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _185: rt.u8 = rt.u8WrappingAdd(by, 1);
 	rt.byteVecPush(out, fill(rt.place(() => empty, (value13) => empty = value13), rt.place(() => text, (value14) => text = value14), _185));
 	let at: rt.usize = 0;
-	const cursor: Cursor.Cursor = { at: rt.place(() => at, (value15) => at = value15), data };
+	const cursor: Cursor.Cursor = { at: rt.place(() => at, (value15) => at = value15), dataData: data.data, dataStart: data.start, dataLen: data.length };
 	let sum: rt.u8 = 0;
 	while (true) {
 		const _190: rt.u8 | undefined = Cursor.next(cursor);

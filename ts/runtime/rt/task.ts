@@ -4,7 +4,7 @@
 // A value whose drop JS can observe has `[Symbol.dispose]`, which runs its `Drop` impl
 // and drops its fields. `None` is `undefined`, which drops as nothing.
 
-import { Err, type None, OK, Ok, Panic, panic, type Place, place, type Result } from "../rt.ts";
+import { type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, ptrWrite, type Result, vecAssign } from "../rt.ts";
 
 // Drops
 
@@ -185,7 +185,7 @@ export function arcGetMut<T>(arc: Arc<T>): T | undefined {
 
 /** `Arc::get_mut` of a value JS copies: where it is, if no other `Arc` or `Weak` shares it. */
 export function arcGetMutPlace<T>(arc: Arc<T>): Place<T> | undefined {
-	return arcUnique(arc) ? arcPlace(arc) : undefined;
+	return arcUnique(arc) ? valuePlace(arc) : undefined;
 }
 
 /**
@@ -204,7 +204,7 @@ export function arcMakeMutPlace<T>(
 	clone: ((value: T) => T) | undefined,
 	drop: (arc: Arc<T>) => void,
 ): Place<T> {
-	return arcPlace(arcOwn(p, clone, drop));
+	return valuePlace(arcOwn(p, clone, drop));
 }
 
 function arcUnique(arc: Arc<unknown>): boolean {
@@ -223,11 +223,12 @@ function arcOwn<T>(p: Place<Arc<T>>, clone: ((value: T) => T) | undefined, drop:
 	return p.v;
 }
 
-function arcPlace<T>(arc: Arc<T>): Place<T> {
+/** Where the value of an `Arc`, a `Mutex`, or a `RefCell` is, which a `&mut` to it lends where JS copies it. */
+export function valuePlace<T>(holder: { value: T }): Place<T> {
 	return place(
-		() => arc.value,
+		() => holder.value,
 		(value) => {
-			arc.value = value;
+			holder.value = value;
 		},
 	);
 }
@@ -326,7 +327,8 @@ export function mutexUnlock<T>(mutex: Mutex<T>): void {
 /**
  * `RefCell<T>` and `RwLock<T>`, which one thread can't tell apart but by how a borrow
  * that conflicts fails, and their guards: a borrow is the cell itself, `borrows` counting
- * the shared ones held, or -1 while an exclusive one is.
+ * the shared ones held, or the negated count of exclusive ones, which only a split makes
+ * more than one of.
  */
 export class RefCell<T> implements Disposable {
 	value: T;
@@ -391,14 +393,154 @@ export function rwLockTryWrite<T>(lock: RefCell<T>): Result<RefCell<T>, TryLockE
 	return Ok(lock);
 }
 
+/**
+ * A guard a map made: where the part of a cell's value it lends is, which it reads and
+ * writes as `value`, as a cell does its own, and whose borrow that cell counts.
+ */
+export class RefMap<T> implements RefCell<T> {
+	/** A cell's count, which a guard's cell keeps instead. */
+	borrows = 0;
+	readonly at: Place<T>;
+	readonly cell: RefCell<unknown>;
+
+	constructor(at: Place<T>, cell: RefCell<unknown>) {
+		this.at = at;
+		this.cell = cell;
+	}
+
+	get value(): T {
+		return this.at.v;
+	}
+
+	set value(value: T) {
+		this.at.v = value;
+	}
+
+	/** A guard drops nothing of what it lends. */
+	[Symbol.dispose](): void {}
+}
+
+/** The cell whose borrow `r`, a guard, holds. */
+function refCellOf(r: RefCell<unknown>): RefCell<unknown> {
+	return r instanceof RefMap ? r.cell : r;
+}
+
 /** A `Ref`'s or an `RwLockReadGuard`'s drop. */
-export function refRelease<T>(cell: RefCell<T>): void {
+export function refRelease<T>(r: RefCell<T>): void {
+	refCellOf(r).borrows--;
+}
+
+/** `Ref::map`: a `Ref` of `part` of `r`'s value, which takes over `r`'s borrow. */
+export function refMap<U>(r: RefCell<unknown>, part: U): RefCell<U> {
+	return new RefMap({ v: part }, refCellOf(r));
+}
+
+/** `Ref::filter_map`: `refMap` of `part`, or `r` back if there is none. */
+export function refFilterMap<T, U>(r: RefCell<T>, part: U | undefined): Result<RefCell<U>, RefCell<T>> {
+	return part === undefined ? Err(r) : Ok(new RefMap({ v: part }, refCellOf(r)));
+}
+
+/** `Ref::map_split`: `Ref`s of the two `parts` of `r`'s value, which share `r`'s borrow. */
+export function refMapSplit<U, V>(r: RefCell<unknown>, [u, v]: [U, V]): [RefCell<U>, RefCell<V>] {
+	const cell = refCellOf(r);
+	cell.borrows++;
+	return [new RefMap({ v: u }, cell), new RefMap({ v }, cell)];
+}
+
+/** `Ref::clone`: `r` again, a shared borrow of its own, which never conflicts. */
+export function refClone<T>(r: RefCell<T>): RefCell<T> {
+	refCellOf(r).borrows++;
+	return r;
+}
+
+/**
+ * Where `part`, an object a `&mut` lends, is: the object itself, which a whole value is
+ * written into in place, as a write through that `&mut` would.
+ */
+export function partPlace<T extends object>(part: T): Place<T> {
+	return place(
+		() => part,
+		(value) => {
+			if (Array.isArray(part)) vecAssign(part, value as unknown[]);
+			else ptrWrite(part, value);
+		},
+	);
+}
+
+/** `RefMut::map`: a `RefMut` of the part of `r`'s value at `at`, which takes over `r`'s borrow. */
+export function refMutMap<U>(r: RefCell<unknown>, at: Place<U>): RefCell<U> {
+	return new RefMap(at, refCellOf(r));
+}
+
+/** `RefMut::filter_map`: `refMutMap` of the part at `at`, or `r` back if there is none. */
+export function refMutFilterMap<T, U>(r: RefCell<T>, at: Place<U> | undefined): Result<RefCell<U>, RefCell<T>> {
+	return at === undefined ? Err(r) : Ok(new RefMap(at, refCellOf(r)));
+}
+
+/** `RefMut::map_split`: `RefMut`s of the parts of `r`'s value at `a` and `b`, which share `r`'s borrow. */
+export function refMutMapSplit<U, V>(r: RefCell<unknown>, [a, b]: [Place<U>, Place<V>]): [RefCell<U>, RefCell<V>] {
+	const cell = refCellOf(r);
 	cell.borrows--;
+	return [new RefMap(a, cell), new RefMap(b, cell)];
+}
+
+/** `RefCell::try_borrow`'s error: the cell is mutably borrowed. */
+export class BorrowError {}
+
+/** `RefCell::try_borrow_mut`'s error: the cell is borrowed. */
+export class BorrowMutError {}
+
+const BORROW_ERROR: Result<never, BorrowError> = /* @__PURE__ */ Err(/* @__PURE__ */ new BorrowError());
+const BORROW_MUT_ERROR: Result<never, BorrowMutError> = /* @__PURE__ */ Err(/* @__PURE__ */ new BorrowMutError());
+
+/** `RefCell::try_borrow`: a shared borrow, or `BorrowError` while an exclusive one is held. */
+export function refCellTryBorrow<T>(cell: RefCell<T>): Result<RefCell<T>, BorrowError> {
+	if (cell.borrows < 0) return BORROW_ERROR;
+	cell.borrows++;
+	return Ok(cell);
+}
+
+/** `RefCell::try_borrow_mut`: an exclusive borrow, or `BorrowMutError` while any other is held. */
+export function refCellTryBorrowMut<T>(cell: RefCell<T>): Result<RefCell<T>, BorrowMutError> {
+	if (cell.borrows !== 0) return BORROW_MUT_ERROR;
+	cell.borrows = -1;
+	return Ok(cell);
+}
+
+/** `Debug` of `BorrowError`. */
+export function borrowErrorDebug(_: BorrowError, f: Formatter): FmtResult {
+	return f.out.writeStr("BorrowError");
+}
+
+/** `Display` of `BorrowError`. */
+export function borrowErrorDisplay(_: BorrowError, f: Formatter): FmtResult {
+	return fmtPad(f, "RefCell already mutably borrowed");
+}
+
+/** `Debug` of `BorrowMutError`. */
+export function borrowMutErrorDebug(_: BorrowMutError, f: Formatter): FmtResult {
+	return f.out.writeStr("BorrowMutError");
+}
+
+/** `Display` of `BorrowMutError`. */
+export function borrowMutErrorDisplay(_: BorrowMutError, f: Formatter): FmtResult {
+	return fmtPad(f, "RefCell already borrowed");
+}
+
+/**
+ * `Clone` of a `RefCell`: one of its value's clone by `clone`, or the value itself if
+ * that is undefined, made while borrowing it, which panics while it is mutably borrowed.
+ */
+export function refCellClone<T>(cell: RefCell<T>, clone?: (value: T) => T): RefCell<T> {
+	refCellBorrow(cell);
+	const value = clone ? clone(cell.value) : cell.value;
+	refRelease(cell);
+	return new RefCell(value);
 }
 
 /** A `RefMut`'s or an `RwLockWriteGuard`'s drop. */
-export function refMutRelease<T>(cell: RefCell<T>): void {
-	cell.borrows = 0;
+export function refMutRelease<T>(r: RefCell<T>): void {
+	refCellOf(r).borrows++;
 }
 
 /**
@@ -722,6 +864,45 @@ export function onceGetOrInit<T>(cell: OnceCell<T, None | undefined>, f: () => T
 	else if (cell.v !== none) panic("reentrant init");
 	cell.v = value;
 	return value;
+}
+
+/**
+ * `OnceCell::get_or_try_init`: as `onceGetOrInit`, but an error from `f` leaves the cell
+ * empty and is given back, before a `OnceCell` that `f` set would panic.
+ */
+export function onceGetOrTryInit<T, E>(cell: OnceCell<T>, f: () => Result<T, E>, dropF?: (f: () => Result<T, E>) => void): Result<T, E>;
+export function onceGetOrTryInit<T, E>(cell: OnceCell<T, None>, f: () => Result<T, E>, dropF: ((f: () => Result<T, E>) => void) | undefined, none: None): Result<T, E>;
+export function onceGetOrTryInit<T, E>(cell: OnceCell<T, None | undefined>, f: () => Result<T, E>, dropF?: (f: () => Result<T, E>) => void, none?: None): Result<T, E> {
+	if (cell.v !== none) {
+		dropF?.(f);
+		return Ok(cell.v as T);
+	}
+	recursive(cell);
+	const lock = cell instanceof OnceLock;
+	if (lock) cell.running = true;
+	const result = f();
+	if (lock) cell.running = false;
+	if (!result.ok) return result;
+	if (!lock && cell.v !== none) panic("reentrant init");
+	cell.v = result.value;
+	return result;
+}
+
+/** `Clone` of a `OnceCell` or a `OnceLock`: one holding a clone by `clone` of what it holds, or that itself if `clone` is undefined. */
+export function onceClone<T, C extends OnceCell<T>>(cell: C, clone: ((value: T) => T) | undefined): C;
+export function onceClone<T, C extends OnceCell<T, None>>(cell: C, clone: ((value: T) => T) | undefined, none: None): C;
+export function onceClone<T>(cell: OnceCell<T, None | undefined>, clone: ((value: T) => T) | undefined, none?: None): OnceCell<T, None | undefined> {
+	const v = cell.v === none || !clone ? cell.v : clone(cell.v as T);
+	return cell instanceof OnceLock ? new OnceLock(v) : new OnceCell(v);
+}
+
+/** `Debug` of a `OnceCell` or a `OnceLock`, named `name`: what it holds, or `<uninit>`. */
+export function onceDebug<T>(cell: OnceCell<T>, f: Formatter, name: string, debug: Debug<T>): FmtResult;
+export function onceDebug<T>(cell: OnceCell<T, None>, f: Formatter, name: string, debug: Debug<T>, none: None): FmtResult;
+export function onceDebug<T>(cell: OnceCell<T, None | undefined>, f: Formatter, name: string, debug: Debug<T>, none?: None): FmtResult {
+	const v = cell.v;
+	const field = v === none ? (f: Formatter) => f.out.writeStr("<uninit>") : (f: Formatter) => debug(v as T, f);
+	return debugTupleFinish(debugTupleField(fmtDebugTuple(f, name), field));
 }
 
 /** `Once`: a `OnceLock` that holds `true` once its function has run. */

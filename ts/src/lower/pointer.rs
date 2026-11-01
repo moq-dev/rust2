@@ -112,8 +112,27 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		ty
 	}
 
+	/// Whether only an instance decides what a pointer or reference to `ty` is, as in a
+	/// generic type's definition: `ty` a type parameter, an array of one, either through
+	/// `MaybeUninit`s, or a binding's generic type, which an instance decides is `Copy`.
+	pub fn instance_pointee(&self, ty: Ty<'tcx>) -> bool {
+		if self.polymorphic() || !ty.has_param() {
+			return false;
+		}
+		let open = |ty: Ty<'tcx>| matches!(ty.kind(), ty::Param(_) | ty::Alias(..));
+		let ty = self.uninit_inner(ty);
+		match ty.kind() {
+			ty::Array(elem, _) => open(*elem),
+			ty::Adt(adt, _) => self.bound_drops(adt.did()).is_some(),
+			_ => open(ty),
+		}
+	}
+
 	/// The TypeScript type of a raw pointer or `NonNull` to `pointee`.
 	pub fn pointer_ty(&mut self, pointee: Ty<'tcx>, span: Span) -> Type {
+		if self.instance_pointee(pointee) {
+			return Type::Rt("Ptr", vec![self.ty(pointee, span)]);
+		}
 		match self.pointee(pointee) {
 			Pointee::Place => Type::Rt("Place", vec![self.ty(pointee, span)]),
 			Pointee::Object => self.ty(pointee, span),
@@ -187,19 +206,16 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				let info = self.adt(*adt, span);
 				match info.repr {
 					AdtRepr::Struct { ctor, fields } => {
-						let tys: Vec<Ty<'tcx>> = adt
-							.non_enum_variant()
-							.fields
-							.iter()
-							.map(|f| self.field_ty(f.did, args))
-							.collect();
 						// A class's constructor types each of its parameters.
 						let plain = self.plain(info.sym);
-						let values = tys
-							.into_iter()
-							.map(|t| match plain {
-								true => self.shell(t, span),
-								false => self.uninit(t, span),
+						let values = (adt.non_enum_variant().fields.iter())
+							.map(|f| {
+								let t = self.field_ty(f.did, args);
+								let value = match plain {
+									true => self.shell(t, span),
+									false => self.uninit(t, span),
+								};
+								self.field_value(value, adt.did(), f.did, args, span)
 							})
 							.collect();
 						self.construct(info.sym, &ctor, &fields, values)
@@ -354,26 +370,37 @@ pub fn keeps<'tcx>(tcx: ty::TyCtxt<'tcx>, def_id: rustc_hir::def_id::DefId, args
 	keeps || from_reference(tcx, def_id, args)
 }
 
-/// Whether std's `def_id` is one a mapping takes the `rt.Place` a `&mut` is for, rather
-/// than what it points at: a `MaybeUninit`'s, which it points into, an `Arc`'s that
-/// `make_mut` replaces, a `String`'s that a drain edits as it drops, and a well-known
-/// crate's, such as a `Bytes` that `Buf::advance` moves past its front.
-pub fn takes_place(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> bool {
+/// Whether std's `def_id` of `args` is one a mapping takes the `rt.Place` a `&mut` is for,
+/// rather than what it points at: a `MaybeUninit`'s, which it points into, an `Arc`'s that
+/// `make_mut` replaces, a `String`'s that a drain edits as it drops, a `Result`'s whose
+/// payload JS copies, which `iter_mut` lends as a place that writes the whole `Result`,
+/// and a well-known crate's, such as a `Bytes` that `Buf::advance` moves past its front.
+fn takes_place<'tcx>(
+	t: &Translator<'_, 'tcx>,
+	def_id: rustc_hir::def_id::DefId,
+	args: ty::GenericArgsRef<'tcx>,
+) -> bool {
 	matches!(
-		super::library::key(tcx, def_id),
+		super::library::key(t.tcx, def_id),
 		Some((owner, name)) if owner == "MaybeUninit"
 			|| matches!(owner.as_str(), "Arc" | "Rc") && name == "make_mut"
 			|| (owner.as_str(), name.as_str()) == ("String", "drain")
-	) || super::stock::is_stock(tcx, def_id)
+			|| (owner.as_str(), name.as_str()) == ("Result", "iter_mut") && t.needs_place(args.type_at(0))
+	) || super::stock::is_stock(t.tcx, def_id)
 }
 
-/// Which of std's `def_id`'s parameters its mapping takes as what the `&mut` it declares
-/// points at, rather than the `rt.Place` that `&mut` may be: not a type parameter that
-/// one instantiates, as `Pin::new`'s pointer.
-pub fn pointees(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> Vec<bool> {
-	let takes_place = takes_place(tcx, def_id);
-	let sig = tcx.fn_sig(def_id).instantiate_identity().skip_norm_wip();
-	tcx.instantiate_bound_regions_with_erased(sig)
+/// Which of std's `def_id`'s parameters its mapping of `args` takes as what the `&mut` it
+/// declares points at, rather than the `rt.Place` that `&mut` may be: not a type parameter
+/// that one instantiates, as `Pin::new`'s pointer.
+pub fn pointees<'tcx>(
+	t: &Translator<'_, 'tcx>,
+	def_id: rustc_hir::def_id::DefId,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Vec<bool> {
+	let takes_place = takes_place(t, def_id, args);
+	let sig = t.tcx.fn_sig(def_id).instantiate_identity().skip_norm_wip();
+	t.tcx
+		.instantiate_bound_regions_with_erased(sig)
 		.inputs()
 		.iter()
 		.map(|t| !takes_place && matches!(t.kind(), ty::Ref(_, _, rustc_ast::Mutability::Mut)))
@@ -610,10 +637,14 @@ pub fn call<'tcx>(
 /// What a `PartialEq` or `Clone` call's `Self` points at, if it is a raw pointer or a
 /// `NonNull`.
 fn pointer_self<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>) -> Option<Ty<'tcx>> {
-	let this = call.args.types().next()?;
-	match this.kind() {
+	raw_pointee(b.t.tcx, call.args.types().next()?)
+}
+
+/// What `ty` points at if it is a raw pointer or a `NonNull`, which compare by address.
+pub fn raw_pointee<'tcx>(tcx: ty::TyCtxt<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
+	match ty.kind() {
 		ty::RawPtr(pointee, _) => Some(*pointee),
-		ty::Adt(adt, args) if Std::of(b.t.tcx, adt.did()) == Some(Std::NonNull) => Some(args.type_at(0)),
+		ty::Adt(adt, args) if Std::of(tcx, adt.did()) == Some(Std::NonNull) => Some(args.type_at(0)),
 		_ => None,
 	}
 }

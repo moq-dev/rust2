@@ -5,12 +5,14 @@ import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr } from "./core/option.ts";
 
 /** What `turns` reads by: the case's bytes, each step's taken in order. */
 export interface Plan {
-	data: rt.ByteSlice;
+	dataData: Uint8Array;
+	dataStart: number;
+	dataLen: number;
 	at: rt.usize;
 }
 
 export function next(self: Plan): rt.u8 {
-	const b: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceGet(self.data, rt.usizeRem(self.at, rt.max(self.data.length, 1))), 0);
+	const b: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceGet(new rt.ByteSlice(self.dataData, self.dataStart, self.dataLen), rt.usizeRem(self.at, rt.max(self.dataLen, 1))), 0);
 	self.at = rt.usizeAdd(self.at, 1);
 	return b ^ rt.u8WrappingMul(self.at & 0xff, 29);
 }

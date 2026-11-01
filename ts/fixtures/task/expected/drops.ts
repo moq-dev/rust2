@@ -99,7 +99,7 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		rt.vecPush(v2, _70, 20);
 		const mutex: rt.Mutex<Held.Held[]> = new rt.Mutex(v2);
 		const boxed: Held.Held = { tag: "Two", _0: guard(6), _1: guard(7) };
-		const maybe: Held.Held | undefined = { tag: "One", _0: guard(8) };
+		const maybe = (({ tag: "One", _0: guard(8) } as Held.Held)) as Held.Held | undefined;
 		const _94: rt.usize = held.length;
 		const _97: boolean = maybe !== undefined;
 		const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(_94, f), (f: rt.Formatter) => rt.fmtBool(_97, f)];

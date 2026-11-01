@@ -515,6 +515,16 @@ export function iterOption<T>(o: T | undefined | None, drop?: Drop<T>, none?: No
 	return new OptionIter(o as T, o !== none, drop);
 }
 
+/**
+ * `Result::iter`, and with what drops its item, `result::IntoIter`, which drops an `Err`
+ * by `dropError` as it is made.
+ */
+export function iterResult<T, E>(r: Result<T, E>, drop?: Drop<T>, dropError?: Drop<E>): Iter<T> {
+	if (r.ok) return new OptionIter(r.value, true, drop);
+	dropError?.(r.error);
+	return new OptionIter<T>(undefined, false);
+}
+
 /** `iter::once`. */
 export function iterOnce<T>(value: T, drop?: Drop<T>): Iter<T> {
 	return new OptionIter<T>(value, true, drop);

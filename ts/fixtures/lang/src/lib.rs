@@ -1,11 +1,11 @@
 //! The language the driver translates, exercised against native Rust: every integer
 //! width's arithmetic, casts, and inherent methods, `f64`, `char`s and the `str` methods over them,
 //! `Cow<str>`, boxed slices and text, `Duration`, control flow, patterns, byte slices split apart,
-//! passed as their parts, and returned in a slot, `Copy`
+//! passed as their parts, returned in a slot, and held as their parts in fields, `Copy`
 //! aggregates, closures and what they write of what they captured, traits, generic
 //! types, formatting, collections, `LinkedList`s, UTF-8 decoding, `&mut` to values JS copies, whole
 //! writes through a `&mut` to an object, the standard library calls it maps, `Option`'s
-//! and `Result`'s combinators from core's MIR, `Option`s of values that can already be
+//! and `Result`'s combinators from core's MIR, `Result`'s iterators, `Option`s of values that can already be
 //! `undefined`, atomics, `static` ones included, trait objects, one-time cells, mutexes,
 //! `Cell`s, `UnsafeCell`s, `RefCell`s, read-write locks, and thread-locals, the defaults
 //! of std types, the counts of shared pointers, arrays `array::from_fn` and `map` make,
@@ -25,7 +25,14 @@
 //! `harness::run` is the entry point both sides of the differential test run, and
 //! `fmt::Fault` an error only `caller.ts` prints.
 
-#![feature(iter_order_by, split_as_slice, wrapping_int_impl, wrapping_next_power_of_two)]
+#![feature(
+	iter_order_by,
+	mapped_lock_guards,
+	once_cell_try,
+	split_as_slice,
+	wrapping_int_impl,
+	wrapping_next_power_of_two
+)]
 
 mod args;
 mod arrays;
@@ -50,6 +57,7 @@ mod durations;
 mod dyns;
 mod edits;
 mod errors;
+mod fields;
 mod floats;
 mod fmt;
 mod folds;
@@ -72,6 +80,7 @@ mod objects;
 mod orders;
 mod pointers;
 mod refs;
+mod results;
 mod returns;
 mod saturates;
 mod separated;
