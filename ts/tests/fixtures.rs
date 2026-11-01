@@ -251,9 +251,7 @@ fn shake(out: &Path) {
 		kept.sort_unstable();
 		let want = [
 			// The runtime's.
-			"Err",
 			"ByteSlice",
-			"Ok",
 			"Panic",
 			"byteSliceFrom",
 			"checked",
@@ -271,6 +269,7 @@ fn shake(out: &Path) {
 			"short",
 			"slice",
 			"u8",
+			"u8Out",
 		];
 		let mut want: Vec<String> = want.map(unnumbered).to_vec();
 		want.sort_unstable();

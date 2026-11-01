@@ -704,8 +704,9 @@ they need.
   often than before stays one. `just ts bench` measured the codec's varint decode at 0.49
   times the objects' time in Chrome, 0.57 in Firefox, 0.64 in Node, and 0.56 in Bun at
   the geometric mean, and frame decode at 0.61, 0.56, 0.70, and 0.61, with the A/A route
-  within 0.04 and encode no slower. A field is still a `ByteSlice`, as is a return but
-  for the `Result`s below ([byte slices without objects](/quest/m2/ts-byte-views/README.md)).
+  within 0.04 and encode no slower. A tuple or `Result` of numbers alone is held so only
+  where it meets a slot below, and its object, such as an `rt.Ok`, counts as made at each
+  read that makes it. A return is still a `ByteSlice` but for the `Result`s below.
 - A function only translated code calls takes each `&[u8]` or `&[u8; N]` parameter as
   three, its `data`, `start`, and `length`, which its body holds as that local's parts:
   not a root, which the outside calls, a closure, or an `async fn`. One whose object the
@@ -721,7 +722,8 @@ they need.
   1.01-1.05 over two runs, with the A/A route within 0.05, Firefox and Bun within their
   noise, and Node's varint decode at 1.11-1.15.
 - A function of the crate's that only translated code calls and that returns a `Result`
-  of byte slices and scalars, such as `Result<(u64, &[u8]), E>`, whose error is one JS
+  of byte slices and scalars, or of numbers alone, such as `Result<(u64, &[u8]), E>` or
+  `Result<u64, E>`, whose error is one JS
   value that is never `undefined`, writes the `Ok`'s parts into a module-level slot and returns the error or
   `undefined`. The slot is shared by every function returning that payload type, named
   for the first of them in source order with its suffix, as `readOut` or `leadOut$u16`.
