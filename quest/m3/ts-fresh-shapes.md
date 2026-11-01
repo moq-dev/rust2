@@ -19,8 +19,11 @@ reasons that have nothing to do with type parameters:
 - Reading a `T` out of `Zip::next`'s result makes it a holder. A concrete control
   (`Vec<Option<u8>>`) is refused as well.
 - `Copy`'s supertrait `Clone` selects a parameter candidate, so `copied` and `vec![x; n]`
-  count as running the crate's `Clone`. A `Copy` type's `clone` is a copy, so these run no
-  code of the crate's.
+  count as running the crate's `Clone`. The two differ: `copied` copies and calls no
+  `clone`, while `vec![x; n]` calls `clone` `n - 1` times, and a `Copy` type's hand-written
+  `Clone` may have effects or panic. Treat `copied` as running no crate code; keep
+  `vec![x; n]` calling the crate's `clone`, judged fresh only where that `clone` writes
+  nothing the slot holds. Cover both with differential tests whose `Clone` logs and panics.
 
 Reproduce each first and fix the one that is a single cause before the others.
 
