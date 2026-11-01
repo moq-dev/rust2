@@ -1619,7 +1619,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	}
 
 	/// The TypeScript type of `field` in its type's definition, with `identity` its own
-	/// parameters, noting a field that holds an `rt.Ptr` for [`Self::ptr_field`].
+	/// parameters, noting a field that holds an `rt.Ptr` for [`Self::held_field`].
 	fn defined_field_ty(&mut self, field: &ty::FieldDef, identity: GenericArgsRef<'tcx>, span: Span) -> Type {
 		let ty = self.ty(field.ty(self.tcx, identity).skip_norm_wip(), span);
 		if ty.any(&|t| matches!(t, Type::Rt("Ptr", _))) {
@@ -1628,16 +1628,14 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		ty
 	}
 
-	/// The type an instance with `args` holds in `field`, if its definition types a pointer
-	/// in it as an `rt.Ptr`, which a read casts to it.
-	pub fn ptr_field(&mut self, field: DefId, args: GenericArgsRef<'tcx>, span: Span) -> Option<Type> {
-		match self.ptr_fields.contains(&field) {
-			true => {
-				let ty = self.field_ty(field, args);
-				Some(self.ty(ty, span))
-			}
-			false => None,
+	/// `read`, of `field` of an instance with `args`, cast to what the instance holds there
+	/// where the definition types a pointer in it as an `rt.Ptr`.
+	pub fn held_field(&mut self, read: ts::Expr, field: DefId, args: GenericArgsRef<'tcx>, span: Span) -> ts::Expr {
+		if !self.ptr_fields.contains(&field) {
+			return read;
 		}
+		let ty = self.field_ty(field, args);
+		ts::Expr::As(Box::new(read), self.ty(ty, span))
 	}
 
 	/// Why an instance of the crate's generic `adt` with `args` can't hold its fields' values,

@@ -22,15 +22,19 @@ import type * as Lopsided from "./keys.Lopsided.ts";
 import * as lengths_Tagged from "./lengths.Tagged.ts";
 import type * as locals_Twin from "./locals.Twin.ts";
 import type * as locks_Tally from "./locks.Tally.ts";
+import type * as Aimed from "./pointers.Aimed.ts";
 import type * as ByCall from "./pointers.ByCall.ts";
 import type * as ByClosure from "./pointers.ByClosure.ts";
 import type * as ByObject from "./pointers.ByObject.ts";
 import type * as Duo from "./pointers.Duo.ts";
 import type * as pointers_Halves from "./pointers.Halves.ts";
+import type * as Housed from "./pointers.Housed.ts";
 import type * as Inner from "./pointers.Inner.ts";
+import type * as Leaning from "./pointers.Leaning.ts";
 import * as List from "./pointers.List.ts";
 import type * as Outer from "./pointers.Outer.ts";
 import type * as pointers_Pair from "./pointers.Pair.ts";
+import type * as Paired from "./pointers.Paired.ts";
 import * as saturates_Gauge from "./saturates.Gauge.ts";
 import type * as shapes_Gauge from "./shapes.Gauge.ts";
 import type * as shapes_Held from "./shapes.Held.ts";
@@ -494,6 +498,34 @@ export function copy$ops_ControlFlow_unit_array2_u8(v: rt.Result<Uint8Array, und
 	return v.ok ? rt.Ok(copy$array_u8(v.value)) : rt.Err(v.error);
 }
 
+export function copy$pointers_Aimed_Cell_u8(v: Aimed.Aimed<rt.Cell<rt.u8>>): Aimed.Aimed<rt.Cell<rt.u8>> {
+	return { at: v.at as rt.Place<rt.Cell<rt.u8>>, seen: v.seen as rt.Place<rt.Cell<rt.u8>>, held: v.held as rt.Place<rt.Cell<rt.u8>>, maybe: v.maybe as rt.Place<rt.Cell<rt.u8>> | undefined, tagged: copy$tuple2_mutPtr_Cell_u8_u8(v.tagged as [rt.Place<rt.Cell<rt.u8>>, rt.u8]), to: v.to };
+}
+
+export function copy$pointers_Aimed_array2_u16(v: Aimed.Aimed<rt.u16[]>): Aimed.Aimed<rt.u16[]> {
+	return { at: v.at as rt.u16[], seen: v.seen as rt.u16[], held: v.held as rt.u16[], maybe: v.maybe as rt.u16[] | undefined, tagged: copy$tuple2_mutPtr_array2_u16_u8(v.tagged as [rt.u16[], rt.u8]), to: v.to };
+}
+
+export function copy$pointers_Aimed_array4_u8(v: Aimed.Aimed<Uint8Array>): Aimed.Aimed<Uint8Array> {
+	return { at: v.at as rt.ByteSlice, seen: v.seen as rt.ByteSlice, held: v.held as rt.ByteSlice, maybe: v.maybe as rt.ByteSlice | undefined, tagged: copy$tuple2_mutPtr_array4_u8_u8(v.tagged as [rt.ByteSlice, rt.u8]), to: v.to };
+}
+
+export function copy$pointers_Aimed_pointers_Housed_u8(v: Aimed.Aimed<Housed.Housed<rt.u8>>): Aimed.Aimed<Housed.Housed<rt.u8>> {
+	return { at: v.at as Housed.Housed<rt.u8>, seen: v.seen as Housed.Housed<rt.u8>, held: v.held as Housed.Housed<rt.u8>, maybe: v.maybe as Housed.Housed<rt.u8> | undefined, tagged: copy$tuple2_mutPtr_pointers_Housed_u8_u8(v.tagged as [Housed.Housed<rt.u8>, rt.u8]), to: v.to };
+}
+
+export function copy$pointers_Aimed_pointers_Leaning(v: Aimed.Aimed<Leaning.Leaning>): Aimed.Aimed<Leaning.Leaning> {
+	return { at: v.at as rt.Place<Leaning.Leaning>, seen: v.seen as rt.Place<Leaning.Leaning>, held: v.held as rt.Place<Leaning.Leaning>, maybe: v.maybe as rt.Place<Leaning.Leaning> | undefined, tagged: copy$tuple2_mutPtr_pointers_Leaning_u8(v.tagged as [rt.Place<Leaning.Leaning>, rt.u8]), to: v.to };
+}
+
+export function copy$pointers_Aimed_pointers_Paired(v: Aimed.Aimed<Paired.Paired>): Aimed.Aimed<Paired.Paired> {
+	return { at: v.at as Paired.Paired, seen: v.seen as Paired.Paired, held: v.held as Paired.Paired, maybe: v.maybe as Paired.Paired | undefined, tagged: copy$tuple2_mutPtr_pointers_Paired_u8(v.tagged as [Paired.Paired, rt.u8]), to: v.to };
+}
+
+export function copy$pointers_Aimed_u8(v: Aimed.Aimed<rt.u8>): Aimed.Aimed<rt.u8> {
+	return { at: v.at as rt.Place<rt.u8>, seen: v.seen as rt.Place<rt.u8>, held: v.held as rt.Place<rt.u8>, maybe: v.maybe as rt.Place<rt.u8> | undefined, tagged: copy$tuple2_mutPtr_u8_u8(v.tagged as [rt.Place<rt.u8>, rt.u8]), to: v.to };
+}
+
 export function copy$pointers_ByCall(v: ByCall.ByCall): ByCall.ByCall {
 	return { _0: v._0, _1: v._1 };
 }
@@ -622,6 +654,34 @@ export function copy$tuple2_array2_u32_u8(v: [rt.u32[], rt.u8]): [rt.u32[], rt.u
 
 export function copy$tuple2_locals_Twin_locals_Twin(v: [locals_Twin.Twin, locals_Twin.Twin]): [locals_Twin.Twin, locals_Twin.Twin] {
 	return [copy$locals_Twin(v[0]), copy$locals_Twin(v[1])];
+}
+
+export function copy$tuple2_mutPtr_Cell_u8_u8(v: [rt.Place<rt.Cell<rt.u8>>, rt.u8]): [rt.Place<rt.Cell<rt.u8>>, rt.u8] {
+	return [v[0], v[1]];
+}
+
+export function copy$tuple2_mutPtr_array2_u16_u8(v: [rt.u16[], rt.u8]): [rt.u16[], rt.u8] {
+	return [v[0], v[1]];
+}
+
+export function copy$tuple2_mutPtr_array4_u8_u8(v: [rt.ByteSlice, rt.u8]): [rt.ByteSlice, rt.u8] {
+	return [v[0], v[1]];
+}
+
+export function copy$tuple2_mutPtr_pointers_Housed_u8_u8(v: [Housed.Housed<rt.u8>, rt.u8]): [Housed.Housed<rt.u8>, rt.u8] {
+	return [v[0], v[1]];
+}
+
+export function copy$tuple2_mutPtr_pointers_Leaning_u8(v: [rt.Place<Leaning.Leaning>, rt.u8]): [rt.Place<Leaning.Leaning>, rt.u8] {
+	return [v[0], v[1]];
+}
+
+export function copy$tuple2_mutPtr_pointers_Paired_u8(v: [Paired.Paired, rt.u8]): [Paired.Paired, rt.u8] {
+	return [v[0], v[1]];
+}
+
+export function copy$tuple2_mutPtr_u8_u8(v: [rt.Place<rt.u8>, rt.u8]): [rt.Place<rt.u8>, rt.u8] {
+	return [v[0], v[1]];
 }
 
 export function copy$tuple2_ref_sync_Mutex_u8_u8(v: [rt.Mutex<rt.u8>, rt.u8]): [rt.Mutex<rt.u8>, rt.u8] {

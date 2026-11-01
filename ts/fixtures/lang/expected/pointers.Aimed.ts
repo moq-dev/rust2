@@ -3,7 +3,7 @@
 import * as rt from "./rt.ts";
 import type * as To from "./pointers.To.ts";
 
-/** Pointers to `T` in each shape a field holds one. */
+/** Pointers to `T` in each shape a field holds one, copied as Rust copies them. */
 export interface Aimed<T> {
 	at: rt.Ptr<T>;
 	seen: rt.Ptr<T>;

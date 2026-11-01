@@ -624,11 +624,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						}
 					};
 					let ty::Adt(_, args) = ty.kind() else { unreachable!() };
-					// The definition's `rt.Ptr`, as what this instance holds there.
-					match self.b.t.ptr_field(def.did, args, span) {
-						Some(held) => Expr::As(Box::new(read), held),
-						None => read,
-					}
+					self.b.t.held_field(read, def.did, args, span)
 				}
 				_ => self.err(span, format!("a field of `{ty}`")),
 			},
@@ -1038,7 +1034,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		span: Span,
 		out: &mut Vec<Stmt>,
 	) -> Option<Expr> {
-		if !matches!(kind, mir::BorrowKind::Mut { .. }) || !self.b.t.needs_place(place.ty(&self.mir.local_decls, self.tcx).ty)
+		if !matches!(kind, mir::BorrowKind::Mut { .. })
+			|| !self.b.t.needs_place(place.ty(&self.mir.local_decls, self.tcx).ty)
 		{
 			return None;
 		}

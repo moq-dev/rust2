@@ -1746,7 +1746,7 @@ impl Aim for Housed<u8> {
 	}
 }
 
-/// Pointers to `T` in each shape a field holds one.
+/// Pointers to `T` in each shape a field holds one, copied as Rust copies them.
 struct Aimed<T> {
 	at: *mut T,
 	seen: *const T,
@@ -1756,10 +1756,26 @@ struct Aimed<T> {
 	to: To<T>,
 }
 
+impl<T> Clone for Aimed<T> {
+	fn clone(&self) -> Self {
+		*self
+	}
+}
+
+impl<T> Copy for Aimed<T> {}
+
 enum To<T> {
 	At(*mut T),
 	Nowhere,
 }
+
+impl<T> Clone for To<T> {
+	fn clone(&self) -> Self {
+		*self
+	}
+}
+
+impl<T> Copy for To<T> {}
 
 /// A generic type holding another's instance.
 struct Enclosed<T> {
@@ -1777,10 +1793,16 @@ struct Swapped<T> {
 	at: AtomicPtr<T>,
 }
 
-/// Reads and writes through each of `nest`'s pointers.
+/// Reads and writes through each of `nest`'s pointers, and through those of a copy of
+/// them, whose own tag changes apart from theirs.
 fn through<T: Aim>(nest: &Enclosed<T>, n: u8, out: &mut Vec<u8>) {
 	let a = &nest.inner;
+	let mut copy = *a;
+	copy.tagged.1 ^= 0x40;
+	let (at, tag) = tagged(copy);
+	out.extend([a.tagged.1, tag]);
 	unsafe {
+		(*at).put(tag);
 		out.push((*a.seen).get());
 		(*a.at).put(n);
 		out.push((*a.held.as_ptr()).get());
@@ -1797,6 +1819,12 @@ fn through<T: Aim>(nest: &Enclosed<T>, n: u8, out: &mut Vec<u8>) {
 		}
 		out.push((*a.seen).get());
 	}
+}
+
+/// `a`'s tagged pointer and tag, taken apart.
+fn tagged<T>(a: Aimed<T>) -> (*mut T, u8) {
+	let Aimed { tagged: (at, tag), .. } = a;
+	(at, tag)
 }
 
 /// Reads and writes through an `AtomicPtr` to what `to` points at, swapped in for null.
