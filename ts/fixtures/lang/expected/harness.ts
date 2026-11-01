@@ -53,7 +53,7 @@ import { singles, mulAdds as singles_mulAdds, formats as singles_formats, parses
 import { parts as slices_parts, chunked, subslices, drains as slices_drains, ranges as slices_ranges, edits as slices_edits } from "./slices.ts";
 import { splits } from "./splits.ts";
 import { statics, cells as statics_cells, onces } from "./statics.ts";
-import { strs, slices as strs_slices, edits as strs_edits, parses as strs_parses, iters as strs_iters, drains as strs_drains, hinted } from "./strs.ts";
+import { strs, slices as strs_slices, edits as strs_edits, parses as strs_parses, iters as strs_iters, drains as strs_drains, hinted, gets } from "./strs.ts";
 import { tuples as tuples_tuples } from "./tuples.ts";
 import { decodes } from "./utf8.ts";
 import { wrappers } from "./wrappers.ts";
@@ -253,7 +253,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		aimed(data88, out89);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ascii::parts", ascii_parts as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["boxes::places", boxes_places as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::flattened", arrays_flattened as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["args::args", args as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["returns::returns", returns as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::guards", (_2189: rt.u8, data89: rt.ByteSlice, out90: rt.ByteVec): undefined => {
 		guards(data89, out90);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["fields::fields", fields_fields as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["fields::fields", fields_fields as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["strs::gets", gets as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */

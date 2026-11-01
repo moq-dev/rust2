@@ -270,6 +270,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("returns::returns", returns::returns),
 		("borrows::guards", |_, data, out| borrows::guards(data, out)),
 		("fields::fields", fields::fields),
+		("strs::gets", strs::gets),
 	]
 }
 

@@ -895,3 +895,112 @@ pub fn hinted(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 	}
 	put(out, &t);
 }
+
+/// Text with a char of each UTF-8 width between ASCII letters, so a part's ends land on
+/// both sides of each.
+const GOTTEN: &str = "a\u{e9}b\u{800}c\u{1f600}d";
+
+/// A part a checked read gives, or 0xfe if it gave none.
+fn put_part(out: &mut Vec<u8>, part: Option<&str>) {
+	match part {
+		Some(part) => put(out, part),
+		None => out.push(0xfe),
+	}
+}
+
+/// A part a checked `&mut` read gives, upper-cased and put, or 0xfe if it gave none.
+fn put_upper(out: &mut Vec<u8>, part: Option<&mut str>) {
+	match part {
+		Some(part) => {
+			part.make_ascii_uppercase();
+			put(out, part);
+		}
+		None => out.push(0xfe),
+	}
+}
+
+/// `a..=b` searched to its end, which leaves it at `b` but exhausted: `b + 1..b + 1` as an
+/// index. Skipped to `b` first, so a search to `usize::MAX` is short.
+fn exhausted(a: usize, b: usize) -> std::ops::RangeInclusive<usize> {
+	let mut r = a..=b;
+	if b > a {
+		r.nth(b - a - 1);
+	}
+	r.find(|_| false);
+	r
+}
+
+/// `str::get` and `get_mut` by every kind of range, and a `str` or a `String` indexed by an
+/// inclusive range or a pair of `Bound`s, shared and `&mut`, at byte offsets `data` picks:
+/// up to two past the end, or `usize::MAX` for 0xff. A checked read out of bounds, backwards,
+/// or inside a char gives `None`, and indexing panics as std's does.
+pub fn gets(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	let text = match kind & 0x10 {
+		0 => GOTTEN,
+		_ => "",
+	};
+	let at = |i: usize| match data.get(i) {
+		Some(0xff) => usize::MAX,
+		Some(&b) => usize::from(b) % (text.len() + 3),
+		None => 0,
+	};
+	let (a, b) = (at(0), at(1));
+	let s: &str = text;
+	let mut string = text.to_string();
+	match kind % 16 {
+		0 => {
+			put_part(out, s.get(a..b));
+			put_part(out, s.get(a..));
+			put_part(out, s.get(..b));
+			put_part(out, s.get(..));
+		}
+		1 => {
+			put_part(out, s.get(a..=b));
+			put_part(out, s.get(..=b));
+			put_part(out, string.get(exhausted(a, b)));
+		}
+		2 => {
+			put_part(out, s.get((Bound::Excluded(a), Bound::Included(b))));
+			put_part(out, s.get((Bound::Included(a), Bound::Excluded(b))));
+			put_part(out, s.get((Bound::Excluded(a), Bound::Unbounded)));
+			put_part(out, s.get((Bound::Unbounded, Bound::Included(b))));
+		}
+		3 => put(out, &s[a..=b]),
+		4 => put(out, &s[..=b]),
+		5 => put(out, &string[a..=b]),
+		6 => put(out, &string[..=b]),
+		7 => put(out, &s[exhausted(a, b)]),
+		8 => put(out, &s[(Bound::Excluded(a), Bound::Included(b))]),
+		9 => put(out, &string[(Bound::Included(a), Bound::Excluded(b))]),
+		10 => {
+			put_upper(out, string.get_mut(a..=b));
+			put_upper(out, string.as_mut_str().get_mut(..=b));
+			put_upper(out, string.get_mut(exhausted(a, b)));
+			put_upper(out, string.get_mut((Bound::Excluded(a), Bound::Included(b))));
+			put(out, &string);
+		}
+		11 => {
+			string[a..=b].make_ascii_uppercase();
+			put(out, &string);
+		}
+		12 => {
+			string.as_mut_str()[..=b].make_ascii_uppercase();
+			put(out, &string);
+		}
+		13 => {
+			string[exhausted(a, b)].make_ascii_uppercase();
+			put(out, &string);
+		}
+		14 => {
+			string.as_mut_str()[(Bound::Excluded(a), Bound::Excluded(b))].make_ascii_uppercase();
+			put(out, &string);
+		}
+		_ => {
+			// A part of a part, each end inclusive.
+			let part = &mut string[..=b];
+			let last = part.len().saturating_sub(1);
+			part[a.min(last)..=last].make_ascii_uppercase();
+			put(out, &string);
+		}
+	}
+}
