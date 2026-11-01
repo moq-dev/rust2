@@ -242,6 +242,13 @@ export function unwrapOrDefault$0wx44sw(self: rt.ByteVec | undefined): rt.ByteVe
 	return self;
 }
 
+export function unwrapOrDefault$0301ewp(self: rt.ByteSlice | undefined): rt.ByteSlice {
+	if (self === undefined) {
+		return rt.byteSliceFrom(new Uint8Array(0));
+	}
+	return self;
+}
+
 export function unwrapOrDefault$0k1p6nh(self: [rt.u64 | undefined, defaults_Made.Made] | undefined): [rt.u64 | undefined, defaults_Made.Made] {
 	if (self === undefined) {
 		return [undefined, defaults_Made.default$Default()];
@@ -1562,6 +1569,13 @@ export function okOr$0tezn0w(self: rt.ByteSlice | undefined, _: undefined): rt.R
 }
 
 export function okOr$1w08zpl(self: rt.ByteSlice | undefined, err: rt.usize): rt.Result<rt.ByteSlice, rt.usize> {
+	if (self === undefined) {
+		return rt.Err(err);
+	}
+	return rt.Ok(self);
+}
+
+export function okOr$1oufq9m(self: rt.u8 | undefined, err: rt.usize): rt.Result<rt.u8, rt.usize> {
 	if (self === undefined) {
 		return rt.Err(err);
 	}

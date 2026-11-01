@@ -3,6 +3,7 @@
 import * as rt from "./rt.ts";
 import { bytesMut, reserves, reads, writes, edits } from "./buf.ts";
 import * as Owner from "./harness.Owner.ts";
+import { map as maps_map, table, capacity, linked } from "./maps.ts";
 
 /**
  * Each case's name and what it runs. The first byte picks one modulo their count, so a
@@ -23,7 +24,11 @@ export function cases(): [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefine
 		edits(a08.data, a08.start, a08.length, a18);
 	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::reserves", (a09: rt.ByteSlice, a19: rt.ByteVec): undefined => {
 		reserves(a09.data, a09.start, a09.length, a19);
-	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["maps::map", maps_map as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["maps::table", (a011: rt.ByteSlice, a111: rt.ByteVec): undefined => {
+		table(a011.data, a011.start, a011.length, a111);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["maps::capacity", (a012: rt.ByteSlice, a112: rt.ByteVec): undefined => {
+		capacity(a012.data, a012.start, a012.length, a112);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["maps::linked", linked as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */

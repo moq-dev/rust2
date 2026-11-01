@@ -421,6 +421,26 @@ const mappedLocks = [[0x04, 0x01, 0x02, 0x86, 0x05, 0x0a, 0x03, 0x02, 0x80, 0x01
 	Uint8Array.of(op("locks::mapped"), 0, ...bytes),
 );
 
+/**
+ * `borrows::tries` scripts: each operation through tried guards, given back beside each
+ * error, printed, and each borrow again while a tried guard holds the cell, which panics.
+ */
+const tries = [
+	[0x00, 0x00, 0x10, 0xf0, 0xe0, 0x01, 0x02, 0x05, 0x20, 0x21, 0x06, 0x03],
+	[0x01, 0x10, 0x01, 0x12, 0xe2],
+	[0xd3],
+	[0xe3],
+	[0x00, 0xf3],
+].map((bytes) => Uint8Array.of(op("borrows::tries"), 0, ...bytes));
+
+/** `locks::mutex_mapped` scripts: writes and reads through mapped and filtered mutex guards. */
+const mutexMaps = [[0x04, 0x01, 0x02, 0x86, 0xf5, 0x0a, 0x03, 0x02, 0xe1, 0x80, 0x07, 0x02]].map((bytes) =>
+	Uint8Array.of(op("locks::mutex_mapped"), 0, ...bytes),
+);
+
+/** `locks::printed` scripts: each lock's guards printed, empty and not. */
+const printed = [[], [0, 1, 25, 200]].map((bytes) => Uint8Array.of(op("locks::printed"), 0, ...bytes));
+
 /** `locks::rwlocks` scripts: `get_mut` and `into_inner` among writes and reads. */
 const rwlocks = [[6, 7, 0, 6, 2, 14, 15, 1]].map((bytes) => Uint8Array.of(op("locks::rwlocks"), 0, ...bytes));
 
@@ -807,4 +827,4 @@ const capacityCases = [
 	...Array.from({ length: 8 * 6 }, (_, i) => Uint8Array.of(op("capacity::collects"), i % 8, [0, 1, 2, 5, 9, 23][Math.floor(i / 8)], 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
 ];
 
-export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...maps, ...mappedLocks, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases, ...gets, ...capacityCases];
+export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...maps, ...mappedLocks, ...tries, ...mutexMaps, ...printed, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases, ...gets, ...capacityCases];

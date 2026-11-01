@@ -3,16 +3,19 @@
 ## Goal
 
 [rust2-ts](/ts/README.md) translates moq-net's model layer, with the workspace crates it
-calls (kio, moq-clock, moq-pattern), as it translates the codec today, so moq can compare
-the source-translator route against its WASM build on the code a browser session runs.
+calls (kio, moq-clock, moq-pattern), as it translates the codec today, so moq can ship
+`@moq/net` as JavaScript translated from its Rust, in place of the handwritten package.
 
 ## Plan
 
-Decided with the maintainer on 2026-10-23: moq still ships WASM first; this is the
-research track. Once the model translates, moq compares it on the
-[TS benchmark](/ts/README.md#bench), consuming the driver as the `ts` package of
-this flake. That comparison adds moq's `js/net/bench/frames.ts`, a group stream read
-into a group, to the benchmark's workloads, which hold only its sync frame headers.
+Decided with the maintainer on 2026-11-01, after moq removed its WASM build
+([moq-dev/moq#7475](https://github.com/moq-dev/moq/pull/7475)): the translated model is
+moq's browser route, which moq's [JS-only `@moq/net`](https://github.com/moq-dev/moq/blob/main/quest/m2/rs2ts-js.md)
+adopts once it matches the handwritten package in a full browser workload. Once the model
+translates, moq measures it on the [TS benchmark](/ts/README.md#bench), consuming the driver
+as the `ts` package of this flake. That adds moq's `js/net/bench/frames.ts`, a group stream
+read into a group, to the benchmark's workloads, which hold only its sync frame headers. The
+codec's WASM route stays in the benchmark as the baseline of compiled Rust in a browser.
 
 The codec's differential harness is the pattern to repeat. The shared npm runtime
 (for checked integer ops and the rest of `rt.ts`) is published only once two
@@ -46,4 +49,5 @@ Public API: the translator's output for moq-net's model.
 
 ## Required
 
-- [hashbrown as the runtime's map](/quest/m2/ts-model/hashbrown.md) - hashlink's `hashbrown` tables translate as `rt.HashMap`, with std's capacity
+- [A crate's own hasher](/quest/m2/ts-model/own-hasher.md) - hashlink's default hasher, a crate's own `Hasher`, hashes keys as native's does
+- [A crate's own iterator traits](/quest/m2/ts-model/iter-traits.md) - hashlink's double-ended, exact-size, and fused iterators, and their `size_hint`

@@ -276,10 +276,14 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("borrows::maps", |_, data, out| borrows::maps(data, out)),
 		("locks::mapped", |_, data, out| locks::mapped(data, out)),
 		("conversions::conversions", conversions::conversions),
+		("borrows::tries", |_, data, out| borrows::tries(data, out)),
+		("locks::mutex_mapped", |_, data, out| locks::mutex_mapped(data, out)),
+		("locks::printed", |_, data, out| locks::printed(data, out)),
 		("capacity::vecs", capacity::vecs),
 		("capacity::deques", capacity::deques),
 		("capacity::heaps", capacity::heaps),
 		("capacity::collects", capacity::collects),
+		("capacity::maps", capacity::maps),
 	]
 }
 
