@@ -2141,28 +2141,18 @@ pub fn generic_park_rebound<T>(mut w: Parking<T>, next: Parking<T>) -> i16 {
 	unsafe { (*p).0.get() + w.park.0.get() }
 }
 
-/// A generic type's `Vec<T>`, typed `T[]` though its `u8` instance holds an `rt.ByteVec`:
-/// translation writes output `tsc` rejects, and fails at the Rust it maps to.
-pub struct Rows<T> {
-	pub items: Vec<T>,
-}
-
-impl<T: Copy> Rows<T> {
-	pub fn first(&self) -> T {
-		self.items[0]
-	}
-}
-
-pub fn mistyped(bytes: Vec<u8>, words: Vec<u16>) -> u32 {
-	let a = Rows { items: bytes };
-	let b = Rows { items: words };
-	a.first() as u32 + b.first() as u32
-}
-
 /// An `Option` of pointers to a number, each an `rt.Place` JS makes of its own.
 pub fn optional_places_compared(n: &mut u32) -> bool {
 	let p = std::ptr::NonNull::from(&mut *n);
 	Some(p) == std::ptr::NonNull::new(&raw mut *n)
+}
+
+/// A `RefMut` mapped to a closure, which a write through the guard would put in place of
+/// the cell's, though JS can't write one closure's captures into another.
+pub fn mapped_closure(add: u8) -> u8 {
+	let cell = std::cell::RefCell::new((move |x: u8| x + add, 0u8));
+	let f = std::cell::RefMut::map(cell.borrow_mut(), |pair| &mut pair.0);
+	f(1)
 }
 
 /// A slice of one `u8`'s place, which no `rt.ByteSlice` views.

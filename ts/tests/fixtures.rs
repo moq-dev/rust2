@@ -251,9 +251,7 @@ fn shake(out: &Path) {
 		kept.sort_unstable();
 		let want = [
 			// The runtime's.
-			"Err",
 			"ByteSlice",
-			"Ok",
 			"Panic",
 			"byteSliceFrom",
 			"checked",
@@ -271,6 +269,7 @@ fn shake(out: &Path) {
 			"short",
 			"slice",
 			"u8",
+			"u8Out",
 		];
 		let mut want: Vec<String> = want.map(unnumbered).to_vec();
 		want.sort_unstable();
@@ -439,10 +438,6 @@ export const run = (input: rt.ByteSlice) => script(rt.byteSliceView(input));
 fn reject() {
 	let (out, output) = translate("reject");
 	rejected(&out, &output, &fixture("reject").join("expected.txt"));
-	let out = scratch().join("reject").join("mistyped");
-	let config = fixture("reject").join("mistyped.toml");
-	let output = driver("reject", &config, &["--out".as_ref(), out.as_ref()], "build");
-	rejected(&out, &output, &fixture("reject").join("mistyped.txt"));
 }
 
 /// Bindings stand in for what translation refuses, `bytes::Bytes` and the crate's own

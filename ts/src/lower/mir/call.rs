@@ -336,7 +336,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let t = &*self.b.t;
 		// Mappings that lend an element JS copies as its place, as a map's `get_mut` does, the
 		// item a `Peekable` peeked, the place a `&mut dyn Any` wraps, a `RefCell` key's value,
-		// a `Result`'s payload, or the value of an `Arc`, a lock, or a cell.
+		// a `Result`'s payload, the value of an `Arc`, a lock, or a cell, or what a write guard
+		// lends its map.
 		let lends = match library::key(tcx, def_id) {
 			Some((owner, name)) => match (owner.as_str(), name.as_str()) {
 				("slice", "get_mut" | "first_mut" | "last_mut" | "iter_mut" | "split_first_mut" | "split_last_mut")
@@ -346,7 +347,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				| ("LocalKey", "with_borrow_mut")
 				| ("Result", "iter_mut")
 				| ("Arc" | "Rc", "get_mut" | "make_mut")
-				| ("Mutex" | "RwLock" | "RefCell" | "OnceCell" | "OnceLock", "get_mut") => true,
+				| ("Mutex" | "RwLock" | "RefCell" | "OnceCell" | "OnceLock", "get_mut")
+				| ("RefMut" | "RwLockWriteGuard" | "MappedRwLockWriteGuard", "map" | "filter_map" | "map_split") => true,
 				("IntoIterator", "into_iter") => gargs.types().next().is_some_and(|ty| {
 					let ty = crate::lower::iter::unbox_ref(tcx, ty);
 					ty.ref_mutability() == Some(ty::Mutability::Mut)
@@ -1206,7 +1208,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			let made = self.operand(op, span, out);
 			return Some(of(made));
 		}
-		if cell && self.write_in(ty).is_some() {
+		if cell && self.b.t.write_in(ty).is_some() {
 			let object = self.operand(op, span, out);
 			return Some(Expr::rt("cellIn", vec![object]));
 		}
@@ -1868,12 +1870,13 @@ fn continued(ty: Ty<'_>) -> Ty<'_> {
 	}
 }
 
-/// Whether an assignment can write `e`: a path, an element, or a member of one.
+/// Whether an assignment can write `e`: a path, an element, or a member of one, through a
+/// cast, as a generic type's field is read as its instance holds it.
 fn assignable(e: &Expr) -> bool {
 	match e {
 		_ if super::place::split_target(e).is_some() => true,
 		Expr::Index(..) => true,
-		Expr::Member(base, _) | Expr::Located(_, base) => assignable(base),
+		Expr::Member(base, _) | Expr::Located(_, base) | Expr::As(base, _) => assignable(base),
 		e => e.is_path(),
 	}
 }

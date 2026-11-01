@@ -139,6 +139,18 @@ export const DANGLING_UNIT: Place<undefined> = { v: undefined };
  */
 export type Ptr<T> = T | Place<T> | ByteSlice;
 
+/** A generic type's `[T; N]`: the array, or the `Uint8Array` of a `[u8; N]`. */
+export type ArrayOf<T> = T[] | Uint8Array;
+
+/** A generic type's `[T]`, as behind a reference: the array, or the `ByteSlice` of a `[u8]`. */
+export type SliceOf<T> = T[] | ByteSlice;
+
+/** A generic type's `Vec<T>`: the array, or the `ByteVec` of a `Vec<u8>`. */
+export type VecOf<T> = T[] | ByteVec;
+
+/** A generic type's `Cow<[T]>`: the `Cow`, or the `ByteCow` of a `Cow<[u8]>`. */
+export type CowOf<T> = Cow<T> | ByteCow;
+
 /**
  * `ptr::write` of `value` through a pointer to an object: `value` copied into it, one
  * object deep, so every pointer to it sees the write.

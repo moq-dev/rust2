@@ -165,6 +165,7 @@ roots = [
     "byte_pointer_rebound",
     "block_cloned",
     "lists",
+    "mapped_closure",
     "byte_slice_of_place",
     "slice_of_object",
     "vec_clone_from",
