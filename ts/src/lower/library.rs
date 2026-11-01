@@ -1545,6 +1545,8 @@ fn mapping<'tcx>(
 		("Option", "is_some") => args.pop()?.binary("!==", b.t.none(targ(gargs, 0))),
 		("Option", "is_none") => args.pop()?.binary("===", b.t.none(targ(gargs, 0))),
 		("Option", "as_ref" | "as_mut") => args.pop()?,
+		// A box is what it holds.
+		("Option", "as_deref_mut") if targ(gargs, 0).is_box() => args.pop()?,
 		// `Option<&T>` or `Option<&mut T>` of the `T` it points at, through `T`'s `Clone`
 		// where that does more than copy, as std's `cloned` does.
 		("Option", "copied" | "cloned") => {
