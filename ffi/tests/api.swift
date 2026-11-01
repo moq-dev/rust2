@@ -304,6 +304,7 @@ func script() {
 	for event: Event in [.moved(p), .named(name: "n"), .done] {
 		print(describe(event))
 	}
+	check(advance(.init_(1)) == .init_(0) && advance(.init_(0)) == .done, "a variant named init crosses")
 
 	// A `Copy` handle passed by value is copied, so it stays usable.
 	let stamp = Stamp.fromMillis(2500)
@@ -545,6 +546,15 @@ func futures() {
 		q.launch { got.value = try await yielded(7) }
 		q.drain()
 		check(got.value == 7, "a wake during the poll polls again")
+	}
+
+	// A future whose output is `None` is ready, not pending.
+	do {
+		let got = Cell<UInt32??>(nil)
+		q.launch { got.value = .some(try await halved(3)) }
+		q.drain()
+		check(got.value == .some(nil), "a future ready with None returns nil")
+		check(block { try await halved(4) } == 2, "a future ready with Some returns its value")
 	}
 
 	// Cancelled between its wake and its poll, a receive loses nothing: the payload stays

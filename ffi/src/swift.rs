@@ -32,7 +32,7 @@ pub struct Output {
 }
 
 /// The name of the clang module of the C header: `api` is `ApiFFI`.
-pub fn module(prefix: &str) -> String {
+fn module(prefix: &str) -> String {
 	format!("{}FFI", pascal(prefix))
 }
 
@@ -109,35 +109,47 @@ pub fn generate(abi: &Abi<'_>, packages: &str, contract: u64) -> Result<Output, 
 	})
 }
 
-/// The names the generated code uses unqualified, which no exported type or function may
-/// take. The runtime's own are the C ABI's: `Native` and `SocketAddr` are claimed as
-/// `<prefix>_native` and `<prefix>_socket_addr`.
+/// The standard library's names the runtime and the generated code use unqualified, which
+/// an exported type or function would shadow. The runtime's own are the C ABI's: `Native`
+/// and `SocketAddr` are claimed as `<prefix>_native` and `<prefix>_socket_addr`.
 const TAKEN: &[&str] = &[
-	"Data",
-	"Int",
-	"UInt",
-	"UInt8",
-	"Bool",
-	"Void",
-	"Never",
 	"Array",
-	"Optional",
-	"OpaquePointer",
-	"UnsafePointer",
-	"UnsafeMutablePointer",
-	"UnsafeBufferPointer",
-	"UnsafeRawBufferPointer",
-	"UnsafeMutableRawPointer",
-	"Unmanaged",
-	"ManagedBuffer",
-	"UnsafeContinuation",
-	"StaticString",
-	"Sendable",
-	"Equatable",
-	"CustomStringConvertible",
+	"Bool",
 	"CustomDebugStringConvertible",
+	"CustomStringConvertible",
+	"Data",
+	"Equatable",
+	"Hashable",
+	"Int",
+	"Int64",
+	"Never",
+	"OpaquePointer",
+	"Optional",
+	"Sendable",
+	"StaticString",
 	"Task",
+	"UInt",
+	"UInt16",
+	"UInt32",
+	"UInt64",
+	"UInt8",
+	"UTF8",
+	"Unicode",
+	"Unmanaged",
+	"UnsafeBufferPointer",
+	"UnsafeContinuation",
+	"UnsafeMutablePointer",
+	"UnsafeMutableRawPointer",
+	"UnsafePointer",
+	"UnsafeRawBufferPointer",
+	"Void",
 	"fatalError",
+	"withTaskCancellationHandler",
+	"withUnsafeBytes",
+	"withUnsafeContinuation",
+	"withUnsafeMutableBytes",
+	"withUnsafeMutablePointer",
+	"withoutActuallyEscaping",
 ];
 
 /// One parameter, as the call passes it: the closure it runs inside, holding what it
@@ -181,9 +193,9 @@ impl<'a> Gen<'a> {
 		pascal(self.bare(c))
 	}
 
-	/// Claim the top-level Swift name `name` for `what`.
+	/// Claim the top-level Swift name `name`, a function's [`full`] one, for `what`.
 	fn claim(&mut self, name: &str, what: String) {
-		if TAKEN.contains(&name) {
+		if TAKEN.contains(&name.split('(').next().unwrap_or(name)) {
 			self.errors.push(format!(
 				"{what} is `{name}` in Swift, which its runtime names: rename it in the config"
 			));
@@ -194,7 +206,8 @@ impl<'a> Gen<'a> {
 		}
 	}
 
-	/// Check that no two members of the type `rust` share a Swift name.
+	/// Check that no two members of the type `rust` share a full Swift name, as [`full`]
+	/// spells it.
 	fn distinct(&mut self, rust: &str, members: &[String]) {
 		let mut seen = BTreeSet::new();
 		for member in members {
@@ -307,8 +320,7 @@ impl<'a> Gen<'a> {
 		match ty {
 			Type::Unit => unreachable!("no value is unit"),
 			Type::Bool | Type::F32 | Type::F64 => e.to_string(),
-			Type::Int(Int::Usize) => format!("Swift.Int(bitPattern: {e})"),
-			Type::Int(_) => e.to_string(),
+			Type::Int(int) => lower_int(*int, e),
 			Type::Char => format!("{e}.value"),
 			Type::Duration => format!("Native.duration({e})"),
 			Type::SocketAddr(_) => format!("Native.socketAddr({e})"),
@@ -365,8 +377,7 @@ impl<'a> Gen<'a> {
 			Type::Path | Type::PathBuf => format!("Native.path({e})"),
 			Type::Slice | Type::Vec | Type::Bytes => format!("Native.data({e})"),
 			Type::Bool | Type::F32 | Type::F64 => e.to_string(),
-			Type::Int(Int::Usize) => format!("Swift.UInt(bitPattern: {e})"),
-			Type::Int(_) => e.to_string(),
+			Type::Int(int) => lift_int(*int, e),
 			Type::Char => format!("Native.scalar({e})"),
 			Type::Duration => format!("Native.duration({e})"),
 			Type::SocketAddr(_) => format!("Native.socketAddr({e})"),
@@ -488,8 +499,8 @@ impl<'a> Gen<'a> {
 		let code = match ty {
 			Type::Range(int) => {
 				let sw = sw_int(*int);
-				let lower = |e: &str| self_lower_int(*int, e);
-				let lift = |e: &str| self_lift_int(*int, e);
+				let lower = |e: &str| lower_int(*int, e);
+				let lift = |e: &str| lift_int(*int, e);
 				format!(
 					"/// Rust's `Range`: from `start`, up to but not including `end`.\npublic struct {name}: Hashable, Sendable {{\n\tpublic var start: {sw}\n\tpublic var end: {sw}\n\n\tpublic init(start: {sw}, end: {sw}) {{\n\t\tself.start = start\n\t\tself.end = end\n\t}}\n\n\tstatic func _lift(_ c: {c}) -> {name} {{\n\t\t{name}(start: {}, end: {})\n\t}}\n\n\tfunc _lower() -> {c} {{\n\t\t{c}(start: {}, end: {})\n\t}}\n}}\n\n",
 					lift("c.start"),
@@ -502,10 +513,10 @@ impl<'a> Gen<'a> {
 				let sw = sw_int(*int);
 				format!(
 					"/// Rust's `Bound`: what a range's start or end bound does.\npublic enum {name}: Hashable, Sendable {{\n\tcase unbounded\n\tcase included({sw})\n\tcase excluded({sw})\n\n\tstatic func _lift(_ c: {c}) -> {name} {{\n\t\tswitch c.kind {{\n\t\tcase {upper}_UNBOUNDED: return .unbounded\n\t\tcase {upper}_INCLUDED: return .included({})\n\t\tcase {upper}_EXCLUDED: return .excluded({})\n\t\tdefault: fatalError(\"{c}: a bound's kind is invalid\")\n\t\t}}\n\t}}\n\n\tfunc _lower() -> {c} {{\n\t\tswitch self {{\n\t\tcase .unbounded: return {c}(kind: {upper}_UNBOUNDED, value: 0)\n\t\tcase .included(let value): return {c}(kind: {upper}_INCLUDED, value: {})\n\t\tcase .excluded(let value): return {c}(kind: {upper}_EXCLUDED, value: {})\n\t\t}}\n\t}}\n}}\n\n",
-					self_lift_int(*int, "c.value"),
-					self_lift_int(*int, "c.value"),
-					self_lower_int(*int, "value"),
-					self_lower_int(*int, "value"),
+					lift_int(*int, "c.value"),
+					lift_int(*int, "c.value"),
+					lower_int(*int, "value"),
+					lower_int(*int, "value"),
 				)
 			}
 			Type::Bounds(int) => {
@@ -597,7 +608,7 @@ impl<'a> Gen<'a> {
 			));
 		}
 		if t.default {
-			members.push("default".to_string());
+			members.push("static default".to_string());
 			let lift = match ty {
 				Type::Object(_) => format!("{name}(raw: {c}_default())"),
 				_ => format!("{name}._lift({c}_default())"),
@@ -656,7 +667,7 @@ impl<'a> Gen<'a> {
 		// Its conversions.
 		let lifted: Vec<String> = (record.fields.iter().zip(&fields))
 			.map(|(f, (name, _))| {
-				let e = format!("c.{}", abi::escape(&f.name));
+				let e = format!("c.{}", kw(&abi::escape(&f.name)));
 				let value = self.lift(&f.ty, &e);
 				match record.tuple {
 					true => value,
@@ -707,10 +718,14 @@ impl<'a> Gen<'a> {
 		let mut lowers = Vec::new();
 		for variant in &e.variants {
 			let snake = abi::snake(&variant.name);
-			let case = kw(&camel(&snake));
-			members.push(unquote(&case));
+			let case = member(&snake, &["init"]);
+			let labels = variant.fields.iter().map(|f| match variant.tuple {
+				true => "_".to_string(),
+				false => unquote(&field_name(&f.name)),
+			});
+			members.push(full(true, &case, labels));
 			let tag = format!("{upper}_{}", snake.to_uppercase());
-			let member = abi::escape(&snake);
+			let member = kw(&abi::escape(&snake));
 			let fields: Vec<String> = (variant.fields.iter())
 				.map(|f| match variant.tuple {
 					true => self.sw(&f.ty),
@@ -728,7 +743,7 @@ impl<'a> Gen<'a> {
 			}
 			let lifted: Vec<String> = (variant.fields.iter())
 				.map(|f| {
-					let value = self.lift(&f.ty, &format!("c.{member}.{}", abi::escape(&f.name)));
+					let value = self.lift(&f.ty, &format!("c.{member}.{}", kw(&abi::escape(&f.name))));
 					match variant.tuple {
 						true => value,
 						false => format!("{}: {value}", unquote(&field_name(&f.name))),
@@ -835,7 +850,7 @@ impl<'a> Gen<'a> {
 		let mut table = vec![format!("free: {{ data in Box<any {name}>.release(data) }}")];
 		for method in &callback.methods {
 			let member = member(&abi::snake(method.name()), &[]);
-			members.push(unquote(&member));
+			members.push(full(false, &member, method.params.iter().map(|_| "_".to_string())));
 			let params: Vec<String> = (method.params.iter())
 				.map(|p| format!("_ {}: {}", kw(&camel(&p.name)), self.sw(&p.ty)))
 				.collect();
@@ -1094,7 +1109,8 @@ impl<'a> Gen<'a> {
 				_ => self.lift_outs(&function.ok, &ok),
 			};
 			let upper = abi.prefix.to_uppercase();
-			let mut cases = vec![format!("case {upper}_POLL_READY: return {ready}")];
+			// `.some` explicitly, since a `nil` output would read as the poll's pending.
+			let mut cases = vec![format!("case {upper}_POLL_READY: return .some({ready})")];
 			if let (Some(err), Some(thrown)) = (&err, &thrown) {
 				let lifted = self.lift(err, "c_err_");
 				cases.push(format!("case {upper}_POLL_ERROR: throw {}", thrown_value(thrown, &lifted)));
@@ -1214,7 +1230,11 @@ impl<'a> Gen<'a> {
 			_ => format!("public {stat}func {member}({}){effects}{ret}", params.join(", ")),
 		};
 		let code = format!("{}{head} {{\n{}\n}}\n", docs(text.trim(), ""), indent(&body));
-		Some((code, unquote(&member)))
+		let labels = match head.contains(" var ") {
+			true => Vec::new(),
+			false => function.params.iter().map(|_| "_".to_string()).collect(),
+		};
+		Some((code, full(is_static, &member, labels)))
 	}
 
 	/// The declaration of the local the call writes the out value `name` of C type `ty` to.
@@ -1327,7 +1347,7 @@ fn c_int(int: Int) -> &'static str {
 }
 
 /// The C integer of the Swift integer `e`.
-fn self_lower_int(int: Int, e: &str) -> String {
+fn lower_int(int: Int, e: &str) -> String {
 	match int {
 		Int::Usize => format!("Swift.Int(bitPattern: {e})"),
 		_ => e.to_string(),
@@ -1335,7 +1355,7 @@ fn self_lower_int(int: Int, e: &str) -> String {
 }
 
 /// The Swift integer of the C integer `e`.
-fn self_lift_int(int: Int, e: &str) -> String {
+fn lift_int(int: Int, e: &str) -> String {
 	match int {
 		Int::Usize => format!("Swift.UInt(bitPattern: {e})"),
 		_ => e.to_string(),
@@ -1369,9 +1389,9 @@ fn camel(name: &str) -> String {
 	}
 }
 
-/// A field's Swift name.
+/// A field's Swift name: `init` would name the initializer.
 fn field_name(name: &str) -> String {
-	kw(&camel(name))
+	member(name, &["init"])
 }
 
 /// A member's Swift name: in camel case, quoted if a keyword, or with `_` appended if
@@ -1381,6 +1401,21 @@ fn member(snake: &str, reserved: &[&str]) -> String {
 	match reserved.contains(&name.as_str()) {
 		true => format!("{name}_"),
 		false => kw(&name),
+	}
+}
+
+/// A member's full Swift name, which two members of a type may share only if one is static
+/// and the other not: its name, then its argument labels, so a property and a method of no
+/// arguments are alike.
+fn full(is_static: bool, name: &str, labels: impl IntoIterator<Item = String>) -> String {
+	let labels: String = labels.into_iter().map(|l| l + ":").collect();
+	let stat = match is_static {
+		true => "static ",
+		false => "",
+	};
+	match labels.is_empty() {
+		true => format!("{stat}{}", unquote(name)),
+		false => format!("{stat}{}({labels})", unquote(name)),
 	}
 }
 

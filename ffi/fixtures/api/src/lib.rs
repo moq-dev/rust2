@@ -66,6 +66,22 @@ pub enum Event {
 	Done,
 }
 
+/// An enum whose variant `Init` names an initializer in Swift, and the C union member
+/// holding its data.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Stage {
+	Init(u32),
+	Done,
+}
+
+/// The stage after `stage`: `Init` counts down to `Done`.
+pub fn advance(stage: Stage) -> Stage {
+	match stage {
+		Stage::Init(0) | Stage::Done => Stage::Done,
+		Stage::Init(n) => Stage::Init(n - 1),
+	}
+}
+
 /// The error a [`Counter`] returns.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Error {
@@ -478,6 +494,11 @@ impl Channel {
 			payload => Ok(payload),
 		}
 	}
+}
+
+/// `n` halved if even, at once: a future whose output may be `None`.
+pub async fn halved(n: u32) -> Option<u32> {
+	n.is_multiple_of(2).then_some(n / 2)
 }
 
 /// `value`, on its third poll: each before wakes its waker before it returns pending, so

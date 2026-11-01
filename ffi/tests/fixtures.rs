@@ -500,16 +500,17 @@ fn api_swift() {
 	std::fs::create_dir_all(&dir).unwrap();
 	let module = api.out.join("swift");
 	let source = module.join("api.swift");
-	run(swiftc(&module).args(["-swift-version", "5", "-typecheck"]).arg(&source));
-	run(swiftc(&module)
+	run(swiftc(&module, 13).args(["-swift-version", "5", "-typecheck"]).arg(&source));
+	run(swiftc(&module, 13)
 		.args(["-swift-version", "6", "-parse-as-library", "-module-name", "Api"])
 		.args(["-emit-module", "-emit-module-path"])
 		.arg(dir.join("Api.swiftmodule"))
 		.args(["-emit-library", "-static", "-o"])
 		.arg(dir.join("libApi.a"))
 		.arg(&source));
+	// The test's executor preference is macOS 15's.
 	let exe = dir.join("api-test");
-	run(swiftc(&module)
+	run(swiftc(&module, 15)
 		.args(["-parse-as-library", "-I"])
 		.arg(&dir)
 		.arg(manifest_dir().join("tests").join("api.swift"))
@@ -558,7 +559,7 @@ fn api_swift() {
 	std::fs::write(contract.join("api.swift"), mismatched).unwrap();
 	std::fs::write(contract.join("main.swift"), "_ = dropped()\n").unwrap();
 	let exe = contract.join("contract");
-	run(swiftc(&module)
+	run(swiftc(&module, 13)
 		.args(["-module-name", "Api"])
 		.arg(contract.join("api.swift"))
 		.arg(contract.join("main.swift"))
@@ -575,9 +576,17 @@ fn api_swift() {
 	);
 }
 
-/// swiftc, with warnings as errors, finding the C header's module in `module`.
-fn swiftc(module: &Path) -> Command {
+/// swiftc, with warnings as errors, finding the C header's module in `module`, at this
+/// macOS deployment target on macOS: 13 is the oldest the generated `Swift.Duration` allows.
+fn swiftc(module: &Path, macos: u8) -> Command {
 	let mut cmd = Command::new("swiftc");
+	if cfg!(target_os = "macos") {
+		let arch = match std::env::consts::ARCH {
+			"aarch64" => "arm64",
+			arch => arch,
+		};
+		cmd.arg("-target").arg(format!("{arch}-apple-macos{macos}"));
+	}
 	cmd.args(["-warnings-as-errors", "-I"]).arg(module);
 	cmd
 }
