@@ -274,8 +274,8 @@ struct Pair {
 	b: u32,
 }
 
-/// Pointers to numbers, to a field, and to a whole struct: read, written, swapped,
-/// replaced, compared, and null.
+/// Pointers to numbers, to a field, to a whole struct, and to bytes: read, written,
+/// swapped, replaced with the old value read or not, compared, and null.
 pub fn places(data: &[u8], out: &mut Vec<u8>) {
 	let mut x = 0u32;
 	let mut y = 1u32;
@@ -285,10 +285,12 @@ pub fn places(data: &[u8], out: &mut Vec<u8>) {
 	let pa = &raw mut pair.a;
 	let pp = &raw mut pair;
 	let mut held: *const u32 = ptr::null();
+	let mut bytes = [0u8; 2];
+	let pb = &raw mut bytes;
 	for &byte in data {
 		let v = u32::from(byte);
 		unsafe {
-			match byte % 9 {
+			match byte % 12 {
 				0 => *px += v,
 				1 => py.write(v),
 				2 => ptr::swap(px, py),
@@ -300,11 +302,20 @@ pub fn places(data: &[u8], out: &mut Vec<u8>) {
 				}
 				6 => held = if byte & 1 == 0 { px } else { pa },
 				7 => out.push(held.is_null() as u8 | ((pp == &raw mut pair) as u8) << 1),
+				9 => {
+					let _ = pa.replace(v);
+				}
+				10 => {
+					let _ = pp.replace(Pair { a: v, b: v + 1 });
+				}
+				11 => {
+					let _ = pb.replace([byte, !byte]);
+				}
 				_ => out.push(if held.is_null() { 0xff } else { *held as u8 }),
 			}
 		}
 	}
-	out.extend_from_slice(&[x as u8, y as u8, pair.a as u8, pair.b as u8]);
+	out.extend_from_slice(&[x as u8, y as u8, pair.a as u8, pair.b as u8, bytes[0], bytes[1]]);
 }
 
 /// Unchecked indexing, a boxed number behind a pointer, a `MaybeUninit` number, and a
