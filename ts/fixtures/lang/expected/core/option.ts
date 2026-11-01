@@ -80,6 +80,13 @@ export function unwrapOr$1kxjsqb(self: rt.u8 | undefined | rt.None, default_: rt
 	return self;
 }
 
+export function unwrapOr$17ntxfo(self: rt.Result<rt.u8, rt.u8> | undefined, default_: rt.Result<rt.u8, rt.u8>): rt.Result<rt.u8, rt.u8> {
+	if (self === undefined) {
+		return default_;
+	}
+	return self;
+}
+
 export function unwrapOr$1la41a6(self: Uint8Array | undefined, default_: Uint8Array): Uint8Array {
 	if (self === undefined) {
 		return default_;

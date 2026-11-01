@@ -7,7 +7,7 @@ import * as boxes_Logged from "./boxes.Logged.ts";
 import type * as Owner from "./boxes.Owner.ts";
 import { then$0ea5h05 } from "./core/bool.ts";
 import { unwrapOr$1iemzn8 as option_unwrapOr$1iemzn8, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$1j4op5y as option_unwrapOr$1j4op5y, unwrapOr$11c0we2 as option_unwrapOr$11c0we2, mapOr$1e4a1e0 as option_mapOr$1e4a1e0, asDeref$0w8at8i as option_asDeref$0w8at8i, asDeref$0w2m0zn as option_asDeref$0w2m0zn, asDeref$0avuzwv as option_asDeref$0avuzwv, flatten$08boupk as option_flatten$08boupk } from "./core/option.ts";
-import { map$0nfi04k as result_map$0nfi04k, asDeref$1fldd5d as result_asDeref$1fldd5d, asDeref$04i8i5u as result_asDeref$04i8i5u, unwrapOr$0e4foht as result_unwrapOr$0e4foht, copied$0bbq7yi } from "./core/result.ts";
+import { map$0nfi04k as result_map$0nfi04k, asDeref$1fldd5d as result_asDeref$1fldd5d, asDeref$04i8i5u as result_asDeref$04i8i5u, unwrapOr$0e4foht as result_unwrapOr$0e4foht, copied$0bbq7yi as result_copied$0bbq7yi } from "./core/result.ts";
 import { put as fmt_put } from "./fmt.ts";
 import { text } from "./strs.ts";
 
@@ -691,7 +691,7 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			return rt.u32ToBeBytes(b).reverse();
 		}, (value: Uint8Array) => rt.iterSlice(value), false, 4), undefined, true);
 		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(option_unwrapOr$11c0we2(option_asDeref$0avuzwv(o), 238)).reverse()), undefined, true);
-		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(result_unwrapOr$0e4foht(copied$0bbq7yi(result_asDeref$04i8i5u(res)), 238)).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(result_unwrapOr$0e4foht(result_copied$0bbq7yi(result_asDeref$04i8i5u(res)), 238)).reverse()), undefined, true);
 		const _298: rt.Result<string, rt.u8> = said;
 		if (_298.ok) {
 			fmt_put(out, _298.value);

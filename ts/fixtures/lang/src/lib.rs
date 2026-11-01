@@ -5,7 +5,7 @@
 //! aggregates, closures and what they write of what they captured, traits, generic
 //! types, formatting, collections, `LinkedList`s, UTF-8 decoding, `&mut` to values JS copies, whole
 //! writes through a `&mut` to an object, the standard library calls it maps, `Option`'s
-//! and `Result`'s combinators from core's MIR, `Option`s of values that can already be
+//! and `Result`'s combinators from core's MIR, `Result`'s iterators, `Option`s of values that can already be
 //! `undefined`, atomics, `static` ones included, trait objects, one-time cells, mutexes,
 //! `Cell`s, `UnsafeCell`s, `RefCell`s, read-write locks, and thread-locals, the defaults
 //! of std types, the counts of shared pointers, arrays `array::from_fn` and `map` make,
@@ -78,6 +78,7 @@ mod objects;
 mod orders;
 mod pointers;
 mod refs;
+mod results;
 mod returns;
 mod saturates;
 mod separated;
