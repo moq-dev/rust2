@@ -117,9 +117,17 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						// A pointer to an element is where it is in its array, which pointer
 						// arithmetic moves within.
 						[
-							..,
+							array @ ..,
 							mir::ProjectionElem::Index(_) | mir::ProjectionElem::ConstantIndex { .. },
 						] => {
+							// It points into the array, which must stay where it is.
+							let array = Place {
+								local: place.local,
+								projection: tcx.mk_place_elems(array),
+							};
+							if let Some(why) = self.out_of_step(array, false) {
+								return Some(self.err(span, why));
+							}
 							let target = self.place_expr(*place, span, out);
 							let target = self.stable_target(*place, target, span, out);
 							match target.unlocated() {

@@ -5,7 +5,7 @@ import { copy$Option_tuple2_u8_u8, copy$array_Option_tuple2_u8_u8, drop$elements
 import { thenSome$03chm1q } from "./core/bool.ts";
 import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$1fmzefe as option_map$1fmzefe, mapOr$1nlkf9b as option_mapOr$1nlkf9b } from "./core/option.ts";
 import * as Inline from "./elements.Inline.ts";
-import * as elements_Segment from "./elements.Segment.ts";
+import * as Storage from "./elements.Storage.ts";
 
 /**
  * A `Vec`'s elements moved within it as `insert` and `remove` move them, and copied to
@@ -91,17 +91,17 @@ export function arrays(data: rt.ByteSlice, out: rt.ByteVec): void {
  * freed as the slice it was.
  */
 export function segments(data: rt.ByteSlice, out: rt.ByteVec): void {
-	const segment: elements_Segment.Segment = elements_Segment.new(rt.usizeAdd(data.length, 4));
-	elements_Segment.write(segment, 0, data);
-	elements_Segment.write(segment, data.length, rt.byteSliceFrom(Uint8Array.of(1, 2, 3, 4)));
-	rt.byteVecExtendFromSlice(out, elements_Segment.read(segment, rt.usizeAdd(data.length, 4)));
+	const segment: Storage.Storage = Storage.new(rt.usizeAdd(data.length, 4));
+	Storage.write(segment, 0, data);
+	Storage.write(segment, data.length, rt.byteSliceFrom(Uint8Array.of(1, 2, 3, 4)));
+	rt.byteVecExtendFromSlice(out, Storage.read(segment, rt.usizeAdd(data.length, 4)));
 	const p: rt.Place<rt.u8> = segment.data;
 	rt.ptrCopy(p, rt.ptrAdd(p, 2), data.length);
-	rt.byteVecExtendFromSlice(out, elements_Segment.read(segment, rt.usizeAdd(data.length, 4)));
+	rt.byteVecExtendFromSlice(out, Storage.read(segment, rt.usizeAdd(data.length, 4)));
 	rt.ptrCopy(rt.ptrAdd(p, 3), rt.ptrAdd(p, 1), data.length);
 	const _36: rt.Place<rt.u8> = rt.ptrAdd(p, rt.usizeAdd(data.length, 3));
 	_36.v = _36.v ^ 255;
-	rt.byteVecExtendFromSlice(out, elements_Segment.read(segment, rt.usizeAdd(data.length, 4)));
+	rt.byteVecExtendFromSlice(out, Storage.read(segment, rt.usizeAdd(data.length, 4)));
 	const v: rt.ByteVec = rt.byteSliceToByteVec(data);
 	rt.byteVecPush(v, 9);
 	const a: Uint8Array = rt.bytes(4);

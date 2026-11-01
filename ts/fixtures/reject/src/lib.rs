@@ -2171,3 +2171,18 @@ pub fn unit_elements(p: *const ()) -> usize {
 pub fn element_to_array(v: &[u32]) -> u32 {
 	unsafe { (*(v.as_ptr() as *const [u32; 2]))[1] }
 }
+
+pub struct Lanes {
+	pub lanes: [u32; 3],
+}
+
+/// Pointers to elements of arrays that a later assignment gives another JS array, which a
+/// pointer into the first would not see: a variable's, and a struct's field.
+pub fn elements_replaced(n: u32, l: &mut Lanes) -> u32 {
+	let mut a = [n; 3];
+	let p = &raw mut a[1];
+	a = [0; 3];
+	let q = &raw mut l.lanes[2];
+	l.lanes = [1; 3];
+	unsafe { *p + *q + a[0] }
+}

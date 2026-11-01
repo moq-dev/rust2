@@ -205,6 +205,8 @@ a pointer into an array of `(u8, u8)`, which JS keeps as an object that knows no
 `offset_from` of pointers to `()`, which has no bytes at fixtures/reject/src/lib.rs:2167:13
 a slice of `()`, which has no bytes, from a pointer at fixtures/reject/src/lib.rs:2167:39
 a cast from a pointer to `u32` to one to `[u32; 2]`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:2172:13
+a raw pointer to `[u32; 3]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2183:10
+a raw pointer to `[u32; 3]` in `Lanes`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2185:10
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:125:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:145:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:173:2
