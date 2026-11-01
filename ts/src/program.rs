@@ -95,6 +95,8 @@ pub struct FieldInfo {
 pub struct Source {
 	pub path: PathBuf,
 	pub text: String,
+	/// Where rustc's source map starts it, which spans count from.
+	pub start: rustc_span::BytePos,
 }
 
 #[derive(Debug, Default)]
@@ -480,8 +482,9 @@ impl Program {
 		Ok(())
 	}
 
-	/// Write every module, the runtime, and their source maps to `out`.
-	pub fn write(&self, out: &Path) -> Result<(), String> {
+	/// Write every module, the runtime, and their source maps to `out`, returning each
+	/// module as printed, by its file.
+	pub fn write(&self, out: &Path) -> Result<Vec<(PathBuf, print::Printed)>, String> {
 		// A copy, or a clean, would replace or remove the source.
 		if let Ok(dir) = out.canonicalize()
 			&& let Some(bound) = self
@@ -530,16 +533,19 @@ impl Program {
 				));
 			}
 		}
+		let mut written = Vec::new();
 		for (module, items) in modules {
-			let path = out.join(module_file(module));
+			let file = module_file(module);
+			let path = out.join(&file);
 			let printed = print::module(self, module, &items, &path)?;
 			write_file(&path, &printed.code)?;
 			write_file(&path.with_extension("ts.map"), &printed.map)?;
+			written.push((file, printed));
 		}
 		for (module, bound) in &self.bound {
 			write_file(&out.join(module_file(module)), &format!("{HEADER}\n{}", bound.text))?;
 		}
-		Ok(())
+		Ok(written)
 	}
 
 	/// How a module's importers bind it whole, if they do: a type's module, or a binding's

@@ -23,6 +23,12 @@ or received, such as a parameter, a field, or a call, rather than again at each 
 holding one; any variable or temporary that holds a type whose JS value is ambiguous, such
 as `Option<Option<()>>`, is refused at its own span.
 
+Once the output is written, `tsc` 7.0 or later, from `PATH`, type-checks it as strictly as
+the runtime, but for unused names. Output it rejects is a bug in rust2-ts, and fails the
+translation at the Rust span the source map names there, or else at the item's, and the
+output is removed. The same run checks the bindings, and an error in translated code is
+reported once they pass, since a wrong binding fails its callers too.
+
 ```toml
 # ts.toml, beside the package's Cargo.toml unless --manifest-path says otherwise.
 package = "moq-net"
@@ -552,7 +558,7 @@ binding never changes a `Copy` value in place. Nor does a binding change in plac
 takes by value or by `&`, or share with a clone what a `&mut` changes, and an integer it
 returns is in its Rust type's range.
 
-Once the output is written, `tsc` 7.0 or later, from `PATH`, checks each export against the
+The check of the output also checks each export against the
 translated signature of every instance translation calls, and each bound type's value. One
 returning `()` is checked against `=> undefined`, not `=> void`, which accepts any value,
 so its export is typed `: undefined`. A missing or mismatched binding fails the
@@ -880,7 +886,8 @@ built natively for wasm32 and run beside its translation on the same inputs by
   from either end, and its `shared` feature adds a module of the dependency's name, with
   the errors in `refused.txt`, `rev.txt`, and `shared.txt`.
 - `reject` holds constructs outside the subset; its expected errors are `expected.txt`,
-  and its expected census is `census.md`.
+  and its expected census is `census.md`. `mistyped.toml` translates a typing gap that
+  `tsc` rejects, with the errors in `mistyped.txt`.
 
 `tests/spawn.ts` checks that `rt.spawn` yields to a timer after its 128-poll budget, and
 rejects when a future panics as it drops. `tests/retain.ts` runs a collection's `retain`
