@@ -30,7 +30,6 @@ generic std gap is planned here even when moq never calls it.
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are
 - [Places through an adaptor's argument](/quest/m3/ts-adaptor-places.md) - `iter.zip(&mut v)` of values JS copies lends places as `for x in &mut v` does
 - [== of an Option of NonNull](/quest/m3/ts-option-pointer-eq.md) - `==` of `Option<NonNull<T>>` translates
-- [ptr::replace whose result nothing reads](/quest/m3/ts-ptr-replace-unread.md) - `ptr::replace` with its result discarded type-checks
 - [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
 - [The rest of a guard's maps](/quest/m3/ts-guard-maps.md) - `RefMut::map`, the guards' `filter_map` and `map_split`, and an `RwLock` guard's `map` translate
