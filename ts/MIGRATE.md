@@ -34,6 +34,10 @@
   `rt.charStep` too, to step past the surrogates. One of unsigned `NonZero`s takes
   `rt.nonZeroStep` of its integer's `Step` and maximum, as in
   `new rt.RangeInclusive(lo, hi, rt.nonZeroStep(rt.u8Step, 255))`.
+- A generic type's field holding a reference or pointer to what only an instance decides
+  the form of, such as `*mut T`, `NonNull<T>`, or `&'a mut T`, is an `rt.Ptr<T>`, the
+  object, an `rt.Place<T>`, or an `rt.ByteSlice`, rather than `rt.Place<T>` or `T`: a
+  caller reading one casts it to what its instance holds, as the output does.
 - A closure, a `fn` pointer, a `dyn Fn`, or a function item as a value returns
   `undefined` for `()`, not `void`, as in `(a0: rt.u8) => undefined`: a caller passes such
   a parameter a function typed `=> undefined`.
