@@ -5,8 +5,8 @@ use crate::{
 	args, arrays, ascii, atomics, borrows, bounds, boxes, captures, cells, chars, chunks, clones, collections,
 	combinators, counts, cows, cycles, defaults, durations, dyns, edits, errors, floats, fmt, folds, generics, hashes,
 	hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods, nested, objects, orders, pointers,
-	refs, returns, saturates, separated, shapes, singles, slices, splits, statics, strs, tuples, utf8, wrappers, wraps,
-	zeros,
+	refs, results, returns, saturates, separated, shapes, singles, slices, splits, statics, strs, tuples, utf8,
+	wrappers, wraps, zeros,
 };
 
 /// The native side's entry: [`run`], except that a case starting with 0xff prints a
@@ -269,6 +269,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("args::args", args::args),
 		("returns::returns", returns::returns),
 		("borrows::guards", |_, data, out| borrows::guards(data, out)),
+		("results::results", results::results),
 	]
 }
 

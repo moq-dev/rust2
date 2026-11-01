@@ -36,6 +36,7 @@ import * as List from "./pointers.List.ts";
 import type * as Outer from "./pointers.Outer.ts";
 import type * as pointers_Pair from "./pointers.Pair.ts";
 import type * as Paired from "./pointers.Paired.ts";
+import type * as results_Logged from "./results.Logged.ts";
 import * as saturates_Gauge from "./saturates.Gauge.ts";
 import type * as shapes_Gauge from "./shapes.Gauge.ts";
 import type * as shapes_Held from "./shapes.Held.ts";
@@ -177,8 +178,20 @@ export function copy$Option_tuple2_u8_u8(v: [rt.u8, rt.u8] | undefined): [rt.u8,
 	return v === undefined ? v : copy$tuple2_u8_u8(v);
 }
 
+export function copy$Result_array0_u8_u8(v: rt.Result<Uint8Array, rt.u8>): rt.Result<Uint8Array, rt.u8> {
+	return v.ok ? rt.Ok(copy$array_u8(v.value)) : rt.Err(v.error);
+}
+
+export function copy$Result_array1_u8_u8(v: rt.Result<Uint8Array, rt.u8>): rt.Result<Uint8Array, rt.u8> {
+	return v.ok ? rt.Ok(copy$array_u8(v.value)) : rt.Err(v.error);
+}
+
 export function copy$Result_array2_u32_u16(v: rt.Result<rt.u32[], rt.u16>): rt.Result<rt.u32[], rt.u16> {
 	return v.ok ? rt.Ok(copy$array_u32(v.value)) : rt.Err(v.error);
+}
+
+export function copy$Result_array5_u8_u8(v: rt.Result<Uint8Array, rt.u8>): rt.Result<Uint8Array, rt.u8> {
+	return v.ok ? rt.Ok(copy$array_u8(v.value)) : rt.Err(v.error);
 }
 
 export function copy$Result_tuple2_ref_sync_Mutex_u8_u8_u8(v: rt.Result<[rt.Mutex<rt.u8>, rt.u8], rt.u8>): rt.Result<[rt.Mutex<rt.u8>, rt.u8], rt.u8> {
@@ -805,6 +818,14 @@ export function drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_1: r
 export function drop$Result_cell_Ref_Vec_u8_cell_BorrowError(_1: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowError>): void {
 	if (_1.ok) {
 		rt.refRelease(_1.value);
+	}
+}
+
+export function drop$Result_results_Logged_results_Logged(_1: rt.Result<results_Logged.Logged, results_Logged.Logged>): void {
+	if (_1.ok) {
+		_1.value[Symbol.dispose]();
+	} else {
+		_1.error[Symbol.dispose]();
 	}
 }
 

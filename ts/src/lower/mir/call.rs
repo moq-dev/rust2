@@ -299,7 +299,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				{
 					return self.err(span, why);
 				}
-				crate::lower::pointer::pointees(tcx, def_id)
+				crate::lower::pointer::pointees(self.b.t, def_id, gargs)
 			}
 		};
 		let mut values = self.operands(local, &pointees, args, result, span, out);
@@ -344,34 +344,24 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				| ("dyn Any", "downcast_mut")
 				| ("Peekable", "peek_mut")
 				| ("LocalKey", "with_borrow_mut")
+				| ("Result", "iter_mut")
 				| ("Arc" | "Rc", "get_mut" | "make_mut")
 				| ("Mutex" | "RwLock" | "RefCell" | "OnceCell" | "OnceLock", "get_mut") => true,
-				("IntoIterator", "into_iter") => gargs.types().next().is_some_and(|ty| {
-					let ty = crate::lower::iter::unbox_ref(tcx, ty);
-					ty.ref_mutability() == Some(ty::Mutability::Mut)
-						&& match ty.peel_refs().kind() {
-							ty::Slice(_) | ty::Array(..) => true,
-							_ => matches!(
-								t.std_of(ty.peel_refs()),
-								Some(
-									Std::Vec
-										| Std::Option
-										| Std::HashMap
-										| Std::BTreeMap
-										| Std::VecDeque
-										| Std::LinkedList
-								)
-							),
-						}
-				}),
+				("IntoIterator", "into_iter") => gargs.types().next().is_some_and(|ty| into_places(t, ty)),
 				_ => false,
 			},
 			None => false,
 		};
 		// Places held in what it is given, not one it is given, or that the iterator it adapts
-		// yields, were made where they came from, as are what it hands a closure of them.
-		let adapts = t.sig(def_id, gargs).inputs().iter().any(|&i| {
-			t.place_pointee(i).is_none() && t.has_place(i) || t.iter_item(i).is_some_and(|item| t.has_place(item))
+		// yields, or the `into_iter` of what it takes as any `IntoIterator`, were made where
+		// they came from, as are what it hands a closure of them.
+		let generic =
+			tcx.instantiate_bound_regions_with_erased(tcx.fn_sig(def_id).instantiate_identity().skip_norm_wip());
+		let inputs = generic.inputs().iter().zip(t.sig(def_id, gargs).inputs());
+		let adapts = inputs.into_iter().any(|(&g, &i)| {
+			t.place_pointee(i).is_none() && t.has_place(i)
+				|| t.iter_item(i).is_some_and(|item| t.has_place(item))
+				|| matches!(g.kind(), ty::Param(_)) && into_places(t, i)
 		});
 		if lends || adapts {
 			return None;
@@ -1733,6 +1723,28 @@ fn continued(ty: Ty<'_>) -> Ty<'_> {
 		ty::Adt(_, args) => args.type_at(1),
 		_ => unreachable!("checked by the caller"),
 	}
+}
+
+/// Whether `ty` is a `&mut` to what std's `into_iter` lends each element of as its place,
+/// where JS copies them.
+fn into_places<'tcx>(t: &crate::lower::Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
+	let ty = crate::lower::iter::unbox_ref(t.tcx, ty);
+	ty.ref_mutability() == Some(ty::Mutability::Mut)
+		&& match ty.peel_refs().kind() {
+			ty::Slice(_) | ty::Array(..) => true,
+			_ => matches!(
+				t.std_of(ty.peel_refs()),
+				Some(
+					Std::Vec
+						| Std::Option
+						| Std::Result
+						| Std::HashMap
+						| Std::BTreeMap
+						| Std::VecDeque
+						| Std::LinkedList
+				)
+			),
+		}
 }
 
 /// Whether an assignment can write `e`: a path, an element, or a member of one.
