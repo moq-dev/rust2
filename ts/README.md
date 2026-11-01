@@ -526,9 +526,13 @@ of them:
   as `bytes` does, and into a `BytesMut` is refused, as `bytes` picks those methods by its
   capacity. The provided `copy_to_bytes` of the crate's own `Buf`, whose `BytesMut` has
   the capacity it asks for, reads it chunk by chunk through its methods.
-  The rest of `bytes`, such as the other provided methods of the crate's own `Buf` and the
-  impls forwarding through a `&mut` or a `Box`, translates from its MIR, refused where
-  that is.
+  The impls forwarding through a `&mut` or a `Box` translate from `bytes`' MIR, and the
+  `BufMut` methods they don't forward map as the buffer's own, but `put` and `put_bytes`,
+  which grow it as their provided bodies do, 64 bytes at a time once it is full. `put` of
+  the crate's own `Buf` through them into a `BytesMut` is refused, as `bytes` advances it
+  by the room left in the capacity.
+  The rest of `bytes`, such as the other provided methods of the crate's own `Buf`,
+  translates from its MIR, refused where that is.
 - `hashbrown`'s `HashMap` and `HashSet` are std's, which wrap them, and map as std's do,
   hashbrown's own methods included: `allocation_size` is a slot and a control byte for each
   entry the capacity holds, and its `Entry` is std's. Its `HashTable` keeps each item
@@ -920,8 +924,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
   slices and panics, how each is made and printed, that no event evaluates a field, and
   that each random value is in its range, every value of a small range drawn. It splits,
   freezes, grows, and writes a `BytesMut` by ops its input picks, ending with every
-  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, a buffer of
-  its own included. It changes hashbrown's maps and sets, keyed by JS primitives and by
+  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, through a
+  `&mut` and a `Box` too, a buffer of its own included, ending with each vector's
+  capacity. It changes hashbrown's maps and sets, keyed by JS primitives and by
   tuples, and `HashTable`s of tuples and of numbers, whose places it writes, under hashes
   that collide and that pass 2^53, checks their capacity by std's guarantees, and writes a
   `hashlink::LinkedHashMap` in its own order. `caller.ts` names the inputs that reserve at the edges of
