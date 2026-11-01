@@ -18,6 +18,8 @@ This is needed if some async functions run outside of the eventloop, for example
 
 In this case, we need an event loop to run the Python async function, but there's no eventloop set
 for the thread.  Use `uniffi_set_event_loop` to force an eventloop to be used in this case.
+While that loop runs, async callbacks are scheduled on it even from a thread running its own loop,
+since a sync call may block that loop on the callback.
 """
 def uniffi_set_event_loop(eventloop: asyncio.BaseEventLoop):
     global _UNIFFI_GLOBAL_EVENT_LOOP
@@ -25,13 +27,20 @@ def uniffi_set_event_loop(eventloop: asyncio.BaseEventLoop):
 
 def _uniffi_get_event_loop():
     # Futures belong to the loop running this call. The configured loop is only
-    # a fallback for callbacks invoked on threads without their own event loop.
+    # a fallback for threads without their own event loop.
     try:
         return asyncio.get_running_loop()
     except RuntimeError:
         if _UNIFFI_GLOBAL_EVENT_LOOP is not None:
             return _UNIFFI_GLOBAL_EVENT_LOOP
         raise
+
+def _uniffi_get_callback_event_loop():
+    # A sync Rust call may block this thread's loop until the callback finishes, so a running
+    # configured loop takes the callback. One that is not running would never run it.
+    if _UNIFFI_GLOBAL_EVENT_LOOP is not None and _UNIFFI_GLOBAL_EVENT_LOOP.is_running():
+        return _UNIFFI_GLOBAL_EVENT_LOOP
+    return _uniffi_get_event_loop()
 
 # Continuation callback for async functions
 # lift the return value or error and resolve the future, causing the async function to resume.
@@ -88,7 +97,7 @@ def _uniffi_trait_interface_call_async(make_call, uniffi_out_dropped_callback, h
             )
         else:
             handle_success(call_result)
-    eventloop = _uniffi_get_event_loop()
+    eventloop = _uniffi_get_callback_event_loop()
     task = asyncio.run_coroutine_threadsafe(make_call_and_call_callback(), eventloop)
     handle = _UNIFFI_FOREIGN_FUTURE_HANDLE_MAP.insert((eventloop, task))
     uniffi_out_dropped_callback[0] = _UniffiForeignFutureDroppedCallbackStruct(handle, _uniffi_future_dropped_callback)
@@ -114,7 +123,7 @@ def _uniffi_trait_interface_call_async_with_error(make_call, uniffi_out_dropped_
                 _UniffiRustCallStatus.CALL_UNEXPECTED_ERROR,
                 {{ builtin_types.string.ffi_converter_name }}.lower(repr(e)),
             )
-    eventloop = _uniffi_get_event_loop()
+    eventloop = _uniffi_get_callback_event_loop()
     task = asyncio.run_coroutine_threadsafe(make_call_and_call_callback(), eventloop)
     handle = _UNIFFI_FOREIGN_FUTURE_HANDLE_MAP.insert((eventloop, task))
     uniffi_out_dropped_callback[0] = _UniffiForeignFutureDroppedCallbackStruct(handle, _uniffi_future_dropped_callback)

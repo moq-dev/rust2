@@ -67,6 +67,8 @@ uniffi-rs:
 
 - Python prefers the running event loop to the configured callback fallback
   ([mozilla/uniffi-rs@f903c36c](https://github.com/mozilla/uniffi-rs/commit/f903c36c09fd396560e4dc28763a97a5c552e1c3)); the public setter keeps its 0.32 name.
+  Unlike upstream, an async callback still goes to the configured loop while it runs, since
+  a sync call may block the caller's loop on the callback.
 - Kotlin refuses a destroyed object passed as an argument (kixelated/uniffi-rs@88d835d).
 - Ruby is removed.
 - `toml` is pinned to major 1. Upstream's `>=0.9, <2` spans two majors, so a generator that
