@@ -38,9 +38,9 @@ pub struct Output {
 	pub glue: String,
 }
 
-/// The names the generated Python uses unqualified, which no exported item may take: the
-/// runtime's own, each but `Waker` starting with `_`, and `Waker` and `Bound`, which the C
-/// ABI claims as `<prefix>_waker` and `<prefix>_bound`.
+/// The runtime's names the generated Python uses unqualified, which no exported item may
+/// take. Its `Waker` and `Bound` need no entry: the C ABI claims `<prefix>_waker` and
+/// `<prefix>_bound` already.
 const TAKEN: &[&str] = &[
 	"_n",
 	"_load",
@@ -340,9 +340,9 @@ impl<'a> Gen<'a> {
 	}
 
 	/// The glue's expression, an `R<C>`, reading the Python object `o` as the C value of
-	/// `ty`, with what it borrows held in the scope `s`; `m` when the position moves an
-	/// object's value out.
-	fn lift(&mut self, ty: &Type, o: &str, m: bool) -> String {
+	/// `ty`, with what it borrows held in the scope `s`; `m` is the glue's `bool`, whether
+	/// the position moves an object's value out, closing it.
+	fn lift(&mut self, ty: &Type, o: &str, m: &str) -> String {
 		let abi = self.abi;
 		match ty {
 			Type::Bool => format!("rt::bool_in({o})"),
@@ -357,11 +357,13 @@ impl<'a> Gen<'a> {
 			Type::SocketAddr(family) => format!("rt::addr_in({o}, {})", family_of(*family)),
 			Type::List(_) => format!("r_{}({o}, s, {m})", self.c_struct(ty)),
 			Type::Option(inner) => match inner.base() {
-				Type::Object(i) => format!(
-					"rt::hold_opt({o}, {}, s, {})",
-					self.t(&abi.object(*i)),
-					m && !abi.api.objects[*i].copy && !matches!(**inner, Type::Ref(..))
-				),
+				Type::Object(i) => {
+					let m = match abi.api.objects[*i].copy || matches!(**inner, Type::Ref(..)) {
+						true => "false",
+						false => m,
+					};
+					format!("rt::hold_opt({o}, {}, s, {m})", self.t(&abi.object(*i)))
+				}
 				base if Abi::is_buf(base) => {
 					let some = self.lift(inner, o, m);
 					format!("(if rt::is_none({o}) {{ Ok(crate::rt::Buf::NONE) }} else {{ {some} }})")
@@ -373,20 +375,22 @@ impl<'a> Gen<'a> {
 				_ => format!("r_{}({o}, s, {m})", self.c_struct(ty)),
 			},
 			Type::Box(inner) => self.lift(inner, o, m),
-			Type::Ref(_, inner) => self.lift(inner, o, false),
+			Type::Ref(_, inner) => self.lift(inner, o, "false"),
 			Type::Record(_) => format!("r_{}({o}, s)", self.c_struct(ty)),
 			Type::Enum(i) => match abi.api.enums[*i].plain() {
 				true => format!("rt::member_in({o}, {})", self.t(&abi.enumeration(*i))),
 				false => format!("r_{}({o}, s)", abi.enumeration(*i)),
 			},
-			Type::Object(i) => format!(
-				"rt::hold({o}, {}, s, {})",
-				self.t(&abi.object(*i)),
-				m && !abi.api.objects[*i].copy
-			),
+			Type::Object(i) => {
+				let m = match abi.api.objects[*i].copy {
+					true => "false",
+					false => m,
+				};
+				format!("rt::hold({o}, {}, s, {m})", self.t(&abi.object(*i)))
+			}
 			Type::Callback(i, _) => {
 				let c = abi.callback(*i);
-				format!("Ok(crate::{c} {{ vtable: &VTABLE_{c}, data: rt::callback({o}, s) }})")
+				format!("Ok(crate::{c} {{ vtable: &VTABLE_{c}, data: rt::callback({o}, {}, s)? }})", self.t(&c))
 			}
 			Type::Waker => format!("rt::waker_in({o}, s)"),
 			Type::Range(int) => format!("rt::range_in::<{}>({o})", int.rust()),
@@ -570,12 +574,12 @@ impl<'a> Gen<'a> {
 
 	/// The glue of an option struct.
 	fn option(&mut self, c: &str, inner: &Type) {
-		let read = self.lift(inner, "o", true);
+		let read = self.lift(inner, "o", "m");
 		let write = self.lower(inner, "v.value");
 		let _ = write!(
 			self.glue,
 			"fn r_{c}(o: *mut PyObject, s: &mut rt::Scope, m: bool) -> R<crate::{c}> {{\n\tmatch rt::is_none(o) {{\n\t\ttrue => Ok(crate::{c} {{ some: false, value: unsafe {{ std::mem::zeroed() }} }}),\n\t\tfalse => Ok(crate::{c} {{ some: true, value: {}? }}),\n\t}}\n}}\n\nfn w_{c}(v: crate::{c}) -> R<Obj> {{\n\tmatch v.some {{\n\t\ttrue => {write},\n\t\tfalse => rt::none(),\n\t}}\n}}\n\n",
-			read.replace(", true)", ", m)")
+			read
 		);
 	}
 
@@ -586,7 +590,7 @@ impl<'a> Gen<'a> {
 		let mut fields = Vec::new();
 		let mut writes = Vec::new();
 		for (k, ty) in elements.iter().enumerate() {
-			let lift = self.lift(ty, &format!("x{k}"), true).replace(", true)", ", m)");
+			let lift = self.lift(ty, &format!("x{k}"), "m");
 			reads.push(format!("let x{k} = rt::tuple_item(o, {k}, {n})?;"));
 			fields.push(format!("_{k}: {lift}?"));
 			writes.push(self.lower(ty, &format!("v._{k}")));
@@ -602,7 +606,7 @@ impl<'a> Gen<'a> {
 
 	/// The glue of a `Vec`'s array.
 	fn list(&mut self, c: &str, elem: &Type) {
-		let read = self.lift(elem, "o", true).replace(", true)", ", m)");
+		let read = self.lift(elem, "o", "m");
 		let write = self.lower(elem, "e");
 		let _ = write!(
 			self.glue,
@@ -619,8 +623,8 @@ impl<'a> Gen<'a> {
 		let object = matches!(ty, Type::Object(_));
 		// The receiver as the glue reads it: a handle, held for the call, or a value.
 		let this = match object {
-			true => self.lift(&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())), "a[0]", false),
-			false => self.lift(ty, "a[0]", false),
+			true => self.lift(&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())), "a[0]", "false"),
+			false => self.lift(ty, "a[0]", "false"),
 		};
 		let pass = match object {
 			true => "this",
@@ -649,7 +653,7 @@ impl<'a> Gen<'a> {
 			));
 		}
 		if object && t.eq {
-			let other = self.lift(&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())), "a[1]", false);
+			let other = self.lift(&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())), "a[1]", "false");
 			self.native(
 				&format!("{bare}_eq"),
 				2,
@@ -750,7 +754,7 @@ impl<'a> Gen<'a> {
 				_ => format!("rt::attr(o, {key}, s)?"),
 			};
 			reads.push(format!("let x{n} = {read};"));
-			fields.push(format!("f{n}: {}?", self.lift(&field.ty, &format!("x{n}"), false)));
+			fields.push(format!("f{n}: {}?", self.lift(&field.ty, &format!("x{n}"), "false")));
 			writes.push(format!("({key}, {})", self.lower(&field.ty, &format!("v.f{n}"))));
 		}
 		if record.fields.is_empty() {
@@ -844,7 +848,7 @@ impl<'a> Gen<'a> {
 					for (k, f) in variant.fields.iter().enumerate() {
 						let key = self.key(&field_name(&f.name));
 						binds.push(format!("let x{k} = rt::attr(o, {key}, s)?;"));
-						fields.push(format!("f{k}: {}?", self.lift(&f.ty, &format!("x{k}"), false)));
+						fields.push(format!("f{k}: {}?", self.lift(&f.ty, &format!("x{k}"), "false")));
 						lowers.push(format!("({key}, {})", self.lower(&f.ty, &format!("p.f{k}"))));
 					}
 					reads.push(format!(
@@ -903,6 +907,7 @@ impl<'a> Gen<'a> {
 		let name = self.class(&c);
 		let rust = callback.path.join("::");
 		self.claim(&name, format!("trait `{rust}`"));
+		self.register(&c, name.clone());
 		let mut body = Vec::new();
 		let mut table = vec!["free: Some(rt::free_callback)".to_string()];
 		for (n, method) in callback.methods.iter().enumerate() {
@@ -992,7 +997,7 @@ impl<'a> Gen<'a> {
 		};
 		let back = match c_ret {
 			Ty::Void => "Ok(())".to_string(),
-			_ => self.lift(ret, "r.ptr()", false),
+			_ => self.lift(ret, "r.ptr()", "false"),
 		};
 		let rust_ret = rust_c(self.abi, c_ret);
 		let _ = write!(
@@ -1070,11 +1075,11 @@ impl<'a> Gen<'a> {
 						Receiver::Ref => Type::Ref(crate::ir::Mutability::Not, Box::new(ty)),
 						Receiver::Mut => Type::Ref(crate::ir::Mutability::Mut, Box::new(ty)),
 					};
-					stmts.push(format!("let p{n} = {}?;", self.lift(&ty, &format!("a[{n}]"), true)));
+					stmts.push(format!("let p{n} = {}?;", self.lift(&ty, &format!("a[{n}]"), "true")));
 					c_args.push(format!("p{n}"));
 				}
 				_ => {
-					stmts.push(format!("let p{n} = {}?;", self.lift(&ty, &format!("a[{n}]"), false)));
+					stmts.push(format!("let p{n} = {}?;", self.lift(&ty, &format!("a[{n}]"), "false")));
 					c_args.push(format!("&p{n}"));
 				}
 			}
@@ -1091,11 +1096,12 @@ impl<'a> Gen<'a> {
 					c_params.next().expect("a closure has its data");
 					let trampoline = format!("py_{c_name}_{}", abi::escape(&param.name));
 					closures.push((lent.clone(), (**ret).clone(), c_lent.clone(), (**c_ret).clone(), trampoline.clone()));
+					stmts.push(format!("let p{n} = rt::closure(a[{n}])?;"));
 					c_args.push(format!("Some({trampoline})"));
-					c_args.push(format!("a[{n}].cast()"));
+					c_args.push(format!("p{n}"));
 				}
 				_ => {
-					stmts.push(format!("let p{n} = {}?;", self.lift(&param.ty, &format!("a[{n}]"), true)));
+					stmts.push(format!("let p{n} = {}?;", self.lift(&param.ty, &format!("a[{n}]"), "true")));
 					c_args.push(format!("p{n}"));
 				}
 			}

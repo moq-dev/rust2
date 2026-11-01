@@ -6,14 +6,15 @@
 class _Future(_n.Future):
 	"""A Rust future its first poll left pending: awaiting it polls it on the running
 	event loop until it finishes. Cancelling the awaiting task frees it, which cancels it in
-	Rust and loses nothing, as does dropping it unawaited."""
+	Rust and loses nothing, as does dropping it unawaited. Like a coroutine, it is awaited
+	once: a second `await` raises `RuntimeError`."""
 
 	__slots__ = ()
 
 	def __await__(self):
 		loop = _get_running_loop()
 		w = _wakeup(loop)
-		token = self.token()
+		token = self.claim()
 		try:
 			while True:
 				r = self.poll(w.queue)

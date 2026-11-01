@@ -885,17 +885,26 @@ pub fn call_method(obj: *mut PyObject, key: &Key, args: Vec<R<Obj>>) -> R<Obj> {
 	call_py(method.ptr(), args)
 }
 
-/// A Python implementation of a trait, given to Rust: a reference Rust drops through
-/// [`free_callback`], or the scope drops if the call never happens.
-pub fn callback(obj: *mut PyObject, s: &mut Scope) -> *mut c_void {
-	if is_none(obj) {
-		return null_mut();
-	}
+/// A Python implementation of a trait, an instance of the abstract class registered at
+/// `index`, given to Rust: a reference Rust drops through [`free_callback`], or the scope
+/// drops if the call never happens.
+pub fn callback(obj: *mut PyObject, index: usize, s: &mut Scope) -> R<*mut c_void> {
+	check(obj, index)?;
 	// SAFETY: the GIL is held, and `obj` is live.
 	let given = unsafe { Obj::borrowed(obj) };
 	let ptr = given.ptr();
 	s.given.push(given);
-	ptr.cast()
+	Ok(ptr.cast())
+}
+
+/// A callable Rust calls only during the call, as a closure's data: the caller's reference
+/// outlives it.
+pub fn closure(obj: *mut PyObject) -> R<*mut c_void> {
+	// SAFETY: the GIL is held, and `obj` is live.
+	match unsafe { PyCallable_Check(obj) } {
+		0 => expected_named(obj, "a callable"),
+		_ => Ok(obj.cast()),
+	}
 }
 
 static CLOSE: Key = Key::new(c"close");
@@ -1382,6 +1391,9 @@ pub struct Future {
 	free: Option<unsafe fn(*mut c_void)>,
 	node: Option<Arc<Node>>,
 	token: i64,
+	/// Whether an `await` took it, after which another raises, as awaiting a coroutine
+	/// twice does.
+	claimed: bool,
 	/// The handles the call holds until the future ends.
 	held: Vec<Obj>,
 }
@@ -1504,9 +1516,15 @@ unsafe extern "C" fn future_poll(obj: *mut PyObject, args: *mut *mut PyObject, n
 	})
 }
 
-unsafe extern "C" fn future_token(obj: *mut PyObject, _: *mut PyObject) -> *mut PyObject {
-	// SAFETY: Python calls it on a `Future`.
-	int_out(unsafe { (*obj.cast::<Future>()).token }).map_or(null_mut(), Obj::into_ptr)
+/// `claim()`: take the future for one `await`, returning the token its wakes queue.
+unsafe extern "C" fn future_claim(obj: *mut PyObject, _: *mut PyObject) -> *mut PyObject {
+	// SAFETY: Python calls it on a `Future`, holding the GIL.
+	let future = unsafe { &mut *obj.cast::<Future>() };
+	wrap(|| match std::mem::replace(&mut future.claimed, true) {
+		// SAFETY: a static exception type.
+		true => raise(unsafe { PyExc_RuntimeError }, "a Rust future is awaited already"),
+		false => int_out(future.token),
+	})
 }
 
 unsafe extern "C" fn future_close_py(obj: *mut PyObject, _: *mut PyObject) -> *mut PyObject {
@@ -1577,7 +1595,7 @@ static OBJECT_METHODS: Methods<4> = Methods(UnsafeCell::new([
 
 static FUTURE_METHODS: Methods<4> = Methods(UnsafeCell::new([
 	method(c"poll", future_poll),
-	noargs(c"token", future_token),
+	noargs(c"claim", future_claim),
 	noargs(c"close", future_close_py),
 	END,
 ]));

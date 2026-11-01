@@ -540,6 +540,20 @@ def futures():
 	check(got == "held", "a closed object stays held by the call awaiting on it")
 	sender.close()
 
+	# An awaitable from Rust is awaited once, as a coroutine is.
+	later = channel.send_later(b"once")
+
+	async def wait(awaitable):
+		return await awaitable
+
+	loop.run_until_complete(asyncio.wait_for(wait(later), 5))
+	try:
+		loop.run_until_complete(wait(later))
+		check(False, "a second await raises")
+	except RuntimeError:
+		pass
+	check(text(loop.run_until_complete(asyncio.wait_for(channel.recv(), 5))) == "once", "the send landed once")
+
 	# A waker woken from another thread calls back on its loop, once for wakes that land
 	# before the loop gets to them.
 	wakes = []
