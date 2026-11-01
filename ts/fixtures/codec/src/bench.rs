@@ -5,10 +5,11 @@
 //! writes them, op 7 decodes frame headers as they arrive a few bytes at a time, op 8
 //! keeps a `BTreeMap`, as moq-net's model keeps its state, op 9 converts timestamps
 //! between timescales, ops 10 and 11 add and order them as moq-net's `Timestamp` does,
-//! op 12 orders integers by std's own `Ord`, and op 13 pushes onto vectors.
+//! op 12 orders integers by std's own `Ord`, op 13 pushes onto vectors, and op 14 keeps
+//! a `HashMap`.
 
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, VecDeque};
 
 use crate::coding::{Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, Form, varint};
 use crate::harness::{decode_error, encode_error, form, lite_version, put_u64, put_usize, take_u64};
@@ -38,6 +39,7 @@ pub fn run(input: &[u8]) -> Vec<u8> {
 		11 => interleave(data, &mut out),
 		12 => order(selector, data, &mut out),
 		13 => push(selector, data, &mut out),
+		14 => hashed(selector, data, &mut out),
 		_ => decoded(decode_group(data, lite_version(selector), &mut out), &mut out),
 	}
 	out
@@ -208,6 +210,29 @@ fn ordered(data: &[u8], out: &mut Vec<u8>) {
 		map.remove(&key(i));
 	}
 	put_u64(out, sum);
+}
+
+/// `count` keys, scattered as `ordered`'s, inserted into a `HashMap`, and unless `selector`
+/// is 1, each looked up and removed: the sum of what the lookups found, and the length left.
+fn hashed(selector: u8, data: &[u8], out: &mut Vec<u8>) {
+	let (count, _) = take_u64(data);
+	let count = count.min(1 << 16) as u32;
+	let key = |i: u32| (i * 40503) % (1 << 16);
+	let mut map = HashMap::new();
+	for i in 0..count {
+		map.insert(key(i), i);
+	}
+	let mut sum = 0u64;
+	if selector != 1 {
+		for i in 0..count {
+			sum += map.get(&key(count - 1 - i)).copied().unwrap_or(0) as u64;
+		}
+		for i in 0..count {
+			map.remove(&key(i));
+		}
+	}
+	put_u64(out, sum);
+	put_usize(out, map.len());
 }
 
 /// `count` integers sorted, sorted by a key, searched for the greatest and least, pushed
