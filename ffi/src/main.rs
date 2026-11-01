@@ -29,6 +29,7 @@ mod driver;
 mod glue;
 mod ir;
 mod kotlin;
+mod python;
 
 use std::process::ExitCode;
 

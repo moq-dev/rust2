@@ -39,7 +39,8 @@ impl Crate<'_> {
 	}
 
 	/// Write the crate into `out`: `Cargo.toml`, `src/`, `include/<prefix>.h` and `.hpp`,
-	/// and `kotlin/<prefix>.kt`, whose JNI functions the crate's `kotlin` feature builds.
+	/// `kotlin/<prefix>.kt`, whose JNI functions the crate's `kotlin` feature builds, and
+	/// `python/<prefix>.py`, whose CPython extension its `python` feature builds.
 	pub fn write(&self, out: &Path) -> Result<(), String> {
 		// Cargo unifies in what the configured package enables in each other export.
 		let dependencies: String = (self.exports.iter())
@@ -86,10 +87,13 @@ impl Crate<'_> {
 			{dependencies}\
 			bytes = \"1\"\n\
 			jni-sys = {{ version = \"0.4\", optional = true }}\n\
+			pyo3-ffi = {{ version = \"0.30\", optional = true, features = [\"abi3-py311\", \"extension-module\"] }}\n\
 			\n\
 			[features]\n\
 			# The JNI functions kotlin/{lib}.kt calls.\n\
 			kotlin = [\"dep:jni-sys\"]\n\
+			# The CPython extension python/{lib}.py loads.\n\
+			python = [\"dep:pyo3-ffi\"]\n\
 			\n\
 			[workspace]\n\
 			{patch}",
@@ -101,6 +105,7 @@ impl Crate<'_> {
 		let (header, contract) = crate::c::header(self.abi, &self.packages());
 		let cpp = crate::cpp::header(self.abi, &self.packages())?;
 		let kotlin = crate::kotlin::generate(self.abi, &self.packages(), contract)?;
+		let python = crate::python::generate(self.abi, &self.packages(), contract)?;
 		let mut generator = Gen {
 			abi: self.abi,
 			packages: self.packages(),
@@ -123,6 +128,12 @@ impl Crate<'_> {
 		crate::driver::write(
 			&out.join("kotlin").join(format!("{}.pro", self.abi.prefix)),
 			&kotlin.rules,
+		)?;
+		crate::driver::write(&out.join("src/python/mod.rs"), &python.glue)?;
+		crate::driver::write(&out.join("src/python/rt.rs"), crate::python::GLUE_RUNTIME)?;
+		crate::driver::write(
+			&out.join("python").join(format!("{}.py", self.abi.prefix)),
+			&python.python,
 		)
 	}
 }
@@ -459,6 +470,7 @@ impl Gen<'_> {
 		self.line("#![allow(dead_code, reason = \"the runtime serves every API\")]\n");
 		self.line("mod rt;\n");
 		self.line("#[cfg(feature = \"kotlin\")]\nmod jni;\n");
+		self.line("#[cfg(feature = \"python\")]\nmod python;\n");
 		self.line("use std::ffi::c_void;\n");
 		// An export may export nothing and only enable features in the others, as a
 		// package standing in for a binding crate does, which cargo would call unused.

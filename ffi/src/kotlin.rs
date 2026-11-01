@@ -1921,7 +1921,7 @@ fn jni_int(int: Int) -> &'static str {
 }
 
 /// The Rust type the C ABI's Rust side spells the C type `c` as, for a trampoline.
-fn rust_c(abi: &Abi<'_>, c: &Ty) -> String {
+pub(crate) fn rust_c(abi: &Abi<'_>, c: &Ty) -> String {
 	match c {
 		Ty::Void => "()".to_string(),
 		Ty::Bool => "bool".to_string(),
@@ -2008,7 +2008,7 @@ fn contract_literal(contract: u64) -> String {
 }
 
 /// `ty` returned: a borrow is returned as a clone, so owned.
-fn strip_refs(ty: &Type) -> Type {
+pub(crate) fn strip_refs(ty: &Type) -> Type {
 	match ty {
 		Type::Ref(_, inner) => strip_refs(inner),
 		Type::Option(inner) => Type::Option(Box::new(strip_refs(inner))),
@@ -2029,7 +2029,7 @@ fn ordinal(k: usize) -> String {
 }
 
 /// A snake-case name in Pascal case: `size_pair` is `SizePair`.
-fn pascal(name: &str) -> String {
+pub(crate) fn pascal(name: &str) -> String {
 	name.split('_')
 		.filter(|s| !s.is_empty())
 		.map(|s| {
@@ -2179,7 +2179,7 @@ fn indent(code: &str) -> String {
 }
 
 /// Code indented by `n` tabs more, but for blank lines.
-fn indent_by(code: &str, n: usize) -> String {
+pub(crate) fn indent_by(code: &str, n: usize) -> String {
 	let tabs = "\t".repeat(n);
 	let mut out: String = code
 		.lines()
