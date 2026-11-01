@@ -91,6 +91,13 @@ export function thenSome$1jqdi5p(self: boolean, t: rt.Duration): rt.Duration | u
 	return t;
 }
 
+export function thenSome$03chm1q(self: boolean, t: [rt.u8, rt.u8]): [rt.u8, rt.u8] | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return t;
+}
+
 export function thenSome$0b23a33(self: boolean, t: rt.u16): rt.u16 | undefined {
 	if (!self) {
 		return undefined;

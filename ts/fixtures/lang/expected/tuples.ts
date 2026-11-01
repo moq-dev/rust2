@@ -2,7 +2,7 @@
 
 import * as rt from "./rt.ts";
 import { copy$tuple2_u8_u8, copy$tuples_Spot, drop$Result_tuple2_tuples_Logged_u8_u8, drop$tuple2_Vec_tuples_Logged_tuples_Tally, drop$tuple2_tuples_Logged_u8, drop$tuple2_u8_tuples_Logged } from "./lib.ts";
-import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$1pb5zw8 as option_map$1pb5zw8, map$1fmzefe as option_map$1fmzefe } from "./core/option.ts";
+import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$1fmzefe as option_map$1fmzefe, map$1pb5zw8 as option_map$1pb5zw8 } from "./core/option.ts";
 import { set$0xuu1fw as local_set$0xuu1fw } from "./std/thread/local.ts";
 import * as Last from "./tuples.Last.ts";
 import * as tuples_Logged from "./tuples.Logged.ts";

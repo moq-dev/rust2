@@ -361,22 +361,26 @@ function itself<T>(value: T): T {
 	return value;
 }
 
-/** The place of index `i` of `a`. */
+/** The place of element `index` of `array`, which a raw pointer into it is too. */
 export class AtIndex<T> implements Place<T> {
-	private readonly a: { [i: number]: T };
-	private readonly i: number;
+	readonly array: { [i: number]: T };
+	readonly index: number;
 
-	constructor(a: { [i: number]: T }, i: number) {
-		this.a = a;
-		this.i = i;
+	constructor(array: { [i: number]: T }, index: number) {
+		this.array = array;
+		this.index = index;
 	}
 
 	get v(): T {
-		return this.a[this.i];
+		return this.array[this.index];
 	}
 
 	set v(value: T) {
-		this.a[this.i] = value;
+		// A JS array grows by a write past its end, where a `Vec`'s length stays until `set_len`.
+		if (Array.isArray(this.array) && this.index >= this.array.length) {
+			throw new Error("rust2-ts: a write through a pointer past the end of an array");
+		}
+		this.array[this.index] = value;
 	}
 }
 

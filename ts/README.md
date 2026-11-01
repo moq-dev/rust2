@@ -101,7 +101,7 @@ crate translation reaches is refused, and so are two versions of one crate it re
 | tuple, `[T; N]`, `&[T]`, `Box<[T]>`, `Vec<T>` | an array; for bytes, `Uint8Array` for `[u8; N]`, `rt.ByteSlice` for `&[u8]`, `&[u8; N]`, and `Box<[u8]>`, and `rt.ByteVec` for `Vec<u8>` |
 | `Cow<[T]>` | `rt.Cow<T>`: the `Vec` it owns, or an `rt.Borrowed` holding the slice it borrows; `rt.ByteCow` for bytes, an `rt.ByteVec` or an `rt.ByteSlice` |
 | `&T`, `&mut T`, `Box<T>`, `Reverse<T>`, `NonZero<T>` | the value; a `&mut` to a value JS copies, such as a number, an `Option`, a `String`, or a reference, or to an `Arc` or a `Waker`, is an `rt.Place<T>`, which for what a box holds is the place holding the box |
-| `*const T`, `*mut T`, `NonNull<T>` | what a `&mut T` is: the object, an `rt.ByteSlice` of a `[u8; N]`'s bytes, which compares by the buffer and offset they are at, or an `rt.Place<T>` to a value JS copies and to a library type such as a `Vec` or an `Arc`; `rt.NULL` for null and `rt.DANGLING` for dangling. A `*const ()` is an identity, such as a waker's data, and `rt.DANGLING_UNIT` when dangling; one to a place of `()` or from a reference to one is refused. A write of a whole object copies into it one object deep, as an assignment through a `&mut` does, so a pointer to a part kept as an object, such as a field of a tuple or struct type, is refused wherever the crate may put another object there while a pointer into that memory may still be read, which a write into a fresh allocation, or a variable before any pointer into it is taken, can't, whether by index or through std's iterators over its slots; a read copies what the crate writes into in place |
+| `*const T`, `*mut T`, `NonNull<T>` | what a `&mut T` is: the object, an `rt.ByteSlice` of a `[u8; N]`'s bytes, which compares by the buffer and offset they are at, or an `rt.Place<T>` to a value JS copies and to a library type such as a `Vec` or an `Arc`, which into an array, slice, or `Vec` is the `rt.AtIndex` of its element, which `add`, `sub`, `offset`, `offset_from`, `ptr::copy`, and `slice::from_raw_parts` move, measure, copy between, and view, and which a pointer to a value in no array fails at run time to move; a pointer into an array of values JS keeps as objects is refused; `rt.NULL` for null and `rt.DANGLING` for dangling. A `*const ()` is an identity, such as a waker's data, and `rt.DANGLING_UNIT` when dangling; one to a place of `()` or from a reference to one is refused. A write of a whole object copies into it one object deep, as an assignment through a `&mut` does, so a pointer to a part kept as an object, such as a field of a tuple or struct type, is refused wherever the crate may put another object there while a pointer into that memory may still be read, which a write into a fresh allocation, or a variable before any pointer into it is taken, can't, whether by index or through std's iterators over its slots; a read copies what the crate writes into in place |
 | `MaybeUninit<T>` | `T`: `undefined` until written, or an object whose parts kept as objects are there, holding `undefined` |
 | `union` | an object of slots named by offset, `at0` and `at8`, each holding the field part kept there; fields must overlap in the same type, or in a non-null pointer and an `Option` of it |
 | an iterator | `rt.Iter<Item>`, whose adaptors are runtime functions: `rt.iterMap(rt.iterSlice(v), f)` |
@@ -796,7 +796,7 @@ they need.
 
 ## Not yet
 
-Byte reinterpretation, pointer arithmetic and addresses, raw allocation, and unions whose
+Byte reinterpretation, pointer addresses, pointer arithmetic outside an array of values JS copies, raw allocation, and unions whose
 fields overlap in different types ([unsafe](/quest/m3/ts-unsafe.md)), and trait objects other than
 `&dyn Debug`, `&dyn Display`, `dyn Future`, `dyn Any`, `dyn Fn*`, and the translated crates' traits'
 behind `&`, `&mut`, `Box`, or `Arc` ([trait objects](/quest/m3/ts-dyn.md)), fail translation. Until they translate, an item that needs one, such as a `dyn Error`, binds to
@@ -865,7 +865,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
   `NonZero`, and raw pointers: a linked list of boxed nodes as `hashlink` keeps one, through a union and a
   `MaybeUninit` entry, pointers to locals, fields, and whole structs, those
   `UnsafeCell::get` gives, as crossbeam-epoch's own `OnceLock` keeps its collector, and
-  those a generic type holds to its parameter, at each form a pointer takes, and a
+  those a generic type holds to its parameter, at each form a pointer takes, pointers
+  into a `Vec`, an array, a boxed slice, and a `MaybeUninit` array, as `smallvec` and
+  moq-net's frame segments move and copy through them, and a
   generic type's arrays, slices, `Vec`s, and `Cow`s of its parameter at bytes, at
   `u16`, and at values that drop. Its
   differential test runs through `caller.ts`, a

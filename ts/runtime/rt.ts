@@ -143,6 +143,78 @@ export type VecOf<T> = T[] | ByteVec;
 /** A generic type's `Cow<[T]>`: the `Cow`, or the `ByteCow` of a `Cow<[u8]>`. */
 export type CowOf<T> = Cow<T> | ByteCow;
 
+/** The pointer to element `index` of `s`, a slice, a `[T; N]`, or a `Vec`'s storage. */
+export function sliceAsPtr<T>(s: T[], index = 0): Place<T> {
+	const view = (s as { [VIEW]?: View<T> })[VIEW];
+	return view ? new AtIndex(view.s, view.start + index) : new AtIndex(s, index);
+}
+
+/** The pointer to byte `index` of `s`. */
+export function byteSliceAsPtr(s: ByteSlice, index = 0): Place<number> {
+	return new AtIndex(s.data, s.start + index);
+}
+
+/** The pointer to the first byte of `v`'s storage. */
+export function byteVecAsPtr(v: ByteVec): Place<number> {
+	return new AtIndex(v.data, 0);
+}
+
+/** The array and index `p` points at, which only a pointer into an array has. */
+function elemOf<T>(p: Place<T>, what: string): AtIndex<T> {
+	if (p instanceof AtIndex) return p;
+	throw new Error(`rust2-ts: ${what} of a pointer to a value in no array`);
+}
+
+/** `p.add(n)`, `p.offset(n)`, and their wrapping forms: `n` elements past where `p` points. */
+export function ptrAdd<T>(p: Place<T>, n: number): Place<T> {
+	if (n === 0) return p;
+	const at = elemOf(p, "an offset");
+	return new AtIndex(at.array, at.index + n);
+}
+
+/** `p.offset_from(origin)`: how many elements `p` is past `origin`, in the same array. */
+export function ptrOffsetFrom<T>(p: Place<T>, origin: Place<T>): number {
+	if (p === origin) return 0;
+	const [a, b] = [elemOf(p, "`offset_from`"), elemOf(origin, "`offset_from`")];
+	if (a.array !== b.array) throw new Error("rust2-ts: `offset_from` of pointers into different arrays");
+	return a.index - b.index;
+}
+
+/**
+ * `ptr::copy` and `copy_nonoverlapping` of `n` elements from `src` to `dst`, as if through
+ * a buffer between, each made a value of its own by `copy` where the crate writes into its parts.
+ */
+export function ptrCopy<T>(src: Place<T>, dst: Place<T>, n: number, copy?: (value: T) => T): void {
+	if (n === 0) return;
+	if (n === 1 && !(src instanceof AtIndex && dst instanceof AtIndex)) {
+		dst.v = copy ? copy(src.v) : src.v;
+		return;
+	}
+	const [from, to] = [elemOf(src, "a copy"), elemOf(dst, "a copy")];
+	if (ArrayBuffer.isView(from.array) && ArrayBuffer.isView(to.array)) {
+		const bytes = from.array as unknown as Uint8Array;
+		(to.array as unknown as Uint8Array).set(bytes.subarray(from.index, from.index + n), to.index);
+		return;
+	}
+	const values = Array.from({ length: n }, (_, i) => from.array[from.index + i]);
+	for (let i = 0; i < n; i++) new AtIndex(to.array, to.index + i).v = copy ? copy(values[i]) : values[i];
+}
+
+/** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` elements from `p`. */
+export function ptrSlice<T>(p: Place<T>, len: number): T[] {
+	if (len === 0) return [];
+	const at = elemOf(p, "a slice");
+	const array = at.array as T[];
+	return at.index === 0 && len === array.length ? array : sliceView(array, at.index, at.index + len);
+}
+
+/** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` bytes from `p`. */
+export function ptrByteSlice(p: Place<number>, len: number): ByteSlice {
+	if (len === 0) return new ByteSlice(new Uint8Array(0), 0, 0);
+	const at = elemOf(p, "a slice");
+	return new ByteSlice(at.array as Uint8Array, at.index, len);
+}
+
 /**
  * `ptr::write` of `value` through a pointer to an object: `value` copied into it, one
  * object deep, so every pointer to it sees the write.

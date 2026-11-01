@@ -3,10 +3,10 @@
 
 use crate::{
 	args, arrays, ascii, atomics, borrows, bounds, boxes, capacity, captures, cells, chars, chunks, clones,
-	collections, combinators, counts, cows, cycles, defaults, durations, dyns, edits, errors, fields, floats, fmt,
-	folds, generics, hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods, nested,
-	objects, orders, pointers, refs, results, returns, saturates, separated, shapes, singles, slices, splits, statics,
-	strs, tuples, utf8, wrappers, wraps, zeros,
+	collections, combinators, counts, cows, cycles, defaults, durations, dyns, edits, elements, errors, fields, floats,
+	fmt, folds, generics, hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods,
+	nested, objects, orders, pointers, refs, results, returns, saturates, separated, shapes, singles, slices, splits,
+	statics, strs, tuples, utf8, wrappers, wraps, zeros,
 };
 
 /// The native side's entry: [`run`], except that a case starting with 0xff prints a
@@ -279,6 +279,10 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("capacity::deques", capacity::deques),
 		("capacity::heaps", capacity::heaps),
 		("capacity::collects", capacity::collects),
+		("elements::vecs", |_, data, out| elements::vecs(data, out)),
+		("elements::arrays", |_, data, out| elements::arrays(data, out)),
+		("elements::segments", |_, data, out| elements::segments(data, out)),
+		("elements::inline", |_, data, out| elements::inline(data, out)),
 	]
 }
 

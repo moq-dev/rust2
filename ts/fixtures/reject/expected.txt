@@ -175,14 +175,12 @@ a raw pointer to `ByKeyTake` in `(u16, ByKeyTake)`, which the crate may put anot
 unsupported call to `core::str::<impl str>::as_bytes_mut` at fixtures/reject/src/lib.rs:1631:13
 `core::str::<impl str>::get_unchecked_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1632:13
 `std::str::from_utf8_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1637:20
-unsupported call to `std::ptr::copy::<[u8; 4]>` at fixtures/reject/src/lib.rs:1705:3
-unsupported call to `std::ptr::copy_nonoverlapping::<[u8; 4]>` at fixtures/reject/src/lib.rs:1706:3
+a copy between pointers to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1705:3
+a copy between pointers to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1706:3
 unsupported call to `std::ptr::addr_eq::<[u8; 4], [u8; 4]>` at fixtures/reject/src/lib.rs:1707:14
 comparing `*mut [u8; 4]` at fixtures/reject/src/lib.rs:1707:41
-a cast from a pointer to `[u8; 4]` to one to `u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:1708:17
-a cast from `*const [u8; 4]` to `*const u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:1708:33
-unsupported call to `std::ptr::mut_ptr::<impl *mut [u8; 4]>::add` at fixtures/reject/src/lib.rs:1708:56
-unsupported call to `std::ptr::const_ptr::<impl *const [u8; 4]>::offset` at fixtures/reject/src/lib.rs:1708:73
+an offset of a pointer to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1708:56
+an offset of a pointer to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1708:73
 a coercion of `*const [u8; 4]` to `*const [u8]`, a pointer to a slice at fixtures/reject/src/lib.rs:1709:28
 hashing `*const [u8; 4]` by its address, which JS has no counterpart of at fixtures/reject/src/lib.rs:1711:5
 unsupported call to `std::ptr::const_ptr::<impl *const [u8]>::len` at fixtures/reject/src/lib.rs:1712:58
@@ -198,6 +196,15 @@ const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:209
 `clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:2113:4
 `std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2114:2
 a mapped guard of `{closure@fixtures/reject/src/lib.rs:2146:38: 2146:50}`, which JS can't write in place at fixtures/reject/src/lib.rs:2147:10
+a pointer into `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2154:12
+an offset of a pointer to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2156:13
+a copy between pointers to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2157:3
+a slice from a pointer to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2158:11
+a pointer into an array of `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2159:30
+`offset_from` of pointers to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2160:36
+`offset_from` of pointers to `()`, which has no bytes at fixtures/reject/src/lib.rs:2167:13
+a slice of `()`, which has no bytes, from a pointer at fixtures/reject/src/lib.rs:2167:39
+a cast from a pointer to `u32` to one to `[u32; 2]`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:2172:13
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:125:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:145:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:173:2

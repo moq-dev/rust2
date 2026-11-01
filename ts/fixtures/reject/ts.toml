@@ -165,5 +165,8 @@ roots = [
     "block_cloned",
     "lists",
     "mapped_closure",
+    "object_elements",
+    "unit_elements",
+    "element_to_array",
 ]
 printable = ["Meters"]

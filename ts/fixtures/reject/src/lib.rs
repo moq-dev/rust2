@@ -1695,8 +1695,8 @@ pub fn swapped_in_loop(n: u32) -> u32 {
 }
 
 /// Pointer operations on arrays of bytes that read the address or other bytes than the
-/// array's: comparing addresses only, copying, offsetting, casting to another pointee,
-/// hashing, and ordering.
+/// array's: comparing addresses only, copying, offsetting, hashing, and ordering, beside
+/// pointers to their first bytes.
 pub fn byte_pointer_ops(mut a: [u8; 4], b: [u8; 4]) -> u64 {
 	use std::hash::{Hash, Hasher};
 	let p: *mut [u8; 4] = &mut a;
@@ -2146,4 +2146,28 @@ pub fn mapped_closure(add: u8) -> u8 {
 	let cell = std::cell::RefCell::new((move |x: u8| x + add, 0u8));
 	let f = std::cell::RefMut::map(cell.borrow_mut(), |pair| &mut pair.0);
 	f(1)
+}
+
+/// Pointers into arrays whose elements JS keeps as objects: a pointer to one is the
+/// object, which knows no array it is in.
+pub fn object_elements(v: &mut Vec<(u8, u8)>, a: [(u8, u8); 2]) -> u8 {
+	let p = v.as_mut_ptr();
+	unsafe {
+		let q = p.add(1);
+		std::ptr::copy(p, q, 1);
+		let s = std::slice::from_raw_parts(p, 2);
+		let first = (&raw const a).cast::<(u8, u8)>();
+		(*q).0 + s[1].1 + (*first).0 + q.offset_from(p) as u8
+	}
+}
+
+/// Pointers to values of no bytes, which std's `offset_from` panics on, and a slice of
+/// them from one, which has no array to be a view of.
+pub fn unit_elements(p: *const ()) -> usize {
+	unsafe { p.offset_from(p) as usize + std::slice::from_raw_parts(p, 3).len() }
+}
+
+/// A pointer to an element cast to one to an array of elements from it.
+pub fn element_to_array(v: &[u32]) -> u32 {
+	unsafe { (*(v.as_ptr() as *const [u32; 2]))[1] }
 }

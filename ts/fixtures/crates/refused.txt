@@ -1,2 +1,1 @@
-unsupported call to `core::slice::<impl [u8]>::as_ptr` at fixtures/crates/dep/src/lib.rs:129:18
-unsupported call to `std::ptr::const_ptr::<impl *const u8>::add` at fixtures/crates/dep/src/lib.rs:129:27
+unsupported call to `std::ptr::const_ptr::<impl *const u8>::byte_add` at fixtures/crates/dep/src/lib.rs:129:27
