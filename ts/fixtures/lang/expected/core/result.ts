@@ -486,6 +486,13 @@ export function err$05f656d(self: rt.Result<rt.u8, rt.u16>): rt.u16 | undefined 
 	return self.error;
 }
 
+export function asRef$10maq8w(self: rt.Result<rt.u32, rt.u8>): rt.Result<rt.u32, rt.u8> {
+	if (self.ok) {
+		return rt.Ok(self.value);
+	}
+	return rt.Err(self.error);
+}
+
 export function asRef$1glrxiq(self: rt.Result<rt.u8, rt.u16>): rt.Result<rt.u8, rt.u16> {
 	if (self.ok) {
 		return rt.Ok(self.value);
@@ -519,6 +526,13 @@ export function map$0fm1w6u(self: rt.Result<boolean, rt.ParseBoolError>, op: (a0
 		return rt.Ok(op(self.value));
 	}
 	return self as rt.Result<rt.Result<rt.char, rt.ParseCharError>, rt.ParseBoolError>;
+}
+
+export function map$0m0doqe(self: rt.Result<rt.u32, rt.u8>, _: (a0: rt.u32) => rt.u32): rt.Result<rt.u32, rt.u8> {
+	if (self.ok) {
+		return rt.Ok(self.value);
+	}
+	return self;
 }
 
 export function map$0zzqmaz(self: rt.Result<rt.Arc<[rt.u8, rt.u8]>, rt.Arc<Any.Any>>, op: (a0: rt.Arc<[rt.u8, rt.u8]>) => [rt.usize, rt.u8]): rt.Result<[rt.usize, rt.u8], rt.Arc<Any.Any>> {
@@ -628,6 +642,12 @@ export function inspectErr$06tv5sa(self: rt.Result<rt.u8, rt.u16>, f: (a0: rt.u1
 	return self;
 }
 
+export function asDeref$04i8i5u(self: rt.Result<rt.u32, rt.u8>): rt.Result<rt.u32, rt.u8> {
+	return map$0m0doqe(asRef$10maq8w(self), (a0: rt.u32): rt.u32 => {
+		return a0;
+	});
+}
+
 export function unwrapOrDefault$1exw7nd(self: rt.Result<rt.u8, rt.u16>): rt.u8 {
 	if (self.ok) {
 		return self.value;
@@ -726,6 +746,13 @@ export function unwrapOr$0u9zzk3(self: rt.Result<rt.u32, rt.TryFromIntError>, de
 	return default_;
 }
 
+export function unwrapOr$0e4foht(self: rt.Result<rt.u32, rt.u8>, default_: rt.u32): rt.u32 {
+	if (self.ok) {
+		return self.value;
+	}
+	return default_;
+}
+
 export function unwrapOr$1dnnsw8(self: rt.Result<rt.u32, rt.u32>, default_: rt.u32): rt.u32 {
 	if (self.ok) {
 		return self.value;
@@ -780,6 +807,13 @@ export function unwrapOrElse$009ibtw(self: rt.Result<rt.u8, rt.u8>, op: (a0: rt.
 		return self.value;
 	}
 	return op(self.error);
+}
+
+export function copied$0bbq7yi(self: rt.Result<rt.u32, rt.u8>): rt.Result<rt.u32, rt.u8> {
+	if (self.ok) {
+		return rt.Ok(self.value);
+	}
+	return self;
 }
 
 export function copied$0ma6p21(self: rt.Result<rt.u8, rt.u16>): rt.Result<rt.u8, rt.u16> {

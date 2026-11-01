@@ -385,7 +385,7 @@ fn reach(b: &mut Owner, by: u8) {
 }
 
 /// Writes reaching what boxes hold, each step by a byte, kept in a local, reassigned,
-/// nested, in a field, a `Vec`, and an `Option`, captured, passed, and leaked: through
+/// nested, in a field, a `Vec`, an `Option`, and a `Result`, captured, passed, and leaked: through
 /// `&mut *b`, `DerefMut`, `AsMut`, `BorrowMut`, `as_deref_mut`, and a write through the box
 /// itself.
 pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
@@ -404,6 +404,8 @@ pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
 	};
 	let mut v = vec![Box::new(1u32), Box::new(2)];
 	let mut o = Some(Box::new(4u32));
+	let mut res: Result<Box<u32>, u8> = Ok(Box::new(2));
+	let mut said: Result<Box<String>, u8> = Ok(Box::new(String::from("r")));
 	let mut words: Box<[u32]> = Box::from([6, 8]);
 	let mut some_words: Option<Box<[u32]>> = Some(Box::from([3, 5]));
 	let mut named: Option<Box<str>> = Some(Box::from("xY/z"));
@@ -463,6 +465,15 @@ pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
 				if i % 3 == 0 {
 					o = o.is_none().then(|| Box::new(u32::from(by)));
 				}
+				if let Ok(b) = &mut res {
+					**b = b.wrapping_mul(u32::from(by));
+				}
+				if let Ok(s) = &mut said {
+					s.push(char::from(b'a' + by % 26));
+				}
+				if i % 5 == 4 {
+					said = Err(by);
+				}
 			}
 			22 => {
 				let r = &mut *words;
@@ -493,6 +504,11 @@ pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
 		out.extend(held.nested.to_le_bytes());
 		out.extend(v.iter().flat_map(|b| b.to_le_bytes()));
 		out.extend(o.as_deref().copied().unwrap_or(0xee).to_le_bytes());
+		out.extend(res.as_deref().copied().unwrap_or(0xee).to_le_bytes());
+		match &said {
+			Ok(s) => put(out, s),
+			Err(e) => out.push(*e),
+		}
 		out.extend(words.iter().flat_map(|w| w.to_le_bytes()));
 		out.extend(some_words.iter().flatten().flat_map(|w| w.to_le_bytes()));
 		put(out, named.as_deref().unwrap_or("-"));

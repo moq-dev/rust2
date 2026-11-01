@@ -817,11 +817,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let tcx = self.tcx;
 		let (mut at, mut value, mut rebuilt) = (place, value, false);
 		loop {
-			if let [ProjectionElem::Deref, rest @ ..] = at.projection.as_slice()
-				&& self.alias_of_place(at.local)
-				&& let Some(mir::Rvalue::Ref(_, _, borrowed)) = self.def_rvalue(at.local)
+			let through = self.through_aliases(at);
+			if through != at {
+				at = through;
+				continue;
+			}
+			// A box is what it holds.
+			if let [rest @ .., ProjectionElem::Deref] = at.projection.as_slice()
+				&& Place::ty_from(at.local, rest, &self.mir.local_decls, tcx).ty.is_box()
 			{
-				at = borrowed.project_deeper(rest, tcx);
+				at = Place {
+					local: at.local,
+					projection: tcx.mk_place_elems(rest),
+				};
 				continue;
 			}
 			if let [ProjectionElem::Deref, rest @ ..] = at.projection.as_slice()
