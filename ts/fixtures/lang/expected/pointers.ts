@@ -170,12 +170,12 @@ export function shared(dataData: Uint8Array, dataStart: number, dataLen: number,
 }
 
 /**
- * Pointers to numbers, to a field, and to a whole struct: read, written, swapped,
- * replaced, compared, and null.
+ * Pointers to numbers, to a field, to a whole struct, and to bytes: read, written,
+ * swapped, replaced with the old value read or not, compared, and null.
  */
 export function places(data: rt.ByteSlice, out: rt.ByteVec): void {
-	let _29!: rt.Place<rt.u32>;
-	let _42!: rt.u8;
+	let _31!: rt.Place<rt.u32>;
+	let _52!: rt.u8;
 	let x: rt.u32 = 0;
 	let y: rt.u32 = 1;
 	const pair: pointers_Pair.Pair = { a: 2, b: 3 };
@@ -184,48 +184,66 @@ export function places(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const pa: rt.Place<rt.u32> = rt.place(() => pair.a, (value3) => pair.a = value3);
 	const pp: pointers_Pair.Pair = pair;
 	let held: rt.Place<rt.u32> = rt.NULL;
+	const bytes: Uint8Array = rt.bytes(2);
+	const pb: rt.ByteSlice = rt.byteSliceFrom(bytes);
 	for (const byte of rt.byteSliceView(data)) {
 		const v: rt.u32 = byte as rt.u32;
-		const _19: rt.u8 = rt.u8Rem(byte, 9);
-		if (_19 === 0) {
+		const _21: rt.u8 = rt.u8Rem(byte, 12);
+		if (_21 === 0) {
 			px.v = rt.u32Add(px.v, v);
-		} else if (_19 === 1) {
+		} else if (_21 === 1) {
 			py.v = v;
-		} else if (_19 === 2) {
+		} else if (_21 === 2) {
 			const x2 = px;
 			const y2 = py;
-			const old3 = x2.v;
+			const old6 = x2.v;
 			x2.v = y2.v;
-			y2.v = old3;
-		} else if (_19 === 3) {
-			const pointer = pa;
-			const old2 = pointer.v;
-			pointer.v = v;
-			rt.byteVecPush(out, old2 & 0xff);
-		} else if (_19 === 4) {
+			y2.v = old6;
+		} else if (_21 === 3) {
+			const pointer4 = pa;
+			const old5 = pointer4.v;
+			pointer4.v = v;
+			rt.byteVecPush(out, old5 & 0xff);
+		} else if (_21 === 4) {
 			pp.b = v;
-		} else if (_19 === 5) {
+		} else if (_21 === 5) {
 			const old: pointers_Pair.Pair = copy$pointers_Pair(pp);
 			rt.ptrWrite(pp, { a: old.b, b: old.a });
-		} else if (_19 === 6) {
+		} else if (_21 === 6) {
 			if (!((byte & 1) === 0)) {
-				_29 = pa;
+				_31 = pa;
 			} else {
-				_29 = px;
+				_31 = px;
 			}
-			held = _29;
-		} else if (_19 === 7) {
+			held = _31;
+		} else if (_21 === 7) {
 			rt.byteVecPush(out, (held === rt.NULL ? 1 : 0) | (((pp === pair ? 1 : 0) << 1) & 0xff));
+		} else if (_21 === 9) {
+			const pointer3 = pa;
+			const old4 = pointer3.v;
+			pointer3.v = v;
+			old4;
+		} else if (_21 === 10) {
+			const _46: pointers_Pair.Pair = { a: v, b: rt.u32Add(v, 1) };
+			const pointer2 = pp;
+			const old3 = copy$pointers_Pair(pointer2);
+			rt.ptrWrite(pointer2, _46);
+			old3;
+		} else if (_21 === 11) {
+			const pointer = pb;
+			const old2 = rt.byteSliceToArray(pointer);
+			rt.byteSliceSet(pointer, Uint8Array.of(byte, ~byte & 0xff));
+			old2;
 		} else {
 			if (!((held === rt.NULL))) {
-				_42 = held.v & 0xff;
+				_52 = held.v & 0xff;
 			} else {
-				_42 = 255;
+				_52 = 255;
 			}
-			rt.byteVecPush(out, _42);
+			rt.byteVecPush(out, _52);
 		}
 	}
-	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(x & 0xff, y & 0xff, pair.a & 0xff, pair.b & 0xff)));
+	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(x & 0xff, y & 0xff, pair.a & 0xff, pair.b & 0xff, bytes[0], bytes[1])));
 }
 
 /**
@@ -1427,42 +1445,48 @@ export function aimed(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _185!: To.To<Housed.Housed<rt.u8>>;
 	let _214!: Paired.Paired | undefined;
 	let _219!: To.To<Paired.Paired>;
+	let _232!: Paired.Paired | undefined;
+	let _237!: To.To<Paired.Paired>;
 	let same!: boolean[];
-	let _230!: boolean;
-	let _236!: boolean;
-	let _242!: boolean;
-	let _245!: boolean;
+	let _247!: boolean;
 	let _253!: boolean;
-	let _255!: boolean;
-	let _285!: rt.ByteSlice | undefined;
-	let _290!: To.To<Uint8Array>;
+	let _259!: boolean;
+	let _262!: boolean;
+	let _270!: boolean;
+	let _272!: boolean;
+	let _347!: rt.ByteSlice | undefined;
+	let _352!: To.To<Uint8Array>;
+	let _365!: rt.ByteSlice | undefined;
+	let _370!: To.To<Uint8Array>;
 	let same2!: boolean[];
-	let _301!: boolean;
-	let _307!: boolean;
-	let _313!: boolean;
-	let _316!: boolean;
-	let _324!: boolean;
-	let _326!: boolean;
-	let _356!: Housed.Housed<rt.u8> | undefined;
-	let _361!: To.To<Housed.Housed<rt.u8>>;
-	let same3!: boolean[];
-	let _372!: boolean;
-	let _378!: boolean;
-	let _384!: boolean;
-	let _387!: boolean;
+	let _380!: boolean;
+	let _386!: boolean;
+	let _392!: boolean;
 	let _395!: boolean;
-	let _397!: boolean;
-	const _265: (a0: boolean[]) => rt.u8 = (b: boolean[]): rt.u8 => {
+	let _403!: boolean;
+	let _405!: boolean;
+	let _480!: Housed.Housed<rt.u8> | undefined;
+	let _485!: To.To<Housed.Housed<rt.u8>>;
+	let _498!: Housed.Housed<rt.u8> | undefined;
+	let _503!: To.To<Housed.Housed<rt.u8>>;
+	let same3!: boolean[];
+	let _513!: boolean;
+	let _519!: boolean;
+	let _525!: boolean;
+	let _528!: boolean;
+	let _536!: boolean;
+	let _538!: boolean;
+	const _322: (a0: boolean[]) => rt.u8 = (b: boolean[]): rt.u8 => {
 		return rt.iterFold(rt.iterSlice(b), 0, (acc: rt.u8, _33: boolean): rt.u8 => {
 			return ((acc << 1) & 0xff) | ((_33 ? 1 : 0));
 		});
 	};
-	const _336: (a0: boolean[]) => rt.u8 = (b3: boolean[]): rt.u8 => {
+	const _455: (a0: boolean[]) => rt.u8 = (b3: boolean[]): rt.u8 => {
 		return rt.iterFold(rt.iterSlice(b3), 0, (acc2: rt.u8, _36: boolean): rt.u8 => {
 			return ((acc2 << 1) & 0xff) | ((_36 ? 1 : 0));
 		});
 	};
-	const _407: (a0: boolean[]) => rt.u8 = (b5: boolean[]): rt.u8 => {
+	const _588: (a0: boolean[]) => rt.u8 = (b5: boolean[]): rt.u8 => {
 		return rt.iterFold(rt.iterSlice(b5), 0, (acc3: rt.u8, _38: boolean): rt.u8 => {
 			return ((acc3 << 1) & 0xff) | ((_38 ? 1 : 0));
 		});
@@ -1636,151 +1660,223 @@ export function aimed(data: rt.ByteSlice, out: rt.ByteVec): void {
 			_219 = { tag: "At", _0: at8 } as To.To<Paired.Paired>;
 		}
 		const nest8: Enclosed.Enclosed<Paired.Paired> = { inner: { at: at8, seen: _213, held: held8, maybe: _214, tagged: _218, to: _219, read: readThrough$pointers_Paired as (a0: rt.Ptr<Paired.Paired>) => rt.u8 } };
-		const _226: boolean = (nest8.inner.at as Paired.Paired) === nest8.inner.seen as Paired.Paired;
-		const pointer9 = nest8.inner.at as Paired.Paired;
-		const _233: Paired.Paired = rt.optionUnwrap(pointer9 === rt.NULL ? undefined : pointer9);
-		b19: {
-			_230 = (nest8.inner.held as Paired.Paired) === _233;
+		const at9: Paired.Paired = pair;
+		const pointer9 = at9;
+		const held9: Paired.Paired = rt.optionUnwrap(pointer9 === rt.NULL ? undefined : pointer9);
+		const _231: Paired.Paired = at9;
+		if (true) {
+			_232 = undefined;
+		} else {
+			_232 = held9;
+		}
+		const _236: [Paired.Paired, rt.u8] = [at9, 1];
+		if (true) {
+			_237 = { tag: "Nowhere" } as To.To<Paired.Paired>;
+		} else {
+			_237 = { tag: "At", _0: at9 } as To.To<Paired.Paired>;
+		}
+		const none: Paired.Paired | undefined = { at: at9, seen: _231, held: held9, maybe: _232, tagged: _236, to: _237, read: readThrough$pointers_Paired as (a0: rt.Ptr<Paired.Paired>) => rt.u8 }.maybe as Paired.Paired | undefined;
+		const _243: boolean = (nest8.inner.at as Paired.Paired) === nest8.inner.seen as Paired.Paired;
+		const pointer10 = nest8.inner.at as Paired.Paired;
+		const _250: Paired.Paired = rt.optionUnwrap(pointer10 === rt.NULL ? undefined : pointer10);
+		b21: {
+			_247 = (nest8.inner.held as Paired.Paired) === _250;
 			if ((nest8.inner.maybe as Paired.Paired | undefined) !== undefined) {
 				if (((nest8.inner.maybe as Paired.Paired | undefined) as Paired.Paired) === nest8.inner.held as Paired.Paired) {
-					_236 = true;
-					break b19;
-				}
-			}
-			_236 = false;
-		}
-		b21: {
-			_242 = (nest8.inner.tagged as [Paired.Paired, rt.u8])[0] === nest8.inner.at as Paired.Paired;
-			if (nest8.inner.to.tag === "At") {
-				if ((nest8.inner.to._0 as Paired.Paired) === nest8.inner.at as Paired.Paired) {
-					_245 = true;
+					_253 = true;
 					break b21;
 				}
 			}
-			_245 = false;
+			_253 = false;
 		}
 		b23: {
-			_253 = (nest8.inner.at as Paired.Paired) === other2;
-			const scrutinee2 = nest8.inner.maybe as Paired.Paired | undefined;
-			same = [_226, _230, _236, _242, _245];
-			if (scrutinee2 !== undefined) {
-				if ((((nest8.inner.maybe as Paired.Paired | undefined) as Paired.Paired)) === other2) {
-					_255 = true;
+			_259 = (nest8.inner.tagged as [Paired.Paired, rt.u8])[0] === nest8.inner.at as Paired.Paired;
+			if (nest8.inner.to.tag === "At") {
+				if ((nest8.inner.to._0 as Paired.Paired) === nest8.inner.at as Paired.Paired) {
+					_262 = true;
 					break b23;
 				}
 			}
-			_255 = false;
+			_262 = false;
 		}
-		const apart: boolean[] = [_253, _255, (nest8.inner.seen as Paired.Paired) === other2];
-		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_265(same), _265(apart))), undefined, true);
+		b25: {
+			_270 = (nest8.inner.at as Paired.Paired) === other2;
+			const scrutinee2 = nest8.inner.maybe as Paired.Paired | undefined;
+			same = [_243, _247, _253, _259, _262];
+			if (scrutinee2 !== undefined) {
+				if ((((nest8.inner.maybe as Paired.Paired | undefined) as Paired.Paired)) === other2) {
+					_272 = true;
+					break b25;
+				}
+			}
+			_272 = false;
+		}
+		const apart: boolean[] = [_270, _272, (nest8.inner.seen as Paired.Paired) === other2];
+		const null_: Paired.Paired = rt.NULL;
+		const _284: boolean = (nest8.inner.maybe as Paired.Paired | undefined) === nest8.inner.held as Paired.Paired;
+		const _289: boolean = (nest8.inner.maybe as Paired.Paired | undefined) !== nest8.inner.held as Paired.Paired;
+		const pointer11 = other2;
+		const optional: boolean[] = [_284, _289, (nest8.inner.maybe as Paired.Paired | undefined) === ((pointer11 === rt.NULL ? undefined : pointer11)), (nest8.inner.maybe as Paired.Paired | undefined) === none, none === undefined, (nest8.inner.seen as Paired.Paired) === nest8.inner.at as Paired.Paired, (nest8.inner.seen as Paired.Paired) !== null_, null_ === rt.NULL];
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_322(same), _322(apart), _322(optional))), undefined, true);
 		const other3: rt.ByteSlice = rt.byteSliceFrom(otherBytes);
-		const at9: rt.ByteSlice = rt.byteSliceFrom(bytes);
-		const pointer10 = at9;
-		const held9: rt.ByteSlice = rt.optionUnwrap(pointer10 === rt.NULL ? undefined : pointer10);
-		const _284: rt.ByteSlice = at9;
+		const at10: rt.ByteSlice = rt.byteSliceFrom(bytes);
+		const pointer12 = at10;
+		const held10: rt.ByteSlice = rt.optionUnwrap(pointer12 === rt.NULL ? undefined : pointer12);
+		const _346: rt.ByteSlice = at10;
 		if (false) {
-			_285 = undefined;
+			_347 = undefined;
 		} else {
-			_285 = held9;
+			_347 = held10;
 		}
-		const _289: [rt.ByteSlice, rt.u8] = [at9, 0];
+		const _351: [rt.ByteSlice, rt.u8] = [at10, 0];
 		if (false) {
-			_290 = { tag: "Nowhere" } as To.To<Uint8Array>;
+			_352 = { tag: "Nowhere" } as To.To<Uint8Array>;
 		} else {
-			_290 = { tag: "At", _0: at9 } as To.To<Uint8Array>;
+			_352 = { tag: "At", _0: at10 } as To.To<Uint8Array>;
 		}
-		const nest9: Enclosed.Enclosed<Uint8Array> = { inner: { at: at9, seen: _284, held: held9, maybe: _285, tagged: _289, to: _290, read: readThrough$array4_u8 as (a0: rt.Ptr<Uint8Array>) => rt.u8 } };
-		const _297: boolean = rt.byteSliceSame(nest9.inner.at as rt.ByteSlice, nest9.inner.seen as rt.ByteSlice);
-		const pointer11 = nest9.inner.at as rt.ByteSlice;
-		const _304: rt.ByteSlice = rt.optionUnwrap(pointer11 === rt.NULL ? undefined : pointer11);
-		b27: {
-			_301 = rt.byteSliceSame(nest9.inner.held as rt.ByteSlice, _304);
+		const nest9: Enclosed.Enclosed<Uint8Array> = { inner: { at: at10, seen: _346, held: held10, maybe: _347, tagged: _351, to: _352, read: readThrough$array4_u8 as (a0: rt.Ptr<Uint8Array>) => rt.u8 } };
+		const at11: rt.ByteSlice = rt.byteSliceFrom(bytes);
+		const pointer13 = at11;
+		const held11: rt.ByteSlice = rt.optionUnwrap(pointer13 === rt.NULL ? undefined : pointer13);
+		const _364: rt.ByteSlice = at11;
+		if (true) {
+			_365 = undefined;
+		} else {
+			_365 = held11;
+		}
+		const _369: [rt.ByteSlice, rt.u8] = [at11, 1];
+		if (true) {
+			_370 = { tag: "Nowhere" } as To.To<Uint8Array>;
+		} else {
+			_370 = { tag: "At", _0: at11 } as To.To<Uint8Array>;
+		}
+		const none2: rt.ByteSlice | undefined = { at: at11, seen: _364, held: held11, maybe: _365, tagged: _369, to: _370, read: readThrough$array4_u8 as (a0: rt.Ptr<Uint8Array>) => rt.u8 }.maybe as rt.ByteSlice | undefined;
+		const _376: boolean = rt.byteSliceSame(nest9.inner.at as rt.ByteSlice, nest9.inner.seen as rt.ByteSlice);
+		const pointer14 = nest9.inner.at as rt.ByteSlice;
+		const _383: rt.ByteSlice = rt.optionUnwrap(pointer14 === rt.NULL ? undefined : pointer14);
+		b31: {
+			_380 = rt.byteSliceSame(nest9.inner.held as rt.ByteSlice, _383);
 			if ((nest9.inner.maybe as rt.ByteSlice | undefined) !== undefined) {
 				if (rt.byteSliceSame((nest9.inner.maybe as rt.ByteSlice | undefined) as rt.ByteSlice, nest9.inner.held as rt.ByteSlice)) {
-					_307 = true;
-					break b27;
-				}
-			}
-			_307 = false;
-		}
-		b29: {
-			_313 = rt.byteSliceSame((nest9.inner.tagged as [rt.ByteSlice, rt.u8])[0], nest9.inner.at as rt.ByteSlice);
-			if (nest9.inner.to.tag === "At") {
-				if (rt.byteSliceSame(nest9.inner.to._0 as rt.ByteSlice, nest9.inner.at as rt.ByteSlice)) {
-					_316 = true;
-					break b29;
-				}
-			}
-			_316 = false;
-		}
-		b31: {
-			_324 = rt.byteSliceSame(nest9.inner.at as rt.ByteSlice, other3);
-			const scrutinee4 = nest9.inner.maybe as rt.ByteSlice | undefined;
-			same2 = [_297, _301, _307, _313, _316];
-			if (scrutinee4 !== undefined) {
-				if (rt.byteSliceSame((nest9.inner.maybe as rt.ByteSlice | undefined) as rt.ByteSlice, other3)) {
-					_326 = true;
+					_386 = true;
 					break b31;
 				}
 			}
-			_326 = false;
+			_386 = false;
 		}
-		const apart2: boolean[] = [_324, _326, rt.byteSliceSame(nest9.inner.seen as rt.ByteSlice, other3)];
-		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_336(same2), _336(apart2))), undefined, true);
-		const other4: Housed.Housed<rt.u8> = otherWrap;
-		const at10: Housed.Housed<rt.u8> = wrap;
-		const pointer12 = at10;
-		const held10: Housed.Housed<rt.u8> = rt.optionUnwrap(pointer12 === rt.NULL ? undefined : pointer12);
-		const _355: Housed.Housed<rt.u8> = at10;
-		if (false) {
-			_356 = undefined;
-		} else {
-			_356 = held10;
+		b33: {
+			_392 = rt.byteSliceSame((nest9.inner.tagged as [rt.ByteSlice, rt.u8])[0], nest9.inner.at as rt.ByteSlice);
+			if (nest9.inner.to.tag === "At") {
+				if (rt.byteSliceSame(nest9.inner.to._0 as rt.ByteSlice, nest9.inner.at as rt.ByteSlice)) {
+					_395 = true;
+					break b33;
+				}
+			}
+			_395 = false;
 		}
-		const _360: [Housed.Housed<rt.u8>, rt.u8] = [at10, 0];
-		if (false) {
-			_361 = { tag: "Nowhere" } as To.To<Housed.Housed<rt.u8>>;
-		} else {
-			_361 = { tag: "At", _0: at10 } as To.To<Housed.Housed<rt.u8>>;
-		}
-		const nest10: Enclosed.Enclosed<Housed.Housed<rt.u8>> = { inner: { at: at10, seen: _355, held: held10, maybe: _356, tagged: _360, to: _361, read: readThrough$pointers_Housed_u8 as (a0: rt.Ptr<Housed.Housed<rt.u8>>) => rt.u8 } };
-		const _368: boolean = (nest10.inner.at as Housed.Housed<rt.u8>) === nest10.inner.seen as Housed.Housed<rt.u8>;
-		const pointer13 = nest10.inner.at as Housed.Housed<rt.u8>;
-		const _375: Housed.Housed<rt.u8> = rt.optionUnwrap(pointer13 === rt.NULL ? undefined : pointer13);
 		b35: {
-			_372 = (nest10.inner.held as Housed.Housed<rt.u8>) === _375;
-			if ((nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) !== undefined) {
-				if (((nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) as Housed.Housed<rt.u8>) === nest10.inner.held as Housed.Housed<rt.u8>) {
-					_378 = true;
+			_403 = rt.byteSliceSame(nest9.inner.at as rt.ByteSlice, other3);
+			const scrutinee4 = nest9.inner.maybe as rt.ByteSlice | undefined;
+			same2 = [_376, _380, _386, _392, _395];
+			if (scrutinee4 !== undefined) {
+				if (rt.byteSliceSame((nest9.inner.maybe as rt.ByteSlice | undefined) as rt.ByteSlice, other3)) {
+					_405 = true;
 					break b35;
 				}
 			}
-			_378 = false;
+			_405 = false;
 		}
-		b37: {
-			_384 = (nest10.inner.tagged as [Housed.Housed<rt.u8>, rt.u8])[0] === nest10.inner.at as Housed.Housed<rt.u8>;
+		const apart2: boolean[] = [_403, _405, rt.byteSliceSame(nest9.inner.seen as rt.ByteSlice, other3)];
+		const null_2: rt.ByteSlice = rt.NULL;
+		const _420: rt.ByteSlice | undefined = nest9.inner.held as rt.ByteSlice;
+		const _417: boolean = rt.eqOption(rt.byteSliceSame)(nest9.inner.maybe as rt.ByteSlice | undefined, _420);
+		const _425: rt.ByteSlice | undefined = nest9.inner.held as rt.ByteSlice;
+		const _422: boolean = !rt.eqOption(rt.byteSliceSame)(nest9.inner.maybe as rt.ByteSlice | undefined, _425);
+		const pointer15 = other3;
+		const _427: boolean = rt.eqOption(rt.byteSliceSame)(nest9.inner.maybe as rt.ByteSlice | undefined, pointer15 === rt.NULL ? undefined : pointer15);
+		const _431: boolean = rt.eqOption(rt.byteSliceSame)(nest9.inner.maybe as rt.ByteSlice | undefined, none2);
+		const _434: boolean = rt.eqOption(rt.byteSliceSame)(none2, undefined);
+		const _439: rt.ByteSlice | undefined = nest9.inner.seen as rt.ByteSlice;
+		const _442: rt.ByteSlice | undefined = nest9.inner.at as rt.ByteSlice;
+		const _437: boolean = rt.eqOption(rt.byteSliceSame)(_439, _442);
+		const _447: rt.ByteSlice | undefined = nest9.inner.seen as rt.ByteSlice;
+		const optional2: boolean[] = [_417, _422, _427, _431, _434, _437, !rt.eqOption(rt.byteSliceSame)(_447, null_2), rt.eqOption(rt.byteSliceSame)(null_2, rt.NULL)];
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_455(same2), _455(apart2), _455(optional2))), undefined, true);
+		const other4: Housed.Housed<rt.u8> = otherWrap;
+		const at12: Housed.Housed<rt.u8> = wrap;
+		const pointer16 = at12;
+		const held12: Housed.Housed<rt.u8> = rt.optionUnwrap(pointer16 === rt.NULL ? undefined : pointer16);
+		const _479: Housed.Housed<rt.u8> = at12;
+		if (false) {
+			_480 = undefined;
+		} else {
+			_480 = held12;
+		}
+		const _484: [Housed.Housed<rt.u8>, rt.u8] = [at12, 0];
+		if (false) {
+			_485 = { tag: "Nowhere" } as To.To<Housed.Housed<rt.u8>>;
+		} else {
+			_485 = { tag: "At", _0: at12 } as To.To<Housed.Housed<rt.u8>>;
+		}
+		const nest10: Enclosed.Enclosed<Housed.Housed<rt.u8>> = { inner: { at: at12, seen: _479, held: held12, maybe: _480, tagged: _484, to: _485, read: readThrough$pointers_Housed_u8 as (a0: rt.Ptr<Housed.Housed<rt.u8>>) => rt.u8 } };
+		const at13: Housed.Housed<rt.u8> = wrap;
+		const pointer17 = at13;
+		const held13: Housed.Housed<rt.u8> = rt.optionUnwrap(pointer17 === rt.NULL ? undefined : pointer17);
+		const _497: Housed.Housed<rt.u8> = at13;
+		if (true) {
+			_498 = undefined;
+		} else {
+			_498 = held13;
+		}
+		const _502: [Housed.Housed<rt.u8>, rt.u8] = [at13, 1];
+		if (true) {
+			_503 = { tag: "Nowhere" } as To.To<Housed.Housed<rt.u8>>;
+		} else {
+			_503 = { tag: "At", _0: at13 } as To.To<Housed.Housed<rt.u8>>;
+		}
+		const none3: Housed.Housed<rt.u8> | undefined = { at: at13, seen: _497, held: held13, maybe: _498, tagged: _502, to: _503, read: readThrough$pointers_Housed_u8 as (a0: rt.Ptr<Housed.Housed<rt.u8>>) => rt.u8 }.maybe as Housed.Housed<rt.u8> | undefined;
+		const _509: boolean = (nest10.inner.at as Housed.Housed<rt.u8>) === nest10.inner.seen as Housed.Housed<rt.u8>;
+		const pointer18 = nest10.inner.at as Housed.Housed<rt.u8>;
+		const _516: Housed.Housed<rt.u8> = rt.optionUnwrap(pointer18 === rt.NULL ? undefined : pointer18);
+		b41: {
+			_513 = (nest10.inner.held as Housed.Housed<rt.u8>) === _516;
+			if ((nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) !== undefined) {
+				if (((nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) as Housed.Housed<rt.u8>) === nest10.inner.held as Housed.Housed<rt.u8>) {
+					_519 = true;
+					break b41;
+				}
+			}
+			_519 = false;
+		}
+		b43: {
+			_525 = (nest10.inner.tagged as [Housed.Housed<rt.u8>, rt.u8])[0] === nest10.inner.at as Housed.Housed<rt.u8>;
 			if (nest10.inner.to.tag === "At") {
 				if ((nest10.inner.to._0 as Housed.Housed<rt.u8>) === nest10.inner.at as Housed.Housed<rt.u8>) {
-					_387 = true;
-					break b37;
+					_528 = true;
+					break b43;
 				}
 			}
-			_387 = false;
+			_528 = false;
 		}
-		b39: {
-			_395 = (nest10.inner.at as Housed.Housed<rt.u8>) === other4;
+		b45: {
+			_536 = (nest10.inner.at as Housed.Housed<rt.u8>) === other4;
 			const scrutinee6 = nest10.inner.maybe as Housed.Housed<rt.u8> | undefined;
-			same3 = [_368, _372, _378, _384, _387];
+			same3 = [_509, _513, _519, _525, _528];
 			if (scrutinee6 !== undefined) {
 				if ((((nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) as Housed.Housed<rt.u8>)) === other4) {
-					_397 = true;
-					break b39;
+					_538 = true;
+					break b45;
 				}
 			}
-			_397 = false;
+			_538 = false;
 		}
-		const apart3: boolean[] = [_395, _397, (nest10.inner.seen as Housed.Housed<rt.u8>) === other4];
-		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_407(same3), _407(apart3))), undefined, true);
+		const apart3: boolean[] = [_536, _538, (nest10.inner.seen as Housed.Housed<rt.u8>) === other4];
+		const null_3: Housed.Housed<rt.u8> = rt.NULL;
+		const _550: boolean = (nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) === nest10.inner.held as Housed.Housed<rt.u8>;
+		const _555: boolean = (nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) !== nest10.inner.held as Housed.Housed<rt.u8>;
+		const pointer19 = other4;
+		const optional3: boolean[] = [_550, _555, (nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) === ((pointer19 === rt.NULL ? undefined : pointer19)), (nest10.inner.maybe as Housed.Housed<rt.u8> | undefined) === none3, none3 === undefined, (nest10.inner.seen as Housed.Housed<rt.u8>) === nest10.inner.at as Housed.Housed<rt.u8>, (nest10.inner.seen as Housed.Housed<rt.u8>) !== null_3, null_3 === rt.NULL];
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_588(same3), _588(apart3), _588(optional3))), undefined, true);
 	}
 }
 
