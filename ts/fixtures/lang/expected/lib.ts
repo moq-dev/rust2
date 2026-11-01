@@ -47,6 +47,18 @@ import * as Tick from "./wraps.Tick.ts";
 import * as zeros_Lock from "./zeros.Lock.ts";
 import type * as Loud from "./zeros.Loud.ts";
 
+export function copy$Option_Option_array0_u8(v: Uint8Array | undefined | rt.None): Uint8Array | undefined | rt.None {
+	return v === rt.None ? v : copy$Option_array0_u8(v);
+}
+
+export function copy$Option_Option_array1_u8(v: Uint8Array | undefined | rt.None): Uint8Array | undefined | rt.None {
+	return v === rt.None ? v : copy$Option_array1_u8(v);
+}
+
+export function copy$Option_Option_array5_u8(v: Uint8Array | undefined | rt.None): Uint8Array | undefined | rt.None {
+	return v === rt.None ? v : copy$Option_array5_u8(v);
+}
+
 export function copy$Option_array0_u32(v: rt.u32[] | undefined): rt.u32[] | undefined {
 	return v === undefined ? v : copy$array_u32(v);
 }
@@ -92,6 +104,10 @@ export function copy$Option_array3_u8(v: Uint8Array | undefined): Uint8Array | u
 }
 
 export function copy$Option_array40_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array5_u8(v: Uint8Array | undefined): Uint8Array | undefined {
 	return v === undefined ? v : copy$array_u8(v);
 }
 
@@ -163,6 +179,18 @@ export function copy$Result_tuple2_ref_sync_Mutex_u8_u8_u8(v: rt.Result<[rt.Mute
 	return v.ok ? rt.Ok(copy$tuple2_ref_sync_Mutex_u8_u8(v.value)) : rt.Err(v.error);
 }
 
+export function copy$array_Option_Option_array0_u8(v: Array<Uint8Array | undefined | rt.None>): Array<Uint8Array | undefined | rt.None> {
+	return v.map(copy$Option_Option_array0_u8);
+}
+
+export function copy$array_Option_Option_array1_u8(v: Array<Uint8Array | undefined | rt.None>): Array<Uint8Array | undefined | rt.None> {
+	return v.map(copy$Option_Option_array1_u8);
+}
+
+export function copy$array_Option_Option_array5_u8(v: Array<Uint8Array | undefined | rt.None>): Array<Uint8Array | undefined | rt.None> {
+	return v.map(copy$Option_Option_array5_u8);
+}
+
 export function copy$array_Option_u8(v: Array<rt.u8 | undefined>): Array<rt.u8 | undefined> {
 	return v.slice();
 }
@@ -184,6 +212,10 @@ export function copy$array_array2_u8(v: Uint8Array[]): Uint8Array[] {
 }
 
 export function copy$array_array3_u8(v: Uint8Array[]): Uint8Array[] {
+	return v.map(copy$array_u8);
+}
+
+export function copy$array_array5_u8(v: Uint8Array[]): Uint8Array[] {
 	return v.map(copy$array_u8);
 }
 

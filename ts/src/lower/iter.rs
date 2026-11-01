@@ -198,7 +198,7 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 					values.resize(2, Expr::undefined());
 					values.push(none);
 				}
-				Some(Expr::rt("iterOption", values))
+				Some(items(Expr::rt("iterOption", values), inner))
 			}
 			_ => super::collections::into_iter(b, ty, value, span),
 		},
