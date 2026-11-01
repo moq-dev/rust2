@@ -1517,6 +1517,13 @@ export function okOr$0tezn0w(self: rt.ByteSlice | undefined, _: undefined): rt.R
 	return rt.Ok(self);
 }
 
+export function okOr$1w08zpl(self: rt.ByteSlice | undefined, err: rt.usize): rt.Result<rt.ByteSlice, rt.usize> {
+	if (self === undefined) {
+		return rt.Err(err);
+	}
+	return rt.Ok(self);
+}
+
 export function okOr$0q0ogpn(self: [rt.ByteSlice, rt.ByteSlice] | undefined, err: rt.u8 | undefined): rt.Result<[rt.ByteSlice, rt.ByteSlice], rt.u8 | undefined> {
 	if (self === undefined) {
 		return rt.Err(err);

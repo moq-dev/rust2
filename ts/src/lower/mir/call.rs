@@ -1450,7 +1450,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	fn set_borrowed(&mut self, (read, place): &Borrowed<'tcx>, value: Expr, span: Span, out: &mut Vec<Stmt>) {
 		match place {
 			Some(place) => out.extend(self.store(*place, value, span)),
-			None => out.push(StmtKind::Expr(read.clone().assign(value)).at(None)),
+			None => self.assign_to(read.clone(), value, None, out),
 		}
 	}
 
@@ -1762,6 +1762,7 @@ fn continued(ty: Ty<'_>) -> Ty<'_> {
 /// Whether an assignment can write `e`: a path, an element, or a member of one.
 fn assignable(e: &Expr) -> bool {
 	match e {
+		_ if super::place::split_target(e).is_some() => true,
 		Expr::Index(..) => true,
 		Expr::Member(base, _) | Expr::Located(_, base) => assignable(base),
 		e => e.is_path(),

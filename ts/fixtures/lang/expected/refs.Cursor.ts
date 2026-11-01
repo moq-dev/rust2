@@ -5,11 +5,13 @@ import * as rt from "./rt.ts";
 /** A struct that keeps a `&mut` to its position. */
 export interface Cursor {
 	at: rt.Place<rt.usize>;
-	data: rt.ByteSlice;
+	dataData: Uint8Array;
+	dataStart: number;
+	dataLen: number;
 }
 
 export function next(self: Cursor): rt.u8 | undefined {
-	const _3: rt.u8 | undefined = rt.byteSliceGet(self.data, self.at.v);
+	const _3: rt.u8 | undefined = rt.byteSliceGet(new rt.ByteSlice(self.dataData, self.dataStart, self.dataLen), self.at.v);
 	if (_3 !== undefined) {
 		self.at.v = rt.usizeAdd(self.at.v, 1);
 		return _3;

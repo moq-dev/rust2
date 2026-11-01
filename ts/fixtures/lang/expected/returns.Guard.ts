@@ -6,11 +6,15 @@ import type * as returns_Error from "./returns.Error.ts";
 
 /** A guard whose drop writes the slot after its function's call did. */
 export class Guard {
-	_0: rt.ByteSlice;
+	_0Data: Uint8Array;
+	_0Start: number;
+	_0Len: number;
 	_1: rt.u8;
 
-	constructor(_0: rt.ByteSlice, _1: rt.u8) {
-		this._0 = _0;
+	constructor(_0Data: Uint8Array, _0Start: number, _0Len: number, _1: rt.u8) {
+		this._0Data = _0Data;
+		this._0Start = _0Start;
+		this._0Len = _0Len;
 		this._1 = _1;
 	}
 
@@ -20,7 +24,7 @@ export class Guard {
 }
 
 export function drop$ops_Drop(self: Guard): void {
-	const _3: rt.ByteSlice = rt.byteSliceRange(self._0, rt.usizeRem(self._1 as rt.usize, 2));
+	const _3: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(self._0Data, self._0Start, self._0Len), rt.usizeRem(self._1 as rt.usize, 2));
 	narrow(_3.data, _3.start, _3.length) === undefined ? wideOut.err as returns_Error.Error : undefined;
 }
 
