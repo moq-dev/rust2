@@ -1885,11 +1885,11 @@ export function clone$14nprly(self: string | undefined): string | undefined {
 	return self;
 }
 
-export function clone$096c3ul(self: rt.u16[] | undefined): rt.u16[] | undefined {
+export function clone$0hmts8n(self: rt.u16[] | undefined): rt.u16[] | undefined {
 	if (self === undefined) {
 		return undefined;
 	}
-	return self.slice();
+	return rt.vecExact(self.slice(), 2);
 }
 
 export function clone$1grnave(self: rt.ByteVec | undefined): rt.ByteVec | undefined {

@@ -205,9 +205,9 @@ export function runs(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return _22 as rt.u16;
 	}), undefined, 2, true);
 	const n2: rt.u16 = option_unwrapOrDefault$001fvl5(rt.sliceFirst(data3));
-	const _129: rt.u16[] = data3.slice();
+	const _129: rt.u16[] = rt.vecExact(data3.slice(), 2);
 	const _131: rt.u16[] = data3;
-	const _133: rt.u16[] = data3.slice();
+	const _133: rt.u16[] = rt.vecExact(data3.slice(), 2);
 	const _136: rt.Cow<rt.u16> = new rt.Borrowed(data3);
 	const _139: rt.u16[][] = [];
 	const runs2: Runs.Runs<rt.u16> = new Runs.Runs(Array.from({ length: 3 }, (): rt.u16 => {
@@ -260,7 +260,7 @@ export function runs(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return tick(_28);
 	}), undefined, 8, true);
 	const _246: Ticked.Ticked[] = [tick(1), tick(2), tick(3)];
-	const _256: Ticked.Ticked[] = ticks.map(Ticked.clone$Clone);
+	const _256: Ticked.Ticked[] = rt.vecExact(ticks.map(Ticked.clone$Clone), 8);
 	const _258: Ticked.Ticked[] = ticks;
 	const _260: Ticked.Ticked[] = [tick(4)];
 	if (rt.usizeRem(data.length, 2) === 0) {
