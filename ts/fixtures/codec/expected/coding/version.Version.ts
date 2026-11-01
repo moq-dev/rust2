@@ -15,11 +15,12 @@ export interface Version {
 
 /** Decode the version number. */
 export function decode$coding_decode_Decode_coding_varint_Form(r: Decoder.Decoder, _2: Form.Form): rt.Result<Version, DecodeError.DecodeError> {
-	const _4: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-	if (_4.ok) {
-		return rt.Ok({ _0: _4.value });
+	const part: rt.u64 | undefined = Decoder.varint(r);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		return rt.Ok({ _0: part as rt.u64 });
 	}
-	return _4;
+	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /** Encode the value to the given encoder, which may hold partial output on error. */

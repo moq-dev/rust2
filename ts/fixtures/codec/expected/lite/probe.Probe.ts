@@ -66,9 +66,10 @@ export function decodeMsg$lite_message_Message(r: Decoder.Decoder, version: lite
 	if (version === "Lite01" || version === "Lite02") {
 		return rt.Err({ tag: "Version" } as DecodeError.DecodeError);
 	}
-	const _6: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-	if (_6.ok) {
-		const val: rt.u64 = _6.value;
+	const part: rt.u64 | undefined = Decoder.varint(r);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const val: rt.u64 = part as rt.u64;
 		if (val === 0) {
 			bitrate = undefined;
 		} else {
@@ -77,21 +78,22 @@ export function decodeMsg$lite_message_Message(r: Decoder.Decoder, version: lite
 		if (!lite_version_Version.hasProbeRtt(version)) {
 			rtt = undefined;
 		} else {
-			const _13: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-			if (_13.ok) {
-				const val2: rt.u64 = _13.value;
+			const part2: rt.u64 | undefined = Decoder.varint(r);
+			const err2: DecodeError.DecodeError | undefined = part2 === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+			if (err2 === undefined) {
+				const val2: rt.u64 = part2 as rt.u64;
 				if (val2 === 0) {
 					rtt = undefined;
 				} else {
 					rtt = val2;
 				}
 			} else {
-				return _13;
+				return rt.Err(err2 as DecodeError.DecodeError);
 			}
 		}
 		return rt.Ok({ bitrate, rtt });
 	}
-	return _6;
+	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /** Encode this message body (without size prefix). */

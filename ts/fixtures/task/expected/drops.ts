@@ -86,12 +86,12 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		const arc: rt.Arc<Held.Held> = new rt.Arc({ tag: "One", _0: guard(4) } as Held.Held);
 		const shared: rt.Arc<Held.Held> = rt.arcClone(arc);
 		rt.arcDrop(arc, lib_drop$drops_Held);
-		const part3 = shared.strong;
-		const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(part3, f)];
+		const part5 = shared.strong;
+		const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(part5, f)];
 		Log.note(log, rt.fmtFormat(["arc ", args2[0]]));
-		const part4 = shared.strong;
+		const part6 = shared.strong;
 		const cloned: rt.Arc<Held.Held> = rt.arcClone(shared);
-		const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(part4, f)];
+		const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(part6, f)];
 		Log.note(log, rt.fmtFormat(["counted ", args4[0]]));
 		rt.arcDrop(cloned, lib_drop$drops_Held);
 		const v2: Held.Held[] = [];
@@ -151,10 +151,12 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		const part2 = clones.length;
 		const args10: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(part2, f)];
 		Log.note(log, rt.fmtFormat(["clones ", args10[0]]));
-		const early: rt.Result<rt.u32, rt.u32> = bail(log, id, true);
-		const late: rt.Result<rt.u32, rt.u32> = bail(log, rt.u32Add(id, 2), false);
-		const _256: boolean = !early.ok;
-		const _259: boolean = !late.ok;
+		const part3: rt.u32 | undefined = bail(log, id, true);
+		const err: rt.u32 | undefined = part3 === undefined ? bailOut.err as rt.u32 : undefined;
+		const part4: rt.u32 | undefined = bail(log, rt.u32Add(id, 2), false);
+		const err2: rt.u32 | undefined = part4 === undefined ? bailOut.err as rt.u32 : undefined;
+		const _256: boolean = !((err !== undefined ? rt.Err(err as rt.u32) : rt.Ok(part3 as rt.u32)) as rt.Result<rt.u32, rt.u32>).ok;
+		const _259: boolean = !((err2 !== undefined ? rt.Err(err2 as rt.u32) : rt.Ok(part4 as rt.u32)) as rt.Result<rt.u32, rt.u32>).ok;
 		const args12: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtBool(_256, f), (f: rt.Formatter) => rt.fmtBool(_259, f)];
 		Log.note(log, rt.fmtFormat(["bailed ", args12[0], " ", args12[1]]));
 		rt.dropAll(clones, lib_drop$sync_Arc_drops_Wrap_drops_Pair_drops_Held);
@@ -184,34 +186,48 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
  * Returns early through `?`, if it `fails`, with an enum's guards and a generic `Drop`
  * type live.
  */
-export function bail(log: Log.Log, id: rt.u32, fails: boolean): rt.Result<rt.u32, rt.u32> {
+export function bail(log: Log.Log, id: rt.u32, fails: boolean): rt.u32 | undefined {
+	let _0Err!: boolean;
+	let _02!: rt.u32;
+	let _03!: rt.u32;
 	const v: Held.Held[] = [];
 	const _8 = { tag: "One", _0: Guard.new(rt.u32Add(id, 90), Log.clone$Clone(log)) } as Held.Held;
 	v.push(_8);
 	const held: Held.Held[] = v;
 	const wrap: Wrap.Wrap<Held.Held> = new Wrap.Wrap(rt.u32Add(id, 91), Log.clone$Clone(log), { tag: "Empty" } as Held.Held);
-	const _18: rt.Result<rt.u32, rt.u32> = failed(fails);
-	if (_18.ok) {
-		const n: rt.u32 = _18.value;
+	const part: rt.u32 | undefined = failed(fails);
+	const err: rt.u32 | undefined = part === undefined ? bailOut.err as rt.u32 : undefined;
+	if (err === undefined) {
+		const n: rt.u32 = part as rt.u32;
 		const _29: rt.usize = held.length;
 		const _32: boolean = Held.isSome(wrap.inner);
 		const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(_29, f), (f: rt.Formatter) => rt.fmtBool(_32, f)];
 		Log.note(log, rt.fmtFormat(["not bailed ", args2[0], " ", args2[1]]));
-		const _0: rt.Result<rt.u32, rt.u32> = rt.Ok(n);
+		_0Err = false;
+		_02 = n;
 		lib_drop$drops_Wrap_drops_Held(wrap);
 		rt.dropAll(held, lib_drop$drops_Held);
-		return _0;
+	} else {
+		_0Err = true;
+		_03 = err as rt.u32;
+		lib_drop$drops_Wrap_drops_Held(wrap);
+		rt.dropAll(held, lib_drop$drops_Held);
 	}
-	lib_drop$drops_Wrap_drops_Held(wrap);
-	rt.dropAll(held, lib_drop$drops_Held);
-	return _18;
+	if (_0Err) {
+		bailOut.err = _03;
+		return undefined;
+	}
+	return _02;
 }
 
-export function failed(fails: boolean): rt.Result<rt.u32, rt.u32> {
+export const bailOut: { err: unknown } = { err: undefined };
+
+export function failed(fails: boolean): rt.u32 | undefined {
 	if (!fails) {
-		return rt.Ok(1);
+		return 1;
 	}
-	return rt.Err(0);
+	bailOut.err = 0;
+	return undefined;
 }
 
 /**
