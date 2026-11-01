@@ -1,5 +1,5 @@
-//! Results of byte slices returned by the crate's own functions, which hand back an
-//! `Ok`'s parts in a slot their caller reads at once.
+//! Results of byte slices, or of numbers alone, returned by the crate's own functions,
+//! which hand back an `Ok`'s parts in a slot their caller reads at once.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Error {
@@ -184,7 +184,140 @@ fn wrapped(data: &[u8]) -> Result<(u8, &[u8]), Wrapped> {
 	Ok((v, data))
 }
 
+/// A number alone, past 2^53 from eight bytes.
+fn big(data: &[u8]) -> Result<u64, Error> {
+	match data.split_first_chunk::<8>() {
+		Some((head, _)) => Ok(u64::from_be_bytes(*head)),
+		None if data.first() == Some(&0xff) => Err(Error::Bad),
+		None => Err(Error::Short(8 - data.len())),
+	}
+}
+
+/// A signed number and an unsigned one, each through `?`, at an offset.
+fn pair(data: &[u8], at: usize) -> Result<(i64, u64), Error> {
+	let rest = data.get(at..).ok_or(Error::Short(at))?;
+	let a = big(rest)? as i64;
+	Ok((a.wrapping_neg(), big(&rest[rest.len().min(3)..])? >> 3))
+}
+
+/// A flag, which is no number to return, so it goes in the slot.
+fn odd(data: &[u8]) -> Result<bool, Error> {
+	let n = big(data)?;
+	if n == 7 {
+		return Err(Error::Short(7));
+	}
+	Ok(n % 2 == 1)
+}
+
+/// A number whose error is a number too.
+fn byte(data: &[u8], i: usize) -> Result<u8, u8> {
+	match data.get(i) {
+		Some(&b) if b < 0x80 => Ok(b),
+		Some(&b) => Err(b),
+		None => Err(i as u8),
+	}
+}
+
+/// A float and a char.
+fn mixed(data: &[u8]) -> Result<(f64, char), u8> {
+	let b = byte(data, 0)?;
+	let c = char::from_u32(byte(data, 1)? as u32 * 37 + 0xd7f0).ok_or(b)?;
+	Ok((-(b as f64) / 3.0, c))
+}
+
+/// Each byte before a zero counted, recursively, without the rest.
+fn depth(data: &[u8]) -> Result<u32, Error> {
+	match data.split_first() {
+		Some((0, _)) => Ok(0),
+		Some((_, rest)) => Ok(depth(rest)? + 1),
+		None => Err(Error::Short(1)),
+	}
+}
+
+/// What either returns, returned as is.
+fn either(data: &[u8], first: bool) -> Result<u64, Error> {
+	if first {
+		return big(data);
+	}
+	depth(data).map(u64::from)
+}
+
+/// A guard whose drop writes the slot after its function's call did.
+struct Late<'a>(&'a [u8]);
+
+impl Drop for Late<'_> {
+	fn drop(&mut self) {
+		let _ = big(self.0);
+	}
+}
+
+fn late(data: &[u8], other: &[u8]) -> Result<u64, Error> {
+	let _late = Late(other);
+	big(data)
+}
+
+fn late_self(data: &[u8]) -> Result<u64, Error> {
+	late(data, data)
+}
+
+fn push_big(out: &mut Vec<u8>, r: Result<u64, Error>) {
+	match r {
+		Ok(n) => out.extend_from_slice(&n.to_be_bytes()),
+		Err(e) => out.extend_from_slice(&[0xee, e.code()]),
+	}
+}
+
+/// Results of numbers alone: held as parts, kept whole, and read after the slot was
+/// written again.
+fn numbers(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	push_big(out, big(data));
+	match pair(data, kind as usize % 4) {
+		Ok((a, b)) => {
+			out.extend_from_slice(&a.to_be_bytes());
+			out.extend_from_slice(&b.to_be_bytes());
+		}
+		Err(e) => out.push(e.code()),
+	}
+	match odd(data) {
+		Ok(b) => out.push(b as u8),
+		Err(e) => out.push(e.code()),
+	}
+	// Both held while the slot is written again between them.
+	let (x, y) = (big(data), big(&data[data.len().min(1)..]));
+	match (x, y) {
+		(Ok(x), Ok(y)) => out.extend_from_slice(&(x ^ y).to_be_bytes()),
+		(x, y) => out.extend_from_slice(&[x.is_ok() as u8, y.is_ok() as u8]),
+	}
+	// Kept whole: in a collection, and through a function as a value.
+	let kept: Vec<Result<u64, Error>> = (0..3).map(|i| big(&data[data.len().min(i)..])).collect();
+	for r in kept {
+		push_big(out, r);
+	}
+	let f: fn(&[u8]) -> Result<u64, Error> = if kind % 2 == 0 { big } else { late_self };
+	push_big(out, f(data));
+	push_big(out, either(data, kind % 3 == 0));
+	push_big(out, late(data, &data[data.len().min(2)..]));
+	match mixed(data) {
+		Ok((f, c)) => {
+			out.extend_from_slice(&f.to_bits().to_be_bytes());
+			out.extend_from_slice(&(c as u32).to_be_bytes());
+		}
+		Err(b) => out.extend_from_slice(&[0xee, b]),
+	}
+	// A loop that calls again while the last result is still read.
+	let mut rest = data;
+	let mut sum = 0u64;
+	while let Ok(n) = depth(rest) {
+		sum = sum.wrapping_mul(31).wrapping_add(n as u64);
+		rest = &rest[n as usize + 1..];
+	}
+	out.extend_from_slice(&sum.to_be_bytes());
+}
+
 pub fn returns(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	if kind % 8 == 7 {
+		return numbers(kind, data, out);
+	}
 	match kind % 7 {
 		0 => {
 			push(out, take(data, kind as usize % 7));

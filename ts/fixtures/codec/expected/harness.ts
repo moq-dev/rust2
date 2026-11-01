@@ -6,7 +6,7 @@ import * as Decoder from "./coding/decode.Decoder.ts";
 import * as EncodeError from "./coding/encode.EncodeError.ts";
 import * as Encoder from "./coding/encode.Encoder.ts";
 import type * as Prefix from "./coding/encode.Prefix.ts";
-import { size, zigzag as varint_zigzag, unzigzag } from "./coding/varint.ts";
+import { size, sizeOut, zigzag as varint_zigzag, unzigzag } from "./coding/varint.ts";
 import * as BoundsExceeded from "./coding/varint.BoundsExceeded.ts";
 import * as Form from "./coding/varint.Form.ts";
 import * as Versions from "./coding/version.Versions.ts";
@@ -223,32 +223,36 @@ export function decodeScript(dataData: Uint8Array, dataStart: number, dataLen: n
 export function decodeStep(r: Decoder.Decoder, step: rt.u8, out: rt.ByteVec): rt.Result<undefined, DecodeError.DecodeError> {
 	const _5: rt.u8 = rt.u8Rem(step, 10);
 	if (_5 === 0) {
-		const _7: rt.Result<rt.u8, DecodeError.DecodeError> = Decoder.u8(r);
-		if (_7.ok) {
-			rt.byteVecPush(out, _7.value);
+		const part11: rt.u8 | undefined = Decoder.u8(r);
+		const err7: DecodeError.DecodeError | undefined = part11 === undefined ? Decoder.u8Out.err as DecodeError.DecodeError : undefined;
+		if (err7 === undefined) {
+			rt.byteVecPush(out, part11 as rt.u8);
 		} else {
-			return _7;
+			return rt.Err(err7 as DecodeError.DecodeError);
 		}
 	} else if (_5 === 1) {
-		const _15: rt.Result<rt.u16, DecodeError.DecodeError> = Decoder.u16(r);
-		if (_15.ok) {
-			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(_15.value)));
+		const part10: rt.u16 | undefined = Decoder.u16(r);
+		const err6: DecodeError.DecodeError | undefined = part10 === undefined ? Decoder.u16Out.err as DecodeError.DecodeError : undefined;
+		if (err6 === undefined) {
+			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(part10 as rt.u16)));
 		} else {
-			return _15;
+			return rt.Err(err6 as DecodeError.DecodeError);
 		}
 	} else if (_5 === 2) {
-		const _21: rt.Result<boolean, DecodeError.DecodeError> = Decoder.bool(r);
-		if (_21.ok) {
-			rt.byteVecPush(out, _21.value ? 1 : 0);
+		const err5: DecodeError.DecodeError | undefined = Decoder.bool(r);
+		const part9: boolean = Decoder.boolOut.p;
+		if (err5 === undefined) {
+			rt.byteVecPush(out, part9 ? 1 : 0);
 		} else {
-			return _21;
+			return rt.Err(err5 as DecodeError.DecodeError);
 		}
 	} else if (_5 === 3) {
-		const _26: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-		if (_26.ok) {
-			putU64(out, _26.value);
+		const part8: rt.u64 | undefined = Decoder.varint(r);
+		const err4: DecodeError.DecodeError | undefined = part8 === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+		if (err4 === undefined) {
+			putU64(out, part8 as rt.u64);
 		} else {
-			return _26;
+			return rt.Err(err4 as DecodeError.DecodeError);
 		}
 	} else if (_5 === 4) {
 		const _31: rt.Result<rt.u64 | undefined, DecodeError.DecodeError> = Decoder.varintOpt(r);
@@ -265,15 +269,15 @@ export function decodeStep(r: Decoder.Decoder, step: rt.u8, out: rt.ByteVec): rt
 			return _31;
 		}
 	} else if (_5 === 5) {
-		const err2: DecodeError.DecodeError | undefined = Decoder.bytes(r);
-		const part4: Uint8Array = Decoder.sliceOut.pData;
-		const part5: number = Decoder.sliceOut.pStart;
-		const part6: number = Decoder.sliceOut.pLen;
-		if (err2 === undefined) {
-			putUsize(out, part6);
-			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part4, part5, part6));
+		const err3: DecodeError.DecodeError | undefined = Decoder.bytes(r);
+		const part5: Uint8Array = Decoder.sliceOut.pData;
+		const part6: number = Decoder.sliceOut.pStart;
+		const part7: number = Decoder.sliceOut.pLen;
+		if (err3 === undefined) {
+			putUsize(out, part7);
+			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part5, part6, part7));
 		} else {
-			return rt.Err(err2 as DecodeError.DecodeError);
+			return rt.Err(err3 as DecodeError.DecodeError);
 		}
 	} else if (_5 === 6) {
 		const _49: rt.Result<string, DecodeError.DecodeError> = Decoder.string(r);
@@ -283,25 +287,26 @@ export function decodeStep(r: Decoder.Decoder, step: rt.u8, out: rt.ByteVec): rt
 			return _49;
 		}
 	} else if (_5 === 7) {
-		const err: DecodeError.DecodeError | undefined = Decoder.slice(r, rt.u8Div(step, 10) as rt.usize);
-		const part: Uint8Array = Decoder.sliceOut.pData;
-		const part2: number = Decoder.sliceOut.pStart;
-		const part3: number = Decoder.sliceOut.pLen;
-		if (err === undefined) {
-			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part, part2, part3));
+		const err2: DecodeError.DecodeError | undefined = Decoder.slice(r, rt.u8Div(step, 10) as rt.usize);
+		const part2: Uint8Array = Decoder.sliceOut.pData;
+		const part3: number = Decoder.sliceOut.pStart;
+		const part4: number = Decoder.sliceOut.pLen;
+		if (err2 === undefined) {
+			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part2, part3, part4));
 		} else {
-			return rt.Err(err as DecodeError.DecodeError);
+			return rt.Err(err2 as DecodeError.DecodeError);
 		}
 	} else if (_5 === 8) {
 		const _67: rt.Result<Decoder.Decoder, DecodeError.DecodeError> = Decoder.sub(r, rt.u8Div(step, 10) as rt.usize);
 		if (_67.ok) {
 			const sub: Decoder.Decoder = _67.value;
-			const _76: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(sub);
-			if (_76.ok) {
-				putU64(out, _76.value);
+			const part: rt.u64 | undefined = Decoder.varint(sub);
+			const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+			if (err === undefined) {
+				putU64(out, part as rt.u64);
 				putUsize(out, Decoder.rest(sub).length);
 			} else {
-				return _76;
+				return rt.Err(err as DecodeError.DecodeError);
 			}
 		} else {
 			return _67;
@@ -425,9 +430,9 @@ export function sizes(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let iterStart: rt.u8 = 0;
 	const iterEnd: rt.u8 = 3;
 	while ((_9 = iterStart++) < iterEnd) {
-		const _13: rt.Result<rt.usize, BoundsExceeded.BoundsExceeded> = size(value, form(_9));
-		if (_13.ok) {
-			putUsize(out, _13.value);
+		const part: rt.usize | undefined = size(value, form(_9));
+		if ((part === undefined ? sizeOut.err as BoundsExceeded.BoundsExceeded : undefined) === undefined) {
+			putUsize(out, part as rt.usize);
 		} else {
 			rt.byteVecPush(out, 255);
 		}
