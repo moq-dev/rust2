@@ -43,9 +43,22 @@ import type * as slices_Pair from "./slices.Pair.ts";
 import * as statics_Lock from "./statics.Lock.ts";
 import type * as tuples_Logged from "./tuples.Logged.ts";
 import type * as Spot from "./tuples.Spot.ts";
+import type * as tuples_Tally from "./tuples.Tally.ts";
 import * as Tick from "./wraps.Tick.ts";
 import * as zeros_Lock from "./zeros.Lock.ts";
 import type * as Loud from "./zeros.Loud.ts";
+
+export function copy$Option_Option_array0_u8(v: Uint8Array | undefined | rt.None): Uint8Array | undefined | rt.None {
+	return v === rt.None ? v : copy$Option_array0_u8(v);
+}
+
+export function copy$Option_Option_array1_u8(v: Uint8Array | undefined | rt.None): Uint8Array | undefined | rt.None {
+	return v === rt.None ? v : copy$Option_array1_u8(v);
+}
+
+export function copy$Option_Option_array5_u8(v: Uint8Array | undefined | rt.None): Uint8Array | undefined | rt.None {
+	return v === rt.None ? v : copy$Option_array5_u8(v);
+}
 
 export function copy$Option_array0_u32(v: rt.u32[] | undefined): rt.u32[] | undefined {
 	return v === undefined ? v : copy$array_u32(v);
@@ -92,6 +105,10 @@ export function copy$Option_array3_u8(v: Uint8Array | undefined): Uint8Array | u
 }
 
 export function copy$Option_array40_u8(v: Uint8Array | undefined): Uint8Array | undefined {
+	return v === undefined ? v : copy$array_u8(v);
+}
+
+export function copy$Option_array5_u8(v: Uint8Array | undefined): Uint8Array | undefined {
 	return v === undefined ? v : copy$array_u8(v);
 }
 
@@ -163,6 +180,18 @@ export function copy$Result_tuple2_ref_sync_Mutex_u8_u8_u8(v: rt.Result<[rt.Mute
 	return v.ok ? rt.Ok(copy$tuple2_ref_sync_Mutex_u8_u8(v.value)) : rt.Err(v.error);
 }
 
+export function copy$array_Option_Option_array0_u8(v: Array<Uint8Array | undefined | rt.None>): Array<Uint8Array | undefined | rt.None> {
+	return v.map(copy$Option_Option_array0_u8);
+}
+
+export function copy$array_Option_Option_array1_u8(v: Array<Uint8Array | undefined | rt.None>): Array<Uint8Array | undefined | rt.None> {
+	return v.map(copy$Option_Option_array1_u8);
+}
+
+export function copy$array_Option_Option_array5_u8(v: Array<Uint8Array | undefined | rt.None>): Array<Uint8Array | undefined | rt.None> {
+	return v.map(copy$Option_Option_array5_u8);
+}
+
 export function copy$array_Option_u8(v: Array<rt.u8 | undefined>): Array<rt.u8 | undefined> {
 	return v.slice();
 }
@@ -184,6 +213,10 @@ export function copy$array_array2_u8(v: Uint8Array[]): Uint8Array[] {
 }
 
 export function copy$array_array3_u8(v: Uint8Array[]): Uint8Array[] {
+	return v.map(copy$array_u8);
+}
+
+export function copy$array_array5_u8(v: Uint8Array[]): Uint8Array[] {
 	return v.map(copy$array_u8);
 }
 
@@ -716,6 +749,12 @@ export function drop$Result_sync_RwLockWriteGuard_locks_Tally_sync_TryLockError_
 	}
 }
 
+export function drop$Result_tuple2_tuples_Logged_u8_u8(_1: rt.Result<[tuples_Logged.Logged, rt.u8], rt.u8>): void {
+	if (_1.ok) {
+		drop$tuple2_tuples_Logged_u8(_1.value);
+	}
+}
+
 export function drop$Result_tuple2_usize_u8_sync_Arc_dyn_Any_marker_Sync_marker_Send(_1: rt.Result<[rt.usize, rt.u8], rt.Arc<Any.Any>>): void {
 	if (!_1.ok) {
 		_1.error[Symbol.dispose]();
@@ -792,6 +831,10 @@ export function drop$sync_TryLockError_sync_RwLockWriteGuard_locks_Tally(_1: rt.
 	if (_1.tag === "Poisoned") {
 		rt.refMutRelease((_1 as { tag: "Poisoned"; _0: rt.RefCell<locks_Tally.Tally> })._0);
 	}
+}
+
+export function drop$tuple2_Vec_tuples_Logged_tuples_Tally(_1: [tuples_Logged.Logged[], tuples_Tally.Tally]): void {
+	rt.dropAll(_1[0]);
 }
 
 export function drop$tuple2_sync_Arc_collections_Picky_u8(_1: [rt.Arc<collections_Picky.Picky>, rt.u8]): void {

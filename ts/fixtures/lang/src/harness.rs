@@ -263,6 +263,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		}),
 		("ascii::parts", ascii::parts),
 		("boxes::places", boxes::places),
+		("arrays::flattened", arrays::flattened),
 	]
 }
 

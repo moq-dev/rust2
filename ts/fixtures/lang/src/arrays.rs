@@ -1,7 +1,8 @@
 //! Arrays `array::from_fn` makes, calling its function on each index in order: of bytes,
 //! wide integers, atomics each its own, strings, nested arrays, none at all, and a length
 //! a const parameter gives; arrays `map` makes; arrays' elements each lent; arrays as
-//! slices, written through; and arrays of bytes std is given by reference.
+//! slices, written through; arrays of bytes std is given by reference; and arrays of bytes
+//! reached through the iterator std makes of each item.
 
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
@@ -425,4 +426,134 @@ where
 		out.extend_from_slice(&c);
 	}
 	out.extend_from_slice(&buf);
+}
+
+/// Arrays of bytes reached through the iterator std makes of each item: of an `Option`, a
+/// nested one, a `Vec`, a slice, and an array, by `flatten`, `flat_map`, `chain`, `zip`,
+/// `extend`, `from_iter`, and `DebugList::entries`, read from both ends and written through.
+/// Of no bytes, one, and many.
+pub fn flattened(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	match kind % 3 {
+		0 => flattened_n::<0>(data, out),
+		1 => flattened_n::<1>(data, out),
+		_ => flattened_n::<5>(data, out),
+	}
+	let listed = [Listed(Some(bytes_at(data, 1))), Listed(None)];
+	out.extend_from_slice(format!("{listed:?}").as_bytes());
+}
+
+/// [`flattened`] of `N` bytes.
+fn flattened_n<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
+	// A `None` in the middle and at the end.
+	let mut options: Vec<Option<[u8; N]>> = (0..5)
+		.map(|k| (k != 2 && k != 4).then(|| bytes_at(data, k * N)))
+		.collect();
+	for a in options.iter().flatten() {
+		out.extend_from_slice(a);
+	}
+	for a in options.iter().flatten().rev() {
+		out.extend_from_slice(a);
+	}
+	// From both ends at once, until they meet.
+	let mut it = options.iter().flatten();
+	while let (Some(a), b) = (it.next(), it.next_back()) {
+		out.extend_from_slice(a);
+		out.extend_from_slice(b.unwrap_or(&[0xaa; N]));
+	}
+	// Writes through each reach the array.
+	for a in options.iter_mut().flatten() {
+		a.reverse();
+		if let Some(x) = a.last_mut() {
+			*x ^= 0x11;
+		}
+	}
+	put_options(out, &options);
+	for a in options.iter().flat_map(|o| o) {
+		out.extend_from_slice(a);
+	}
+	for a in options.iter().flat_map(|o| o.iter()).rev() {
+		out.extend_from_slice(a);
+	}
+	// An `Option` of a reference, already a slice.
+	for a in options.iter().flat_map(|o| o.as_ref()) {
+		out.extend_from_slice(a);
+	}
+	for a in options.iter_mut().flat_map(|o| o) {
+		if let Some(x) = a.first_mut() {
+			*x = x.wrapping_add(3);
+		}
+	}
+	put_options(out, &options);
+	// Beside another iterator, through `IntoIterator` of a reference to an `Option`.
+	let one = options[0];
+	let mut other = options[1];
+	for a in one.iter().chain(&other).chain(options.iter().flatten()) {
+		out.extend_from_slice(a);
+	}
+	for (a, b) in options.iter().flatten().zip(&other) {
+		out.extend_from_slice(a);
+		out.extend_from_slice(b);
+	}
+	for (a, b) in options.iter_mut().flatten().zip(&mut other) {
+		std::mem::swap(a, b);
+	}
+	for a in other.iter_mut().chain(&mut options[3]) {
+		a.fill(0x5a);
+	}
+	for a in &mut other {
+		a.reverse();
+	}
+	for a in &other {
+		out.extend_from_slice(a);
+	}
+	put_options(out, &options);
+	put_some(out, other);
+	// Copied out of each.
+	let lent: Vec<&[u8; N]> = Vec::from_iter(&options[0]);
+	let mut copied: Vec<[u8; N]> = lent.into_iter().copied().collect();
+	copied.extend(&other);
+	copied.extend(options.iter().flatten());
+	put(out, &copied);
+	let nested: Vec<Option<Option<[u8; N]>>> = vec![
+		Some(None),
+		None,
+		Some(options[0]),
+		Some(Some(bytes_at(data, 3))),
+		Some(None),
+	];
+	for a in nested.iter().flatten().flatten() {
+		out.extend_from_slice(a);
+	}
+	for a in nested.iter().flatten().flatten().rev() {
+		out.extend_from_slice(a);
+	}
+	// Collections, whose iterators lend each array already.
+	let vecs: Vec<Vec<[u8; N]>> = vec![vec![], vec![bytes_at(data, 4), bytes_at(data, 5)]];
+	for a in vecs.iter().flatten().rev() {
+		out.extend_from_slice(a);
+	}
+	let slices: Vec<&[[u8; N]]> = vecs.iter().map(|v| v.as_slice()).collect();
+	for a in slices.into_iter().flatten() {
+		out.extend_from_slice(a);
+	}
+	let arrays = [[bytes_at::<N>(data, 6); 2]; 2];
+	for a in arrays.iter().flatten() {
+		out.extend_from_slice(a);
+	}
+}
+
+/// An `Option` formatted as a list of what it holds.
+struct Listed(Option<[u8; 3]>);
+
+impl fmt::Debug for Listed {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_list().entries(&self.0).finish()
+	}
+}
+
+/// Each `Option`'s bytes, as [`put_some`] puts them.
+fn put_options<const N: usize>(out: &mut Vec<u8>, options: &[Option<[u8; N]>]) {
+	for &a in options {
+		put_some(out, a);
+	}
 }
