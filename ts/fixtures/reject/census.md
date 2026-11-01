@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 226
-- Function instances: 280
+- Refusals: 227
+- Function instances: 281
 - Generic functions no instance reached, lowered over their type parameters: 13
 
 ## By construct
@@ -19,6 +19,7 @@
 | 4 | an assignment through a reference to `_` | fixtures/reject/src/lib.rs:90:2 |
 | 3 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | fixtures/reject/src/lib.rs:21:4 |
 | 3 | a copy of a closure that changes what it captured | fixtures/reject/src/lib.rs:231:14 |
+| 3 | a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there | fixtures/reject/src/lib.rs:2166:2 |
 | 3 | replacing the value behind a reference to `_` | fixtures/reject/src/lib.rs:98:2 |
 | 3 | unsupported type `_` | fixtures/reject/src/lib.rs:7:14 |
 | 2 | `_` is not supported: its `None` and `Some` would both be `rt.None` | fixtures/reject/src/lib.rs:16:15 |
@@ -28,7 +29,6 @@
 | 2 | a cast from a pointer to `_` to one to `_`, which reads the bytes of one type as another | fixtures/reject/src/lib.rs:557:27 |
 | 2 | a coercion to `_`, which is not supported yet | fixtures/reject/src/lib.rs:457:40 |
 | 2 | a raw pointer to a place of `()`, which has no address of its own | fixtures/reject/src/lib.rs:730:15 |
-| 2 | a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there | fixtures/reject/src/lib.rs:2166:2 |
 | 2 | an iterator of the crate implementing `_`, which is not supported yet | fixtures/reject/src/lib.rs:152:1 |
 | 2 | comparing pointers to `_`, each a place JS makes of its own | fixtures/reject/src/lib.rs:598:2 |
 | 2 | overriding `_`, which std's adaptors call in place of `next` or beside it | fixtures/reject/src/lib.rs:132:2 |
@@ -246,6 +246,7 @@ The type or module each refused type or path belongs to.
 | 1 | `std::sync::LazyLock` | fixtures/reject/src/lib.rs:2213:2 |
 | 1 | `std::sync::Weak` | fixtures/reject/src/lib.rs:457:40 |
 | 1 | `std::task::Poll` | fixtures/reject/src/lib.rs:84:34 |
+| 1 | `std::thread::LocalKey` | fixtures/reject/src/lib.rs:2219:2 |
 | 1 | `str` | fixtures/reject/src/lib.rs:333:4 |
 | 1 | `u64` | fixtures/reject/src/lib.rs:75:2 |
 | 1 | `value` | fixtures/reject/src/lib.rs:31:2 |
@@ -381,6 +382,7 @@ The type or module each refused type or path belongs to.
 | 1 | a scalar constant of type `_` | `f16` | fixtures/reject/src/lib.rs:8:2 |
 | 1 | a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there | `Reused` | fixtures/reject/src/lib.rs:2166:2 |
 | 1 | a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there | `std::cell::LazyCell` | fixtures/reject/src/lib.rs:2208:3 |
+| 1 | a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there | `std::thread::LocalKey` | fixtures/reject/src/lib.rs:2219:2 |
 | 1 | a trait object of `_`, which is not supported yet | `[u8; 4]` | fixtures/reject/src/lib.rs:483:26 |
 | 1 | a zero-sized constant of type `_` | `{async closure}` | fixtures/reject/src/lib.rs:50:2 |
 | 1 | an assignment through a reference to `_` | `std::sync::LazyLock` | fixtures/reject/src/lib.rs:2213:2 |
@@ -634,6 +636,14 @@ The type or module each refused type or path belongs to.
 
 </details>
 
+<details><summary>a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there (3)</summary>
+
+- fixtures/reject/src/lib.rs:2166:2: a slice or a cell of a mutable reference to `Reused` that names no place, which a whole write would replace only there
+- fixtures/reject/src/lib.rs:2208:3: a slice or a cell of a mutable reference to `std::cell::LazyCell<u32>` that names no place, which a whole write would replace only there
+- fixtures/reject/src/lib.rs:2219:2: a slice or a cell of a mutable reference to `std::thread::LocalKey<u32>` that names no place, which a whole write would replace only there
+
+</details>
+
 <details><summary>replacing the value behind a reference to `_` (3)</summary>
 
 - fixtures/reject/src/lib.rs:98:2: replacing the value behind a reference to `std::pin::Pin<std::boxed::Box<std::future::PollFn<for<'a, 'b> fn(&'a mut std::task::Context<'b>) -> std::task::Poll<u8>>>>`
@@ -696,13 +706,6 @@ The type or module each refused type or path belongs to.
 
 - fixtures/reject/src/lib.rs:730:15: a raw pointer to a place of `()`, which has no address of its own
 - fixtures/reject/src/lib.rs:730:29: a raw pointer to a place of `()`, which has no address of its own
-
-</details>
-
-<details><summary>a slice or a cell of a mutable reference to `_` that names no place, which a whole write would replace only there (2)</summary>
-
-- fixtures/reject/src/lib.rs:2166:2: a slice or a cell of a mutable reference to `Reused` that names no place, which a whole write would replace only there
-- fixtures/reject/src/lib.rs:2208:3: a slice or a cell of a mutable reference to `std::cell::LazyCell<u32>` that names no place, which a whole write would replace only there
 
 </details>
 

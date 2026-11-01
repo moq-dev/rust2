@@ -1344,7 +1344,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// whole value of it can be written into the object in place: one only its owner
 	/// holds, unlike an `Arc`'s, which its clones share, and whose parts `Object.assign`
 	/// copies, unlike a binding's, the private fields of an `rt.PollFn`, an `rt.LazyCell`,
-	/// or a future, or a trait object's, whatever class it is.
+	/// an `rt.LocalKey`, or a future, or a trait object's, whatever class it is.
 	pub fn write_in(&self, pointee: Ty<'tcx>) -> Option<ObjectKind> {
 		use library::Std;
 		let erased = self.erased(pointee);
@@ -1353,7 +1353,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				self.bound_drops(adt.did()).is_some()
 					|| matches!(
 						Std::of(self.tcx, adt.did()),
-						Some(Std::PollFn | Std::LazyCell | Std::LazyLock)
+						Some(Std::PollFn | Std::LazyCell | Std::LazyLock | Std::LocalKey)
 					)
 			}
 			ty::Dynamic(..) | ty::Closure(..) => true,

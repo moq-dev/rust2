@@ -2213,3 +2213,9 @@ pub fn lazy_assigned(c: &mut std::sync::LazyLock<u32>) -> u32 {
 	*c = LAZY_LOCK;
 	**c
 }
+
+/// A thread local's key, whose state JS keeps private, set whole through a cell.
+pub fn key_celled(key: &'static mut std::thread::LocalKey<u32>, next: std::thread::LocalKey<u32>) -> u32 {
+	std::cell::Cell::from_mut(key).set(next);
+	key.with(|v| *v)
+}

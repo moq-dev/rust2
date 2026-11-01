@@ -175,5 +175,6 @@ roots = [
     "variable_celled",
     "lazy_celled",
     "lazy_assigned",
+    "key_celled",
 ]
 printable = ["Meters"]
