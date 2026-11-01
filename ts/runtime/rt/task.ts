@@ -461,6 +461,12 @@ export function rwLockTryWrite<T>(lock: RefCell<T>): Result<RefCell<T>, TryLockE
 	return Ok(lock);
 }
 
+/** `RwLockWriteGuard::downgrade`: `guard`, a lock's own, still holding it, now shared. */
+export function rwLockDowngrade<T>(guard: RefCell<T>): RefCell<T> {
+	guard.borrows = 1;
+	return guard;
+}
+
 /** A guard a map of a cell's guard made: a `Mapped` of a part of its value, whose borrow that cell counts. */
 export class RefMap<T> extends Mapped<T> implements RefCell<T> {
 	/** A cell's count, which a guard's cell keeps instead. */
@@ -568,6 +574,12 @@ export function refCellTryBorrowMut<T>(cell: RefCell<T>): Result<RefCell<T>, Bor
 	if (cell.borrows !== 0) return BORROW_MUT_ERROR;
 	cell.borrows = -1;
 	return Ok(cell);
+}
+
+/** `RefCell::undo_leak`: `cell`, borrowed no longer, as the guards it leaked are forgotten. */
+export function refCellUndoLeak<T>(cell: RefCell<T>): RefCell<T> {
+	cell.borrows = 0;
+	return cell;
 }
 
 /** `Debug` of `BorrowError`. */
