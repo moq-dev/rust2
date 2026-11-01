@@ -142,8 +142,11 @@ crate translation reaches is refused, and so are two versions of one crate it re
 `byteOffset` and `byteLength`, and copy it before transferring it.
 
 An `rt.ByteSlice` is a range of a `Uint8Array`: its `data`, from `start`, for `length`
-bytes. A caller passes bytes as `rt.byteSliceFrom(array)` and reads a slice it gets as
-`rt.byteSliceView(slice)`, a view of it. A mutable part of a slice of other values, as
+bytes. A struct's private `&[u8]` or `&[u8; N]` field is its three parts, `bufData`,
+`bufStart`, and `bufLen` for `buf`, so a cursor moving through it makes no object; a
+read that needs the slice whole makes it there. A caller passes bytes as
+`rt.byteSliceFrom(array)` and reads a slice it gets as `rt.byteSliceView(slice)`, a view
+of it. A mutable part of a slice of other values, as
 `&mut v[a..b]`, `split_at_mut`, `chunks_mut`, and `split_mut` lend it, is a `Proxy` of an
 array whose elements are the slice's, read and written where they are, since a JS array
 has no views.

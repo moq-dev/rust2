@@ -13,6 +13,7 @@ import type * as counts_Noisy from "./counts.Noisy.ts";
 import type * as RcReleasing from "./counts.RcReleasing.ts";
 import type * as RcShared from "./counts.RcShared.ts";
 import type * as durations_Window from "./durations.Window.ts";
+import type * as Couple from "./fields.Couple.ts";
 import type * as Either from "./generics.Either.ts";
 import * as Wrap from "./generics.Wrap.ts";
 import type * as Bumped from "./iters.Bumped.ts";
@@ -304,6 +305,10 @@ export function copy$collections_Tally(v: collections_Tally.Tally): collections_
 
 export function copy$durations_Window(v: durations_Window.Window): durations_Window.Window {
 	return { start: v.start, len: v.len };
+}
+
+export function copy$fields_Couple(v: Couple.Couple): Couple.Couple {
+	return { headData: v.headData, headStart: v.headStart, headLen: v.headLen, wordData: v.wordData, wordStart: v.wordStart, wordLen: v.wordLen };
 }
 
 export function copy$generics_Either_u8_shapes_Point(v: Either.Either<rt.u8, Point.Point>): Either.Either<rt.u8, Point.Point> {

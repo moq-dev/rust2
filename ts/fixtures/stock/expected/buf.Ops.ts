@@ -5,14 +5,20 @@ import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr } from "./core/option.ts";
 
 /** The bytes of a case's input, taken from the front. */
 export interface Ops {
-	_0: rt.ByteSlice;
+	_0Data: Uint8Array;
+	_0Start: number;
+	_0Len: number;
 }
 
 export function next(self: Ops): rt.u8 | undefined {
-	const slice: rt.ByteSlice = self._0;
-	if (slice.length !== 0) {
-		const first: rt.u8 = slice.data[slice.start];
-		self._0 = new rt.ByteSlice(slice.data, slice.start + 1, slice.length - 1);
+	const _8Data: Uint8Array = self._0Data;
+	const _8Start: number = self._0Start;
+	const _8Len: number = self._0Len;
+	if (_8Len !== 0) {
+		const first: rt.u8 = _8Data[_8Start];
+		self._0Data = _8Data;
+		self._0Start = _8Start + 1;
+		self._0Len = _8Len - 1;
 		return first;
 	}
 	return undefined;
@@ -23,14 +29,17 @@ export function byte(self: Ops): rt.u8 {
 }
 
 export function take(self: Ops, n: rt.usize): rt.ByteSlice {
-	const _7: rt.ByteSlice = self._0;
-	const _5: rt.usize = rt.min(n, self._0.length);
-	const slice: rt.ByteSlice = _7;
-	if (_5 > slice.length) {
+	const _7Data: Uint8Array = self._0Data;
+	const _7Start: number = self._0Start;
+	const _7Len: number = self._0Len;
+	const mid: number = rt.min(n, self._0Len);
+	if (mid > _7Len) {
 		rt.panic("mid > len");
 	}
-	const taken: rt.ByteSlice = new rt.ByteSlice(slice.data, slice.start, _5);
-	self._0 = new rt.ByteSlice(slice.data, slice.start + _5, slice.length - _5);
+	const taken: rt.ByteSlice = new rt.ByteSlice(_7Data, _7Start, mid);
+	self._0Data = _7Data;
+	self._0Start = _7Start + mid;
+	self._0Len = _7Len - mid;
 	return taken;
 }
 

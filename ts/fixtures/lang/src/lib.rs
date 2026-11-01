@@ -1,7 +1,7 @@
 //! The language the driver translates, exercised against native Rust: every integer
 //! width's arithmetic, casts, and inherent methods, `f64`, `char`s and the `str` methods over them,
 //! `Cow<str>`, boxed slices and text, `Duration`, control flow, patterns, byte slices split apart,
-//! passed as their parts, and returned in a slot, `Copy`
+//! passed as their parts, returned in a slot, and held as their parts in fields, `Copy`
 //! aggregates, closures and what they write of what they captured, traits, generic
 //! types, formatting, collections, `LinkedList`s, UTF-8 decoding, `&mut` to values JS copies, whole
 //! writes through a `&mut` to an object, the standard library calls it maps, `Option`'s
@@ -54,6 +54,7 @@ mod durations;
 mod dyns;
 mod edits;
 mod errors;
+mod fields;
 mod floats;
 mod fmt;
 mod folds;

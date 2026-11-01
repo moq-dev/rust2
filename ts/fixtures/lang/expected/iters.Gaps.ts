@@ -4,12 +4,14 @@ import * as rt from "./rt.ts";
 
 /** Every byte, or `None` where it is zero. */
 export interface Gaps {
-	data: rt.ByteSlice;
+	dataData: Uint8Array;
+	dataStart: number;
+	dataLen: number;
 	at: rt.usize;
 }
 
 export function next$iter_Iterator(self: Gaps): rt.u8 | undefined | rt.Done {
-	const _3: rt.u8 | undefined = rt.byteSliceGet(self.data, self.at);
+	const _3: rt.u8 | undefined = rt.byteSliceGet(new rt.ByteSlice(self.dataData, self.dataStart, self.dataLen), self.at);
 	if (_3 !== undefined) {
 		const b: rt.u8 = _3;
 		self.at = rt.usizeAdd(self.at, 1);
