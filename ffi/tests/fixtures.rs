@@ -492,13 +492,14 @@ const PYTHON_LIB: &str = match (cfg!(windows), cfg!(target_os = "macos")) {
 	_ => "libapi.so",
 };
 
-/// `tests/api.py`'s script prints the native transcript; then its futures, what frees
-/// what nobody closed, the values Python's types bound, and each contract it fails loud on.
+/// `tests/api.py`'s script, run by `PYTHON` or `python3`, prints the native transcript; then
+/// its futures, what frees what nobody closed, the values Python's types bound, and each
+/// contract it fails loud on.
 #[test]
 fn api_python() {
 	let api = api();
 	let python = |dir: &Path, args: &[&str]| {
-		let mut cmd = Command::new("python3");
+		let mut cmd = Command::new(std::env::var_os("PYTHON").unwrap_or_else(|| "python3".into()));
 		// `-P` keeps `tests/` off the path, where `api.py` is this script; dev mode and
 		// warnings as errors fail on what the runtime only warns of.
 		cmd.args(["-P", "-X", "dev", "-W", "error"])
