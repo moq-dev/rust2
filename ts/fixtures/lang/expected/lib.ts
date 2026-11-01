@@ -299,6 +299,10 @@ export function copy$array_unit(v: undefined[]): undefined[] {
 	return v.slice();
 }
 
+export function copy$array_usize(v: rt.usize[]): rt.usize[] {
+	return v.slice();
+}
+
 export function copy$collections_Quirky(v: Quirky.Quirky): Quirky.Quirky {
 	return { _0: v._0, _1: v._1 };
 }
