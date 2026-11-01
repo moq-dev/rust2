@@ -24,7 +24,8 @@ generic std gap is planned here even when moq never calls it.
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
 - [Fresh writes in a body generic over a type](/quest/m3/ts-fresh-type-params.md) - a whole write into fresh memory holding a type parameter's values fills it, as one generic over a length alone does
 - [A generic type's bytes at u8](/quest/m3/ts-generic-byte-fields.md) - a `[T; N]`, `Vec<T>`, or `&[T]` field of a generic type is typed as its `u8` instance holds it, or refused
-- [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
+- [A slice of one value behind any &mut](/quest/m3/ts-slice-of-one.md) - `slice::from_mut` and `array::from_mut` of a `&mut u8`, or of an object no place names, translate
+- [A slice's searches by a closure](/quest/m3/ts-binary-search-by.md) - `binary_search_by`, `binary_search_by_key`, and `partition_point` translate, probing as std's do
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are

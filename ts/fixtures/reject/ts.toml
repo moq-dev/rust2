@@ -165,5 +165,9 @@ roots = [
     "byte_pointer_rebound",
     "block_cloned",
     "lists",
+    "byte_slice_of_place",
+    "slice_of_object",
+    "vec_clone_from",
+    "dyn_size",
 ]
 printable = ["Meters"]

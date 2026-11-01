@@ -227,11 +227,19 @@ export function copy$array_array1_u8(v: Uint8Array[]): Uint8Array[] {
 	return v.map(copy$array_u8);
 }
 
+export function copy$array_array2_u32(v: rt.u32[][]): rt.u32[][] {
+	return v.map(copy$array_u32);
+}
+
 export function copy$array_array2_u8(v: Uint8Array[]): Uint8Array[] {
 	return v.map(copy$array_u8);
 }
 
 export function copy$array_array3_u8(v: Uint8Array[]): Uint8Array[] {
+	return v.map(copy$array_u8);
+}
+
+export function copy$array_array40_u8(v: Uint8Array[]): Uint8Array[] {
 	return v.map(copy$array_u8);
 }
 
@@ -273,6 +281,10 @@ export function copy$array_tuple2_u8_u16(v: [rt.u8, rt.u16][]): [rt.u8, rt.u16][
 
 export function copy$array_tuple2_u8_u8(v: [rt.u8, rt.u8][]): [rt.u8, rt.u8][] {
 	return v.map(copy$tuple2_u8_u8);
+}
+
+export function copy$array_tuple2_usize_usize(v: [rt.usize, rt.usize][]): [rt.usize, rt.usize][] {
+	return v.map(copy$tuple2_usize_usize);
 }
 
 export function copy$array_u16(v: rt.u16[]): rt.u16[] {
@@ -741,6 +753,10 @@ export function copy$tuple2_u8_u16(v: [rt.u8, rt.u16]): [rt.u8, rt.u16] {
 }
 
 export function copy$tuple2_u8_u8(v: [rt.u8, rt.u8]): [rt.u8, rt.u8] {
+	return [v[0], v[1]];
+}
+
+export function copy$tuple2_usize_usize(v: [rt.usize, rt.usize]): [rt.usize, rt.usize] {
 	return [v[0], v[1]];
 }
 

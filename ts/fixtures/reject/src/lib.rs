@@ -2164,3 +2164,24 @@ pub fn optional_places_compared(n: &mut u32) -> bool {
 	let p = std::ptr::NonNull::from(&mut *n);
 	Some(p) == std::ptr::NonNull::new(&raw mut *n)
 }
+
+/// A slice of one `u8`'s place, which no `rt.ByteSlice` views.
+pub fn byte_slice_of_place(b: &mut u8) {
+	std::slice::from_mut(b)[0] = 1;
+}
+
+/// A slice of the object a parameter is, whose element a whole write would replace only
+/// in the slice, not where the caller holds it.
+pub fn slice_of_object(r: &mut Reused, by: Reused) {
+	std::slice::from_mut(r)[0] = by;
+}
+
+/// `clone_from` of a `Vec` whose elements' is their own.
+pub fn vec_clone_from(v: &mut Vec<Reused>, from: &Vec<Reused>) {
+	v.clone_from(from);
+}
+
+/// `size_of_val` of a trait object, which its vtable gives.
+pub fn dyn_size(d: &dyn std::fmt::Debug) -> usize {
+	size_of_val(d)
+}

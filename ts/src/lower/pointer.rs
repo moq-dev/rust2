@@ -230,8 +230,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 }
 
 /// Whether std's `def_id` with `args` makes a raw pointer to what its first argument, a
-/// reference, points at: `UnsafeCell::get`, `MaybeUninit::as_ptr` and `as_mut_ptr`, and
-/// `NonNull::from` and `into`.
+/// reference, points at: `UnsafeCell::get`, `MaybeUninit::as_ptr` and `as_mut_ptr`,
+/// `ptr::from_ref` and `from_mut`, and `NonNull::from` and `into`.
 pub fn from_reference<'tcx>(
 	tcx: ty::TyCtxt<'tcx>,
 	def_id: rustc_hir::def_id::DefId,
@@ -241,7 +241,7 @@ pub fn from_reference<'tcx>(
 		return false;
 	};
 	match (owner.as_str(), name.as_str()) {
-		("UnsafeCell", "get") | ("MaybeUninit", "as_ptr" | "as_mut_ptr") => true,
+		("UnsafeCell", "get") | ("MaybeUninit", "as_ptr" | "as_mut_ptr") | ("ptr", "from_ref" | "from_mut") => true,
 		("From", "from") | ("Into", "into") => {
 			let (to, from) = match owner.as_str() {
 				"From" => (args.type_at(0), args.type_at(1)),
@@ -317,12 +317,14 @@ pub fn allocates(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> bool 
 
 /// How many of std's `def_id`'s first arguments are `&mut`s whose lowering gives what
 /// they borrow another value, rather than writing into it, where one is an alias of a
-/// borrowed place: the place is assigned again. `mem::replace`'s value is no such one.
+/// borrowed place: the place is assigned again, as `mem::replace` and a whole write of
+/// what `slice::from_mut` or `array::from_mut` makes assign it. `mem::replace`'s value is
+/// no such one.
 pub fn rebinds(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> usize {
 	match super::library::key(tcx, def_id) {
-		Some((owner, name)) if owner == "mem" => match name.as_str() {
-			"replace" | "take" => 1,
-			"swap" => 2,
+		Some((owner, name)) => match (owner.as_str(), name.as_str()) {
+			("mem", "replace" | "take") | ("raw" | "array", "from_mut") => 1,
+			("mem", "swap") => 2,
 			_ => 0,
 		},
 		_ => 0,
@@ -374,7 +376,7 @@ pub fn keeps<'tcx>(tcx: ty::TyCtxt<'tcx>, def_id: rustc_hir::def_id::DefId, args
 /// rather than what it points at: a `MaybeUninit`'s, which it points into, an `Arc`'s that
 /// `make_mut` replaces, a `String`'s that a drain edits as it drops, a `Result`'s whose
 /// payload JS copies, which `iter_mut` lends as a place that writes the whole `Result`,
-/// and a well-known crate's, such as a `Bytes` that `Buf::advance` moves past its front.
+/// one `ptr::from_mut` makes a pointer of, and a well-known crate's, such as a `Bytes` that `Buf::advance` moves past its front.
 fn takes_place<'tcx>(
 	t: &Translator<'_, 'tcx>,
 	def_id: rustc_hir::def_id::DefId,
@@ -384,7 +386,7 @@ fn takes_place<'tcx>(
 		super::library::key(t.tcx, def_id),
 		Some((owner, name)) if owner == "MaybeUninit"
 			|| matches!(owner.as_str(), "Arc" | "Rc") && name == "make_mut"
-			|| (owner.as_str(), name.as_str()) == ("String", "drain")
+			|| matches!((owner.as_str(), name.as_str()), ("String", "drain") | ("ptr", "from_mut"))
 			|| (owner.as_str(), name.as_str()) == ("Result", "iter_mut") && t.needs_place(args.type_at(0))
 	) || super::stock::is_stock(t.tcx, def_id)
 }
@@ -434,6 +436,10 @@ pub fn call<'tcx>(
 		// A pointer to `()` is an identity, which the `rt.Place` of a place or a reference
 		// is not. A box of one holds nothing, so its pointer is dangling.
 		("MaybeUninit", "as_ptr" | "as_mut_ptr") | ("UnsafeCell", "get") if b.t.identity_pointee(pointee()) => b.err(
+			span,
+			"a raw pointer to a place of `()`, which has no address of its own",
+		),
+		("ptr", "from_ref" | "from_mut") if b.t.identity_pointee(pointee()) => b.err(
 			span,
 			"a raw pointer to a place of `()`, which has no address of its own",
 		),
@@ -502,6 +508,12 @@ pub fn call<'tcx>(
 				_ => arg(),
 			}
 		}
+		// As `NonNull::from` makes one, of a `[u8; N]` given as the view of its bytes.
+		("ptr", "from_ref" | "from_mut") => match kind(b, pointee()) {
+			Some(Pointee::Place) if name == "from_ref" => Expr::Object(vec![(crate::ts::Key::Name("v".into()), arg())]),
+			Some(Pointee::Bytes) => to_pointer(arg()),
+			_ => arg(),
+		},
 		("NonNull", "new") => {
 			let p = b.spill(arg(), "pointer", out);
 			Expr::Cond(

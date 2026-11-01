@@ -4,7 +4,7 @@
 // A value whose drop JS can observe has `[Symbol.dispose]`, which runs its `Drop` impl
 // and drops its fields. `None` is `undefined`, which drops as nothing.
 
-import { type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, type Result } from "../rt.ts";
+import { type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, ptrWrite, type Result } from "../rt.ts";
 
 // Drops
 
@@ -511,6 +511,23 @@ export class Cell<T> implements Place<T>, Disposable {
 	[Symbol.dispose](): void {
 		drop(this.v);
 	}
+}
+
+/** `Cell::from_mut` of the place `p`: a cell of it, which nothing drops, as nothing owns it. */
+export function cellOfPlace<T>(p: Place<T>): Cell<T> {
+	return p as Cell<T>;
+}
+
+/**
+ * `Cell::from_mut` of the object or the bytes a `&mut` is: a read is a copy, as a `Cell`
+ * only moves or copies its value out, and a write lands in place, as `ptrWrite`'s does.
+ */
+export function cellIn<T extends object>(p: T): Cell<T> {
+	const copy = (): T => {
+		if (ArrayBuffer.isView(p) || Array.isArray(p)) return (p as unknown as T[]).slice() as T;
+		return Object.assign(Object.create(Object.getPrototypeOf(p)) as T, p);
+	};
+	return cellOfPlace(place(copy, (value) => ptrWrite(p, value)));
 }
 
 /**

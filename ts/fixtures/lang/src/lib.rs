@@ -19,7 +19,9 @@
 //! of `Result`s and std's errors, inclusive ranges read through each adaptor, iterators'
 //! size hints, the capacity overflows collections reserving by them panic with, tuples of
 //! collections collected and extended by their items, zero-sized values, which MIR
-//! never assigns, with std's impls of them, and functions generic over an array's length.
+//! never assigns, with std's impls of them, functions generic over an array's length, and
+//! std's conversions of a reference: clones into it, searches, sizes, slices, cells, and
+//! pointers of one value.
 //!
 //! `harness::run` is the entry point both sides of the differential test run, and
 //! `fmt::Fault` an error only `caller.ts` prints.
@@ -46,6 +48,7 @@ mod chunks;
 mod clones;
 mod collections;
 mod combinators;
+mod conversions;
 mod counts;
 mod cows;
 mod cycles;

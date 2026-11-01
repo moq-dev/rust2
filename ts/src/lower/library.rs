@@ -1806,8 +1806,10 @@ fn mapping<'tcx>(
 			};
 			rt2(values, of, &super::camel(name))
 		}
-		// A slice of the one value.
-		("raw", "from_ref") if std_path(tcx, call.def_id) == ["slice", "raw", "from_ref"] => {
+		// A slice or an array of the one value.
+		("raw" | "array", "from_ref")
+			if owner == "array" || std_path(tcx, call.def_id) == ["slice", "raw", "from_ref"] =>
+		{
 			let value = args.pop()?;
 			match is_u8(targ(gargs, 0)) {
 				true => Expr::rt(
@@ -1816,6 +1818,20 @@ fn mapping<'tcx>(
 				),
 				false => Expr::Array(vec![value]),
 			}
+		}
+		// The array is its own slice, as `as_slice` has it.
+		("AsRef", "as_ref") | ("AsMut", "as_mut") | ("Borrow", "borrow") | ("BorrowMut", "borrow_mut")
+			if targ(gargs, 0).is_array() && targ(gargs, 1).is_slice() =>
+		{
+			args.pop()?
+		}
+		// `Ord::cmp` of each element it compares with `x`, in std's order.
+		("slice", "binary_search") => {
+			let elem = targ(gargs, 0);
+			let [s, x] = <[Expr; 2]>::try_from(args).ok()?;
+			let s = elements(s, Ty::new_slice(tcx, elem));
+			let cmp = super::collections::cmp_fn(b, elem, false, span);
+			Expr::rt("sliceBinarySearch", vec![s, x, cmp])
 		}
 		// Each slot but the last a clone, as `clone_from` makes it, and the last the value;
 		// a `TrivialClone`'s copies, as std specializes `fill` to.
@@ -2198,6 +2214,11 @@ fn mapping<'tcx>(
 		("ToString", "to_string") | ("ToOwned", "to_owned") if matches!(self_ty()?.peel_refs().kind(), ty::Str) => {
 			b.t.pointee_value(self_ty()?, args.pop()?)
 		}
+		// std's `ToOwned` for a `T: Clone` is its `clone`.
+		("ToOwned", "to_owned") if self_ty()?.is_sized(tcx, b.t.typing_env_pub()) => {
+			let clone = super::collections::trait_fn(tcx, "Clone", "clone");
+			return Some(b.call_def(clone, tcx.mk_args(&[self_ty()?.into()]), args, span, out));
+		}
 
 		// Panics, which format their message as std does.
 		("panicking", "panic_fmt") => {
@@ -2237,6 +2258,27 @@ fn mapping<'tcx>(
 			let env = b.t.typing_env_pub();
 			let layout = tcx.layout_of(env.as_query_input(targ(gargs, 0))).ok()?;
 			Expr::lit(layout.size.bytes().to_string())
+		}
+		// What wasm32 lays out the value in: its type's, or a slice's elements' or a `str`'s
+		// bytes'. A trait object's is its vtable's, which is left to the refusal of any other call.
+		("mem", "size_of_val" | "align_of_val") => {
+			let env = b.t.typing_env_pub();
+			let ty = targ(gargs, 0);
+			let value = args.pop()?;
+			let (elem, len) = match ty.kind() {
+				ty::Slice(elem) => (*elem, Some(super::mir::slice_member(value, "length"))),
+				ty::Str => (tcx.types.u8, Some(Expr::rt("stringLen", vec![value]))),
+				_ if ty.is_sized(tcx, env) => (ty, None),
+				_ => return None,
+			};
+			let layout = tcx.layout_of(env.as_query_input(elem)).ok()?;
+			let size = layout.size.bytes();
+			match (name.as_str(), len) {
+				("align_of_val", _) => Expr::lit(layout.align.abi.bytes().to_string()),
+				(_, None) => Expr::lit(size.to_string()),
+				(_, Some(len)) if size == 1 => len,
+				(_, Some(len)) => len.binary("*", Expr::lit(size.to_string())),
+			}
 		}
 		// A reference to an array of bytes is an `rt.ByteSlice` already, and to one of other
 		// values its JS array, so each is its own slice, and writes through it land in it.

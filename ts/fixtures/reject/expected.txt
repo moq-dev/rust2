@@ -198,6 +198,10 @@ const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:210
 `std::collections::LinkedList::<T, A>::retain` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2119:4
 `clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:2120:4
 `std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2121:2
+a slice of one `u8`'s place, which an `rt.ByteSlice` can't view at fixtures/reject/src/lib.rs:2170:2
+a slice or a cell of a `&mut` to `Reused` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2176:2
+`Clone::clone_from` of `std::vec::Vec<Reused>`, whose `clone_from` is its own, which is not supported yet at fixtures/reject/src/lib.rs:2181:4
+unsupported call to `std::mem::size_of_val::<dyn std::fmt::Debug>` at fixtures/reject/src/lib.rs:2186:2
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:132:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:152:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:180:2
