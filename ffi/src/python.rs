@@ -674,19 +674,40 @@ impl<'a> Gen<'a> {
 		}
 	}
 
-	/// The methods of a type, each a member or a static method by its receiver, with the
-	/// Python names they take, checked to differ.
-	fn methods(&mut self, methods: &[Function], ty: &Type, owner: &Ty, body: &mut Vec<String>, rust: &str, reserved: &[&str]) {
+	/// The methods of a type, each a member or a static method by its receiver, after its
+	/// members `body`, checked to differ from them and its data's names `data`, which a
+	/// method's name takes a trailing `_` to keep apart from, as from those of `reserved`.
+	fn methods(
+		&mut self,
+		methods: &[Function],
+		(ty, owner, rust): (&Type, &Ty, &str),
+		data: &[String],
+		reserved: &[&str],
+		body: &mut Vec<String>,
+	) {
+		let reserved: Vec<&str> = reserved.iter().copied().chain(data.iter().map(String::as_str)).collect();
 		for method in methods {
 			let place = match method.receiver {
 				Some(_) => Place::Member,
 				None => Place::Static,
 			};
-			if let Some(code) = self.function(method, Some(owner), Some((ty, reserved)), place) {
+			if let Some(code) = self.function(method, Some(owner), Some((ty, &reserved)), place) {
 				body.push(indent_by(&code, 1));
 			}
 		}
-		self.distinct(rust, body);
+		self.distinct(rust, data, body);
+	}
+
+	/// Check that the members `body` of the type `rust` and its data's names `data` differ.
+	fn distinct(&mut self, rust: &str, data: &[String], body: &[String]) {
+		let mut seen = BTreeSet::new();
+		for name in data.iter().cloned().chain(body.iter().filter_map(|code| member_name(code))) {
+			if !seen.insert(name.clone()) {
+				self.errors.push(format!(
+					"two members of `{rust}` are both `{name}` in Python: rename one in the config"
+				));
+			}
+		}
 	}
 
 	fn record(&mut self, i: usize) {
@@ -701,15 +722,13 @@ impl<'a> Gen<'a> {
 		let mut body = Vec::new();
 		self.traits(&ty, &c, record.traits, &mut body);
 		let owner = Ty::Struct(c.clone());
-		let mut members: Vec<String> = record.fields.iter().map(|f| format!("\t{} =", field_name(&f.name))).collect();
-		members.append(&mut body);
-		self.methods(&record.methods, &ty, &owner, &mut members, &rust, &[]);
+		let data: Vec<String> = record.fields.iter().map(|f| field_name(&f.name)).collect();
+		self.methods(&record.methods, (&ty, &owner, &rust), &data, &[], &mut body);
 		let fields: String = record
 			.fields
 			.iter()
 			.map(|f| format!("\t{}: {}\n{}", field_name(&f.name), self.py_ty(&f.ty), docstring(&f.docs, "\t")))
 			.collect();
-		let members: Vec<&String> = members.iter().filter(|m| !m.ends_with(" =")).collect();
 		let repr = match record.traits.debug {
 			true => ", repr=False",
 			false => "",
@@ -718,7 +737,7 @@ impl<'a> Gen<'a> {
 			self.py,
 			"@_dataclass(slots=True{repr})\nclass {name}:\n{}{fields}{}\n\n",
 			docstring(&format!("{rust}\n\n{}", record.docs), "\t"),
-			members.iter().map(|m| format!("\n{m}")).collect::<String>()
+			body.iter().map(|m| format!("\n{m}")).collect::<String>()
 		);
 		// The glue.
 		let mut reads = Vec::new();
@@ -759,41 +778,32 @@ impl<'a> Gen<'a> {
 		self.traits(&ty, &c, e.traits, &mut body);
 		let owner = abi.ty(&ty);
 		if e.plain() {
-			let mut members: Vec<String> = e
-				.variants
-				.iter()
-				.map(|v| format!("\t{} =", abi::snake(&v.name).to_uppercase()))
-				.collect();
-			members.append(&mut body);
+			let data: Vec<String> = e.variants.iter().map(|v| abi::snake(&v.name).to_uppercase()).collect();
 			// An `Enum`'s members have these.
-			self.methods(&e.methods, &ty, &owner, &mut members, &rust, &["name", "value"]);
+			self.methods(&e.methods, (&ty, &owner, &rust), &data, &["name", "value"], &mut body);
 			let entries: String = e
 				.variants
 				.iter()
 				.map(|v| format!("\t{} = {}\n", abi::snake(&v.name).to_uppercase(), v.discriminant))
 				.collect();
-			let members: Vec<&String> = members.iter().filter(|m| !m.ends_with(" =")).collect();
 			let _ = write!(
 				self.py,
 				"class {name}(_enum.Enum):\n{}{entries}{}\n\n",
 				docstring(&format!("{rust}\n\n{}", e.docs), "\t"),
-				members.iter().map(|m| format!("\n{m}")).collect::<String>()
+				body.iter().map(|m| format!("\n{m}")).collect::<String>()
 			);
 			return;
 		}
-		let mut members: Vec<String> = e
-			.variants
-			.iter()
-			.map(|v| format!("\t{} =", pascal(&abi::snake(&v.name))))
-			.collect();
-		members.append(&mut body);
-		self.methods(&e.methods, &ty, &owner, &mut members, &rust, &[]);
-		let members: Vec<&String> = members.iter().filter(|m| !m.ends_with(" =")).collect();
+		// Each variant's class, and its fields, which on an instance hide the enum's members.
+		let mut data: Vec<String> = e.variants.iter().map(|v| pascal(&abi::snake(&v.name))).collect();
+		let fields: BTreeSet<String> = e.variants.iter().flat_map(|v| &v.fields).map(|f| field_name(&f.name)).collect();
+		data.extend(fields);
+		self.methods(&e.methods, (&ty, &owner, &rust), &data, &[], &mut body);
 		let _ = write!(
 			self.py,
 			"class {name}:\n{}\t__slots__ = ()\n{}\n\n",
 			docstring(&format!("{rust}\n\n{}", e.docs), "\t"),
-			members.iter().map(|m| format!("\n{m}")).collect::<String>()
+			body.iter().map(|m| format!("\n{m}")).collect::<String>()
 		);
 		let repr = match e.traits.debug {
 			true => ", repr=False",
@@ -873,7 +883,7 @@ impl<'a> Gen<'a> {
 			constant: false,
 		};
 		// What `Object` gives every object.
-		self.methods(&object.methods, &ty, &owner, &mut body, &rust, &["close"]);
+		self.methods(&object.methods, (&ty, &owner, &rust), &[], &["close"], &mut body);
 		let text = format!(
 			"{rust}\n\n{}\n\nIts handle is freed once its last reference goes, or sooner by `close()` or a `with` block, after which a call raises.",
 			object.docs
@@ -925,7 +935,7 @@ impl<'a> Gen<'a> {
 			);
 			table.push(format!("{}: Some({trampoline})", method.name()));
 		}
-		self.distinct(&rust, &body);
+		self.distinct(&rust, &[], &body);
 		let text = format!(
 			"{rust}: implemented in Python. Rust calls its methods from any thread, and once it\ndrops the implementation, calls its `close()` if it has one.\n\n{}",
 			callback.docs
@@ -1013,19 +1023,6 @@ impl<'a> Gen<'a> {
 			"unsafe extern \"C\" fn f_{bare}(_: *mut PyObject, a: *mut *mut PyObject, n: Py_ssize_t) -> *mut PyObject {{\n\trt::wrap(|| unsafe {{\n\t\tlet a = rt::args(a, n, {n}, \"{bare}\")?;\n\t\tlet s = &mut rt::Scope::default();\n\t\t{body}\n\t}})\n}}\n\n"
 		);
 		self.table.push(format!("rt::method(c\"{bare}\", f_{bare})"));
-	}
-
-	/// Check that no two members of the type `rust` share a Python name.
-	fn distinct(&mut self, rust: &str, members: &[String]) {
-		let mut seen = BTreeSet::new();
-		for member in members {
-			let Some(name) = member_name(member) else { continue };
-			if !seen.insert(name.clone()) {
-				self.errors.push(format!(
-					"two members of `{rust}` are both `{name}` in Python: rename one in the config"
-				));
-			}
-		}
 	}
 
 	/// `function`'s Python form, a member of `owner` if it has one (whose IR type and
