@@ -48,3 +48,4 @@ Public API: the translator's output for moq-net's model.
 
 - [The std calls moq's main added to the model](/quest/m2/ts-model/main-std.md) - `VecDeque::range`, and `str::rsplit_once` and `split_terminator` by a `char`, translate
 - [A crate's own hasher](/quest/m2/ts-model/own-hasher.md) - hashlink's default hasher, a crate's own `Hasher`, hashes keys as native's does
+- [A crate's own iterator traits](/quest/m2/ts-model/iter-traits.md) - hashlink's double-ended, exact-size, and fused iterators, and their `size_hint`
