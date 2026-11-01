@@ -272,6 +272,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("results::results", results::results),
 		("fields::fields", fields::fields),
 		("strs::gets", strs::gets),
+		("boxes::impls", boxes::impls),
 	]
 }
 

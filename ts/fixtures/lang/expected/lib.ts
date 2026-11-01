@@ -2,6 +2,7 @@
 
 import * as rt from "./rt.ts";
 import type * as borrows_Tagged from "./borrows.Tagged.ts";
+import type * as boxes_Logged from "./boxes.Logged.ts";
 import type * as clones_Logged from "./clones.Logged.ts";
 import type * as collections_Picky from "./collections.Picky.ts";
 import type * as Quirky from "./collections.Quirky.ts";
@@ -805,6 +806,14 @@ export function drop$Option_cell_RefMut_borrows_Tagged(_1: rt.RefCell<borrows_Ta
 export function drop$Option_cell_Ref_borrows_Tagged(_1: rt.RefCell<borrows_Tagged.Tagged> | undefined): void {
 	if (_1 !== undefined) {
 		rt.refRelease(_1);
+	}
+}
+
+export function drop$Result_boxed_Box_array1_boxes_Logged_boxed_Box_slice_boxes_Logged(_1: rt.Result<boxes_Logged.Logged[], boxes_Logged.Logged[]>): void {
+	if (_1.ok) {
+		rt.dropAll(_1.value);
+	} else {
+		rt.dropAll(_1.error);
 	}
 }
 
