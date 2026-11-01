@@ -60,14 +60,71 @@ function unitAt(s: string, i: number, from: number, to: number): number {
 
 /** `&s[start..end]` by UTF-8 byte offsets, with `end` defaulting to the length. */
 export function strSlice(s: string, start: number, end?: number): string {
+	return s.slice(...units(s, start, end));
+}
+
+/**
+ * The code units of `s` from byte `start` to byte `end`, or to the end, or `undefined` if
+ * either is out of bounds or inside a char, or they are backwards.
+ */
+function unitsChecked(s: string, start: number, end?: number): [number, number] | undefined {
 	const from = unitAt(s, 0, 0, start);
-	if (end === undefined) {
-		if (from < 0) sliceFailed(s, start, stringLen(s));
-		return s.slice(from);
+	if (from < 0) return undefined;
+	const to = end === undefined ? s.length : unitAt(s, from, start, end);
+	return to < 0 ? undefined : [from, to];
+}
+
+/** `unitsChecked`, panicking as std's indexing does where it gives `undefined`. */
+function units(s: string, start: number, end?: number): [number, number] {
+	return unitsChecked(s, start, end) ?? sliceFailed(s, start, end ?? stringLen(s));
+}
+
+/**
+ * `&mut p[from..to]` by code units: a part of the string at `p`, whose writes splice the
+ * string anew. A write through a `&mut str` keeps each char's length, so the units hold.
+ */
+class StrPart implements Place<string> {
+	readonly #whole: Place<string>;
+	readonly #from: number;
+	readonly #to: number;
+
+	constructor(whole: Place<string>, [from, to]: [number, number]) {
+		this.#whole = whole;
+		this.#from = from;
+		this.#to = to;
 	}
-	const to = from < 0 ? -1 : unitAt(s, from, start, end);
-	if (to < 0) sliceFailed(s, start, end);
-	return s.slice(from, to);
+
+	get v(): string {
+		return this.#whole.v.slice(this.#from, this.#to);
+	}
+
+	set v(value: string) {
+		const s = this.#whole.v;
+		this.#whole.v = s.slice(0, this.#from) + value + s.slice(this.#to);
+	}
+}
+
+/** `&mut p[start..end]` by UTF-8 byte offsets, with `end` defaulting to the length. */
+export function strPart(p: Place<string>, start: number, end?: number): Place<string> {
+	return new StrPart(p, units(p.v, start, end));
+}
+
+/** `str::get_mut` by a range's UTF-8 byte offsets, with `end` defaulting to the length. */
+export function strGetMut(p: Place<string>, start: number, end?: number): Place<string> | undefined {
+	const at = unitsChecked(p.v, start, end);
+	return at && new StrPart(p, at);
+}
+
+/** `str::split_at_mut`. */
+export function strSplitAtMut(p: Place<string>, mid: number): [Place<string>, Place<string>] {
+	const [, at] = units(p.v, 0, mid);
+	return [new StrPart(p, [0, at]), new StrPart(p, [at, p.v.length])];
+}
+
+/** `str::split_at_mut_checked`. */
+export function strSplitAtMutChecked(p: Place<string>, mid: number): [Place<string>, Place<string>] | undefined {
+	const at = unitsChecked(p.v, 0, mid);
+	return at && [new StrPart(p, at), new StrPart(p, [at[1], p.v.length])];
 }
 
 /** std's panic for a slice of `s` that is out of bounds, backwards, or inside a char. */

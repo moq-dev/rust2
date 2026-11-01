@@ -2,7 +2,7 @@
 
 import * as rt from "./rt.ts";
 import { fromFns, maps, lent as arrays_lent, asSlices, given } from "./arrays.ts";
-import { bytes as ascii_bytes, chars as ascii_chars, slices as ascii_slices } from "./ascii.ts";
+import { bytes as ascii_bytes, chars as ascii_chars, slices as ascii_slices, parts as ascii_parts } from "./ascii.ts";
 import { atomics } from "./atomics.ts";
 import { borrows as borrows_borrows } from "./borrows.ts";
 import { bounds as bounds_bounds } from "./bounds.ts";
@@ -233,7 +233,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		loaded(data84, out85);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["orders::btrees", btrees as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["lengths::lengths", lengths as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["iters::option_items", (_2185: rt.u8, data85: rt.ByteSlice, out86: rt.ByteVec): undefined => {
 		optionItems(data85, out86);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ascii::parts", ascii_parts as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */
