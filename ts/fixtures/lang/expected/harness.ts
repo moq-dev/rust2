@@ -27,7 +27,7 @@ import { fields as fields_fields } from "./fields.ts";
 import { floats, mulAdds as floats_mulAdds, formats as floats_formats, parses as floats_parses } from "./floats.ts";
 import { ints, strings, derived, written as fmt_written, counts as fmt_counts, rounding, panics as fmt_panics, wrapped as fmt_wrapped, collections, enums, iters as fmt_iters, writes as fmt_writes } from "./fmt.ts";
 import { folds } from "./folds.ts";
-import { methods } from "./generics.ts";
+import { methods, runs } from "./generics.ts";
 import { values as hashes_values, random, bytes as hashes_bytes } from "./hashes.ts";
 import { hints, reserves } from "./hints.ts";
 import { holds } from "./holds.ts";
@@ -252,12 +252,14 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		partWritten(data87, out88);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::aimed", (_2188: rt.u8, data88: rt.ByteSlice, out89: rt.ByteVec): undefined => {
 		aimed(data88, out89);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ascii::parts", ascii_parts as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["boxes::places", boxes_places as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::flattened", arrays_flattened as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["args::args", args as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["returns::returns", returns as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::guards", (_2189: rt.u8, data89: rt.ByteSlice, out90: rt.ByteVec): undefined => {
-		guards(data89, out90);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["results::results", results_results as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["fields::fields", fields_fields as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["strs::gets", gets as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::maps", (_2190: rt.u8, data90: rt.ByteSlice, out91: rt.ByteVec): undefined => {
-		borrows_maps(data90, out91);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::mapped", (_2191: rt.u8, data91: rt.ByteSlice, out92: rt.ByteVec): undefined => {
-		mapped(data91, out92);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ascii::parts", ascii_parts as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["boxes::places", boxes_places as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::flattened", arrays_flattened as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["args::args", args as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["returns::returns", returns as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["generics::runs", (_2189: rt.u8, data89: rt.ByteSlice, out90: rt.ByteVec): undefined => {
+		runs(data89, out90);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::guards", (_2190: rt.u8, data90: rt.ByteSlice, out91: rt.ByteVec): undefined => {
+		guards(data90, out91);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["results::results", results_results as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["fields::fields", fields_fields as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["strs::gets", gets as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::maps", (_2191: rt.u8, data91: rt.ByteSlice, out92: rt.ByteVec): undefined => {
+		borrows_maps(data91, out92);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::mapped", (_2192: rt.u8, data92: rt.ByteSlice, out93: rt.ByteVec): undefined => {
+		mapped(data92, out93);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["boxes::impls", boxes_impls as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
