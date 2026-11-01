@@ -3,9 +3,9 @@
 import * as rt from "../rt.ts";
 import type * as Nibble from "../bind/nibble.ts";
 
-export function unwrapOr$1a4gm66(self: rt.ByteSlice | undefined, defaultData: Uint8Array, defaultStart: number, defaultLen: number): rt.ByteSlice {
+export function unwrapOr$1rbuegs(self: rt.ByteSlice | undefined, default_: rt.ByteSlice): rt.ByteSlice {
 	if (self === undefined) {
-		return new rt.ByteSlice(defaultData, defaultStart, defaultLen);
+		return default_;
 	}
 	return self;
 }

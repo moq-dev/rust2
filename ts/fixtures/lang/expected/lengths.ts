@@ -6,21 +6,21 @@ import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr } from "./core/option.ts";
 import * as lengths_Tagged from "./lengths.Tagged.ts";
 
 /** Each case at the length `kind` picks. */
-export function lengths(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function lengths(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _4: rt.u8 = rt.u8Rem(kind, 4);
 	if (_4 === 0) {
-		each$0(dataData, dataStart, dataLen, out);
+		each$0(data, out);
 	} else if (_4 === 1) {
-		each$1(dataData, dataStart, dataLen, out);
+		each$1(data, out);
 	} else if (_4 === 2) {
-		each$3(dataData, dataStart, dataLen, out);
+		each$3(data, out);
 	} else {
-		each$17(dataData, dataStart, dataLen, out);
+		each$17(data, out);
 	}
 }
 
-export function each$0(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart, dataLen), rt.max(0, 1)), (c: rt.ByteSlice): Uint8Array => {
+export function each$0(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(data, rt.max(0, 1)), (c: rt.ByteSlice): Uint8Array => {
 		return rt.bytesFromFn(0, (i: rt.usize): rt.u8 => {
 			return option_unwrapOr$0r2bmpr(rt.byteSliceGet(c, i), i & 0xff);
 		});
@@ -30,29 +30,29 @@ export function each$0(dataData: Uint8Array, dataStart: number, dataLen: number,
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 0, true);
-	joined$0(dataData, dataStart, dataLen, rows.map(copy$array_u8), out);
-	joined$0(dataData, dataStart, dataLen, copy$array_array0_u8([rt.bytes(0).fill(165), rt.bytesFromFn(0, (i2: rt.usize): rt.u8 => {
+	joined$0(data, rows.map(copy$array_u8), out);
+	joined$0(data, copy$array_array0_u8([rt.bytes(0).fill(165), rt.bytesFromFn(0, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);
 	retagged$0(rows, out);
 	recloned$u32_0(wide, out);
-	filledBytes$0(dataData, dataStart, dataLen, rt.bytesFromFn(0, (i3: rt.usize): rt.u8 => {
+	filledBytes$0(data, rt.bytesFromFn(0, (i3: rt.usize): rt.u8 => {
 		return i3 & 0xff;
 	}), out);
-	filledWords$0(dataData, dataStart, dataLen, rt.arrayFromFn(0, (i4: rt.usize): rt.u32 => {
+	filledWords$0(data, rt.arrayFromFn(0, (i4: rt.usize): rt.u32 => {
 		return rt.u32Mul(16909060, i4 as rt.u32);
 	}), out);
-	filledRows$0(dataData, dataStart, dataLen, rt.arrayFromFn(0, (i5: rt.usize): Uint8Array => {
+	filledRows$0(data, rt.arrayFromFn(0, (i5: rt.usize): Uint8Array => {
 		return rt.bytesFromFn(0, (j: rt.usize): rt.u8 => {
 			return rt.usizeAdd(rt.usizeMul(i5, 0), j) & 0xff;
 		});
 	}), out);
-	swapped$u8_0(dataData, dataStart, dataLen, rows, out);
-	swapped$u32_0(dataData, dataStart, dataLen, wide, out);
+	swapped$u8_0(data, rows, out);
+	swapped$u32_0(data, wide, out);
 }
 
-export function each$1(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart, dataLen), rt.max(1, 1)), (c: rt.ByteSlice): Uint8Array => {
+export function each$1(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(data, rt.max(1, 1)), (c: rt.ByteSlice): Uint8Array => {
 		return rt.bytesFromFn(1, (i: rt.usize): rt.u8 => {
 			return option_unwrapOr$0r2bmpr(rt.byteSliceGet(c, i), i & 0xff);
 		});
@@ -62,29 +62,29 @@ export function each$1(dataData: Uint8Array, dataStart: number, dataLen: number,
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 4, true);
-	joined$1(dataData, dataStart, dataLen, rows.map(copy$array_u8), out);
-	joined$1(dataData, dataStart, dataLen, copy$array_array1_u8([rt.bytes(1).fill(165), rt.bytesFromFn(1, (i2: rt.usize): rt.u8 => {
+	joined$1(data, rows.map(copy$array_u8), out);
+	joined$1(data, copy$array_array1_u8([rt.bytes(1).fill(165), rt.bytesFromFn(1, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);
 	retagged$1(rows, out);
 	recloned$u32_1(wide, out);
-	filledBytes$1(dataData, dataStart, dataLen, rt.bytesFromFn(1, (i3: rt.usize): rt.u8 => {
+	filledBytes$1(data, rt.bytesFromFn(1, (i3: rt.usize): rt.u8 => {
 		return i3 & 0xff;
 	}), out);
-	filledWords$1(dataData, dataStart, dataLen, rt.arrayFromFn(1, (i4: rt.usize): rt.u32 => {
+	filledWords$1(data, rt.arrayFromFn(1, (i4: rt.usize): rt.u32 => {
 		return rt.u32Mul(16909060, i4 as rt.u32);
 	}), out);
-	filledRows$1(dataData, dataStart, dataLen, rt.arrayFromFn(1, (i5: rt.usize): Uint8Array => {
+	filledRows$1(data, rt.arrayFromFn(1, (i5: rt.usize): Uint8Array => {
 		return rt.bytesFromFn(1, (j: rt.usize): rt.u8 => {
 			return rt.usizeAdd(rt.usizeMul(i5, 1), j) & 0xff;
 		});
 	}), out);
-	swapped$u8_1(dataData, dataStart, dataLen, rows, out);
-	swapped$u32_1(dataData, dataStart, dataLen, wide, out);
+	swapped$u8_1(data, rows, out);
+	swapped$u32_1(data, wide, out);
 }
 
-export function each$17(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart, dataLen), rt.max(17, 1)), (c: rt.ByteSlice): Uint8Array => {
+export function each$17(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(data, rt.max(17, 1)), (c: rt.ByteSlice): Uint8Array => {
 		return rt.bytesFromFn(17, (i: rt.usize): rt.u8 => {
 			return option_unwrapOr$0r2bmpr(rt.byteSliceGet(c, i), i & 0xff);
 		});
@@ -94,29 +94,29 @@ export function each$17(dataData: Uint8Array, dataStart: number, dataLen: number
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 68, true);
-	joined$17(dataData, dataStart, dataLen, rows.map(copy$array_u8), out);
-	joined$17(dataData, dataStart, dataLen, copy$array_array17_u8([rt.bytes(17).fill(165), rt.bytesFromFn(17, (i2: rt.usize): rt.u8 => {
+	joined$17(data, rows.map(copy$array_u8), out);
+	joined$17(data, copy$array_array17_u8([rt.bytes(17).fill(165), rt.bytesFromFn(17, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);
 	retagged$17(rows, out);
 	recloned$u32_17(wide, out);
-	filledBytes$17(dataData, dataStart, dataLen, rt.bytesFromFn(17, (i3: rt.usize): rt.u8 => {
+	filledBytes$17(data, rt.bytesFromFn(17, (i3: rt.usize): rt.u8 => {
 		return i3 & 0xff;
 	}), out);
-	filledWords$17(dataData, dataStart, dataLen, rt.arrayFromFn(17, (i4: rt.usize): rt.u32 => {
+	filledWords$17(data, rt.arrayFromFn(17, (i4: rt.usize): rt.u32 => {
 		return rt.u32Mul(16909060, i4 as rt.u32);
 	}), out);
-	filledRows$17(dataData, dataStart, dataLen, rt.arrayFromFn(17, (i5: rt.usize): Uint8Array => {
+	filledRows$17(data, rt.arrayFromFn(17, (i5: rt.usize): Uint8Array => {
 		return rt.bytesFromFn(17, (j: rt.usize): rt.u8 => {
 			return rt.usizeAdd(rt.usizeMul(i5, 17), j) & 0xff;
 		});
 	}), out);
-	swapped$u8_17(dataData, dataStart, dataLen, rows, out);
-	swapped$u32_17(dataData, dataStart, dataLen, wide, out);
+	swapped$u8_17(data, rows, out);
+	swapped$u32_17(data, wide, out);
 }
 
-export function each$3(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart, dataLen), rt.max(3, 1)), (c: rt.ByteSlice): Uint8Array => {
+export function each$3(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const rows: Uint8Array[] = rt.iterToArray(rt.iterMap(rt.byteSliceChunks(data, rt.max(3, 1)), (c: rt.ByteSlice): Uint8Array => {
 		return rt.bytesFromFn(3, (i: rt.usize): rt.u8 => {
 			return option_unwrapOr$0r2bmpr(rt.byteSliceGet(c, i), i & 0xff);
 		});
@@ -126,45 +126,45 @@ export function each$3(dataData: Uint8Array, dataStart: number, dataLen: number,
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 12, true);
-	joined$3(dataData, dataStart, dataLen, rows.map(copy$array_u8), out);
-	joined$3(dataData, dataStart, dataLen, copy$array_array3_u8([rt.bytes(3).fill(165), rt.bytesFromFn(3, (i2: rt.usize): rt.u8 => {
+	joined$3(data, rows.map(copy$array_u8), out);
+	joined$3(data, copy$array_array3_u8([rt.bytes(3).fill(165), rt.bytesFromFn(3, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);
 	retagged$3(rows, out);
 	recloned$u32_3(wide, out);
-	filledBytes$3(dataData, dataStart, dataLen, rt.bytesFromFn(3, (i3: rt.usize): rt.u8 => {
+	filledBytes$3(data, rt.bytesFromFn(3, (i3: rt.usize): rt.u8 => {
 		return i3 & 0xff;
 	}), out);
-	filledWords$3(dataData, dataStart, dataLen, rt.arrayFromFn(3, (i4: rt.usize): rt.u32 => {
+	filledWords$3(data, rt.arrayFromFn(3, (i4: rt.usize): rt.u32 => {
 		return rt.u32Mul(16909060, i4 as rt.u32);
 	}), out);
-	filledRows$3(dataData, dataStart, dataLen, rt.arrayFromFn(3, (i5: rt.usize): Uint8Array => {
+	filledRows$3(data, rt.arrayFromFn(3, (i5: rt.usize): Uint8Array => {
 		return rt.bytesFromFn(3, (j: rt.usize): rt.u8 => {
 			return rt.usizeAdd(rt.usizeMul(i5, 3), j) & 0xff;
 		});
 	}), out);
-	swapped$u8_3(dataData, dataStart, dataLen, rows, out);
-	swapped$u32_3(dataData, dataStart, dataLen, wide, out);
+	swapped$u8_3(data, rows, out);
+	swapped$u32_3(data, wide, out);
 }
 
 /** The bytes of `data` and then of each row, as one run. */
-export function joined$0(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
-	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 0)), undefined, true);
+export function joined$0(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
+	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(data)), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 0)), undefined, true);
 }
 
 /** The bytes of `data` and then of each row, as one run. */
-export function joined$1(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
-	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 1)), undefined, true);
+export function joined$1(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
+	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(data)), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 1)), undefined, true);
 }
 
 /** The bytes of `data` and then of each row, as one run. */
-export function joined$17(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
-	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 17)), undefined, true);
+export function joined$17(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
+	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(data)), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 17)), undefined, true);
 }
 
 /** The bytes of `data` and then of each row, as one run. */
-export function joined$3(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
-	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 3)), undefined, true);
+export function joined$3(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
+	rt.iterExtendBytes(out, rt.iterChain(rt.iterSlice(rt.byteSliceView(data)), rt.iterFlatten(rt.iterLend(rt.iterSlice(rows), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 3)), undefined, true);
 }
 
 /**
@@ -395,7 +395,7 @@ export function recloned$u32_3(rows: rt.u32[][], out: rt.ByteVec): void {
 	}
 }
 
-export function filledBytes$0(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array, out: rt.ByteVec): void {
+export function filledBytes$0(data: rt.ByteSlice, fill: Uint8Array, out: rt.ByteVec): void {
 	const item = ([new Uint8Array(0), [undefined, undefined]] as unknown) as [Uint8Array, [rt.u8, rt.u8]];
 	const slots: [Uint8Array, [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [Uint8Array, [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array0_u8_tuple2_u8_u8(item);
@@ -411,7 +411,7 @@ export function filledBytes$0(dataData: Uint8Array, dataStart: number, dataLen: 
 		rt.ptrWrite(uninit, [copy$array_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array, [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -432,7 +432,7 @@ export function filledBytes$0(dataData: Uint8Array, dataStart: number, dataLen: 
 	}
 }
 
-export function filledBytes$1(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array, out: rt.ByteVec): void {
+export function filledBytes$1(data: rt.ByteSlice, fill: Uint8Array, out: rt.ByteVec): void {
 	const item = ([new Uint8Array(1), [undefined, undefined]] as unknown) as [Uint8Array, [rt.u8, rt.u8]];
 	const slots: [Uint8Array, [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [Uint8Array, [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array1_u8_tuple2_u8_u8(item);
@@ -448,7 +448,7 @@ export function filledBytes$1(dataData: Uint8Array, dataStart: number, dataLen: 
 		rt.ptrWrite(uninit, [copy$array_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array, [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -469,7 +469,7 @@ export function filledBytes$1(dataData: Uint8Array, dataStart: number, dataLen: 
 	}
 }
 
-export function filledBytes$17(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array, out: rt.ByteVec): void {
+export function filledBytes$17(data: rt.ByteSlice, fill: Uint8Array, out: rt.ByteVec): void {
 	const item = ([new Uint8Array(17), [undefined, undefined]] as unknown) as [Uint8Array, [rt.u8, rt.u8]];
 	const slots: [Uint8Array, [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [Uint8Array, [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array17_u8_tuple2_u8_u8(item);
@@ -485,7 +485,7 @@ export function filledBytes$17(dataData: Uint8Array, dataStart: number, dataLen:
 		rt.ptrWrite(uninit, [copy$array_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array, [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -506,7 +506,7 @@ export function filledBytes$17(dataData: Uint8Array, dataStart: number, dataLen:
 	}
 }
 
-export function filledBytes$3(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array, out: rt.ByteVec): void {
+export function filledBytes$3(data: rt.ByteSlice, fill: Uint8Array, out: rt.ByteVec): void {
 	const item = ([new Uint8Array(3), [undefined, undefined]] as unknown) as [Uint8Array, [rt.u8, rt.u8]];
 	const slots: [Uint8Array, [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [Uint8Array, [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array3_u8_tuple2_u8_u8(item);
@@ -522,7 +522,7 @@ export function filledBytes$3(dataData: Uint8Array, dataStart: number, dataLen: 
 		rt.ptrWrite(uninit, [copy$array_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array, [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -543,7 +543,7 @@ export function filledBytes$3(dataData: Uint8Array, dataStart: number, dataLen: 
 	}
 }
 
-export function filledWords$0(dataData: Uint8Array, dataStart: number, dataLen: number, fill: rt.u32[], out: rt.ByteVec): void {
+export function filledWords$0(data: rt.ByteSlice, fill: rt.u32[], out: rt.ByteVec): void {
 	const item = ([new Array(0), [undefined, undefined]] as unknown) as [rt.u32[], [rt.u8, rt.u8]];
 	const slots: [rt.u32[], [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [rt.u32[], [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array0_u32_tuple2_u8_u8(item);
@@ -559,7 +559,7 @@ export function filledWords$0(dataData: Uint8Array, dataStart: number, dataLen: 
 		rt.ptrWrite(uninit, [copy$array_u32(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [rt.u32[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -580,7 +580,7 @@ export function filledWords$0(dataData: Uint8Array, dataStart: number, dataLen: 
 	}
 }
 
-export function filledWords$1(dataData: Uint8Array, dataStart: number, dataLen: number, fill: rt.u32[], out: rt.ByteVec): void {
+export function filledWords$1(data: rt.ByteSlice, fill: rt.u32[], out: rt.ByteVec): void {
 	const item = ([new Array(1), [undefined, undefined]] as unknown) as [rt.u32[], [rt.u8, rt.u8]];
 	const slots: [rt.u32[], [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [rt.u32[], [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array1_u32_tuple2_u8_u8(item);
@@ -596,7 +596,7 @@ export function filledWords$1(dataData: Uint8Array, dataStart: number, dataLen: 
 		rt.ptrWrite(uninit, [copy$array_u32(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [rt.u32[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -617,7 +617,7 @@ export function filledWords$1(dataData: Uint8Array, dataStart: number, dataLen: 
 	}
 }
 
-export function filledWords$17(dataData: Uint8Array, dataStart: number, dataLen: number, fill: rt.u32[], out: rt.ByteVec): void {
+export function filledWords$17(data: rt.ByteSlice, fill: rt.u32[], out: rt.ByteVec): void {
 	const item = ([new Array(17), [undefined, undefined]] as unknown) as [rt.u32[], [rt.u8, rt.u8]];
 	const slots: [rt.u32[], [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [rt.u32[], [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array17_u32_tuple2_u8_u8(item);
@@ -633,7 +633,7 @@ export function filledWords$17(dataData: Uint8Array, dataStart: number, dataLen:
 		rt.ptrWrite(uninit, [copy$array_u32(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [rt.u32[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -654,7 +654,7 @@ export function filledWords$17(dataData: Uint8Array, dataStart: number, dataLen:
 	}
 }
 
-export function filledWords$3(dataData: Uint8Array, dataStart: number, dataLen: number, fill: rt.u32[], out: rt.ByteVec): void {
+export function filledWords$3(data: rt.ByteSlice, fill: rt.u32[], out: rt.ByteVec): void {
 	const item = ([new Array(3), [undefined, undefined]] as unknown) as [rt.u32[], [rt.u8, rt.u8]];
 	const slots: [rt.u32[], [rt.u8, rt.u8]][] = Array.from({ length: 3 }, (): [rt.u32[], [rt.u8, rt.u8]] => {
 		return copy$mem_MaybeUninit_tuple2_array3_u32_tuple2_u8_u8(item);
@@ -670,7 +670,7 @@ export function filledWords$3(dataData: Uint8Array, dataStart: number, dataLen: 
 		rt.ptrWrite(uninit, [copy$array_u32(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [rt.u32[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -691,7 +691,7 @@ export function filledWords$3(dataData: Uint8Array, dataStart: number, dataLen: 
 	}
 }
 
-export function filledRows$0(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array[], out: rt.ByteVec): void {
+export function filledRows$0(data: rt.ByteSlice, fill: Uint8Array[], out: rt.ByteVec): void {
 	const item = ([Array.from({ length: 0 }, (): Uint8Array => {
 		return (new Uint8Array(0) as unknown) as Uint8Array;
 	}), [undefined, undefined]] as unknown) as [Uint8Array[], [rt.u8, rt.u8]];
@@ -709,7 +709,7 @@ export function filledRows$0(dataData: Uint8Array, dataStart: number, dataLen: n
 		rt.ptrWrite(uninit, [copy$array_array0_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -724,13 +724,13 @@ export function filledRows$0(dataData: Uint8Array, dataStart: number, dataLen: n
 	for (const _50 of slots) {
 		const _57: [Uint8Array[], [rt.u8, rt.u8]] = _50;
 		rt.iterForEach(rt.iterLend(rt.iterSlice(_57[0]), rt.byteSliceFrom), (v: rt.ByteSlice): undefined => {
-			put$lengths_Put_array0_u8(v.data, v.start, v.length, out);
+			put$lengths_Put_array0_u8(v, out);
 		});
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_57[1][0], _57[1][1])), undefined, true);
 	}
 }
 
-export function filledRows$1(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array[], out: rt.ByteVec): void {
+export function filledRows$1(data: rt.ByteSlice, fill: Uint8Array[], out: rt.ByteVec): void {
 	const item = ([Array.from({ length: 1 }, (): Uint8Array => {
 		return (new Uint8Array(1) as unknown) as Uint8Array;
 	}), [undefined, undefined]] as unknown) as [Uint8Array[], [rt.u8, rt.u8]];
@@ -748,7 +748,7 @@ export function filledRows$1(dataData: Uint8Array, dataStart: number, dataLen: n
 		rt.ptrWrite(uninit, [copy$array_array1_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -763,13 +763,13 @@ export function filledRows$1(dataData: Uint8Array, dataStart: number, dataLen: n
 	for (const _50 of slots) {
 		const _57: [Uint8Array[], [rt.u8, rt.u8]] = _50;
 		rt.iterForEach(rt.iterLend(rt.iterSlice(_57[0]), rt.byteSliceFrom), (v: rt.ByteSlice): undefined => {
-			put$lengths_Put_array1_u8(v.data, v.start, v.length, out);
+			put$lengths_Put_array1_u8(v, out);
 		});
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_57[1][0], _57[1][1])), undefined, true);
 	}
 }
 
-export function filledRows$17(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array[], out: rt.ByteVec): void {
+export function filledRows$17(data: rt.ByteSlice, fill: Uint8Array[], out: rt.ByteVec): void {
 	const item = ([Array.from({ length: 17 }, (): Uint8Array => {
 		return (new Uint8Array(17) as unknown) as Uint8Array;
 	}), [undefined, undefined]] as unknown) as [Uint8Array[], [rt.u8, rt.u8]];
@@ -787,7 +787,7 @@ export function filledRows$17(dataData: Uint8Array, dataStart: number, dataLen: 
 		rt.ptrWrite(uninit, [copy$array_array17_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -802,13 +802,13 @@ export function filledRows$17(dataData: Uint8Array, dataStart: number, dataLen: 
 	for (const _50 of slots) {
 		const _57: [Uint8Array[], [rt.u8, rt.u8]] = _50;
 		rt.iterForEach(rt.iterLend(rt.iterSlice(_57[0]), rt.byteSliceFrom), (v: rt.ByteSlice): undefined => {
-			put$lengths_Put_array17_u8(v.data, v.start, v.length, out);
+			put$lengths_Put_array17_u8(v, out);
 		});
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_57[1][0], _57[1][1])), undefined, true);
 	}
 }
 
-export function filledRows$3(dataData: Uint8Array, dataStart: number, dataLen: number, fill: Uint8Array[], out: rt.ByteVec): void {
+export function filledRows$3(data: rt.ByteSlice, fill: Uint8Array[], out: rt.ByteVec): void {
 	const item = ([Array.from({ length: 3 }, (): Uint8Array => {
 		return (new Uint8Array(3) as unknown) as Uint8Array;
 	}), [undefined, undefined]] as unknown) as [Uint8Array[], [rt.u8, rt.u8]];
@@ -826,7 +826,7 @@ export function filledRows$3(dataData: Uint8Array, dataStart: number, dataLen: n
 		rt.ptrWrite(uninit, [copy$array_array3_u8(fill), [at, ~at & 0xff] as [rt.u8, rt.u8]] as [Uint8Array[], [rt.u8, rt.u8]]);
 		uninit;
 	}
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _29: rt.usize = rt.usizeRem(byte as rt.usize, 3);
 		if (!(_29 < 3)) {
 			rt.panic("index out of bounds: the len is " + 3 + " but the index is " + _29);
@@ -841,7 +841,7 @@ export function filledRows$3(dataData: Uint8Array, dataStart: number, dataLen: n
 	for (const _50 of slots) {
 		const _57: [Uint8Array[], [rt.u8, rt.u8]] = _50;
 		rt.iterForEach(rt.iterLend(rt.iterSlice(_57[0]), rt.byteSliceFrom), (v: rt.ByteSlice): undefined => {
-			put$lengths_Put_array3_u8(v.data, v.start, v.length, out);
+			put$lengths_Put_array3_u8(v, out);
 		});
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_57[1][0], _57[1][1])), undefined, true);
 	}
@@ -855,27 +855,27 @@ export function put$lengths_Put_u32(self: rt.u32, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(self).reverse()), undefined, true);
 }
 
-export function put$lengths_Put_array0_u8(selfData: Uint8Array, selfStart: number, selfLen: number, out: rt.ByteVec): void {
-	rt.byteVecExtendFromSlice(out, new rt.ByteSlice(selfData, selfStart, selfLen));
+export function put$lengths_Put_array0_u8(self: rt.ByteSlice, out: rt.ByteVec): void {
+	rt.byteVecExtendFromSlice(out, self);
 }
 
-export function put$lengths_Put_array17_u8(selfData: Uint8Array, selfStart: number, selfLen: number, out: rt.ByteVec): void {
-	rt.byteVecExtendFromSlice(out, new rt.ByteSlice(selfData, selfStart, selfLen));
+export function put$lengths_Put_array17_u8(self: rt.ByteSlice, out: rt.ByteVec): void {
+	rt.byteVecExtendFromSlice(out, self);
 }
 
-export function put$lengths_Put_array1_u8(selfData: Uint8Array, selfStart: number, selfLen: number, out: rt.ByteVec): void {
-	rt.byteVecExtendFromSlice(out, new rt.ByteSlice(selfData, selfStart, selfLen));
+export function put$lengths_Put_array1_u8(self: rt.ByteSlice, out: rt.ByteVec): void {
+	rt.byteVecExtendFromSlice(out, self);
 }
 
-export function put$lengths_Put_array3_u8(selfData: Uint8Array, selfStart: number, selfLen: number, out: rt.ByteVec): void {
-	rt.byteVecExtendFromSlice(out, new rt.ByteSlice(selfData, selfStart, selfLen));
+export function put$lengths_Put_array3_u8(self: rt.ByteSlice, out: rt.ByteVec): void {
+	rt.byteVecExtendFromSlice(out, self);
 }
 
 /**
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u32_0(dataData: Uint8Array, dataStart: number, dataLen: number, rows: rt.u32[][], out: rt.ByteVec): void {
+export function swapped$u32_0(data: rt.ByteSlice, rows: rt.u32[][], out: rt.ByteVec): void {
 	const _6: [rt.u32[], rt.u32[][]] | undefined = rt.sliceSplitFirst(rows);
 	b0: {
 		if (_6 !== undefined) {
@@ -888,7 +888,7 @@ export function swapped$u32_0(dataData: Uint8Array, dataStart: number, dataLen: 
 				const next: rt.u32[] = copy$array_u32(_9);
 				grid[1] = copy$array_u32(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -926,7 +926,7 @@ export function swapped$u32_0(dataData: Uint8Array, dataStart: number, dataLen: 
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u32_1(dataData: Uint8Array, dataStart: number, dataLen: number, rows: rt.u32[][], out: rt.ByteVec): void {
+export function swapped$u32_1(data: rt.ByteSlice, rows: rt.u32[][], out: rt.ByteVec): void {
 	const _6: [rt.u32[], rt.u32[][]] | undefined = rt.sliceSplitFirst(rows);
 	b0: {
 		if (_6 !== undefined) {
@@ -939,7 +939,7 @@ export function swapped$u32_1(dataData: Uint8Array, dataStart: number, dataLen: 
 				const next: rt.u32[] = copy$array_u32(_9);
 				grid[1] = copy$array_u32(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -977,7 +977,7 @@ export function swapped$u32_1(dataData: Uint8Array, dataStart: number, dataLen: 
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u32_17(dataData: Uint8Array, dataStart: number, dataLen: number, rows: rt.u32[][], out: rt.ByteVec): void {
+export function swapped$u32_17(data: rt.ByteSlice, rows: rt.u32[][], out: rt.ByteVec): void {
 	const _6: [rt.u32[], rt.u32[][]] | undefined = rt.sliceSplitFirst(rows);
 	b0: {
 		if (_6 !== undefined) {
@@ -990,7 +990,7 @@ export function swapped$u32_17(dataData: Uint8Array, dataStart: number, dataLen:
 				const next: rt.u32[] = copy$array_u32(_9);
 				grid[1] = copy$array_u32(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -1028,7 +1028,7 @@ export function swapped$u32_17(dataData: Uint8Array, dataStart: number, dataLen:
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u32_3(dataData: Uint8Array, dataStart: number, dataLen: number, rows: rt.u32[][], out: rt.ByteVec): void {
+export function swapped$u32_3(data: rt.ByteSlice, rows: rt.u32[][], out: rt.ByteVec): void {
 	const _6: [rt.u32[], rt.u32[][]] | undefined = rt.sliceSplitFirst(rows);
 	b0: {
 		if (_6 !== undefined) {
@@ -1041,7 +1041,7 @@ export function swapped$u32_3(dataData: Uint8Array, dataStart: number, dataLen: 
 				const next: rt.u32[] = copy$array_u32(_9);
 				grid[1] = copy$array_u32(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -1079,7 +1079,7 @@ export function swapped$u32_3(dataData: Uint8Array, dataStart: number, dataLen: 
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u8_0(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
+export function swapped$u8_0(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
 	const _6: [rt.ByteSlice, Uint8Array[]] | undefined = rt.optionMap(rt.sliceSplitFirst(rows), (held): [rt.ByteSlice, Uint8Array[]] => {
 		return [rt.byteSliceFrom(held[0]), held[1]];
 	});
@@ -1094,7 +1094,7 @@ export function swapped$u8_0(dataData: Uint8Array, dataStart: number, dataLen: n
 				const next: Uint8Array = rt.byteSliceToArray(_9);
 				grid[1] = copy$array_u8(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -1132,7 +1132,7 @@ export function swapped$u8_0(dataData: Uint8Array, dataStart: number, dataLen: n
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u8_1(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
+export function swapped$u8_1(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
 	const _6: [rt.ByteSlice, Uint8Array[]] | undefined = rt.optionMap(rt.sliceSplitFirst(rows), (held): [rt.ByteSlice, Uint8Array[]] => {
 		return [rt.byteSliceFrom(held[0]), held[1]];
 	});
@@ -1147,7 +1147,7 @@ export function swapped$u8_1(dataData: Uint8Array, dataStart: number, dataLen: n
 				const next: Uint8Array = rt.byteSliceToArray(_9);
 				grid[1] = copy$array_u8(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -1185,7 +1185,7 @@ export function swapped$u8_1(dataData: Uint8Array, dataStart: number, dataLen: n
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u8_17(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
+export function swapped$u8_17(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
 	const _6: [rt.ByteSlice, Uint8Array[]] | undefined = rt.optionMap(rt.sliceSplitFirst(rows), (held): [rt.ByteSlice, Uint8Array[]] => {
 		return [rt.byteSliceFrom(held[0]), held[1]];
 	});
@@ -1200,7 +1200,7 @@ export function swapped$u8_17(dataData: Uint8Array, dataStart: number, dataLen: 
 				const next: Uint8Array = rt.byteSliceToArray(_9);
 				grid[1] = copy$array_u8(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -1238,7 +1238,7 @@ export function swapped$u8_17(dataData: Uint8Array, dataStart: number, dataLen: 
  * Rows of a grid swapped whole, each copy kept apart from the row it was read from as
  * either changes.
  */
-export function swapped$u8_3(dataData: Uint8Array, dataStart: number, dataLen: number, rows: Uint8Array[], out: rt.ByteVec): void {
+export function swapped$u8_3(data: rt.ByteSlice, rows: Uint8Array[], out: rt.ByteVec): void {
 	const _6: [rt.ByteSlice, Uint8Array[]] | undefined = rt.optionMap(rt.sliceSplitFirst(rows), (held): [rt.ByteSlice, Uint8Array[]] => {
 		return [rt.byteSliceFrom(held[0]), held[1]];
 	});
@@ -1253,7 +1253,7 @@ export function swapped$u8_3(dataData: Uint8Array, dataStart: number, dataLen: n
 				const next: Uint8Array = rt.byteSliceToArray(_9);
 				grid[1] = copy$array_u8(next);
 			}
-			const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const iterS: Uint8Array = rt.byteSliceView(data);
 			let iterI: number = 0;
 			while (true) {
 				const _16: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;

@@ -7,14 +7,14 @@ import * as locks_Lock from "./locks.Lock.ts";
 import * as locks_Tally from "./locks.Tally.ts";
 
 /** Each byte an operation on the mutexes, its value the operand; each puts what it read. */
-export function locks(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function locks(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _71!: boolean;
 	const shared: rt.Arc<rt.Mutex<locks_Tally.Tally>> = new rt.Arc(new rt.Mutex(locks_Tally.default$Default()));
 	const other: rt.Arc<rt.Mutex<locks_Tally.Tally>> = rt.arcClone(shared);
 	const own: rt.Mutex<rt.ByteVec> = new rt.Mutex(new rt.ByteVec());
 	const number: rt.Mutex<rt.u32> = new rt.Mutex(0);
 	const lock: locks_Lock.Lock = { _0: new rt.Mutex(7) };
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const _17: rt.u8 = rt.u8Rem(op, 8);
 		if (_17 === 0) {
 			const tally: rt.Mutex<locks_Tally.Tally> = rt.mutexLock(shared.value);
@@ -84,11 +84,11 @@ export function locks(dataData: Uint8Array, dataStart: number, dataLen: number, 
 }
 
 /** Locks a mutex while a guard of it is held, if the first byte is odd, which panics. */
-export function relock(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const mutex: rt.Mutex<rt.u8> = new rt.Mutex(dataLen & 0xff);
+export function relock(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const mutex: rt.Mutex<rt.u8> = new rt.Mutex(data.length & 0xff);
 	const guard: rt.Mutex<rt.u8> = rt.mutexLock(mutex);
 	rt.byteVecPush(out, guard.value);
-	if (isSomeAnd$09tpccf(rt.byteSliceFirst(new rt.ByteSlice(dataData, dataStart, dataLen)), (b: rt.u8): boolean => {
+	if (isSomeAnd$09tpccf(rt.byteSliceFirst(data), (b: rt.u8): boolean => {
 		return rt.u8Rem(b, 2) === 1;
 	})) {
 		const _19: rt.Mutex<rt.u8> = rt.mutexLock(mutex);
@@ -105,12 +105,12 @@ export function relock(dataData: Uint8Array, dataStart: number, dataLen: number,
  * Each byte an operation on read-write locks, its value the operand; each puts what it
  * read.
  */
-export function rwlocks(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function rwlocks(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _74!: boolean;
 	let _90!: boolean;
 	const lock: rt.Arc<rt.RefCell<locks_Tally.Tally>> = new rt.Arc(new rt.RefCell(locks_Tally.default$Default()));
 	const number: rt.RefCell<rt.u32> = new rt.RefCell(0);
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const _12: rt.u8 = rt.u8Rem(op, 6);
 		if (_12 === 0) {
 			const tally: rt.RefCell<locks_Tally.Tally> = rt.rwLockWrite(lock.value);

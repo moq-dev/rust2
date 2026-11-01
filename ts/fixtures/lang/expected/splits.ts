@@ -61,8 +61,8 @@ export function second(dataData: Uint8Array, dataStart: number, dataLen: number,
 }
 
 /** A use that needs the slice itself. */
-export function opaque(sData: Uint8Array, sStart: number, sLen: number): rt.u8 {
-	return rt.iterFold(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart, sLen))), sLen & 0xff, (a: rt.u8, b: rt.u8): rt.u8 => {
+export function opaque(s: rt.ByteSlice): rt.u8 {
+	return rt.iterFold(rt.iterSlice(rt.byteSliceView(s)), s.length & 0xff, (a: rt.u8, b: rt.u8): rt.u8 => {
 		return rt.u8WrappingAdd(a ^ (a >> 3), b);
 	});
 }
@@ -73,15 +73,15 @@ export function code(out: rt.ByteVec, n: rt.u8): rt.u8 {
 	return n;
 }
 
-export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function splits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _58!: rt.u8;
 	let _169!: rt.u8;
 	let err!: Short.Short;
 	const _4: rt.u8 = rt.u8Rem(kind, 8);
 	if (_4 === 0) {
-		let restData: Uint8Array = dataData;
-		let restStart: number = dataStart;
-		let restLen: number = dataLen;
+		let restData: Uint8Array = data.data;
+		let restStart: number = data.start;
+		let restLen: number = data.length;
 		let sum: rt.u8 = 0;
 		while (true) {
 			const _9Data: Uint8Array = restData;
@@ -103,14 +103,14 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 		rt.byteVecPush(out, sum);
 		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(restData, restStart, restLen));
 	} else if (_4 === 1) {
-		const mid4: number = rt.u8Rem(option_unwrapOr$0r2bmpr(rt.byteSliceFirst(new rt.ByteSlice(dataData, dataStart, dataLen)), 0), 8) as rt.usize;
-		if (mid4 > dataLen) {
+		const mid4: number = rt.u8Rem(option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data), 0), 8) as rt.usize;
+		if (mid4 > data.length) {
 			rt.panic("mid > len");
 		}
 		rt.byteVecPush(out, mid4 & 0xff);
-		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(dataData, dataStart + mid4, dataLen - mid4));
+		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(data.data, data.start + mid4, data.length - mid4));
 	} else if (_4 === 2) {
-		const part7: rt.u8 | undefined = header(dataData, dataStart, dataLen);
+		const part7: rt.u8 | undefined = header(data.data, data.start, data.length);
 		const err3: Short.Short | undefined = part7 === undefined ? headerOut.err as Short.Short : undefined;
 		const part8: rt.u16 = headerOut.p_1;
 		const part9: Uint8Array = headerOut.p_2Data;
@@ -121,35 +121,36 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			const b3: rt.u16 = part8;
 			rt.byteVecPush(out, a2);
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(b3)));
-			rt.byteVecPush(out, opaque(part9, part10, part11));
+			rt.byteVecPush(out, opaque(new rt.ByteSlice(part9, part10, part11)));
 		} else if ((err3 as Short.Short).tag === "Empty") {
 			rt.byteVecPush(out, 240);
 		} else {
 			rt.byteVecPush(out, 241 ^ (((err3 as Short.Short) as { tag: "Need"; _0: rt.usize })._0 & 0xff));
 		}
 	} else if (_4 === 3) {
-		const mid3: number = rt.usizeDiv(dataLen, 2);
-		if (mid3 > dataLen) {
+		const mid3: number = rt.usizeDiv(data.length, 2);
+		if (mid3 > data.length) {
 			rt.panic("mid > len");
 		}
+		const head: rt.ByteSlice = new rt.ByteSlice(data.data, data.start, mid3);
 		let iterStart: rt.u8 = 0;
 		const iterEnd: rt.u8 = 3;
 		while ((_58 = iterStart++) < iterEnd) {
-			rt.byteVecPush(out, opaque(dataData, dataStart, mid3) ^ _58);
+			rt.byteVecPush(out, opaque(head) ^ _58);
 		}
-		rt.byteVecPush(out, opaque(dataData, dataStart + mid3, dataLen - mid3));
+		rt.byteVecPush(out, opaque(new rt.ByteSlice(data.data, data.start + mid3, data.length - mid3)));
 	} else if (_4 === 4) {
-		const mid: number = rt.usizeDiv(dataLen, 3);
-		if (mid > dataLen) {
+		const mid: number = rt.usizeDiv(data.length, 3);
+		if (mid > data.length) {
 			rt.panic("mid > len");
 		}
-		let pair_0Data: Uint8Array = dataData;
-		let pair_0Start: number = dataStart;
+		let pair_0Data: Uint8Array = data.data;
+		let pair_0Start: number = data.start;
 		let pair_0Len: number = mid;
-		let pair_1Data: Uint8Array = dataData;
-		let pair_1Start: number = dataStart + mid;
-		let pair_1Len: number = dataLen - mid;
-		const _73: rt.usize = rt.usizeRem(dataLen, 3);
+		let pair_1Data: Uint8Array = data.data;
+		let pair_1Start: number = data.start + mid;
+		let pair_1Len: number = data.length - mid;
+		const _73: rt.usize = rt.usizeRem(data.length, 3);
 		let iterStart2: rt.usize = 0;
 		const iterEnd2: rt.usize = _73;
 		while (iterStart2++ < iterEnd2) {
@@ -175,55 +176,39 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			rt.byteVecPush(out, pair_1Data[pair_1Start]);
 		}
 		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(pair_0Data, pair_0Start, pair_0Len));
-		const mid2: number = rt.usizeDiv(dataLen, 2);
-		if (mid2 > dataLen) {
+		const mid2: number = rt.usizeDiv(data.length, 2);
+		if (mid2 > data.length) {
 			rt.panic("mid > len");
 		}
-		let aData2: Uint8Array = dataData;
-		let aStart2: number = dataStart;
-		let aLen2: number = mid2;
-		let bData2: Uint8Array = dataData;
-		let bStart2: number = dataStart + mid2;
-		let bLen2: number = dataLen - mid2;
-		const _101: rt.usize = rt.usizeRem(dataLen, 3);
+		let a3: rt.ByteSlice = new rt.ByteSlice(data.data, data.start, mid2);
+		let b4: rt.ByteSlice = new rt.ByteSlice(data.data, data.start + mid2, data.length - mid2);
+		const _101: rt.usize = rt.usizeRem(data.length, 3);
 		let iterStart3: rt.usize = 0;
 		const iterEnd3: rt.usize = _101;
 		while (iterStart3++ < iterEnd3) {
-			const _111Data: Uint8Array = bData2;
-			const _111Start: number = bStart2;
-			const _111Len: number = bLen2;
-			const _112Data: Uint8Array = aData2;
-			const _112Start: number = aStart2;
-			const _112Len: number = aLen2;
-			aData2 = _111Data;
-			aStart2 = _111Start;
-			aLen2 = _111Len;
-			bData2 = _112Data;
-			bStart2 = _112Start;
-			bLen2 = _112Len;
-			rt.byteVecPush(out, opaque(aData2, aStart2, aLen2));
+			const _111: rt.ByteSlice = b4;
+			const _112: rt.ByteSlice = a3;
+			a3 = _111;
+			b4 = _112;
+			rt.byteVecPush(out, opaque(a3));
 		}
-		rt.byteVecPush(out, aLen2 & 0xff);
-		rt.byteVecPush(out, opaque(bData2, bStart2, bLen2));
+		rt.byteVecPush(out, a3.length & 0xff);
+		rt.byteVecPush(out, opaque(b4));
 	} else if (_4 === 5) {
-		let restData3: Uint8Array = dataData;
-		let restStart3: number = dataStart;
-		let restLen3: number = dataLen;
+		let rest3: rt.ByteSlice = data;
 		while (true) {
-			const _124: [rt.u8, rt.u8, rt.ByteSlice] | undefined = two(restData3, restStart3, restLen3);
+			const _125: rt.ByteSlice = rest3;
+			const _124: [rt.u8, rt.u8, rt.ByteSlice] | undefined = two(_125.data, _125.start, _125.length);
 			if (_124 !== undefined) {
 				rt.byteVecPush(out, _124[0] ^ _124[1]);
-				const slice: rt.ByteSlice = _124[2];
-				restData3 = slice.data;
-				restStart3 = slice.start;
-				restLen3 = slice.length;
+				rest3 = _124[2];
 			} else {
 				break;
 			}
 		}
-		rt.byteVecPush(out, restLen3 & 0xff);
+		rt.byteVecPush(out, rest3.length & 0xff);
 	} else if (_4 === 6) {
-		const split: [rt.ByteSlice, rt.ByteSlice] | undefined = rt.byteSliceSplitAtChecked(new rt.ByteSlice(dataData, dataStart, dataLen), 4);
+		const split: [rt.ByteSlice, rt.ByteSlice] | undefined = rt.byteSliceSplitAtChecked(data, 4);
 		b5: {
 			if (split !== undefined) {
 				const _227: rt.ByteSlice = split[0];
@@ -237,13 +222,13 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 				return _2[0].data[_2[0].start + 3] ^ (_2[1].length & 0xff);
 			}));
 		}
-		const err2: Short.Short | undefined = take(dataData, dataStart, dataLen, 3);
+		const err2: Short.Short | undefined = take(data.data, data.start, data.length, 3);
 		const part: Uint8Array = At.splitOut$returns_Split.p_0Data;
 		const part2: number = At.splitOut$returns_Split.p_0Start;
 		const part3: number = At.splitOut$returns_Split.p_0Len;
 		const part6: number = At.splitOut$returns_Split.p_1Len;
 		if (err2 === undefined) {
-			rt.byteVecPush(out, opaque(part, part2, part3));
+			rt.byteVecPush(out, opaque(new rt.ByteSlice(part, part2, part3)));
 			rt.byteVecPush(out, part6 & 0xff);
 		} else {
 			const e: Short.Short = err2 as Short.Short;
@@ -256,26 +241,26 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 		}
 	} else {
 		const first2: rt.u8 = code(out, 7);
-		if (dataLen !== 0) {
-			rt.byteVecPush(out, dataData[dataStart]);
-			rt.byteVecPush(out, (dataLen - 1) & 0xff);
+		if (data.length !== 0) {
+			rt.byteVecPush(out, data.data[data.start]);
+			rt.byteVecPush(out, (data.length - 1) & 0xff);
 		} else {
 			rt.byteVecPush(out, first2);
 		}
-		if (rt.usizeRem(dataLen, 2) === 0) {
+		if (rt.usizeRem(data.length, 2) === 0) {
 			err = { tag: "Empty" } as Short.Short;
 		} else {
-			err = { tag: "Need", _0: dataLen } as Short.Short;
+			err = { tag: "Need", _0: data.length } as Short.Short;
 		}
 		const _1902: Short.Short = err;
-		if (dataLen !== 0) {
-			rt.byteVecPush(out, dataData[dataStart]);
+		if (data.length !== 0) {
+			rt.byteVecPush(out, data.data[data.start]);
 		} else if (_1902.tag === "Empty") {
 			rt.byteVecPush(out, 224);
 		} else {
 			rt.byteVecPush(out, 225 ^ (_1902._0 & 0xff));
 		}
-		const _200: rt.Result<rt.u8, rt.u8 | undefined> = second(dataData, dataStart, dataLen, rt.byteSliceFirst(new rt.ByteSlice(dataData, dataStart, dataLen)));
+		const _200: rt.Result<rt.u8, rt.u8 | undefined> = second(data.data, data.start, data.length, rt.byteSliceFirst(data));
 		if (_200.ok) {
 			rt.byteVecPush(out, _200.value);
 		} else if (_200.error === undefined) {
@@ -283,8 +268,8 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 		} else {
 			rt.byteVecPush(out, _200.error ^ 85);
 		}
-		if (2 <= dataLen) {
-			rt.byteVecPush(out, dataData[dataStart + 1] ^ ((dataLen - 2) & 0xff));
+		if (2 <= data.length) {
+			rt.byteVecPush(out, data.data[data.start + 1] ^ ((data.length - 2) & 0xff));
 		}
 	}
 }

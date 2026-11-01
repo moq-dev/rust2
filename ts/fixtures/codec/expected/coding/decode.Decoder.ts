@@ -30,8 +30,8 @@ export interface Decoder {
 }
 
 /** Read `buf`, with varints in the given form. */
-function new_(bufData: Uint8Array, bufStart: number, bufLen: number, form: Form.Form): Decoder {
-	return { buf: new rt.ByteSlice(bufData, bufStart, bufLen), form, len: bufLen, need: 0, control: undefined, uncounted: 0 };
+function new_(buf: rt.ByteSlice, form: Form.Form): Decoder {
+	return { buf, form, len: buf.length, need: 0, control: undefined, uncounted: 0 };
 }
 
 /**
@@ -89,7 +89,7 @@ export function sub(self: Decoder, len: rt.usize): rt.Result<Decoder, DecodeErro
 	const part2: number = sliceOut.pStart;
 	const part3: number = sliceOut.pLen;
 	if (err === undefined) {
-		return rt.Ok(new_(part, part2, part3, self.form));
+		return rt.Ok(new_(new rt.ByteSlice(part, part2, part3), self.form));
 	}
 	return rt.Err(err as DecodeError.DecodeError);
 }

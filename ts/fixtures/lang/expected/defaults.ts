@@ -41,9 +41,9 @@ export function made$unit(): void {
 }
 
 /** Each byte an operation, its value the operand; each puts what it read. */
-export function defaults(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function defaults(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let s!: string;
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const _10: rt.u8 = rt.u8Rem(op, 9);
 		if (_10 === 0) {
 			made$unit();

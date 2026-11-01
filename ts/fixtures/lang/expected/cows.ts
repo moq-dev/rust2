@@ -23,9 +23,9 @@ export function cow(s: string, owned: boolean): string {
 	return s;
 }
 
-export function cows(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function cows(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let r!: rt.Result<string, rt.u8>;
-	const s: string = text(dataData, dataStart, dataLen);
+	const s: string = text(data);
 	const owned: boolean = (kind & 128) !== 0;
 	const first: string = option_unwrapOr$1iemzn8(rt.iterToOption(rt.strSplit(s, "/").next()), "");
 	const _14: rt.u8 = rt.u8Rem(kind, 6);
@@ -147,8 +147,8 @@ export function cows(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** A slice of `u16`s read from `data`, two bytes each. */
-export function words(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u16[] {
-	return rt.iterToArray(rt.iterMap(rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart, dataLen), 2), (c: rt.ByteSlice): rt.u16 => {
+export function words(data: rt.ByteSlice): rt.u16[] {
+	return rt.iterToArray(rt.iterMap(rt.byteSliceChunks(data, 2), (c: rt.ByteSlice): rt.u16 => {
 		rt.idx(c, 0);
 		return ((((c.data[c.start] as rt.u16)) << 8) & 0xffff) | rt.optionUnwrap(rt.byteSliceLast(c)) as rt.u16;
 	}), undefined, 2, true);
@@ -192,9 +192,9 @@ export function hashed$slice_u16(v: rt.u16[]): rt.u64 {
 	return rt.hashFinish(h);
 }
 
-export function hashed$slice_u8(vData: Uint8Array, vStart: number, vLen: number): rt.u64 {
+export function hashed$slice_u8(v: rt.ByteSlice): rt.u64 {
 	const h: rt.Hasher = rt.hasher();
-	rt.hashBytes(new rt.ByteSlice(vData, vStart, vLen), h);
+	rt.hashBytes(v, h);
 	return rt.hashFinish(h);
 }
 
@@ -202,11 +202,11 @@ export function hashed$slice_u8(vData: Uint8Array, vStart: number, vLen: number)
  * `Cow<[u16]>`: made each way, collected, and read, changed through `to_mut`, compared,
  * ordered, and hashed against each sequence, matched on, and held in a field and as a key.
  */
-export function slices(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let made!: rt.u16[];
 	let _359!: rt.Cow<rt.u16>;
 	let c4!: rt.Cow<cows_Tally.Tally>;
-	const v: rt.u16[] = words(dataData, dataStart, dataLen);
+	const v: rt.u16[] = words(data);
 	const owned: boolean = (kind & 128) !== 0;
 	const half: rt.u16[] = rt.sliceRange(v, 0, rt.usizeDiv(v.length, 2));
 	const _15: rt.u8 = rt.u8Rem(kind, 6);
@@ -402,7 +402,7 @@ export function slices(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 		fmt_put(out, rt.fmtFormat([args6[0]]));
 	} else {
 		const log: rt.Cell<rt.u32> = new rt.Cell(0);
-		const items: cows_Tally.Tally[] = rt.iterToArray(rt.iterMap(rt.iterTake(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), 4), (_2: rt.u8): cows_Tally.Tally => {
+		const items: cows_Tally.Tally[] = rt.iterToArray(rt.iterMap(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 4), (_2: rt.u8): cows_Tally.Tally => {
 			return new cows_Tally.Tally(_2, log);
 		}), undefined, 8, true);
 		if (!owned) {
@@ -459,15 +459,15 @@ export function repoint$u16(s: rt.Place<rt.u16[]>, to: rt.u16[]): void {
 }
 
 /** Point `s` at `to`, through the `&mut` a caller passes. */
-export function repoint$u8(s: rt.Place<rt.ByteSlice>, toData: Uint8Array, toStart: number, toLen: number): void {
-	s.v = new rt.ByteSlice(toData, toStart, toLen);
+export function repoint$u8(s: rt.Place<rt.ByteSlice>, to: rt.ByteSlice): void {
+	s.v = to;
 }
 
-export function made(sData: Uint8Array, sStart: number, sLen: number, owned: boolean): rt.ByteCow {
+export function made(s: rt.ByteSlice, owned: boolean): rt.ByteCow {
 	if (!owned) {
-		return new rt.ByteSlice(sData, sStart, sLen);
+		return s;
 	}
-	return rt.byteSliceToByteVec(new rt.ByteSlice(sData, sStart, sLen));
+	return rt.byteSliceToByteVec(s);
 }
 
 /**
@@ -475,19 +475,18 @@ export function made(sData: Uint8Array, sStart: number, sLen: number, owned: boo
  * touching what it borrowed, compared against each form of bytes, hashed, printed, and
  * matched on.
  */
-export function bytes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function bytes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _85!: boolean;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const owned: boolean = (kind & 128) !== 0;
 	const half: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.usizeDiv(data.length, 2));
-	let c: rt.ByteCow = made(data.data, data.start, data.length, owned);
+	let c: rt.ByteCow = made(data, owned);
 	rt.byteVecPush(out, rt.byteCowSlice(c).length & 0xff);
 	const part2 = rt.min(rt.byteCowSlice(c).length, 3);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceRange(rt.byteCowSlice(c), 0, part2));
-	const _35: rt.ByteCow = made(half.data, half.start, half.length, !owned);
+	const _35: rt.ByteCow = made(half, !owned);
 	const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.byteSliceView(rt.byteCowSlice(c)), f, rt.u8Debug), (f: rt.Formatter) => rt.fmtList(rt.byteSliceView(rt.byteCowSlice(_35)), f, rt.u8Debug)];
 	fmt_put(out, rt.fmtFormat([args2[0], " ", args2[1]]));
-	const _47: rt.ByteCow = made(half.data, half.start, half.length, !owned);
+	const _47: rt.ByteCow = made(half, !owned);
 	const _44: boolean = rt.eqBytes(c, _47);
 	const _49: boolean = rt.eqBytes(c, data);
 	const _55: rt.ByteVec = rt.byteSliceToByteVec(data);
@@ -496,9 +495,9 @@ export function bytes(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 	const _59: boolean = rt.eqBytes(rt.byteCowSlice(c), rt.byteSliceFrom(Uint8Array.of(0, 0)));
 	const _63: boolean = rt.eqBytes(data, c);
 	const _66: boolean = !rt.eqBytes(rt.byteSliceToByteVec(data), c);
-	const _74: rt.ByteCow = made(half.data, half.start, half.length, owned);
+	const _74: rt.ByteCow = made(half, owned);
 	const _70: boolean = rt.cmpBytes(c, _74) > 0;
-	const _75: boolean = rt.u64Eq(hashed$borrow_Cow_slice_u8(c), hashed$slice_u8(data.data, data.start, data.length));
+	const _75: boolean = rt.u64Eq(hashed$borrow_Cow_slice_u8(c), hashed$slice_u8(data));
 	const _79: boolean = rt.u64Eq(hashed$borrow_Cow_slice_u8(c), hashed$Vec_u8(rt.byteSliceToByteVec(data)));
 	if (c instanceof rt.ByteSlice) {
 		_85 = true;
@@ -522,9 +521,9 @@ export function bytes(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 			(c as rt.ByteVec) = _103;
 		}
 		rt.byteVecExtendFromSlice(out, rt.byteCowSlice(kept));
-		let e: rt.ByteCow = made(data.data, data.start, data.length, !owned);
+		let e: rt.ByteCow = made(data, !owned);
 		if (e instanceof rt.ByteSlice) {
-			repoint$u8(rt.place(() => (e as rt.ByteSlice) as rt.ByteSlice, (value) => (e as rt.ByteSlice) = value), half.data, half.start, half.length);
+			repoint$u8(rt.place(() => (e as rt.ByteSlice) as rt.ByteSlice, (value) => (e as rt.ByteSlice) = value), half);
 		} else {
 			rt.byteVecTruncate(e as rt.ByteVec, 1);
 		}

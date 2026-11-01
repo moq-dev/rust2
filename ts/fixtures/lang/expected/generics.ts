@@ -15,8 +15,7 @@ import type * as shapes_Shape from "./shapes.Shape.ts";
 import type * as Track from "./shapes.Track.ts";
 
 /** Each method once per instance: `Wrap` of a struct, an enum, a number, and itself. */
-export function methods(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function methods(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
 		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};

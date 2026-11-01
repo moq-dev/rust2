@@ -40,9 +40,9 @@ export function hash$slice_u16(value: rt.u16[]): rt.u64 {
 	return rt.hashFinish(h);
 }
 
-export function hash$slice_u8(valueData: Uint8Array, valueStart: number, valueLen: number): rt.u64 {
+export function hash$slice_u8(value: rt.ByteSlice): rt.u64 {
 	const h: rt.Hasher = rt.hasher();
-	rt.hashBytes(new rt.ByteSlice(valueData, valueStart, valueLen), h);
+	rt.hashBytes(value, h);
 	return rt.hashFinish(h);
 }
 
@@ -53,9 +53,9 @@ export function hash$str(value: string): rt.u64 {
 }
 
 /** Puts `b`'s length and bytes. */
-export function bytes(bData: Uint8Array, bStart: number, bLen: number, out: rt.ByteVec): void {
-	rt.byteVecPush(out, bLen & 0xff);
-	rt.byteVecExtendFromSlice(out, new rt.ByteSlice(bData, bStart, bLen));
+export function bytes(b: rt.ByteSlice, out: rt.ByteVec): void {
+	rt.byteVecPush(out, b.length & 0xff);
+	rt.byteVecExtendFromSlice(out, b);
 }
 
 /** Puts `b`'s length and each `u16`'s bytes. */
@@ -118,98 +118,73 @@ export function set$u8(slot: rt.Place<rt.ByteSlice>, value: rt.ByteSlice): void 
 	slot.v = value;
 }
 
-export function boxes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data2: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(dataData, dataStart, dataLen), 0, rt.usizeRem(kind >> 3 as rt.usize, rt.usizeAdd(dataLen, 1)));
+export function boxes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	const data2: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.usizeRem(kind >> 3 as rt.usize, rt.usizeAdd(data.length, 1)));
 	const _15: rt.u8 = rt.u8Rem(kind, 6);
 	if (_15 === 0) {
 		const source: rt.ByteVec = rt.byteSliceToByteVec(data2);
 		let fromRef: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(data2));
 		scramble(rt.place(() => fromRef, (value3) => fromRef = value3));
-		const _720: rt.ByteSlice = fromRef;
-		bytes(_720.data, _720.start, _720.length, out);
+		bytes(fromRef, out);
 		const fromMut: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(rt.byteSliceRange(rt.byteVecSlice(source), 0)));
 		rt.byteSliceView(fromMut).sort();
-		const _721: rt.ByteSlice = fromMut;
-		bytes(_721.data, _721.start, _721.length, out);
-		const _33: rt.ByteSlice = rt.byteVecSlice(source);
-		bytes(_33.data, _33.start, _33.length, out);
-		const _722: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(data2));
-		bytes(_722.data, _722.start, _722.length, out);
+		bytes(fromMut, out);
+		bytes(rt.byteVecSlice(source), out);
+		bytes(rt.byteSliceFrom(rt.byteSliceToArray(data2)), out);
 		const spare: rt.ByteVec = new rt.ByteVec(64);
 		rt.byteVecExtendFromSlice(spare, data2);
 		let fromVec: rt.ByteSlice = rt.byteVecSlice(spare);
 		scramble(rt.place(() => fromVec, (value4) => fromVec = value4));
-		const _723: rt.ByteSlice = fromVec;
-		bytes(_723.data, _723.start, _723.length, out);
+		bytes(fromVec, out);
 		let boxed: rt.ByteSlice = rt.byteVecSlice(rt.byteVecFrom(rt.byteVecView(source)));
 		scramble(rt.place(() => boxed, (value5) => boxed = value5));
-		const _724: rt.ByteSlice = boxed;
-		bytes(_724.data, _724.start, _724.length, out);
+		bytes(boxed, out);
 		const array: Uint8Array = Uint8Array.of(option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data2), 1), 2, 3, 4);
 		let fromArray: rt.ByteSlice = rt.byteSliceFrom(copy$array_u8(array));
 		scramble(rt.place(() => fromArray, (value6) => fromArray = value6));
-		const _725: rt.ByteSlice = fromArray;
-		bytes(_725.data, _725.start, _725.length, out);
-		const _68: rt.ByteSlice = rt.byteSliceFrom(array);
-		bytes(_68.data, _68.start, _68.length, out);
+		bytes(fromArray, out);
+		bytes(rt.byteSliceFrom(array), out);
 		const coerced: rt.ByteSlice = rt.byteSliceFrom(copy$array_u8(array));
 		rt.idx(coerced, 0);
 		coerced.data[coerced.start] = 9;
-		const _726: rt.ByteSlice = coerced;
-		bytes(_726.data, _726.start, _726.length, out);
-		const _79: rt.ByteSlice = rt.byteSliceFrom(array);
-		bytes(_79.data, _79.start, _79.length, out);
+		bytes(coerced, out);
+		bytes(rt.byteSliceFrom(array), out);
 		const collected: rt.ByteSlice = rt.byteVecSlice(rt.iterToByteVec(rt.iterMap(rt.iterSlice(rt.byteSliceView(data2)), (_27: rt.u8): rt.u8 => {
 			return _27 ^ 85;
 		}), undefined, true));
-		const _727: rt.ByteSlice = collected;
-		bytes(_727.data, _727.start, _727.length, out);
+		bytes(collected, out);
 		let cloned: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(collected));
 		scramble(rt.place(() => cloned, (value7) => cloned = value7));
-		const _728: rt.ByteSlice = cloned;
-		bytes(_728.data, _728.start, _728.length, out);
-		const _729: rt.ByteSlice = collected;
-		bytes(_729.data, _729.start, _729.length, out);
+		bytes(cloned, out);
+		bytes(collected, out);
 		const empty: rt.ByteSlice = rt.byteSliceFrom(new Uint8Array(0));
-		const _730: rt.ByteSlice = empty;
-		bytes(_730.data, _730.start, _730.length, out);
-		const _731: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(empty));
-		bytes(_731.data, _731.start, _731.length, out);
-		const _732: rt.ByteSlice = rt.byteVecSlice(rt.byteCowIntoOwned(data2));
-		bytes(_732.data, _732.start, _732.length, out);
-		const _733: rt.ByteSlice = rt.byteVecSlice(rt.byteCowIntoOwned(rt.byteSliceToByteVec(data2)));
-		bytes(_733.data, _733.start, _733.length, out);
+		bytes(empty, out);
+		bytes(rt.byteSliceFrom(rt.byteSliceToArray(empty)), out);
+		bytes(rt.byteVecSlice(rt.byteCowIntoOwned(data2)), out);
+		bytes(rt.byteVecSlice(rt.byteCowIntoOwned(rt.byteSliceToByteVec(data2))), out);
 		const v: rt.ByteVec = rt.byteSliceToByteVec(fromRef);
 		rt.byteVecPush(v, 238);
 		rt.byteVecExtendFromSlice(v, fromVec);
-		const _126: rt.ByteSlice = rt.byteVecSlice(v);
-		bytes(_126.data, _126.start, _126.length, out);
-		const _131: rt.ByteSlice = rt.byteVecSlice(rt.byteSliceToByteVec(cloned));
-		bytes(_131.data, _131.start, _131.length, out);
+		bytes(rt.byteVecSlice(v), out);
+		bytes(rt.byteVecSlice(rt.byteSliceToByteVec(cloned)), out);
 		let slot: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(data2));
 		const _136: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of(1, 2, 3));
 		set$u8(rt.place(() => slot, (value8) => slot = value8), _136);
-		const _735: rt.ByteSlice = slot;
-		bytes(_735.data, _735.start, _735.length, out);
+		bytes(slot, out);
 		const _143: rt.ByteSlice = rt.byteSliceFrom(rt.byteSliceToArray(data2));
 		const old2 = slot;
 		slot = _143;
-		const _736: rt.ByteSlice = old2;
-		bytes(_736.data, _736.start, _736.length, out);
+		bytes(old2, out);
 		const taken2 = slot;
 		slot = rt.byteSliceFrom(new Uint8Array(0));
-		const _737: rt.ByteSlice = taken2;
-		bytes(_737.data, _737.start, _737.length, out);
-		const _738: rt.ByteSlice = slot;
-		bytes(_738.data, _738.start, _738.length, out);
+		bytes(taken2, out);
+		bytes(slot, out);
 		let other: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of(9));
 		const swapped = slot;
 		slot = other;
 		other = swapped;
-		const _739: rt.ByteSlice = slot;
-		bytes(_739.data, _739.start, _739.length, out);
-		const _740: rt.ByteSlice = other;
-		bytes(_740.data, _740.start, _740.length, out);
+		bytes(slot, out);
+		bytes(other, out);
 		let sum: rt.u8 = 0;
 		const iter: rt.Iter<rt.u8> = rt.iterSlice(rt.byteSliceView(boxed));
 		while (true) {
@@ -233,7 +208,7 @@ export function boxes(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 			return o & 0xff;
 		}));
 		rt.byteVecPush(out, rt.byteSliceEq(a, data2) ? 1 : 0);
-		rt.byteVecPush(out, rt.u64Eq(hash$boxed_Box_slice_u8(a), hash$slice_u8(data2.data, data2.start, data2.length)) ? 1 : 0);
+		rt.byteVecPush(out, rt.u64Eq(hash$boxed_Box_slice_u8(a), hash$slice_u8(data2)) ? 1 : 0);
 		rt.iterExtendBytes(out, rt.iterSlice(rt.u64ToBeBytes(hash$boxed_Box_slice_u8(b)).reverse()), undefined, true);
 		rt.byteVecPush(out, a.length & 0xff);
 		rt.byteVecPush(out, a.length === 0 ? 1 : 0);
@@ -432,7 +407,7 @@ export function boxes(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 			rt.iterExtendBytes(out, rt.iterSlice(rt.u16ToBeBytes(_634[1]).reverse()), undefined, true);
 		}
 	} else {
-		const s: string = text(data2.data, data2.start, data2.length);
+		const s: string = text(data2);
 		const fromRef4: string = s;
 		const fromString: string = s;
 		const into2: string = s;

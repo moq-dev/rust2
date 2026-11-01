@@ -8,8 +8,7 @@ import * as durations_Window from "./durations.Window.ts";
 import { put as fmt_put } from "./fmt.ts";
 
 /** A `u64` and a `u32` from the front of `data`, big-endian and zero-padded. */
-export function take(dataData: Uint8Array, dataStart: number, dataLen: number): [rt.u64, rt.u32, rt.ByteSlice] {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function take(data: rt.ByteSlice): [rt.u64, rt.u32, rt.ByteSlice] {
 	const buf: Uint8Array = rt.bytes(12);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -29,8 +28,8 @@ export function take(dataData: Uint8Array, dataStart: number, dataLen: number): 
 }
 
 /** A `Duration` from the front of `data`, whose nanoseconds never carry. */
-export function duration(dataData: Uint8Array, dataStart: number, dataLen: number): [rt.Duration, rt.ByteSlice] {
-	const _5: [rt.u64, rt.u32, rt.ByteSlice] = take(dataData, dataStart, dataLen);
+export function duration(data: rt.ByteSlice): [rt.Duration, rt.ByteSlice] {
+	const _5: [rt.u64, rt.u32, rt.ByteSlice] = take(data);
 	return [rt.durationNew(_5[0], rt.u32Rem(_5[1], 1000000000)), _5[2]] as [rt.Duration, rt.ByteSlice];
 }
 
@@ -59,10 +58,10 @@ export function shrink(d: rt.Place<rt.Duration>, by: rt.Duration): void {
 	d.v = rt.durationSub(d.v, by);
 }
 
-export function durations(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const _6: [rt.Duration, rt.ByteSlice] = duration(dataData, dataStart, dataLen);
+export function durations(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	const _6: [rt.Duration, rt.ByteSlice] = duration(data);
 	const a: rt.Duration = _6[0];
-	const _9: [rt.Duration, rt.ByteSlice] = duration(_6[1].data, _6[1].start, _6[1].length);
+	const _9: [rt.Duration, rt.ByteSlice] = duration(_6[1]);
 	const b: rt.Duration = _9[0];
 	const word: Uint8Array = rt.bytes(4);
 	const k: rt.usize = rt.min(_9[1].length, rt.byteSliceFrom(word).length);
@@ -70,10 +69,10 @@ export function durations(kind: rt.u8, dataData: Uint8Array, dataStart: number, 
 	const n: rt.u32 = rt.u32FromBeBytes(word);
 	const _24: rt.u8 = rt.u8Rem(kind, 14);
 	if (_24 === 0) {
-		const _28: [rt.u64, rt.u32, rt.ByteSlice] = take(dataData, dataStart, dataLen);
+		const _28: [rt.u64, rt.u32, rt.ByteSlice] = take(data);
 		putDuration(out, rt.durationNew(_28[0], _28[1]));
 	} else if (_24 === 1) {
-		const units: rt.u64 = take(dataData, dataStart, dataLen)[0];
+		const units: rt.u64 = take(data)[0];
 		putDuration(out, rt.durationFromSecs(units));
 		putDuration(out, rt.durationFromMillis(units));
 		putDuration(out, rt.durationFromMicros(units));
@@ -200,10 +199,10 @@ export function durations(kind: rt.u8, dataData: Uint8Array, dataStart: number, 
 		v2[at] = rt.durationDiv(v2[at], n);
 		putDuration(out, v2[rt.idx(v2, 0)]);
 	} else if (_24 === 12) {
-		const units2: rt.u64 = take(dataData, dataStart, dataLen)[0];
+		const units2: rt.u64 = take(data)[0];
 		const wide: Uint8Array = rt.bytes(16);
-		const k2: rt.usize = rt.min(dataLen, rt.byteSliceFrom(wide).length);
-		rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(wide), 0, k2), rt.byteSliceRange(new rt.ByteSlice(dataData, dataStart, dataLen), 0, k2));
+		const k2: rt.usize = rt.min(data.length, rt.byteSliceFrom(wide).length);
+		rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(wide), 0, k2), rt.byteSliceRange(data, 0, k2));
 		putDuration(out, rt.durationFromMins(units2));
 		putDuration(out, rt.durationFromHours(units2));
 		putDuration(out, rt.durationFromNanosU128(rt.u128FromBeBytes(wide)));

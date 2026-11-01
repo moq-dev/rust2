@@ -208,10 +208,9 @@ export function state$u8_usize(out: rt.ByteVec, v: rt.usize, r: rt.RangeInclusiv
  * Each read of empty, single, and full ranges of the integer type `kind` picks, and at
  * its limits.
  */
-export function folds(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function folds(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const _8: [rt.u8, rt.u8, rt.usize] = [at(0), at(1), rt.usizeRem(at(2) as rt.usize, 6)];
 	const a: rt.u8 = _8[0];

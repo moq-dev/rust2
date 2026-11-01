@@ -10,11 +10,11 @@ import * as coding_version_Version from "../coding/version.Version.ts";
 import type * as lite_version_Version from "../lite/version.Version.ts";
 
 /** Decode the value from the front of `buf`, returning it and the bytes it took. */
-export function decodeSlice$coding_decode_Decode_coding_varint_Form(bufData: Uint8Array, bufStart: number, bufLen: number, version: Form.Form): rt.Result<[Versions, rt.usize], DecodeError.DecodeError> {
-	const r: Decoder.Decoder = Decoder.new(bufData, bufStart, bufLen, version);
+export function decodeSlice$coding_decode_Decode_coding_varint_Form(buf: rt.ByteSlice, version: Form.Form): rt.Result<[Versions, rt.usize], DecodeError.DecodeError> {
+	const r: Decoder.Decoder = Decoder.new(buf, version);
 	const _5: rt.Result<Versions, DecodeError.DecodeError> = decode$coding_decode_Decode_coding_varint_Form(r, version);
 	if (_5.ok) {
-		return rt.Ok([_5.value, rt.usizeSub(bufLen, Decoder.remaining(r))] as [Versions, rt.usize]);
+		return rt.Ok([_5.value, rt.usizeSub(buf.length, Decoder.remaining(r))] as [Versions, rt.usize]);
 	}
 	return _5;
 }

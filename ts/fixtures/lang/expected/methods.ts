@@ -4,7 +4,7 @@ import * as rt from "./rt.ts";
 import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$18pd8cy as option_map$18pd8cy, map$0b7sac9 as option_map$0b7sac9, map$0x0f126 as option_map$0x0f126, map$02fxff7 as option_map$02fxff7, map$1u19ipa as option_map$1u19ipa, map$1rlqf9d as option_map$1rlqf9d, map$1fszu7p as option_map$1fszu7p, map$12xrbxt as option_map$12xrbxt, map$0xz4pvf as option_map$0xz4pvf, map$1rxjg4m as option_map$1rxjg4m, map$03bv7br as option_map$03bv7br, map$08v2q5m as option_map$08v2q5m } from "./core/option.ts";
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function u8s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u8s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.u8) => undefined = (out2: rt.ByteVec, v4: rt.u8): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u8ToBeBytes(v4)));
 		rt.byteVecPush(out2, rt.u8FromBeBytes(rt.u8ToBeBytes(v4)) === v4 ? 1 : 0);
@@ -12,9 +12,8 @@ export function u8s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v5: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v5)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.u8 = rt.u8FromBeBytes(rt.bytesFromFn(1, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -435,7 +434,7 @@ export function u8s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function u16s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u16s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.u16) => undefined = (out2: rt.ByteVec, v4: rt.u16): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u16ToBeBytes(v4)));
 		rt.byteVecPush(out2, rt.u16FromBeBytes(rt.u16ToBeBytes(v4)) === v4 ? 1 : 0);
@@ -443,9 +442,8 @@ export function u16s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v5: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v5)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.u16 = rt.u16FromBeBytes(rt.bytesFromFn(2, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -866,7 +864,7 @@ export function u16s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function u32s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u32s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out2: rt.ByteVec, v4: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u32ToBeBytes(v4)));
 		rt.byteVecPush(out2, rt.u32FromBeBytes(rt.u32ToBeBytes(v4)) === v4 ? 1 : 0);
@@ -874,9 +872,8 @@ export function u32s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v5: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v5)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.u32 = rt.u32FromBeBytes(rt.bytesFromFn(4, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -1297,7 +1294,7 @@ export function u32s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function u64s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u64s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, v4: rt.u64): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u64ToBeBytes(v4)));
 		rt.byteVecPush(out2, rt.u64Eq(rt.u64FromBeBytes(rt.u64ToBeBytes(v4)), v4) ? 1 : 0);
@@ -1305,9 +1302,8 @@ export function u64s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v5: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v5)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.u64 = rt.u64FromBeBytes(rt.bytesFromFn(8, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -1728,7 +1724,7 @@ export function u64s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function u128s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u128s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.u128) => undefined = (out2: rt.ByteVec, v4: rt.u128): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u128ToBeBytes(v4)));
 		rt.byteVecPush(out2, rt.u128Eq(rt.u128FromBeBytes(rt.u128ToBeBytes(v4)), v4) ? 1 : 0);
@@ -1736,9 +1732,8 @@ export function u128s(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v5: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v5)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.u128 = rt.u128FromBeBytes(rt.bytesFromFn(16, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -2159,7 +2154,7 @@ export function u128s(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function usizes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function usizes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.usize) => undefined = (out2: rt.ByteVec, v4: rt.usize): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.usizeToBeBytes(v4)));
 		rt.byteVecPush(out2, rt.usizeFromBeBytes(rt.usizeToBeBytes(v4)) === v4 ? 1 : 0);
@@ -2167,9 +2162,8 @@ export function usizes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v5: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v5)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.usize = rt.usizeFromBeBytes(rt.bytesFromFn(4, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -2590,7 +2584,7 @@ export function usizes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function i8s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i8s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.i8) => undefined = (out2: rt.ByteVec, v8: rt.i8): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i8ToBeBytes(v8)));
 		rt.byteVecPush(out2, rt.i8FromBeBytes(rt.i8ToBeBytes(v8)) === v8 ? 1 : 0);
@@ -2598,9 +2592,8 @@ export function i8s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v9: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v9)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.i8 = rt.i8FromBeBytes(rt.bytesFromFn(1, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -3016,7 +3009,7 @@ export function i8s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function i16s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i16s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.i16) => undefined = (out2: rt.ByteVec, v8: rt.i16): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i16ToBeBytes(v8)));
 		rt.byteVecPush(out2, rt.i16FromBeBytes(rt.i16ToBeBytes(v8)) === v8 ? 1 : 0);
@@ -3024,9 +3017,8 @@ export function i16s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v9: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v9)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.i16 = rt.i16FromBeBytes(rt.bytesFromFn(2, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -3442,7 +3434,7 @@ export function i16s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function i32s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i32s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.i32) => undefined = (out2: rt.ByteVec, v8: rt.i32): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i32ToBeBytes(v8)));
 		rt.byteVecPush(out2, rt.i32FromBeBytes(rt.i32ToBeBytes(v8)) === v8 ? 1 : 0);
@@ -3450,9 +3442,8 @@ export function i32s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v9: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v9)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.i32 = rt.i32FromBeBytes(rt.bytesFromFn(4, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -3868,7 +3859,7 @@ export function i32s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function i64s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i64s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.i64) => undefined = (out2: rt.ByteVec, v8: rt.i64): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i64ToBeBytes(v8)));
 		rt.byteVecPush(out2, rt.i64Eq(rt.i64FromBeBytes(rt.i64ToBeBytes(v8)), v8) ? 1 : 0);
@@ -3876,9 +3867,8 @@ export function i64s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v9: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v9)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.i64 = rt.i64FromBeBytes(rt.bytesFromFn(8, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -4294,7 +4284,7 @@ export function i64s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function i128s(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i128s(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.i128) => undefined = (out2: rt.ByteVec, v8: rt.i128): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i128ToBeBytes(v8)));
 		rt.byteVecPush(out2, rt.i128Eq(rt.i128FromBeBytes(rt.i128ToBeBytes(v8)), v8) ? 1 : 0);
@@ -4302,9 +4292,8 @@ export function i128s(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v9: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v9)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.i128 = rt.i128FromBeBytes(rt.bytesFromFn(16, (i2: rt.usize): rt.u8 => {
 		return byte(i2);
@@ -4720,7 +4709,7 @@ export function i128s(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 }
 
 /** Apply method `kind` to operands taken from `data`: two of the type, and a `u32`. */
-export function isizes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function isizes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: (a0: rt.ByteVec, a1: rt.isize) => undefined = (out2: rt.ByteVec, v8: rt.isize): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.isizeToBeBytes(v8)));
 		rt.byteVecPush(out2, rt.isizeFromBeBytes(rt.isizeToBeBytes(v8)) === v8 ? 1 : 0);
@@ -4728,9 +4717,8 @@ export function isizes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 	const _27: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out3: rt.ByteVec, v9: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out3, rt.byteSliceFrom(rt.u32ToBeBytes(v9)));
 	};
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const byte: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const a: rt.isize = rt.isizeFromBeBytes(rt.bytesFromFn(4, (i2: rt.usize): rt.u8 => {
 		return byte(i2);

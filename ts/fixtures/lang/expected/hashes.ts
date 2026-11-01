@@ -70,9 +70,9 @@ export function digest$Vec_u8(value: rt.ByteVec, out: rt.ByteVec): void {
 }
 
 /** `DefaultHasher::new`'s hash of `value`, little-endian. */
-export function digest$array0_u8(valueData: Uint8Array, valueStart: number, valueLen: number, out: rt.ByteVec): void {
+export function digest$array0_u8(value: rt.ByteSlice, out: rt.ByteVec): void {
 	const h: rt.Hasher = rt.hasher();
-	rt.hashBytes(new rt.ByteSlice(valueData, valueStart, valueLen), h);
+	rt.hashBytes(value, h);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u64ToBeBytes(rt.hashFinish(h)).reverse()));
 }
 
@@ -84,9 +84,9 @@ export function digest$array2_hashes_Dir(value: hashes_Dir.Dir[], out: rt.ByteVe
 }
 
 /** `DefaultHasher::new`'s hash of `value`, little-endian. */
-export function digest$array2_u8(valueData: Uint8Array, valueStart: number, valueLen: number, out: rt.ByteVec): void {
+export function digest$array2_u8(value: rt.ByteSlice, out: rt.ByteVec): void {
 	const h: rt.Hasher = rt.hasher();
-	rt.hashBytes(new rt.ByteSlice(valueData, valueStart, valueLen), h);
+	rt.hashBytes(value, h);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u64ToBeBytes(rt.hashFinish(h)).reverse()));
 }
 
@@ -98,9 +98,9 @@ export function digest$array3_u32(value: rt.u32[], out: rt.ByteVec): void {
 }
 
 /** `DefaultHasher::new`'s hash of `value`, little-endian. */
-export function digest$array3_u8(valueData: Uint8Array, valueStart: number, valueLen: number, out: rt.ByteVec): void {
+export function digest$array3_u8(value: rt.ByteSlice, out: rt.ByteVec): void {
 	const h: rt.Hasher = rt.hasher();
-	rt.hashBytes(new rt.ByteSlice(valueData, valueStart, valueLen), h);
+	rt.hashBytes(value, h);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u64ToBeBytes(rt.hashFinish(h)).reverse()));
 }
 
@@ -203,9 +203,9 @@ export function digest$slice_u16(value: rt.u16[], out: rt.ByteVec): void {
 }
 
 /** `DefaultHasher::new`'s hash of `value`, little-endian. */
-export function digest$slice_u8(valueData: Uint8Array, valueStart: number, valueLen: number, out: rt.ByteVec): void {
+export function digest$slice_u8(value: rt.ByteSlice, out: rt.ByteVec): void {
 	const h: rt.Hasher = rt.hasher();
-	rt.hashBytes(new rt.ByteSlice(valueData, valueStart, valueLen), h);
+	rt.hashBytes(value, h);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u64ToBeBytes(rt.hashFinish(h)).reverse()));
 }
 
@@ -329,9 +329,8 @@ export function digest$usize(value: rt.usize, out: rt.ByteVec): void {
 }
 
 /** The bytes of `data` from `at`, as many as fit, as one big-endian number. */
-export function wide(dataData: Uint8Array, dataStart: number, dataLen: number, at: rt.usize, n: rt.usize): rt.u128 {
+export function wide(data: rt.ByteSlice, at: rt.usize, n: rt.usize): rt.u128 {
 	let _10!: rt.usize;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	let v: rt.u128 = 0;
 	const _7: rt.usize = rt.usizeAdd(at, n);
 	let iterStart: rt.usize = at;
@@ -345,11 +344,10 @@ export function wide(dataData: Uint8Array, dataStart: number, dataLen: number, a
 }
 
 /** The hash of a value of each type `kind` picks, made of `data`. */
-export function values(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function values(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let shape!: hashes_Shape.Shape;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const w: (a0: rt.usize, a1: rt.usize) => rt.u128 = (at: rt.usize, n3: rt.usize): rt.u128 => {
-		return wide(data.data, data.start, data.length, at, n3);
+		return wide(data, at, n3);
 	};
 	const _5: rt.u8 = rt.u8Rem(kind, 5);
 	if (_5 === 0) {
@@ -464,8 +462,7 @@ export function values(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
  * builds hash a value alike, through a reference too, and values `Hash` sees as equal
  * alike, so ordering by its hashes leaves the same set. `hash_one` drops what it takes.
  */
-export function random(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function random(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const s: rt.RandomState = rt.randomState();
 	const copy: rt.RandomState = s;
 	const other: Priorities$random.Priorities = Priorities$random.default$random_Default();
@@ -477,7 +474,7 @@ export function random(dataData: Uint8Array, dataStart: number, dataLen: number,
 		}
 		const i: rt.usize = _11[0];
 		const b: rt.u8 = _11[1];
-		const n: rt.u64 = rt.u64Cast(wide(data.data, data.start, data.length, i, 8));
+		const n: rt.u64 = rt.u64Cast(wide(data, i, 8));
 		const text: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(rt.byteSliceRange(data, i)), "✓");
 		const built: rt.Hasher = rt.buildHasher(s);
 		rt.hash64(n, built);
@@ -516,8 +513,7 @@ export function random(dataData: Uint8Array, dataStart: number, dataLen: number,
  * `Vec<u8>`: its length as a `usize`, then the bytes. Held in a tuple, an `Option`, and an
  * `Arc` too, and through `RandomState`'s `hash_one`, which hashes each form alike.
  */
-export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function bytes(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const iter: rt.RangeInclusive<rt.usize> = new rt.RangeInclusive(0, rt.min(data.length, 5), rt.usizeStep);
 	while (true) {
 		const _8: rt.usize | rt.Done = iter.next();
@@ -526,7 +522,7 @@ export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, 
 		}
 		const i: rt.usize = _8;
 		const s: rt.ByteSlice = rt.byteSliceRange(data, 0, i);
-		digest$slice_u8(s.data, s.start, s.length, out);
+		digest$slice_u8(s, out);
 		digest$Vec_u8(rt.byteSliceToByteVec(s), out);
 		digest$tuple2_ref_slice_u8_u8([s, i & 0xff] as [rt.ByteSlice, rt.u8], out);
 		digest$Option_Vec_u8(rt.byteSliceToByteVec(s), out);
@@ -534,8 +530,7 @@ export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, 
 		digest$sync_Arc_Vec_u8(_28, out);
 		_28[Symbol.dispose]();
 	}
-	const _32: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of());
-	digest$array0_u8(_32.data, _32.start, _32.length, out);
+	digest$array0_u8(rt.byteSliceFrom(Uint8Array.of()), out);
 	digest$tuple2_array0_u8_Option_array0_u8([Uint8Array.of(), Uint8Array.of()] as [Uint8Array, Uint8Array | undefined], out);
 	const state: rt.RandomState = rt.randomState();
 	const iter2: rt.Iter<rt.ByteSlice> = rt.byteSliceWindows(data, 3);
@@ -554,10 +549,8 @@ export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, 
 		const _59: rt.u8 = rt.u8Rem(_41.data[_41.start], 2);
 		rt.idx(_41, 1);
 		const pair: Uint8Array = Uint8Array.of(_59, rt.u8Rem(_41.data[_41.start + 1], 2));
-		const _72: rt.ByteSlice = rt.byteSliceFrom(a);
-		digest$array3_u8(_72.data, _72.start, _72.length, out);
-		const _74: rt.ByteSlice = rt.byteSliceFrom(pair);
-		digest$array2_u8(_74.data, _74.start, _74.length, out);
+		digest$array3_u8(rt.byteSliceFrom(a), out);
+		digest$array2_u8(rt.byteSliceFrom(pair), out);
 		digest$tuple2_array2_u8_array3_u8([pair, a] as [Uint8Array, Uint8Array], out);
 		digest$Option_array2_u8(pair, out);
 		const _83: rt.Arc<Uint8Array> = new rt.Arc(copy$array_u8(a));

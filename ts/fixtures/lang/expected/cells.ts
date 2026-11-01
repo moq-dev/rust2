@@ -505,7 +505,7 @@ export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 }
 
 /** Steps on the cell and value type `kind` picks. */
-export function cells(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function cells(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const cases: Array<(a0: rt.ByteSlice, a1: rt.ByteVec) => undefined> = [(a0: rt.ByteSlice, a1: rt.ByteVec): undefined => {
 		cellU8(a0.data, a0.start, a0.length, a1);
 	}, (a02: rt.ByteSlice, a12: rt.ByteVec): undefined => {
@@ -527,7 +527,7 @@ export function cells(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 	}, (a010: rt.ByteSlice, a110: rt.ByteVec): undefined => {
 		lockString(a010.data, a010.start, a010.length, a110);
 	}];
-	cases[rt.idx(cases, rt.usizeRem(kind as rt.usize, cases.length))](new rt.ByteSlice(dataData, dataStart, dataLen), out);
+	cases[rt.idx(cases, rt.usizeRem(kind as rt.usize, cases.length))](data, out);
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */

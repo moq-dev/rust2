@@ -167,7 +167,7 @@ export function shared(dataData: Uint8Array, dataStart: number, dataLen: number,
  * Pointers to numbers, to a field, and to a whole struct: read, written, swapped,
  * replaced, compared, and null.
  */
-export function places(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function places(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _29!: rt.Place<rt.u32>;
 	let _42!: rt.u8;
 	let x: rt.u32 = 0;
@@ -178,7 +178,7 @@ export function places(dataData: Uint8Array, dataStart: number, dataLen: number,
 	const pa: rt.Place<rt.u32> = rt.place(() => pair.a, (value3) => pair.a = value3);
 	const pp: pointers_Pair.Pair = pair;
 	let held: rt.Place<rt.u32> = rt.NULL;
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const v: rt.u32 = byte as rt.u32;
 		const _19: rt.u8 = rt.u8Rem(byte, 9);
 		if (_19 === 0) {
@@ -226,7 +226,7 @@ export function places(dataData: Uint8Array, dataStart: number, dataLen: number,
  * Unchecked indexing, a boxed number behind a pointer, a `MaybeUninit` number, and a
  * value dropped in place.
  */
-export function unchecked(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function unchecked(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const counts: rt.u32[] = Array.from({ length: 4 }, (): rt.u32 => {
 		return 0;
 	});
@@ -237,7 +237,7 @@ export function unchecked(dataData: Uint8Array, dataStart: number, dataLen: numb
 	uninit;
 	const held: rt.Arc<rt.u8> = new rt.Arc(0);
 	const dropped: rt.Arc<rt.u8> = rt.arcClone(held);
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const at: rt.usize = rt.u8Rem(byte, 4) as rt.usize;
 		const _23: rt.u32[] = counts;
 		const at2 = rt.idx(_23, at);
@@ -261,7 +261,7 @@ export function unchecked(dataData: Uint8Array, dataStart: number, dataLen: numb
  * Pointers to the parts of a struct kept as objects: initialized one by one from nothing,
  * written through the struct's pointer and their own, and read out before a write.
  */
-export function nested(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function nested(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const slot: Outer.Outer = ({ inner: { a: undefined, b: undefined }, pair: [undefined, undefined], n: undefined } as unknown) as Outer.Outer;
 	const p: Outer.Outer = slot;
 	const _8: [Inner.Inner, [rt.u32, rt.u32]] = [p.inner, p.pair];
@@ -270,7 +270,7 @@ export function nested(dataData: Uint8Array, dataStart: number, dataLen: number,
 	rt.ptrWrite(inner, { a: 1, b: 2 });
 	rt.ptrWrite(pair, [3, 4] as [rt.u32, rt.u32]);
 	p.n = 5;
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const v: rt.u32 = byte as rt.u32;
 		const _25: rt.u8 = rt.u8Rem(byte, 6);
 		if (_25 === 0) {
@@ -301,8 +301,8 @@ export function nested(dataData: Uint8Array, dataStart: number, dataLen: number,
  * Copies of a `MaybeUninit` and of a union holding arrays, each changed after, and values
  * read out through pointers before what they point at changes.
  */
-export function copies(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const _5 of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function copies(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const _5 of rt.byteSliceView(data)) {
 		const v: rt.u32 = _5 as rt.u32;
 		const x: rt.u32[] = copy$mem_MaybeUninit_array_u32(Array.from({ length: 4 }, (): rt.u32 => {
 			return v;
@@ -347,10 +347,10 @@ export function snapshot(v: rt.u32): [rt.u8, rt.u8] {
  * `as_ref`, and `()` written through a dangling pointer; and values of no bytes read
  * through dangling pointers.
  */
-export function sentinels(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function sentinels(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let p!: rt.Place<rt.u32 | undefined>;
 	let _19!: rt.u8;
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		let some: rt.u32 | undefined = filter$0tnmmii(byte as rt.u32, (v: rt.u32): boolean => {
 			return rt.u32Rem(v, 2) === 0;
 		});
@@ -383,13 +383,13 @@ export function sentinels(dataData: Uint8Array, dataStart: number, dataLen: numb
  * through `get` and `get_mut`, read through another `get` and before a write, assigned
  * through `get`, which drops what each held, replaced whole, and their values taken out.
  */
-export function cells(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function cells(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const count: rt.Arc<undefined> = new rt.Arc(undefined);
 	let num: rt.Cell<rt.u32> = new rt.Cell(4294967295 - 1);
 	const pair: rt.Cell<Duo.Duo> = new rt.Cell({ _0: 0, _1: 255 });
 	let text: rt.Cell<string> = new rt.Cell("");
 	const held: Wrapped.Wrapped<pointers_Held.Held> = Wrapped.new$pointers_Held(new pointers_Held.Held(0, rt.arcClone(count)));
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const n: rt.u8 = rt.u8Div(op, 8);
 		const _23: rt.u8 = rt.u8Rem(op, 8);
 		if (_23 === 0) {
@@ -495,8 +495,8 @@ export function renewNum(cell: rt.Cell<rt.u32>, value: rt.u32): rt.u32 {
  * one to a part a `&mut` given as `mem::replace`'s value borrows, which it leaves be;
  * and one through a reference `mem::replace` pointed elsewhere first.
  */
-export function rebound(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function rebound(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(data)) {
 		const _10: rt.u8 = rt.u8Rem(n, 7);
 		if (_10 === 0) {
 			rt.iterExtendBytes(out, rt.iterSlice(replacedBefore(n)), undefined, true);
@@ -622,12 +622,12 @@ export function pointerOf(d: Duo.Duo): Duo.Duo {
  * iteration of a loop that assigns the variable after, one an arm makes where another
  * arm replaces its variable, and ones nested loops make.
  */
-export function lapsed(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function lapsed(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _54!: rt.u8;
 	let pair: Duo.Duo = { _0: 0, _1: 255 };
 	let log: Log.Log = { bytes: new rt.ByteVec() };
 	let window: Uint8Array = rt.bytes(3);
-	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const n of rt.byteSliceView(data)) {
 		const p: Duo.Duo = pair;
 		p._0 = rt.u8WrappingAdd(p._0, n);
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(p._0, p._1)), undefined, true);
@@ -690,9 +690,9 @@ export function resetter$pointers_ByClosure(slot: ByClosure.ByClosure): () => un
  * Each byte a copy of one of them, the original written whole after by its generic body,
  * and both put. Each is a function of its own, as a loop assigns its variables again.
  */
-export function writers(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function writers(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _12!: Uint8Array;
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const n: rt.u8 = rt.u8Div(byte, 3);
 		const _13: rt.u8 = rt.u8Rem(byte, 3);
 		if (_13 === 0) {
@@ -741,8 +741,8 @@ export function nudge(g: pointers_Gauge.Gauge, n: rt.u8): void {
  * `MaybeUninit::as_mut_ptr` and `as_ptr`. Each is a function of its own, as a loop assigns
  * its variables again.
  */
-export function made(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const _5 of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function made(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const _5 of rt.byteSliceView(data)) {
 		rt.iterExtendBytes(out, rt.iterSlice(madeParts(_5)), undefined, true);
 	}
 }
@@ -764,10 +764,10 @@ export function madeParts(n: rt.u8): Uint8Array {
  * Entries pushed into segments of slots that each fill whole first, read back, and
  * changed in place through the pointer each slot's cell lends.
  */
-export function segments(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function segments(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const log: Segment.Segment[] = [];
 	let len: rt.usize = 0;
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const _12: rt.u8 = rt.u8Rem(byte, 4);
 		if (_12 === 0) {
 			if (!(rt.usizeRem(len, 8) === 0)) {
@@ -819,9 +819,8 @@ export function segments(dataData: Uint8Array, dataStart: number, dataLen: numbe
  * A `MaybeUninit` array and a `MaybeUninit` variable, each slot written whole before any
  * pointer into it is taken, then changed through pointers to a part of each and read back.
  */
-export function uninitRuns(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function uninitRuns(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _7!: rt.usize;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const runs: pointers_Run.Run[] = Array.from({ length: 3 }, (): pointers_Run.Run => {
 		return ({ span: [undefined, undefined], n: undefined } as unknown) as pointers_Run.Run;
 	});
@@ -864,8 +863,7 @@ export function uninitRuns(dataData: Uint8Array, dataStart: number, dataLen: num
  * `chunks_exact_mut`, and a `zip` with an index range; then changed through pointers to
  * a part of each and read back.
  */
-export function iteratedRuns(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function iteratedRuns(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const byte: (a0: rt.usize) => rt.u8 = (at3: rt.usize): rt.u8 => {
 		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, at3), 0);
 	};
@@ -964,10 +962,10 @@ export function stableCell(stable: Stable.Stable): rt.Place<rt.u8> {
  * A pointer to a cell beside a field a generic body writes whole, which leaves the cell's
  * struct be.
  */
-export function besideWritten(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function besideWritten(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const pair: [rt.u16, Stable.Stable] = [0, { _0: new rt.Cell(0) }];
 	const cell: rt.Place<rt.u8> = stableCell(pair[1]);
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		firstSet$u16(pair, byte as rt.u16);
 		cell.v = rt.u8WrappingAdd(cell.v, byte);
 		rt.byteVecPush(out, cell.v ^ (pair[0] & 0xff));
@@ -986,12 +984,12 @@ export function slotOf(waiter: Waiter.Waiter): [rt.u8, rt.u8] {
  * Waiters linked and unlinked, each changed and read through the pointer into its cell
  * taken when it was made, which nothing writing a waiter whole leaves stale.
  */
-export function waiters(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function waiters(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _80!: rt.usize;
 	const nodes: Waiter.Waiter[] = [waiter(0), waiter(1), waiter(2), waiter(3)];
 	const slots: [rt.u8, rt.u8][] = [slotOf(nodes[0]), slotOf(nodes[1]), slotOf(nodes[2]), slotOf(nodes[3])];
 	const list: Waiters.Waiters = { head: new rt.Atomic(rt.NULL), last: rt.NULL };
-	for (const byte of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const byte of rt.byteSliceView(data)) {
 		const at: rt.usize = rt.usizeRem(byte >> 2 as rt.usize, 4);
 		const _42: rt.u8 = rt.u8Rem(byte, 4);
 		if (_42 === 0) {
@@ -1042,8 +1040,8 @@ export function waiters(dataData: Uint8Array, dataStart: number, dataLen: number
  * points at another variable, whose first is assigned after, and ones a callee gives back
  * only as a reference, through a borrow a closure keeps.
  */
-export function taken(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function taken(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(data)) {
 		const _10: rt.u8 = rt.u8Rem(n, 4);
 		if (_10 === 0) {
 			rt.iterExtendBytes(out, rt.iterSlice(readBefore(n)), undefined, true);
@@ -1126,24 +1124,13 @@ export function viewed(n: rt.u8): Uint8Array {
  * `UnsafeCell`, and `AtomicPtr` make and take them. Pointers to one array are equal however they were made, and to arrays of equal
  * bytes, or to parts at other offsets, are not.
  */
-export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function bytes(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(data)) {
 		const a: Uint8Array = Uint8Array.of(n, n ^ 1, n ^ 2, n ^ 3);
 		const b: Uint8Array = copy$array_u8(a);
 		const fromRef: rt.ByteSlice = rt.byteSliceFrom(a);
 		const fromRaw: rt.ByteSlice = rt.byteSliceFrom(a);
-		const _19: rt.u8 = rt.byteSliceSame(fromRef, rt.byteSliceFrom(a)) ? 1 : 0;
-		const _23: rt.u8 = rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0;
-		const _25: rt.u8 = rt.byteSliceSame(rt.byteSliceFrom(a), rt.byteSliceFrom(b)) ? 1 : 0;
-		const _31: rt.u8 = rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0;
-		const _33: rt.u8 = !rt.byteSliceSame(fromRef, rt.byteSliceFrom(b)) ? 1 : 0;
-		const _36: rt.u8 = rt.byteSliceSame(fromRef, rt.NULL) ? 1 : 0;
-		const _41: rt.ByteSlice = rt.byteSliceFrom(a);
-		const _43: rt.ByteSlice = rt.byteSliceFrom(a);
-		const _39: rt.u8 = sameBytes(_41, _43.data, _43.start, _43.length) ? 1 : 0;
-		const _46: rt.ByteSlice = rt.byteSliceFrom(a);
-		const _48: rt.ByteSlice = rt.byteSliceFrom(b);
-		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_19, _23, _25, _31, _33, _36, _39, sameBytes(_46, _48.data, _48.start, _48.length) ? 1 : 0)), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.byteSliceSame(fromRef, rt.byteSliceFrom(a)) ? 1 : 0, rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0, rt.byteSliceSame(rt.byteSliceFrom(a), rt.byteSliceFrom(b)) ? 1 : 0, rt.byteSliceSame(fromRef, fromRaw) ? 1 : 0, !rt.byteSliceSame(fromRef, rt.byteSliceFrom(b)) ? 1 : 0, rt.byteSliceSame(fromRef, rt.NULL) ? 1 : 0, sameBytes(rt.byteSliceFrom(a), rt.byteSliceFrom(a)) ? 1 : 0, sameBytes(rt.byteSliceFrom(a), rt.byteSliceFrom(b)) ? 1 : 0)), undefined, true);
 		rt.iterExtendBytes(out, rt.iterSlice(held(n)), undefined, true);
 		rt.iterExtendBytes(out, rt.iterSlice(parts(rt.byteSliceFrom(a))), undefined, true);
 		const _55: rt.u8 = rt.u8Rem(n, 4);
@@ -1160,8 +1147,8 @@ export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, 
 	}
 }
 
-export function sameBytes(p: rt.ByteSlice, qData: Uint8Array, qStart: number, qLen: number): boolean {
-	return rt.byteSliceSame(p, new rt.ByteSlice(qData, qStart, qLen));
+export function sameBytes(p: rt.ByteSlice, q: rt.ByteSlice): boolean {
+	return rt.byteSliceSame(p, q);
 }
 
 /**
@@ -1298,8 +1285,8 @@ export function exchanged(n: rt.u8): Uint8Array {
  * none of those pointers: each read out over a type parameter, as smallvec's `Drain`
  * reads its items, and kept past its array's next value.
  */
-export function loaded(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function loaded(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const n of rt.byteSliceView(data)) {
 		let pair: Loaded.Loaded[] = [{ _0: n, _1: 1 }, { _0: 2, _1: ~n & 0xff }];
 		const first: Loaded.Loaded = option_unwrapOr$0mkoact(nextRead$pointers_Loaded(rt.iterSlice(pair)), { _0: 0, _1: 0 });
 		pair = [{ _0: first._1, _1: n ^ 90 }, { _0: first._0, _1: n }];
@@ -1319,14 +1306,14 @@ export function nextRead$pointers_Loaded(items: rt.Iter<Loaded.Loaded>): Loaded.
  * read, as zlib's stream takes its window each round, by a callee over a type parameter:
  * one into an array and one into a struct.
  */
-export function reattached(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function reattached(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const window: pointers_Window.Window = { at: rt.NULL };
 	let buf: rt.u16[] = Array.from({ length: 4 }, (): rt.u16 => {
 		return 0;
 	});
 	const slot: pointers_Slot.Slot = { at: rt.NULL };
 	let pair: Reattached.Reattached = { _0: 0, _1: 0 };
-	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const n of rt.byteSliceView(data)) {
 		const _17: rt.u16[] = buf;
 		attach$array4_u16(rt.place(() => window.at, (value) => window.at = value), _17);
 		const _18: rt.u16 = (((n as rt.u16)) << 7) & 0xffff;

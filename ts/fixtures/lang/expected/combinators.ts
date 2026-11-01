@@ -6,8 +6,7 @@ import { isSomeAnd$09tpccf, isNoneOr$1s1o3ss, unwrapOr$0r2bmpr as option_unwrapO
 import { isOkAnd$0jj0nkw, isErrAnd$0b01a39, ok$1c77lmd, err$05f656d, asRef$1glrxiq, map$1qqg34g as result_map$1qqg34g, map$132mdj8 as result_map$132mdj8, mapOr$1mu5bvh as result_mapOr$1mu5bvh, mapOrElse$0jxx67n as result_mapOrElse$0jxx67n, mapErr$12w1s5x as result_mapErr$12w1s5x, mapErr$1lsqfgi as result_mapErr$1lsqfgi, inspect$16o3gle as result_inspect$16o3gle, inspectErr$06tv5sa, unwrapOrDefault$1exw7nd as result_unwrapOrDefault$1exw7nd, and$0l7ltae as result_and$0l7ltae, andThen$0hd6ik8 as result_andThen$0hd6ik8, or$1xcfx3w as result_or$1xcfx3w, orElse$13ay4um as result_orElse$13ay4um, unwrapOr$0a4h2e7 as result_unwrapOr$0a4h2e7, unwrapOrElse$1reohq9 as result_unwrapOrElse$1reohq9, unwrapOrElse$009ibtw as result_unwrapOrElse$009ibtw, copied$0ma6p21, clone$04fntvl as result_clone$04fntvl } from "./core/result.ts";
 
 /** Run case `kind % 4` over `data`, whose bytes pick each `Some` or `None`, `Ok` or `Err`. */
-export function combinators(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function combinators(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const a: rt.u8 | undefined = filter$0v80fk8(rt.byteSliceFirst(data), (x: rt.u8): boolean => {
 		return rt.u8Rem(x, 3) !== 0;
 	});

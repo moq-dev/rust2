@@ -680,9 +680,14 @@ they need.
   for the `Result`s below ([byte slices without objects](/quest/m2/ts-byte-views/README.md)).
 - A function only translated code calls takes each `&[u8]` or `&[u8; N]` parameter as
   three, its `data`, `start`, and `length`, which its body holds as that local's parts:
-  not a root, which the outside calls, a closure, or an `async fn`. One the body borrows,
-  or would make whole twice on a path or in a loop, is made on entry, and the function as
-  a value is an arrow that takes the slice whole. `just ts bench` measured it
+  not a root, which the outside calls, a closure, or an `async fn`. One whose object the
+  body would make anyway, to borrow it, to pass it to a function taking it whole, or at
+  all, it takes whole: as parts, the callee would just make the object instead of the caller.
+  That made Chrome's `btree/` workloads 1.06x `main`'s time through a helper that
+  rebuilt the slice it was passed. What a body makes depends on what its callees take, so
+  the functions a call reaches settle together, recursion included, each dropping the
+  slices it would make until none does. The function as a value is an arrow that takes
+  the slice whole. `just ts bench` measured parts
   no faster than passing the slice whole, since V8 already removes what an inlined call
   doesn't keep: Chrome's varint decode at 0.98-0.99 times the time and frame decode at
   1.01-1.05 over two runs, with the A/A route within 0.05, Firefox and Bun within their

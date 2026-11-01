@@ -57,7 +57,7 @@ export function TALLY$init(_1: undefined): rt.RefCell<rt.u32> {
  * Each byte an operation on the thread-locals; each puts what it read and what dropped.
  * First, what each holds, which only the value it starts with can be.
  */
-export function locals(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function locals(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, ((a0: rt.Cell<rt.u32>): rt.u32 => {
 		return a0.v;
 	})(COUNT.get()) & 0xff);
@@ -87,7 +87,7 @@ export function locals(dataData: Uint8Array, dataStart: number, dataLen: number,
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(_26[0]._0 & 0xff, _26[0]._1 & 0xff, _26[1]._0 & 0xff, _26[1]._1 & 0xff)), undefined, true);
 	rt.byteVecPush(out, serial(false));
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const _46: rt.u8 = rt.u8Rem(op, 9);
 		if (_46 === 0) {
 			((c4: rt.Cell<rt.u32>): undefined => {

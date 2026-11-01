@@ -1,4 +1,5 @@
-//! Byte slices passed to the crate's own functions, which take them as their parts.
+//! Byte slices passed to the crate's own functions, which take them as their parts unless
+//! their bodies make them whole all the same.
 
 /// A use that needs the slice itself.
 #[inline(never)]
@@ -21,7 +22,7 @@ fn len(data: &[u8]) -> usize {
 	data.len()
 }
 
-/// A parameter borrowed, which makes it whole on entry.
+/// A parameter borrowed, which takes it whole.
 fn by_ref(data: &[u8]) -> usize {
 	let r = &data;
 	len_of(r)
@@ -31,7 +32,7 @@ fn len_of(data: &&[u8]) -> usize {
 	data.len()
 }
 
-/// A parameter made whole in a loop, which makes it whole on entry.
+/// A parameter made whole in a loop, which takes it whole.
 fn kept(data: &[u8], n: u8) -> Vec<&[u8]> {
 	let mut all = Vec::new();
 	for _ in 0..n % 4 {
@@ -55,6 +56,54 @@ fn depth(data: &[u8]) -> u8 {
 	match data.split_first() {
 		Some((&b, rest)) if b != 0 => 1 + depth(rest),
 		_ => 0,
+	}
+}
+
+/// Passed along to one that takes it whole, so taken whole too.
+fn relay(data: &[u8]) -> u8 {
+	opaque(data)
+}
+
+/// Passed along to one that takes its parts, so taken as parts too.
+fn relay_sum(data: &[u8]) -> u8 {
+	sum(data)
+}
+
+/// Recursive, and made whole at the bottom, so taken whole all the way down.
+fn last_run(data: &[u8]) -> u8 {
+	match data.split_first() {
+		Some((&b, rest)) if b != 0 => last_run(rest),
+		_ => opaque(data),
+	}
+}
+
+/// Mutually recursive, each reading bytes, so both take parts.
+fn evens(data: &[u8]) -> u8 {
+	match data.split_first() {
+		Some((&b, rest)) => b.wrapping_add(odds(rest)),
+		None => 0,
+	}
+}
+
+fn odds(data: &[u8]) -> u8 {
+	match data.split_first() {
+		Some((_, rest)) => evens(rest),
+		None => 0,
+	}
+}
+
+/// Mutually recursive, where `ping` makes its slice whole and `pong` only splits its own.
+fn ping(data: &[u8]) -> u8 {
+	match data.split_first() {
+		Some((&b, rest)) if b % 3 != 0 => pong(rest),
+		_ => opaque(data),
+	}
+}
+
+fn pong(data: &[u8]) -> u8 {
+	match data.split_first() {
+		Some((&b, rest)) => b ^ ping(rest),
+		None => 0,
 	}
 }
 
@@ -90,7 +139,7 @@ fn weigh<W: Weigh>(w: &W, data: &[u8]) -> u8 {
 }
 
 pub fn args(kind: u8, data: &[u8], out: &mut Vec<u8>) {
-	match kind % 6 {
+	match kind % 8 {
 		0 => {
 			out.push(sum(data));
 			out.push(len(data) as u8);
@@ -125,6 +174,25 @@ pub fn args(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 				note(b);
 			}
 			out.extend_from_slice(&seen);
+		}
+		6 => {
+			let data = &data[..data.len().min(64)];
+			out.push(relay(data));
+			out.push(relay_sum(data));
+			out.push(last_run(data));
+			out.push(evens(data));
+			out.push(ping(data));
+			out.push(pong(data));
+		}
+		7 => {
+			// Callers holding the slice whole, and ones holding its parts, of one callee.
+			let halves = [data.split_at(data.len() / 2).0, data.split_at(data.len() / 2).1];
+			for half in halves.iter() {
+				out.push(sum(half));
+				out.push(relay(half));
+			}
+			out.push(relay_sum(halves[1]));
+			out.push(sum(data));
 		}
 		_ => {
 			out.push(weigh(&Scale(kind), data));

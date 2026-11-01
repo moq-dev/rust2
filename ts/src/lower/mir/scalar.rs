@@ -8,7 +8,9 @@
 //! on a path, or in a loop that doesn't make its parts again, stays an object, so
 //! nothing is made more often than before, as does one only ever assigned an object's
 //! parts, which saves none. A function that hands back a `Result` in a slot holds its
-//! result so, to hand back the `Ok`'s parts, and its callers read them back as parts.
+//! result so, to hand back the `Ok`'s parts, and its callers read them back as parts. A
+//! byte slice parameter is passed as its parts when its body holds it so and never makes
+//! its object.
 
 use rustc_abi::VariantIdx;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
@@ -220,16 +222,85 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 
 	/// Which of `instance`'s parameters it takes as a byte slice's parts, its `data`,
 	/// `start`, and `length`, rather than an `rt.ByteSlice`: each `&[u8]` or `&[u8; N]` of a
-	/// function only translated code calls directly. Empty if none.
-	pub(crate) fn parted(&self, instance: ty::Instance<'tcx>) -> Vec<bool> {
+	/// function only translated code calls directly, that its body holds as its parts and
+	/// never makes the object of. One it would make takes the object its caller has, or
+	/// makes once. Empty if none.
+	///
+	/// A body holding a slice as parts depends on whether its callees take theirs so, so
+	/// each instance a call reaches while this settles starts at every slice and drops those
+	/// its body would make, until none changes: the most parts every body agrees on, through
+	/// recursion too.
+	pub(crate) fn parted(&mut self, instance: ty::Instance<'tcx>) -> Vec<bool> {
+		if let Some(parted) = self.parted.get(&instance) {
+			return parted.clone();
+		}
 		let Some(did) = self.inside(instance) else {
 			return Vec::new();
 		};
-		let parted: Vec<bool> = self.inside_sig(did, instance).0.into_iter().map(slice_ref).collect();
-		match parted.contains(&true) {
-			true => parted,
-			false => Vec::new(),
+		let slices: Vec<bool> = self.inside_sig(did, instance).0.into_iter().map(slice_ref).collect();
+		if !slices.contains(&true) {
+			self.parted.insert(instance, Vec::new());
+			return Vec::new();
 		}
+		if let Some(parting) = &mut self.parting {
+			return parting.entry(instance).or_insert(slices).clone();
+		}
+		self.parting = Some([(instance, slices)].into_iter().collect());
+		let mut i = 0;
+		let mut changed = false;
+		loop {
+			let parting = self.parting.as_ref().expect("settling");
+			if i == parting.len() {
+				if !std::mem::take(&mut changed) {
+					break;
+				}
+				i = 0;
+				continue;
+			}
+			let (&at, guess) = parting.get_index(i).expect("in range");
+			let guess = guess.clone();
+			let held = self.held_parts(at, &guess);
+			if held != guess {
+				self.parting.as_mut().expect("settling")[i] = held;
+				changed = true;
+			}
+			i += 1;
+		}
+		for (at, parted) in self.parting.take().expect("settling") {
+			let parted = if parted.contains(&true) { parted } else { Vec::new() };
+			self.parted.insert(at, parted);
+		}
+		self.parted[&instance].clone()
+	}
+
+	/// Which of the slices `guess` passes `instance` as parts its body holds as parts and
+	/// never makes the object of, given its callees take theirs as [`Self::parted`] guesses
+	/// now. What lowering it refuses is left to its lowering to report.
+	fn held_parts(&mut self, instance: ty::Instance<'tcx>, guess: &[bool]) -> Vec<bool> {
+		let span = self.tcx.def_span(instance.def_id());
+		let refusals = self.refusals.replace(Vec::new());
+		let failed = self.failed;
+		let lowered = self.lowered.contains(&instance);
+		let held = match super::instance_mir(self, instance, span) {
+			Some(mir) => {
+				let slotted = self.slotted(instance);
+				let mut b = crate::lower::body::Body::new(self);
+				b.parted = guess.to_vec();
+				b.slotted = slotted;
+				let fx = Fx::new(&mut b, &mir, super::Env::Plain, span);
+				mir.args_iter()
+					.zip(guess)
+					.map(|(local, &parted)| parted && fx.scalars.contains_key(&local) && !fx.remade.contains(&local))
+					.collect()
+			}
+			None => guess.to_vec(),
+		};
+		self.refusals = refusals;
+		self.failed = failed;
+		if !lowered {
+			self.lowered.remove(&instance);
+		}
+		held
 	}
 
 	/// Where `instance` hands back its `Ok`'s parts, if it does: a function of the crate's
@@ -814,7 +885,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 
 	/// Which arguments a call of `func` takes as a byte slice's parts, as
 	/// [`Translator::parted`](crate::lower::Translator::parted) says.
-	pub(super) fn parted_call(&self, func: &Operand<'tcx>) -> Vec<bool> {
+	pub(super) fn parted_call(&mut self, func: &Operand<'tcx>) -> Vec<bool> {
 		let ty::FnDef(def_id, args) = *func.ty(&self.mir.local_decls, self.tcx).kind() else {
 			return Vec::new();
 		};
@@ -888,9 +959,16 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				shapes.insert(local, shape);
 			}
 		}
+		let mut parted_calls: FxHashMap<BasicBlock, Vec<bool>> = FxHashMap::default();
+		for (bb, data) in mir.basic_blocks.iter_enumerated() {
+			if let TerminatorKind::Call { func, .. } = &data.terminator().kind {
+				parted_calls.insert(bb, self.parted_call(func));
+			}
+		}
 		while !shapes.is_empty() {
-			let bad = self.unheld(&shapes);
+			let (bad, remade) = self.unheld(&shapes, &parted_calls);
 			if bad.is_empty() {
+				self.remade = remade;
 				break;
 			}
 			shapes.retain(|l, _| !bad.contains(l));
@@ -912,8 +990,13 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 
 	/// The locals of `shapes` that can't be held as their parts, given the others are: one
 	/// assigned other than by what makes its parts, or written into, or whose object would
-	/// be made more often than now.
-	fn unheld(&self, shapes: &FxHashMap<Local, Shape<'tcx>>) -> FxHashSet<Local> {
+	/// be made more often than now. Then the parameters passed as parts whose object some
+	/// read makes. `parted_calls` holds which arguments each call takes as parts.
+	fn unheld(
+		&self,
+		shapes: &FxHashMap<Local, Shape<'tcx>>,
+		parted_calls: &FxHashMap<BasicBlock, Vec<bool>>,
+	) -> (FxHashSet<Local>, FxHashSet<Local>) {
 		let mir = self.mir;
 		let tcx = self.tcx;
 		let mut bad = FxHashSet::default();
@@ -997,7 +1080,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 					}
 				}
 				// A slice passed as its parts.
-				for (arg, parted) in args.iter().zip(self.parted_call(func)) {
+				for (arg, &parted) in args.iter().zip(&parted_calls[&bb]) {
 					if let (Operand::Copy(p) | Operand::Move(p), true) = (&arg.node, parted)
 						&& let Some(shape) = shapes.get(&p.local)
 						&& let (node, n) = walk(shape, p.projection)
@@ -1150,7 +1233,12 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				}
 			}
 		}
-		bad
+		let remade = made
+			.iter()
+			.flat_map(|(_, objects)| objects.iter().map(|&(l, _)| l))
+			.filter(|l| self.parted.contains(l))
+			.collect();
+		(bad, remade)
 	}
 
 	/// For each part of `local` that its definition `rvalue` copies from another local held

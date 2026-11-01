@@ -66,8 +66,7 @@ export function made$zeros_Unit(): zeros_Unit.Unit {
 }
 
 /** The case `kind` picks, on `data`; each puts what it read. */
-export function zeros(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function zeros(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _72: (a0: rt.u8) => One.One = (_2: rt.u8): One.One => {
 		return "Only" as One.One;
 	};
@@ -272,8 +271,8 @@ export function digest$zeros_Tagged_String(value: zeros_Tagged.Tagged<string>, o
 }
 
 /** The impls `#[derive]` calls on `PhantomData`, `PhantomPinned`, and `()` fields. */
-export function impls(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const tags: zeros_Tagged.Tagged<string>[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), (_2: rt.u8): zeros_Tagged.Tagged<string> => {
+export function impls(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	const tags: zeros_Tagged.Tagged<string>[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): zeros_Tagged.Tagged<string> => {
 		const n: rt.u8 = _2;
 		zeros_Tagged.default$Default_String();
 		return { n, of: undefined, pin: undefined, unit: undefined };
@@ -342,15 +341,15 @@ export function impls(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 }
 
 /** `Some(())` if every byte of `data` is below 0x80. */
-export function small(dataData: Uint8Array, dataStart: number, dataLen: number): undefined | rt.None {
-	return rt.iterCollectOption(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), (_22: rt.u8): undefined | rt.None => {
+export function small(data: rt.ByteSlice): undefined | rt.None {
+	return rt.iterCollectOption(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_22: rt.u8): undefined | rt.None => {
 		return thenSome$1j8foe9(_22 < 128, undefined);
 	}), (values: rt.Iter<undefined>) => rt.iterFold(values, undefined, () => undefined), undefined, rt.None, rt.None);
 }
 
 /** `Ok(())`, or the first byte of `data` that is 0xff. */
-export function checked(dataData: Uint8Array, dataStart: number, dataLen: number): rt.Result<undefined, rt.u8> {
-	return rt.iterCollectResult(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), (_22: rt.u8): rt.Result<undefined, rt.u8> => {
+export function checked(data: rt.ByteSlice): rt.Result<undefined, rt.u8> {
+	return rt.iterCollectResult(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_22: rt.u8): rt.Result<undefined, rt.u8> => {
 		const b: rt.u8 = _22;
 		if (!(b === 255)) {
 			return rt.OK;
@@ -360,9 +359,8 @@ export function checked(dataData: Uint8Array, dataStart: number, dataLen: number
 }
 
 /** `()` as a hash and B-tree key and as `collect::<Option<_>>`'s item. */
-export function keys(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function keys(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _148!: rt.u8;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _4: rt.u8 = rt.u8Rem(kind, 3);
 	if (_4 === 0) {
 		const hash: rt.HashSet<undefined> = rt.hashNew() as rt.HashSet<undefined>;
@@ -410,8 +408,8 @@ export function keys(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 		}), (_27: undefined | rt.None): undefined => {
 			rt.byteVecPush(out, 9);
 		}), (values: rt.Iter<undefined>) => rt.iterToArray(values, "next", 0), undefined, rt.None) !== undefined ? 1 : 0);
-		rt.byteVecPush(out, small(data.data, data.start, data.length) !== rt.None ? 1 : 0);
-		const _149: rt.Result<undefined, rt.u8> = checked(data.data, data.start, data.length);
+		rt.byteVecPush(out, small(data) !== rt.None ? 1 : 0);
+		const _149: rt.Result<undefined, rt.u8> = checked(data);
 		if (_149.ok) {
 			_148 = 0;
 		} else {
@@ -460,8 +458,7 @@ export function flattened(_value: undefined, xs: rt.ByteVec[]): rt.u8 {
  * Functions, closures, and locals whose every read lowers to nothing: a drop of what
  * drops nothing, and a comparison of what holds nothing.
  */
-export function unread(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function unread(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.atomicStore(LOG, 0, 0);
 	const n: rt.u8 = data.length & 0xff;
 	const _9: rt.u8 = rt.u8Rem(kind, 3);

@@ -9,9 +9,9 @@ import { returnedNever, tailBreak } from "./shapes.ts";
 
 export function mixed(data: rt.ByteSlice): void {
 	returnedNever(7, 1);
-	const meters: Meters.Meters = { _0: tailBreak(data.data, data.start, data.length) as rt.u64 };
+	const meters: Meters.Meters = { _0: tailBreak(data) as rt.u64 };
 	// @ts-expect-error A `u16` is not a `u8`.
-	returnedNever(tailBreak(data.data, data.start, data.length), 1);
+	returnedNever(tailBreak(data), 1);
 	// @ts-expect-error A `u32` is not a `usize`.
 	returnedNever(1, 0xffffffff as rt.u32);
 	// @ts-expect-error A `u64` is not a `u8`, even as a number.

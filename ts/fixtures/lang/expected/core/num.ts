@@ -51,33 +51,33 @@ export function runtime$0bn0geu(radix: rt.u32): never {
 	rt.panicFmt(["from_ascii_bytes_radix: radix must lie in the range `[2, 36]` - found ", args2[0]]);
 }
 
-export function fromAsciiBytesRadixImpl$1j0vyv2(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0xhcrxt(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = rt.i128Gt(0, { hi: -0x80000000, w2: 0, w1: 0, lo: 0 } as rt.i128);
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -88,9 +88,9 @@ export function fromAsciiBytesRadixImpl$1j0vyv2(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -203,33 +203,33 @@ export function fromAsciiBytesRadixImpl$1j0vyv2(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$1ayhtfx(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0jbbuu8(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > -32768;
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -240,9 +240,9 @@ export function fromAsciiBytesRadixImpl$1ayhtfx(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -355,33 +355,33 @@ export function fromAsciiBytesRadixImpl$1ayhtfx(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$1brz7e9(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0p2idzk(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > -2147483648;
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -392,9 +392,9 @@ export function fromAsciiBytesRadixImpl$1brz7e9(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -507,33 +507,33 @@ export function fromAsciiBytesRadixImpl$1brz7e9(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0qgc5vk(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$01tfvb9(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = rt.i64Gt(0, { hi: -0x80000000, lo: 0 } as rt.i64);
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -544,9 +544,9 @@ export function fromAsciiBytesRadixImpl$0qgc5vk(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -659,33 +659,33 @@ export function fromAsciiBytesRadixImpl$0qgc5vk(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$09s4lo6(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$18og5o1(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > -128;
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -696,9 +696,9 @@ export function fromAsciiBytesRadixImpl$09s4lo6(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -811,33 +811,33 @@ export function fromAsciiBytesRadixImpl$09s4lo6(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0gsq3mw(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$05ylgyc(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > -2147483648;
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -848,9 +848,9 @@ export function fromAsciiBytesRadixImpl$0gsq3mw(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -963,87 +963,81 @@ export function fromAsciiBytesRadixImpl$0gsq3mw(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromStr$04in3ec(src: string): rt.Result<rt.i128, rt.ParseIntError> {
-	return fromStrRadix$00d2t0z(src, 10);
+export function fromStr$0zyj6he(src: string): rt.Result<rt.i128, rt.ParseIntError> {
+	return fromStrRadix$0366bau(src, 10);
 }
 
-export function fromStr$0itzmqn(src: string): rt.Result<rt.i16, rt.ParseIntError> {
-	return fromStrRadix$1pa0ruh(src, 10);
+export function fromStr$17ewwma(src: string): rt.Result<rt.i16, rt.ParseIntError> {
+	return fromStrRadix$02mhuxs(src, 10);
 }
 
-export function fromStr$1czfc3o(src: string): rt.Result<rt.i32, rt.ParseIntError> {
-	return fromStrRadix$0bx4ko0(src, 10);
+export function fromStr$0zhqfgx(src: string): rt.Result<rt.i32, rt.ParseIntError> {
+	return fromStrRadix$1bgm1z0(src, 10);
 }
 
-export function fromStr$0j0pk4t(src: string): rt.Result<rt.i64, rt.ParseIntError> {
-	return fromStrRadix$1c5e8ay(src, 10);
+export function fromStr$116mp4t(src: string): rt.Result<rt.i64, rt.ParseIntError> {
+	return fromStrRadix$11y6fsf(src, 10);
 }
 
-export function fromStr$1lgb5f6(src: string): rt.Result<rt.i8, rt.ParseIntError> {
-	return fromStrRadix$09xsupv(src, 10);
+export function fromStr$0ovlgjd(src: string): rt.Result<rt.i8, rt.ParseIntError> {
+	return fromStrRadix$0s9rspw(src, 10);
 }
 
-export function fromStr$05ll6v8(src: string): rt.Result<rt.isize, rt.ParseIntError> {
-	return fromStrRadix$0xkpex4(src, 10);
+export function fromStr$1grmucc(src: string): rt.Result<rt.isize, rt.ParseIntError> {
+	return fromStrRadix$1473bi0(src, 10);
 }
 
-export function fromStrRadix$00d2t0z(src: string, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$1j0vyv2(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$0366bau(src: string, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0xhcrxt(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1pa0ruh(src: string, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$1ayhtfx(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$02mhuxs(src: string, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0jbbuu8(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$0bx4ko0(src: string, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$1brz7e9(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$1bgm1z0(src: string, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0p2idzk(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1c5e8ay(src: string, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$0qgc5vk(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$11y6fsf(src: string, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$01tfvb9(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$09xsupv(src: string, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$09s4lo6(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$0s9rspw(src: string, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$18og5o1(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$0xkpex4(src: string, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$0gsq3mw(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$1473bi0(src: string, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$05ylgyc(rt.stringAsBytes(src), radix);
 }
 
-export function fromAsciiBytesRadixImpl$1dzxy8l(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0r1q6uy(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = rt.u128Gt(0, 0);
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -1054,9 +1048,9 @@ export function fromAsciiBytesRadixImpl$1dzxy8l(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -1169,33 +1163,33 @@ export function fromAsciiBytesRadixImpl$1dzxy8l(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$03r1s26(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$1ukmfx2(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > 0;
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -1206,9 +1200,9 @@ export function fromAsciiBytesRadixImpl$03r1s26(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -1321,33 +1315,33 @@ export function fromAsciiBytesRadixImpl$03r1s26(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0xuname(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0ax4wbr(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > 0;
-				if (srcLen === 1) {
-					const value5 = srcData[srcStart];
+				if (src.length === 1) {
+					const value5 = src.data[src.start];
 					if (value5 === 43 || value5 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value6 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value6 = src.data[src.start];
 						if (value6 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value6 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -1358,9 +1352,9 @@ export function fromAsciiBytesRadixImpl$0xuname(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -1473,33 +1467,33 @@ export function fromAsciiBytesRadixImpl$0xuname(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0rjswpp(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$02xpj41(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = rt.u64Gt(0, 0);
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -1510,9 +1504,9 @@ export function fromAsciiBytesRadixImpl$0rjswpp(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -1625,33 +1619,33 @@ export function fromAsciiBytesRadixImpl$0rjswpp(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$1sotks5(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$1n9fygl(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > 0;
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -1662,9 +1656,9 @@ export function fromAsciiBytesRadixImpl$1sotks5(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -1777,33 +1771,33 @@ export function fromAsciiBytesRadixImpl$1sotks5(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$16nq9v5(srcData: Uint8Array, srcStart: number, srcLen: number, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$00hojjd(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
 	let _12_1Len!: number;
 	if (!(2 > radix)) {
 		if (!(radix > 36)) {
-			if (!(srcLen === 0)) {
+			if (!(src.length === 0)) {
 				const isSignedTy: boolean = 0 > 0;
-				if (srcLen === 1) {
-					const value7 = srcData[srcStart];
+				if (src.length === 1) {
+					const value7 = src.data[src.start];
 					if (value7 === 43 || value7 === 45) {
 						return rt.Err({ kind: "InvalidDigit" as rt.IntErrorKind });
 					}
 				}
 				b3: {
-					if (srcLen >= 1) {
-						const value8 = srcData[srcStart];
+					if (src.length >= 1) {
+						const value8 = src.data[src.start];
 						if (value8 === 43) {
 							_12_0 = true;
-							_12_1Data = srcData;
-							_12_1Start = srcStart + 1;
-							_12_1Len = srcLen - 1;
+							_12_1Data = src.data;
+							_12_1Start = src.start + 1;
+							_12_1Len = src.length - 1;
 							break b3;
 						}
 						if (value8 === 45) {
-							const rest2: rt.ByteSlice = new rt.ByteSlice(srcData, srcStart + 1, srcLen - 1);
+							const rest2: rt.ByteSlice = rt.byteSliceRange(src, 1);
 							if (isSignedTy) {
 								_12_0 = false;
 								_12_1Data = rest2.data;
@@ -1814,9 +1808,9 @@ export function fromAsciiBytesRadixImpl$16nq9v5(srcData: Uint8Array, srcStart: n
 						}
 					}
 					_12_0 = true;
-					_12_1Data = srcData;
-					_12_1Start = srcStart;
-					_12_1Len = srcLen;
+					_12_1Data = src.data;
+					_12_1Start = src.start;
+					_12_1Len = src.length;
 				}
 				const isPositive: boolean = _12_0;
 				let digitsData: Uint8Array = _12_1Data;
@@ -1929,58 +1923,52 @@ export function fromAsciiBytesRadixImpl$16nq9v5(srcData: Uint8Array, srcStart: n
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromStr$0nzirqb(src: string): rt.Result<rt.u128, rt.ParseIntError> {
-	return fromStrRadix$0aggpkp(src, 10);
+export function fromStr$0qvzsmz(src: string): rt.Result<rt.u128, rt.ParseIntError> {
+	return fromStrRadix$0g0g31i(src, 10);
 }
 
-export function fromStr$0xayo7b(src: string): rt.Result<rt.u16, rt.ParseIntError> {
-	return fromStrRadix$1queob6(src, 10);
+export function fromStr$0yqu2i9(src: string): rt.Result<rt.u16, rt.ParseIntError> {
+	return fromStrRadix$1ku3myt(src, 10);
 }
 
-export function fromStr$1t0zoao(src: string): rt.Result<rt.u32, rt.ParseIntError> {
-	return fromStrRadix$1ovtdjc(src, 10);
+export function fromStr$08wf09w(src: string): rt.Result<rt.u32, rt.ParseIntError> {
+	return fromStrRadix$05zvwcf(src, 10);
 }
 
-export function fromStr$1s0pfra(src: string): rt.Result<rt.u64, rt.ParseIntError> {
-	return fromStrRadix$0cic1mm(src, 10);
+export function fromStr$1ypcnp8(src: string): rt.Result<rt.u64, rt.ParseIntError> {
+	return fromStrRadix$1gp4jqq(src, 10);
 }
 
-export function fromStr$13au6mu(src: string): rt.Result<rt.u8, rt.ParseIntError> {
-	return fromStrRadix$1uup0fy(src, 10);
+export function fromStr$1hq0zfa(src: string): rt.Result<rt.u8, rt.ParseIntError> {
+	return fromStrRadix$0nj08um(src, 10);
 }
 
-export function fromStr$1vgxk0s(src: string): rt.Result<rt.usize, rt.ParseIntError> {
-	return fromStrRadix$1xobho4(src, 10);
+export function fromStr$10ypyht(src: string): rt.Result<rt.usize, rt.ParseIntError> {
+	return fromStrRadix$0tjqkb6(src, 10);
 }
 
-export function fromStrRadix$0aggpkp(src: string, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$1dzxy8l(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$0g0g31i(src: string, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0r1q6uy(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1queob6(src: string, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$03r1s26(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$1ku3myt(src: string, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$1ukmfx2(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1ovtdjc(src: string, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$0xuname(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$05zvwcf(src: string, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0ax4wbr(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$0cic1mm(src: string, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$0rjswpp(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$1gp4jqq(src: string, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$02xpj41(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1uup0fy(src: string, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$1sotks5(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$0nj08um(src: string, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$1n9fygl(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1xobho4(src: string, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(src);
-	return fromAsciiBytesRadixImpl$16nq9v5(_3.data, _3.start, _3.length, radix);
+export function fromStrRadix$0tjqkb6(src: string, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$00hojjd(rt.stringAsBytes(src), radix);
 }
 
 //# sourceMappingURL=num.ts.map

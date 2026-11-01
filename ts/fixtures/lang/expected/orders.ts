@@ -38,16 +38,16 @@ export function item(tag: rt.usize, key: rt.u8): orders_Item.Item {
 }
 
 /** Run one case. */
-export function orders(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function orders(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _5: rt.u8 = rt.u8Rem(kind, 4);
 	if (_5 === 0) {
-		cmps(dataData, dataStart, dataLen, out);
+		cmps(data.data, data.start, data.length, out);
 	} else if (_5 === 1) {
-		sorted(dataData, dataStart, dataLen, out);
+		sorted(data, out);
 	} else if (_5 === 2) {
-		heaps(dataData, dataStart, dataLen, out);
+		heaps(data, out);
 	} else {
-		values(dataData, dataStart, dataLen, out);
+		values(data, out);
 	}
 	flush(out);
 }
@@ -126,8 +126,7 @@ export function cmps(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * The `is_sorted` family of slices and iterators of items, bytes, and strings, as given
  * and sorted: each test std makes, and each item or key it drops.
  */
-export function sorted(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function sorted(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _77: () => orders_Item.Item = (): orders_Item.Item => {
 		return item(200, 0);
 	};
@@ -238,8 +237,7 @@ export function sorted(dataData: Uint8Array, dataStart: number, dataLen: number,
  * A heap of items changed by each pair of bytes, an operation and its operand: each
  * comparison its sifts make, which of equal items it gives back, and when each drops.
  */
-export function heaps(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function heaps(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _127: boolean = false;
 	let _128: boolean = false;
 	let heap: rt.BinaryHeap<orders_Item.Item> = rt.heapNew() as rt.BinaryHeap<orders_Item.Item>;
@@ -380,8 +378,7 @@ export function heaps(dataData: Uint8Array, dataStart: number, dataLen: number, 
  * Heaps of values with no comparison of their own: bytes, a min-heap of them, strings,
  * and tuples, built every way, and their vectors, slices, clones, and debug form.
  */
-export function values(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const bytes: rt.BinaryHeap<rt.u8> = rt.heapFrom(Array.from(rt.byteVecView(rt.byteSliceToByteVec(data))), rt.le, rt.ge, rt.lt);
 	rt.heapPush(bytes, data.length & 0xff, rt.le);
 	rt.iterExtendBytes(out, rt.iterSlice(rt.byteSliceView(rt.byteSliceFrom(Uint8Array.from(bytes.d)))), undefined, true);
@@ -457,8 +454,7 @@ export function values(dataData: Uint8Array, dataStart: number, dataLen: number,
  * orders them, by their bytes and then by length: directly, through `Ord`'s defaults, as
  * keys and items, and in tuples, owned and borrowed.
  */
-export function bytes(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function bytes(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const iter: rt.Iter<rt.ByteSlice> = rt.byteSliceWindows(data, 2);
 	while (true) {
 		const _6: rt.ByteSlice | rt.Done = iter.next();
@@ -593,8 +589,7 @@ export function part(tag: rt.usize, key: rt.u8): Part.Part {
  * `min`, `clamp`, and their `_by` forms, and as `sort_by` orders them, whose comparisons
  * are the runtime's own.
  */
-export function tuples(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function tuples(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _3: (a0: rt.u8) => rt.f64 = (b: rt.u8): rt.f64 => {
 		if (!(rt.u8Rem(b, 5) === 0)) {
 			return rt.u8Rem(b, 4) as rt.f64;
@@ -868,10 +863,9 @@ export function deque$u8_orders_held_closure8(sData: Uint8Array, sStart: number,
  * ring buffer wraps: of parts, which log where std stops, and of floats, whose NaN orders
  * as nothing. Then each as a B-tree key.
  */
-export function held(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function held(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _342!: Uint8Array;
 	let key!: rt.Result<rt.VecDeque<rt.u8>, rt.Poll<rt.u8>>;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _3: (a0: rt.usize, a1: rt.u8) => rt.Result<Part.Part, Part.Part> = (i5: rt.usize, b2: rt.u8): rt.Result<Part.Part, Part.Part> => {
 		if ((b2 & 128) === 0) {
 			return rt.Ok(part(i5, b2));
@@ -1123,8 +1117,7 @@ export function torn(tag: rt.usize, key: rt.u8, mode: rt.u8): Torn.Torn {
  * the set operators, which build as `collect` does from what they yield, of sets that
  * `insert` built. Then zero-sized keys, which std's sort leaves as they are.
  */
-export function btrees(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function btrees(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const mode: rt.u8 = rt.u8Rem(kind, 5);
 	const keys: (a0: rt.ByteSlice) => Torn.Torn[] = (bytes: rt.ByteSlice): Torn.Torn[] => {
 		return rt.iterToArray(rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(bytes))), (_2: [rt.usize, rt.u8]): Torn.Torn => {

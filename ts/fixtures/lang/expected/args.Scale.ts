@@ -6,8 +6,8 @@ export interface Scale {
 	_0: rt.u8;
 }
 
-export function weigh$args_Weigh(self: Scale, dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 {
-	return rt.iterFold(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), self._0, (a: rt.u8, b: rt.u8): rt.u8 => {
+export function weigh$args_Weigh(self: Scale, data: rt.ByteSlice): rt.u8 {
+	return rt.iterFold(rt.iterSlice(rt.byteSliceView(data)), self._0, (a: rt.u8, b: rt.u8): rt.u8 => {
 		return rt.u8WrappingAdd(a, b ^ 90);
 	});
 }

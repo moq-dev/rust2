@@ -7,8 +7,7 @@ import * as singles_Gauge from "./singles.Gauge.ts";
 import * as singles_Reading from "./singles.Reading.ts";
 
 /** The bits of an `f32` from the front of `data`, big-endian and zero-padded. */
-export function takeBits(dataData: Uint8Array, dataStart: number, dataLen: number): [rt.u32, rt.ByteSlice] {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function takeBits(data: rt.ByteSlice): [rt.u32, rt.ByteSlice] {
 	const buf: Uint8Array = rt.bytes(4);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -16,8 +15,8 @@ export function takeBits(dataData: Uint8Array, dataStart: number, dataLen: numbe
 }
 
 /** An `f32` from the front of `data`. */
-export function take(dataData: Uint8Array, dataStart: number, dataLen: number): [rt.f32, rt.ByteSlice] {
-	const _4: [rt.u32, rt.ByteSlice] = takeBits(dataData, dataStart, dataLen);
+export function take(data: rt.ByteSlice): [rt.f32, rt.ByteSlice] {
+	const _4: [rt.u32, rt.ByteSlice] = takeBits(data);
 	return [rt.f32FromBits(_4[0]), _4[1]] as [rt.f32, rt.ByteSlice];
 }
 
@@ -64,12 +63,12 @@ export function raise(level: rt.Place<rt.f32>, by: rt.f32): void {
 	level.v = Math.fround(level.v * 2.0);
 }
 
-export function singles(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function singles(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let zeros!: boolean;
 	let _300!: rt.f32;
-	const _6: [rt.f32, rt.ByteSlice] = take(dataData, dataStart, dataLen);
+	const _6: [rt.f32, rt.ByteSlice] = take(data);
 	const a: rt.f32 = _6[0];
-	const _9: [rt.f32, rt.ByteSlice] = take(_6[1].data, _6[1].start, _6[1].length);
+	const _9: [rt.f32, rt.ByteSlice] = take(_6[1]);
 	const b: rt.f32 = _9[0];
 	const _10: rt.u8 = rt.u8Rem(kind, 10);
 	if (_10 === 0) {
@@ -139,8 +138,8 @@ export function singles(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.isizeToBeBytes(rt.isizeFromF64(a as rt.f64))));
 	} else if (_10 === 2) {
 		const wide: Uint8Array = rt.bytes(16);
-		const n: rt.usize = rt.min(dataLen, 16);
-		rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(wide), 0, n), rt.byteSliceRange(new rt.ByteSlice(dataData, dataStart, dataLen), 0, n));
+		const n: rt.usize = rt.min(data.length, 16);
+		rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(wide), 0, n), rt.byteSliceRange(data, 0, n));
 		const v: rt.u128 = rt.u128FromBeBytes(wide);
 		const w: rt.f64 = rt.f64FromBits(rt.u64Cast(v));
 		const iter5: rt.Iter<rt.f32> = rt.iterSlice([Math.fround(rt.u128Low(v) & 0xff), Math.fround(rt.u128Low(v) & 0xffff), Math.fround(rt.u128Low(v)), rt.u64ToF32(rt.u64Cast(v)), rt.u128ToF32(v), Math.fround(rt.u128Low(v)), Math.fround((rt.u128Low(v) << 24) >> 24), Math.fround((rt.u128Low(v) << 16) >> 16), Math.fround(rt.u128Low(v) | 0), rt.i64ToF32(rt.i64Cast(v)), rt.i128ToF32(rt.i128Cast(v)), Math.fround(rt.u128Low(v) | 0), rt.u64ToF32(rt.u64Cast(rt.u128Shr(v, 64))), rt.i64ToF32(rt.i64Cast(rt.u128Shr(v, 64))), Math.fround(rt.u128Low(v) & 0xffff), Math.fround((rt.u128Low(v) << 16) >> 16), rt.u128And(v, 1) === 1 ? 1.0 : 0.0, Math.fround(rt.u128Low(v) & 0xff), Math.fround(w), 1.8446744073709552e19, -9.223372036854776e18, Infinity, 2147483648.0]);
@@ -217,7 +216,7 @@ export function singles(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 			return o & 0xff;
 		}));
 	} else if (_10 === 6) {
-		const bits2: rt.u32 = takeBits(dataData, dataStart, dataLen)[0];
+		const bits2: rt.u32 = takeBits(data)[0];
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(rt.f32ToBits(rt.f32FromBits(bits2)))));
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.f32ToBeBytes(rt.f32FromBits(bits2))));
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.f32ToLeBytes(rt.f32FromBits(bits2))));
@@ -306,7 +305,7 @@ export function singles(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
  * exactly halfway between two singles, plus a tiny addend, subnormal sums, products past
  * `f32::MAX` that the sum brings back, and half the product's last place.
  */
-export function mulAdds(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function mulAdds(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _53!: [rt.f32, rt.f32, rt.f32];
 	let _95!: rt.f32;
 	const _63: (a0: rt.f32) => rt.f32 = (x: rt.f32): rt.f32 => {
@@ -314,7 +313,7 @@ export function mulAdds(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 	};
 	b0: {
 		if (!(rt.u8Rem(kind, 2) === 0)) {
-			let state: rt.u32 = (takeBits(dataData, dataStart, dataLen)[0] | 1) >>> 0;
+			let state: rt.u32 = (takeBits(data)[0] | 1) >>> 0;
 			let iterStart: rt.i32 = 0;
 			const iterEnd: rt.i32 = 32;
 			while (true) {
@@ -366,10 +365,10 @@ export function mulAdds(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 				putF32(out, rt.f32MulAdd(_53[0], _53[1], _53[2]));
 			}
 		}
-		const _9: [rt.f32, rt.ByteSlice] = take(dataData, dataStart, dataLen);
+		const _9: [rt.f32, rt.ByteSlice] = take(data);
 		const a: rt.f32 = _9[0];
-		const _12: [rt.f32, rt.ByteSlice] = take(_9[1].data, _9[1].start, _9[1].length);
-		putF32(out, rt.f32MulAdd(a, _12[0], take(_12[1].data, _12[1].start, _12[1].length)[0]));
+		const _12: [rt.f32, rt.ByteSlice] = take(_9[1]);
+		putF32(out, rt.f32MulAdd(a, _12[0], take(_12[1])[0]));
 	}
 }
 
@@ -390,8 +389,8 @@ export function step(state: rt.Place<rt.u32>): rt.u32 {
  * `f32`'s `Display`, `Debug`, `LowerExp`, and `UpperExp`, with a precision from the byte
  * after the single, and every other option.
  */
-export function formats(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const _6: [rt.f32, rt.ByteSlice] = take(dataData, dataStart, dataLen);
+export function formats(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	const _6: [rt.f32, rt.ByteSlice] = take(data);
 	const a: rt.f32 = _6[0];
 	const p: rt.usize = option_unwrapOr$0r2bmpr(rt.byteSliceFirst(_6[1]), 0) as rt.usize;
 	b0: {
@@ -407,9 +406,9 @@ export function formats(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 			const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.f32Display(a, f), (f: rt.Formatter) => rt.f32LowerExp(a, f), (f: rt.Formatter) => rt.f32Debug(a, f)];
 			fmt_put(out, rt.fmtFormat([rt.fmtSpec({ precision: 160 }, args6[0]), " ", rt.fmtSpec({ precision: 120 }, args6[1]), " ", rt.fmtSpec({ precision: 160 }, args6[2])]));
 		} else if (_13 === 2) {
-			const _72: [rt.f32, rt.ByteSlice] = take(_6[1].data, _6[1].start, _6[1].length);
+			const _72: [rt.f32, rt.ByteSlice] = take(_6[1]);
 			const b: rt.f32 = _72[0];
-			const c: rt.f32 = take(_72[1].data, _72[1].start, _72[1].length)[0];
+			const c: rt.f32 = take(_72[1])[0];
 			putF32(out, rt.f32Clamp(a, b, c));
 		} else if (_13 === 3) {
 			const _78: rt.f32[] = [Math.fround(a * 0.5), -0.0, 9.999999747378752e-5, 1.0000000272564224e16, NaN];
@@ -417,7 +416,7 @@ export function formats(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 			const args8: rt.Fmt[] = [(f: rt.Formatter) => singles_Reading.fmt$fmt_Debug(part, f)];
 			fmt_put(out, rt.fmtFormat([args8[0], "|", rt.fmtSpec({ precision: 2 }, args8[0]), "|", rt.fmtSpec({ plus: true, zero: true, width: 12 }, args8[0])]));
 		} else {
-			let state: rt.u32 = (takeBits(dataData, dataStart, dataLen)[0] | 1) >>> 0;
+			let state: rt.u32 = (takeBits(data)[0] | 1) >>> 0;
 			let iterStart: rt.i32 = 0;
 			const iterEnd: rt.i32 = 64;
 			while (iterStart++ < iterEnd) {
@@ -444,18 +443,18 @@ export function formats(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
  * `str::parse::<f32>`, with its errors, of the input as text, of bytes mapped into the
  * grammar's alphabet, or of decimals made from a seed.
  */
-export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function parses(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _108!: rt.usize;
 	b0: {
 		const _4: rt.u8 = rt.u8Rem(kind, 3);
 		if (_4 === 0) {
-			const _6: rt.Result<string, rt.Utf8Error> = rt.strFromUtf8(new rt.ByteSlice(dataData, dataStart, dataLen));
+			const _6: rt.Result<string, rt.Utf8Error> = rt.strFromUtf8(data);
 			if (_6.ok) {
 				one(_6.value, out);
 			}
 		} else if (_4 === 1) {
 			let s: string = "";
-			for (const b of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+			for (const b of rt.byteSliceView(data)) {
 				const _21: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of(48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 46, 101, 69, 43, 45, 95, 105, 110, 102, 73, 78, 70, 116, 121, 84, 89, 97, 32));
 				const _22: rt.usize = rt.usizeRem(b as rt.usize, rt.byteSliceFrom(Uint8Array.of(48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 48, 46, 101, 69, 43, 45, 95, 105, 110, 102, 73, 78, 70, 116, 121, 84, 89, 97, 32)).length);
 				rt.idx(_21, _22);
@@ -463,7 +462,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 			one(s, out);
 		} else {
-			let state: rt.u32 = (takeBits(dataData, dataStart, dataLen)[0] | 1) >>> 0;
+			let state: rt.u32 = (takeBits(data)[0] | 1) >>> 0;
 			let iterStart: rt.i32 = 0;
 			const iterEnd: rt.i32 = 16;
 			while (iterStart++ < iterEnd) {

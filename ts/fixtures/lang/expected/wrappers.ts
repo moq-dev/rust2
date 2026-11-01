@@ -244,10 +244,9 @@ export function boundOf(kind: rt.u8, a: rt.u64): rt.RangeBound<rt.u64> {
 	return { tag: "Unbounded" } as rt.RangeBound<rt.u64>;
 }
 
-export function wrappers(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function wrappers(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let scale!: wrappers_Scale.Scale;
 	let name!: string;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _5: (a0: rt.u8) => rt.u64 = (b3: rt.u8): rt.u64 => {
 		const _3: rt.u8 = rt.u8Rem(b3, 4);
 		if (_3 === 0) {

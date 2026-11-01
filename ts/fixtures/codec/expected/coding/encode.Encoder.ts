@@ -27,8 +27,8 @@ function new_(buf: rt.ByteVec, form: Form.Form): Encoder {
 }
 
 /** Write raw bytes. */
-export function slice(self: Encoder, vData: Uint8Array, vStart: number, vLen: number): void {
-	rt.byteVecExtendFromSlice(self.buf, new rt.ByteSlice(vData, vStart, vLen));
+export function slice(self: Encoder, v: rt.ByteSlice): void {
+	rt.byteVecExtendFromSlice(self.buf, v);
 }
 
 /** Write a single byte. */
@@ -71,10 +71,10 @@ export function varintOpt(self: Encoder, v: rt.u64 | undefined): rt.Result<undef
 }
 
 /** Write a varint length, then the raw bytes. */
-export function bytes(self: Encoder, vData: Uint8Array, vStart: number, vLen: number): rt.Result<undefined, EncodeError.EncodeError> {
-	const _3: rt.Result<undefined, EncodeError.EncodeError> = varint(self, vLen as rt.u64);
+export function bytes(self: Encoder, v: rt.ByteSlice): rt.Result<undefined, EncodeError.EncodeError> {
+	const _3: rt.Result<undefined, EncodeError.EncodeError> = varint(self, v.length as rt.u64);
 	if (_3.ok) {
-		slice(self, vData, vStart, vLen);
+		slice(self, v);
 		return rt.OK;
 	}
 	return _3;
@@ -82,8 +82,7 @@ export function bytes(self: Encoder, vData: Uint8Array, vStart: number, vLen: nu
 
 /** Write a varint length, then the UTF-8 bytes. */
 export function string(self: Encoder, v: string): rt.Result<undefined, EncodeError.EncodeError> {
-	const _3: rt.ByteSlice = rt.stringAsBytes(v);
-	return bytes(self, _3.data, _3.start, _3.length);
+	return bytes(self, rt.stringAsBytes(v));
 }
 
 /**

@@ -2,11 +2,11 @@
 
 import * as rt from "./rt.ts";
 import * as args_Scale from "./args.Scale.ts";
-import { map$1p38hze as option_map$1p38hze, map$1yogfym as option_map$1yogfym, mapOr$0dk8jdr as option_mapOr$0dk8jdr } from "./core/option.ts";
+import { map$0waqle9 as option_map$0waqle9, map$1yogfym as option_map$1yogfym, mapOr$0dk8jdr as option_mapOr$0dk8jdr } from "./core/option.ts";
 
 /** A use that needs the slice itself. */
-export function opaque(sData: Uint8Array, sStart: number, sLen: number): rt.u8 {
-	return rt.iterFold(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart, sLen))), sLen & 0xff, (a: rt.u8, b: rt.u8): rt.u8 => {
+export function opaque(s: rt.ByteSlice): rt.u8 {
+	return rt.iterFold(rt.iterSlice(rt.byteSliceView(s)), s.length & 0xff, (a: rt.u8, b: rt.u8): rt.u8 => {
 		return rt.u8WrappingAdd(a ^ (a >> 3), b);
 	});
 }
@@ -34,18 +34,17 @@ export function len(_dataData: Uint8Array, _dataStart: number, dataLen: number):
 	return dataLen;
 }
 
-/** A parameter borrowed, which makes it whole on entry. */
-export function byRef(dataData: Uint8Array, dataStart: number, dataLen: number): rt.usize {
-	return lenOf(new rt.ByteSlice(dataData, dataStart, dataLen));
+/** A parameter borrowed, which takes it whole. */
+export function byRef(data: rt.ByteSlice): rt.usize {
+	return lenOf(data);
 }
 
 export function lenOf(data: rt.ByteSlice): rt.usize {
 	return data.length;
 }
 
-/** A parameter made whole in a loop, which makes it whole on entry. */
-export function kept(dataData: Uint8Array, dataStart: number, dataLen: number, n: rt.u8): rt.ByteSlice[] {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+/** A parameter made whole in a loop, which takes it whole. */
+export function kept(data: rt.ByteSlice, n: rt.u8): rt.ByteSlice[] {
 	const all: rt.ByteSlice[] = [];
 	const _6: rt.u8 = rt.u8Rem(n, 4);
 	let iterStart: rt.u8 = 0;
@@ -59,30 +58,84 @@ export function kept(dataData: Uint8Array, dataStart: number, dataLen: number, n
 }
 
 /** A reference to an array of bytes. */
-export function word(wData: Uint8Array, wStart: number, _wLen: number): rt.u32 {
-	return ((wData[wStart] << 24) | (wData[wStart + 1] << 16) | (wData[wStart + 2] << 8) | wData[wStart + 3]) >>> 0;
+export function word(w: rt.ByteSlice): rt.u32 {
+	return ((w.data[w.start] << 24) | (w.data[w.start + 1] << 16) | (w.data[w.start + 2] << 8) | w.data[w.start + 3]) >>> 0;
 }
 
 /** Two slices, perhaps the same. */
-export function both(aData: Uint8Array, aStart: number, aLen: number, bData: Uint8Array, bStart: number, bLen: number): rt.u8 {
-	return opaque(aData, aStart, aLen) ^ (len(bData, bStart, bLen) & 0xff);
+export function both(a: rt.ByteSlice, bData: Uint8Array, bStart: number, bLen: number): rt.u8 {
+	return opaque(a) ^ (len(bData, bStart, bLen) & 0xff);
 }
 
 /** A recursive count of the bytes before a zero. */
-export function depth(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 {
-	const _2: [rt.u8, rt.ByteSlice] | undefined = rt.byteSliceSplitFirst(new rt.ByteSlice(dataData, dataStart, dataLen));
+export function depth(data: rt.ByteSlice): rt.u8 {
+	const _2: [rt.u8, rt.ByteSlice] | undefined = rt.byteSliceSplitFirst(data);
 	if (_2 !== undefined) {
 		if (_2[0] !== 0) {
-			return rt.u8Add(1, depth(_2[1].data, _2[1].start, _2[1].length));
+			return rt.u8Add(1, depth(_2[1]));
 		}
 	}
 	return 0;
 }
 
+/** Passed along to one that takes it whole, so taken whole too. */
+export function relay(data: rt.ByteSlice): rt.u8 {
+	return opaque(data);
+}
+
+/** Passed along to one that takes its parts, so taken as parts too. */
+export function relaySum(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 {
+	return sum(dataData, dataStart, dataLen);
+}
+
+/** Recursive, and made whole at the bottom, so taken whole all the way down. */
+export function lastRun(data: rt.ByteSlice): rt.u8 {
+	const _2: [rt.u8, rt.ByteSlice] | undefined = rt.byteSliceSplitFirst(data);
+	if (_2 !== undefined) {
+		if (_2[0] !== 0) {
+			return lastRun(_2[1]);
+		}
+	}
+	return opaque(data);
+}
+
+/** Mutually recursive, each reading bytes, so both take parts. */
+export function evens(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 {
+	if (dataLen === 0) {
+		return 0;
+	}
+	return rt.u8WrappingAdd(dataData[dataStart], odds(dataData, dataStart + 1, dataLen - 1));
+}
+
+export function odds(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 {
+	if (dataLen === 0) {
+		return 0;
+	}
+	return evens(dataData, dataStart + 1, dataLen - 1);
+}
+
+/** Mutually recursive, where `ping` makes its slice whole and `pong` only splits its own. */
+export function ping(data: rt.ByteSlice): rt.u8 {
+	const _2: [rt.u8, rt.ByteSlice] | undefined = rt.byteSliceSplitFirst(data);
+	if (_2 !== undefined) {
+		if (rt.u8Rem(_2[0], 3) !== 0) {
+			return pong(_2[1].data, _2[1].start, _2[1].length);
+		}
+	}
+	return opaque(data);
+}
+
+export function pong(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 {
+	if (dataLen === 0) {
+		return 0;
+	}
+	return dataData[dataStart] ^ ping(new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1));
+}
+
 /** A slice chosen by a call that does something. */
-export function pick(out: rt.ByteVec, dataData: Uint8Array, dataStart: number, dataLen: number): rt.ByteSlice {
+export function pick(out: rt.ByteVec, data: rt.ByteSlice): rt.ByteSlice {
 	rt.byteVecPush(out, 187);
-	return rt.byteSliceRange(new rt.ByteSlice(dataData, dataStart, dataLen), rt.usizeDiv(dataLen, 2));
+	return rt.byteSliceRange(data, rt.usizeDiv(data.length, 2));
 }
 
 export function code(out: rt.ByteVec, n: rt.u8): rt.u8 {
@@ -90,51 +143,44 @@ export function code(out: rt.ByteVec, n: rt.u8): rt.u8 {
 	return n;
 }
 
-export function pair(n: rt.u8, sData: Uint8Array, sStart: number, sLen: number): rt.u8 {
-	return n ^ opaque(sData, sStart, sLen);
+export function pair(n: rt.u8, s: rt.ByteSlice): rt.u8 {
+	return n ^ opaque(s);
 }
 
-export function weigh$args_Scale(w: args_Scale.Scale, dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 {
-	return args_Scale.weigh$args_Weigh(w, dataData, dataStart, dataLen);
+export function weigh$args_Scale(w: args_Scale.Scale, data: rt.ByteSlice): rt.u8 {
+	return args_Scale.weigh$args_Weigh(w, data);
 }
 
-export function args(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function args(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let f!: (a0: rt.ByteSlice) => rt.u8;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
-	const _4: rt.u8 = rt.u8Rem(kind, 6);
+	const _4: rt.u8 = rt.u8Rem(kind, 8);
 	if (_4 === 0) {
 		rt.byteVecPush(out, sum(data.data, data.start, data.length));
 		rt.byteVecPush(out, len(data.data, data.start, data.length) & 0xff);
-		rt.byteVecPush(out, byRef(data.data, data.start, data.length) & 0xff);
-		rt.byteVecPush(out, rt.iterFold(rt.iterMap(rt.iterSlice(kept(data.data, data.start, data.length, kind)), (s: rt.ByteSlice): rt.u8 => {
-			const _33: rt.ByteSlice = s;
-			return opaque(_33.data, _33.start, _33.length);
+		rt.byteVecPush(out, byRef(data) & 0xff);
+		rt.byteVecPush(out, rt.iterFold(rt.iterMap(rt.iterSlice(kept(data, kind)), (s: rt.ByteSlice): rt.u8 => {
+			return opaque(s);
 		}), 0, (a05: rt.u8, a1: rt.u8): rt.u8 => {
 			return rt.u8WrappingAdd(a05, a1);
 		}));
 	} else if (_4 === 1) {
 		if (data.length >= 4) {
-			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(rt.u32WrappingAdd(word(data.data, data.start, 4), 1))));
-			rt.byteVecPush(out, both(data.data, data.start + 4, data.length - 4, data.data, data.start + 4, data.length - 4));
-			const _35: rt.ByteSlice = new rt.ByteSlice(data.data, data.start, 4);
-			rt.byteVecPush(out, both(_35.data, _35.start, _35.length, data.data, data.start + 4, data.length - 4));
+			const w: rt.ByteSlice = new rt.ByteSlice(data.data, data.start, 4);
+			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(rt.u32WrappingAdd(word(w), 1))));
+			rt.byteVecPush(out, both(new rt.ByteSlice(data.data, data.start + 4, data.length - 4), data.data, data.start + 4, data.length - 4));
+			rt.byteVecPush(out, both(w, data.data, data.start + 4, data.length - 4));
 		}
-		const _38: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.min(data.length, 64));
-		rt.byteVecPush(out, depth(_38.data, _38.start, _38.length));
+		rt.byteVecPush(out, depth(rt.byteSliceRange(data, 0, rt.min(data.length, 64))));
 	} else if (_4 === 2) {
-		rt.iterExtendBytes(out, rt.iterOption(option_map$1p38hze(option_map$1yogfym((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, (_2: [rt.u8, rt.ByteSlice]): rt.ByteSlice => {
+		rt.iterExtendBytes(out, rt.iterOption(option_map$0waqle9(option_map$1yogfym((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, (_2: [rt.u8, rt.ByteSlice]): rt.ByteSlice => {
 			return _2[1];
-		}), (a0: rt.ByteSlice): rt.u8 => {
-			return opaque(a0.data, a0.start, a0.length);
-		})), undefined, true);
+		}), opaque)), undefined, true);
 		if (!(rt.usizeRem(data.length, 2) === 0)) {
 			f = (a03: rt.ByteSlice): rt.u8 => {
 				return sum(a03.data, a03.start, a03.length);
 			};
 		} else {
-			f = (a02: rt.ByteSlice): rt.u8 => {
-				return opaque(a02.data, a02.start, a02.length);
-			};
+			f = opaque;
 		}
 		rt.byteVecPush(out, f(data));
 		rt.byteVecPush(out, option_mapOr$0dk8jdr(option_map$1yogfym((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, (_22: [rt.u8, rt.ByteSlice]): rt.ByteSlice => {
@@ -143,13 +189,11 @@ export function args(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 			return len(a04.data, a04.start, a04.length);
 		}) & 0xff);
 	} else if (_4 === 3) {
-		const _60: rt.u8 = code(out, 1);
-		const _61: rt.ByteSlice = pick(out, data.data, data.start, data.length);
-		rt.byteVecPush(out, pair(_60, _61.data, _61.start, _61.length));
+		rt.byteVecPush(out, pair(code(out, 1), pick(out, data)));
 	} else if (_4 === 4) {
 		const seen: rt.ByteVec = new rt.ByteVec();
 		const note: (a0: rt.u8) => undefined = (b2: rt.u8): undefined => {
-			rt.byteVecPush(seen, b2 ^ opaque(data.data, data.start, data.length));
+			rt.byteVecPush(seen, b2 ^ opaque(data));
 		};
 		const iter: rt.Iter<rt.u8> = rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 3);
 		while (true) {
@@ -160,11 +204,39 @@ export function args(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 			note(_70);
 		}
 		rt.byteVecExtendFromSlice(out, rt.byteVecSlice(seen));
+	} else if (_4 === 6) {
+		const data2: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.min(data.length, 64));
+		rt.byteVecPush(out, relay(data2));
+		rt.byteVecPush(out, relaySum(data2.data, data2.start, data2.length));
+		rt.byteVecPush(out, lastRun(data2));
+		rt.byteVecPush(out, evens(data2.data, data2.start, data2.length));
+		rt.byteVecPush(out, ping(data2));
+		rt.byteVecPush(out, pong(data2.data, data2.start, data2.length));
+	} else if (_4 === 7) {
+		const mid: number = rt.usizeDiv(data.length, 2);
+		if (mid > data.length) {
+			rt.panic("mid > len");
+		}
+		const mid2: number = rt.usizeDiv(data.length, 2);
+		if (mid2 > data.length) {
+			rt.panic("mid > len");
+		}
+		const halves: rt.ByteSlice[] = [new rt.ByteSlice(data.data, data.start, mid), new rt.ByteSlice(data.data, data.start + mid2, data.length - mid2)];
+		const iter2: rt.Iter<rt.ByteSlice> = rt.iterSlice(halves);
+		while (true) {
+			const _111: rt.ByteSlice | rt.Done = iter2.next();
+			if (_111 === rt.DONE) {
+				break;
+			}
+			const _138: rt.ByteSlice = _111;
+			rt.byteVecPush(out, sum(_138.data, _138.start, _138.length));
+			rt.byteVecPush(out, relay(_111));
+		}
+		rt.byteVecPush(out, relaySum(halves[1].data, halves[1].start, halves[1].length));
+		rt.byteVecPush(out, sum(data.data, data.start, data.length));
 	} else {
-		rt.byteVecPush(out, weigh$args_Scale({ _0: kind }, data.data, data.start, data.length));
-		const _86: args_Scale.Scale = { _0: 3 };
-		const _87: rt.ByteSlice = rt.byteSliceRange(data, rt.min(data.length, 2));
-		rt.byteVecPush(out, args_Scale.weigh$args_Weigh(_86, _87.data, _87.start, _87.length));
+		rt.byteVecPush(out, weigh$args_Scale({ _0: kind }, data));
+		rt.byteVecPush(out, args_Scale.weigh$args_Weigh({ _0: 3 }, rt.byteSliceRange(data, rt.min(data.length, 2))));
 	}
 }
 

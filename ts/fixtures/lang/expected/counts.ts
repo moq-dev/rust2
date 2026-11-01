@@ -29,11 +29,11 @@ export function flush(log: rt.Mutex<rt.ByteVec>, out: rt.ByteVec): void {
  * Each byte an operation on pools of strong and weak handles, the rest of it the
  * handle it picks; each puts what it read.
  */
-export function arcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function arcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
 	const strong: rt.Arc<counts_Noisy.Noisy>[] = [];
 	const weak: rt.Weak<counts_Noisy.Noisy>[] = [];
-	l1: for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	l1: for (const op of rt.byteSliceView(data)) {
 		const pick: rt.usize = op >> 4 as rt.usize;
 		const _19: rt.u8 = rt.u8Rem(op, 12);
 		if (_19 === 0) {
@@ -209,7 +209,7 @@ export function arcs(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * `Noisy` whose own `Clone` runs, or a `Vec` of handles. Each clone is kept or
  * dropped, and each byte puts the picked handle's count and what dropped.
  */
-export function clonedArcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function clonedArcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _191: boolean = false;
 	let _192: boolean = false;
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
@@ -220,7 +220,7 @@ export function clonedArcs(dataData: Uint8Array, dataStart: number, dataLen: num
 	const shared: ArcShared.ArcShared[] = [];
 	const noisy: counts_Noisy.Noisy[] = [];
 	const lists: rt.Arc<counts_Noisy.Noisy>[][] = [];
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const pick: rt.usize = op >> 4 as rt.usize;
 		const at = rt.idx(handles, rt.usizeRem(pick, handles.length));
 		const keep: boolean = (op & 8) !== 0;
@@ -351,13 +351,13 @@ export function clonedArcs(dataData: Uint8Array, dataStart: number, dataLen: num
  * handles to itself; then kept, dropped, or dropped with a handle outside. Each puts what it read and what
  * dropped.
  */
-export function cyclicArcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function cyclicArcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let node!: rt.Arc<ArcNode.ArcNode>;
 	let _95: boolean = false;
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
 	const kept: rt.Arc<ArcNode.ArcNode>[] = [];
 	const outside: rt.Weak<ArcNode.ArcNode>[] = [];
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const _15: rt.Arc<rt.Mutex<rt.ByteVec>> = rt.arcClone(log);
 		_95 = true;
 		const noisy: counts_Noisy.Noisy = new counts_Noisy.Noisy(op, _15);
@@ -441,10 +441,9 @@ export function cyclicArcs(dataData: Uint8Array, dataStart: number, dataLen: num
  * the rest of it the handle it picks; each puts what it read and the picked
  * handle's counts.
  */
-export function uniqueArcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function uniqueArcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _52!: rt.Place<rt.u8> | undefined;
 	let value2!: rt.Place<rt.u8>;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const strong: rt.Arc<rt.u8>[] = [new rt.Arc(0)];
 	const weak: rt.Weak<rt.u8>[] = [];
 	const iterS: Uint8Array = rt.byteSliceView(data);
@@ -567,7 +566,7 @@ export function uniqueArcs(dataData: Uint8Array, dataStart: number, dataLen: num
  * `Noisy` whose own `Clone` runs, or a `Vec` of handles. Each clone is kept or
  * dropped, and each byte puts the picked handle's count and what dropped.
  */
-export function clonedRcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function clonedRcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _191: boolean = false;
 	let _192: boolean = false;
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
@@ -578,7 +577,7 @@ export function clonedRcs(dataData: Uint8Array, dataStart: number, dataLen: numb
 	const shared: RcShared.RcShared[] = [];
 	const noisy: counts_Noisy.Noisy[] = [];
 	const lists: rt.Arc<counts_Noisy.Noisy>[][] = [];
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const pick: rt.usize = op >> 4 as rt.usize;
 		const at = rt.idx(handles, rt.usizeRem(pick, handles.length));
 		const keep: boolean = (op & 8) !== 0;
@@ -709,13 +708,13 @@ export function clonedRcs(dataData: Uint8Array, dataStart: number, dataLen: numb
  * handles to itself; then kept, dropped, or dropped with a handle outside. Each puts what it read and what
  * dropped.
  */
-export function cyclicRcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function cyclicRcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let node!: rt.Arc<RcNode.RcNode>;
 	let _95: boolean = false;
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
 	const kept: rt.Arc<RcNode.RcNode>[] = [];
 	const outside: rt.Weak<RcNode.RcNode>[] = [];
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const _15: rt.Arc<rt.Mutex<rt.ByteVec>> = rt.arcClone(log);
 		_95 = true;
 		const noisy: counts_Noisy.Noisy = new counts_Noisy.Noisy(op, _15);
@@ -798,11 +797,11 @@ export function cyclicRcs(dataData: Uint8Array, dataStart: number, dataLen: numb
  * Each byte an operation on pools of strong and weak handles, the rest of it the
  * handle it picks; each puts what it read.
  */
-export function rcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function rcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
 	const strong: rt.Arc<counts_Noisy.Noisy>[] = [];
 	const weak: rt.Weak<counts_Noisy.Noisy>[] = [];
-	l1: for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	l1: for (const op of rt.byteSliceView(data)) {
 		const pick: rt.usize = op >> 4 as rt.usize;
 		const _19: rt.u8 = rt.u8Rem(op, 12);
 		if (_19 === 0) {
@@ -977,10 +976,9 @@ export function rcs(dataData: Uint8Array, dataStart: number, dataLen: number, ou
  * the rest of it the handle it picks; each puts what it read and the picked
  * handle's counts.
  */
-export function uniqueRcs(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function uniqueRcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _52!: rt.Place<rt.u8> | undefined;
 	let value2!: rt.Place<rt.u8>;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const strong: rt.Arc<rt.u8>[] = [new rt.Arc(0)];
 	const weak: rt.Weak<rt.u8>[] = [];
 	const iterS: Uint8Array = rt.byteSliceView(data);
@@ -1102,8 +1100,7 @@ export function uniqueRcs(dataData: Uint8Array, dataStart: number, dataLen: numb
  * `Counted`, and through `Option<&mut>` a byte and an `Option`; each puts what it made
  * and how many clones `Counted` counted.
  */
-export function copies(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function copies(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const clones: rt.Cell<rt.u8> = new rt.Cell(0);
 	const counted: counts_Counted.Counted[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): counts_Counted.Counted => {
 		return { id: _2, clones };

@@ -205,8 +205,9 @@ fn codec() {
 /// A caller of two functions of a type, through its module, as moq's TypeScript calls
 /// the codec.
 const SHAKE: &str = r#"import * as Decoder from "./coding/decode.Decoder.ts";
+import * as rt from "./rt.ts";
 
-export const run = (buf: Uint8Array) => Decoder.u8(Decoder.new(buf, 0, buf.length, { tag: "Quic" }));
+export const run = (buf: Uint8Array) => Decoder.u8(Decoder.new(rt.byteSliceFrom(buf), { tag: "Quic" }));
 "#;
 
 /// Bun's and esbuild's tree-shaken bundles of [`SHAKE`] keep the functions it calls and
@@ -254,6 +255,7 @@ fn shake(out: &Path) {
 			"ByteSlice",
 			"Ok",
 			"Panic",
+			"byteSliceFrom",
 			"checked",
 			"max",
 			"panic",

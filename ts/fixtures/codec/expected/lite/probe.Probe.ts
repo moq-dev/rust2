@@ -13,11 +13,11 @@ import * as lite_version_Version from "../lite/version.Version.ts";
 import type * as Control from "../stats.Control.ts";
 
 /** Decode the value from the front of `buf`, returning it and the bytes it took. */
-export function decodeSlice$coding_decode_Decode_lite_version_Version(bufData: Uint8Array, bufStart: number, bufLen: number, version: lite_version_Version.Version): rt.Result<[Probe, rt.usize], DecodeError.DecodeError> {
-	const r: Decoder.Decoder = Decoder.new(bufData, bufStart, bufLen, Form.from$convert_From_lite_version_Version(version));
+export function decodeSlice$coding_decode_Decode_lite_version_Version(buf: rt.ByteSlice, version: lite_version_Version.Version): rt.Result<[Probe, rt.usize], DecodeError.DecodeError> {
+	const r: Decoder.Decoder = Decoder.new(buf, Form.from$convert_From_lite_version_Version(version));
 	const _5: rt.Result<Probe, DecodeError.DecodeError> = decode$coding_decode_Decode_lite_version_Version(r, version);
 	if (_5.ok) {
-		return rt.Ok([_5.value, rt.usizeSub(bufLen, Decoder.remaining(r))] as [Probe, rt.usize]);
+		return rt.Ok([_5.value, rt.usizeSub(buf.length, Decoder.remaining(r))] as [Probe, rt.usize]);
 	}
 	return _5;
 }

@@ -382,6 +382,8 @@ pub struct Fx<'m, 'b, 'a, 'tcx> {
 	/// Those not held as their parts, each made from its parts on entry: its name, then
 	/// its parts'.
 	rebuilt: Vec<(Local, String, [String; 3])>,
+	/// Those held as their parts whose object some read makes from them all the same.
+	remade: FxHashSet<Local>,
 	/// The names of the parameters that are parts.
 	part_params: Vec<String>,
 	/// Where this function hands back its `Ok`'s parts, if it does.
@@ -462,6 +464,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			scalar_binds: Vec::new(),
 			parted,
 			rebuilt: Vec::new(),
+			remade: FxHashSet::default(),
 			part_params: Vec::new(),
 			slot,
 			slotted_calls: FxHashMap::default(),

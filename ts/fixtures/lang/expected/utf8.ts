@@ -4,12 +4,12 @@ import * as rt from "./rt.ts";
 import { mapOr$02k4ito as option_mapOr$02k4ito } from "./core/option.ts";
 import { put as fmt_put } from "./fmt.ts";
 
-export function decodes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function decodes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let bytes!: rt.ByteVec;
 	if (rt.u8Rem(kind, 2) === 0) {
-		bytes = rt.byteSliceToByteVec(new rt.ByteSlice(dataData, dataStart, dataLen));
+		bytes = rt.byteSliceToByteVec(data);
 	} else {
-		bytes = rt.iterToByteVec(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), (_2: rt.u8): rt.u8 => {
+		bytes = rt.iterToByteVec(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.u8 => {
 			const _54: rt.usize = rt.u8Rem(_2, 32) as rt.usize;
 			if (!(_54 < 32)) {
 				rt.panic("index out of bounds: the len is " + 32 + " but the index is " + _54);

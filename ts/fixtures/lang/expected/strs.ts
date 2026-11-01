@@ -2,18 +2,18 @@
 
 import * as rt from "./rt.ts";
 import { then$0havnzo } from "./core/bool.ts";
-import { fromStr$1cr4vnw as nonzero_fromStr$1cr4vnw, fromStrRadix$14i0wt8 as nonzero_fromStrRadix$14i0wt8, fromStr$0lgcgfz as nonzero_fromStr$0lgcgfz, fromStrRadix$1lxegnk as nonzero_fromStrRadix$1lxegnk, fromStr$0nnqa9n as nonzero_fromStr$0nnqa9n, fromStrRadix$1d9m2yx as nonzero_fromStrRadix$1d9m2yx, fromStr$1oqlbkr as nonzero_fromStr$1oqlbkr, fromStrRadix$1jz5doi as nonzero_fromStrRadix$1jz5doi, fromStr$0tkab53 as nonzero_fromStr$0tkab53, fromStrRadix$1d0ksj7 as nonzero_fromStrRadix$1d0ksj7, fromStr$1q8byvk as nonzero_fromStr$1q8byvk, fromStrRadix$07g34i1 as nonzero_fromStrRadix$07g34i1, fromStr$0ujk11v as nonzero_fromStr$0ujk11v, fromStrRadix$17bacti as nonzero_fromStrRadix$17bacti, fromStr$0rlmwxp as nonzero_fromStr$0rlmwxp, fromStrRadix$059mp1l as nonzero_fromStrRadix$059mp1l, fromStr$06ydblo as nonzero_fromStr$06ydblo, fromStrRadix$0kf0g60 as nonzero_fromStrRadix$0kf0g60, fromStr$1oeehgy as nonzero_fromStr$1oeehgy, fromStrRadix$0ynvtyj as nonzero_fromStrRadix$0ynvtyj, fromStr$1b9wkfh as nonzero_fromStr$1b9wkfh, fromStrRadix$0cet6d1 as nonzero_fromStrRadix$0cet6d1, fromStr$1hl5h4e as nonzero_fromStr$1hl5h4e, fromStrRadix$1bz0mya as nonzero_fromStrRadix$1bz0mya } from "./core/num/nonzero.ts";
-import { unwrapOr$1iemzn8 as option_unwrapOr$1iemzn8, unwrapOr$1a4gm66 as option_unwrapOr$1a4gm66, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$0gl6wke as option_map$0gl6wke, mapOr$16umieg as option_mapOr$16umieg, mapOr$147z9gi as option_mapOr$147z9gi } from "./core/option.ts";
-import { parse$0vh4cry, parse$1gx0slj, parse$19hh5l5, parse$1wk8j8i, parse$0zmco93, parse$1t9x185, parse$1jrkp2i, parse$1qgvwsg, parse$1osnhn3, parse$1gszg8m, parse$06gw7w3, parse$1srq5rw, parse$15q33cp } from "./core/str.ts";
+import { fromStr$0evev4b as nonzero_fromStr$0evev4b, fromStrRadix$1dc3cul as nonzero_fromStrRadix$1dc3cul, fromStr$1lm2uzl as nonzero_fromStr$1lm2uzl, fromStrRadix$1cv6o7i as nonzero_fromStrRadix$1cv6o7i, fromStr$0gvyqp3 as nonzero_fromStr$0gvyqp3, fromStrRadix$18imw6k as nonzero_fromStrRadix$18imw6k, fromStr$19lq810 as nonzero_fromStr$19lq810, fromStrRadix$1u3fi38 as nonzero_fromStrRadix$1u3fi38, fromStr$1lyc2jq as nonzero_fromStr$1lyc2jq, fromStrRadix$0yvapq5 as nonzero_fromStrRadix$0yvapq5, fromStr$06k4xxy as nonzero_fromStr$06k4xxy, fromStrRadix$0rmwudb as nonzero_fromStrRadix$0rmwudb, fromStr$0xht6mx as nonzero_fromStr$0xht6mx, fromStrRadix$0qjnxek as nonzero_fromStrRadix$0qjnxek, fromStr$021o7ki as nonzero_fromStr$021o7ki, fromStrRadix$0dk3w71 as nonzero_fromStrRadix$0dk3w71, fromStr$1myv2t6 as nonzero_fromStr$1myv2t6, fromStrRadix$0o6ntrm as nonzero_fromStrRadix$0o6ntrm, fromStr$10p52cj as nonzero_fromStr$10p52cj, fromStrRadix$0ebk8xe as nonzero_fromStrRadix$0ebk8xe, fromStr$081k88g as nonzero_fromStr$081k88g, fromStrRadix$17xzbib as nonzero_fromStrRadix$17xzbib, fromStr$1gsgexo as nonzero_fromStr$1gsgexo, fromStrRadix$0k1ynqn as nonzero_fromStrRadix$0k1ynqn } from "./core/num/nonzero.ts";
+import { unwrapOr$1iemzn8 as option_unwrapOr$1iemzn8, unwrapOr$1rbuegs as option_unwrapOr$1rbuegs, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$0gl6wke as option_map$0gl6wke, mapOr$16umieg as option_mapOr$16umieg, mapOr$147z9gi as option_mapOr$147z9gi } from "./core/option.ts";
+import { parse$0vh4cry, parse$1bh1yup, parse$034rhh2, parse$1wp6z3o, parse$00wf0ig, parse$1bfudtm, parse$16jvjal, parse$0y8gj7z, parse$0y6waa4, parse$1s5pqso, parse$129b0a7, parse$150tkxc, parse$02m155k } from "./core/str.ts";
 import { fromStr$05d44vn as traits_fromStr$05d44vn } from "./core/str/traits.ts";
 import { put as fmt_put } from "./fmt.ts";
 import * as strs_Counted from "./strs.Counted.ts";
 import * as strs_Named from "./strs.Named.ts";
 
 /** A char of the alphabet for each byte, by its low bits. */
-export function text(dataData: Uint8Array, dataStart: number, dataLen: number): string {
+export function text(data: rt.ByteSlice): string {
 	let s: string = "";
-	const iterS: Uint8Array = rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen));
+	const iterS: Uint8Array = rt.byteSliceView(data);
 	let iterI: number = 0;
 	while (true) {
 		const _5: rt.u8 | rt.Done = iterI < iterS.length ? iterS[iterI++] : rt.DONE;
@@ -29,8 +29,8 @@ export function text(dataData: Uint8Array, dataStart: number, dataLen: number): 
 }
 
 /** Whether the `i`th step reads from the back: by the byte's high bit. */
-export function fromBack(dataData: Uint8Array, dataStart: number, dataLen: number, i: rt.usize): boolean {
-	const _3: rt.u8 | undefined = rt.byteSliceGet(new rt.ByteSlice(dataData, dataStart, dataLen), i);
+export function fromBack(data: rt.ByteSlice, i: rt.usize): boolean {
+	const _3: rt.u8 | undefined = rt.byteSliceGet(data, i);
 	if (_3 !== undefined) {
 		if ((_3 & 128) !== 0) {
 			return true;
@@ -63,13 +63,13 @@ export function putSeen(out: rt.ByteVec, seen: rt.char[]): void {
 	rt.byteVecPush(out, 253);
 }
 
-export function strs(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function strs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let c!: rt.char | undefined;
 	let part!: string | undefined;
 	let part3!: string | undefined;
 	let item!: [rt.usize, string] | undefined;
 	let _236!: rt.char;
-	const s: string = text(dataData, dataStart, dataLen);
+	const s: string = text(data);
 	const _7: rt.usize = rt.u8Rem(rt.u8Div(kind, 8), 16) as rt.usize;
 	if (!(_7 < 16)) {
 		rt.panic("index out of bounds: the len is " + 16 + " but the index is " + _7);
@@ -81,7 +81,7 @@ export function strs(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 			const it: rt.Iter<rt.char> = rt.strChars(s);
 			let i: rt.usize = 0;
 			while (true) {
-				if (!fromBack(dataData, dataStart, dataLen, i)) {
+				if (!fromBack(data, i)) {
 					c = rt.iterToOption(it.next());
 				} else {
 					c = rt.iterToOption(it.nextBack());
@@ -109,7 +109,7 @@ export function strs(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 			const parts: rt.Iter<string> = rt.strSplit(s, String.fromCodePoint(sep));
 			let i2: rt.usize = 0;
 			while (true) {
-				if (!fromBack(dataData, dataStart, dataLen, i2)) {
+				if (!fromBack(data, i2)) {
 					part = rt.iterToOption(parts.next());
 				} else {
 					part = rt.iterToOption(parts.nextBack());
@@ -137,7 +137,7 @@ export function strs(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 			});
 			let i3: rt.usize = 0;
 			while (true) {
-				if (!fromBack(dataData, dataStart, dataLen, i3)) {
+				if (!fromBack(data, i3)) {
 					part3 = rt.iterToOption(parts2.next());
 				} else {
 					part3 = rt.iterToOption(parts2.nextBack());
@@ -183,7 +183,7 @@ export function strs(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 				const found2: rt.Iter<[rt.usize, string]> = rt.strMatchIndices(s, String.fromCodePoint(sep));
 				let i4: rt.usize = 0;
 				while (true) {
-					if (!fromBack(dataData, dataStart, dataLen, i4)) {
+					if (!fromBack(data, i4)) {
 						item = rt.iterToOption(found2.next());
 					} else {
 						item = rt.iterToOption(found2.nextBack());
@@ -278,10 +278,10 @@ export function pattern(kind: rt.u8, s: string): string {
  * `&s[a..b]` by byte offsets, and the `str` methods by a `&str` pattern, which an empty
  * one matches before each char and after the last.
  */
-export function slices(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _209!: [rt.usize, rt.usize];
 	let sliced!: string;
-	const s: string = text(dataData, dataStart, dataLen);
+	const s: string = text(data);
 	const p: string = pattern(kind, s);
 	b0: {
 		const _8: rt.u8 = rt.u8Rem(kind, 8);
@@ -369,10 +369,10 @@ export function slices(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						}
 						return rt.usizeSaturatingSub(rt.usizeAdd(rt.stringLen(s), 1), rt.usizeRem(b2 as rt.usize, 4));
 					};
-					if (!(dataLen >= 2)) {
+					if (!(data.length >= 2)) {
 						_209 = [0, 0] as [rt.usize, rt.usize];
 					} else {
-						_209 = [at2(dataData[dataStart]), at2(dataData[dataStart + 1])] as [rt.usize, rt.usize];
+						_209 = [at2(data.data[data.start]), at2(data.data[data.start + 1])] as [rt.usize, rt.usize];
 					}
 					const a: rt.usize = _209[0];
 					const b: rt.usize = _209[1];
@@ -515,8 +515,7 @@ export function odd(c: rt.char): boolean {
 export function edit(s: rt.Place<string>, op: rt.u8, a: rt.u8, b: rt.u8, out: rt.ByteVec): void {
 	let capacity!: rt.usize;
 	const part = rt.u8Rem(a, 4) as rt.usize;
-	const _7: rt.ByteSlice = rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of(a, b, a ^ b)), 0, part);
-	const piece: string = text(_7.data, _7.start, _7.length);
+	const piece: string = text(rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of(a, b, a ^ b)), 0, part));
 	const _17: [rt.usize, rt.usize] = [offset(s.v, a), offset(s.v, b)];
 	const i: rt.usize = _17[0];
 	const j: rt.usize = _17[1];
@@ -638,8 +637,9 @@ export function edits(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 	if (mid > dataLen) {
 		rt.panic("mid > len");
 	}
-	let s: string = text(dataData, dataStart, mid);
-	const named: strs_Named.Named = { name: text(dataData, dataStart, mid) };
+	const head: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, mid);
+	let s: string = text(head);
+	const named: strs_Named.Named = { name: text(head) };
 	const iter: rt.Iter<rt.ByteSlice> = rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart + mid, dataLen - mid), 3);
 	while (true) {
 		const _18: rt.ByteSlice | rt.Done = iter.next();
@@ -689,16 +689,15 @@ export function edits(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
  * of every edge, of text of chars of every UTF-8 width, or of bytes mapped into an
  * alphabet of signs, digits, and the letters of `true` and `false`.
  */
-export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function parses(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let one!: string | undefined;
 	let all!: string[];
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const radix: rt.u32 = rt.u32Add(2, rt.u32Rem(option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data), 0) as rt.u32, 35));
 	const _13: rt.u8 = rt.u8Rem(rt.u8Div(kind, 14), 3);
 	if (_13 === 0) {
 		one = undefined;
 	} else if (_13 === 1) {
-		one = text(data.data, data.start, data.length);
+		one = text(data);
 	} else {
 		let s: string = "";
 		for (const b of rt.byteSliceView(data)) {
@@ -757,7 +756,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			rt.charFromStr(_49);
 		} else if (_53 === 2) {
 			const radix2: rt.u32 = radix;
-			const iter5: rt.Iter<rt.Result<rt.u8, rt.ParseIntError>> = rt.iterSlice([parse$1srq5rw(_49), nonzero_fromStr$1cr4vnw(_49)]);
+			const iter5: rt.Iter<rt.Result<rt.u8, rt.ParseIntError>> = rt.iterSlice([parse$150tkxc(_49), nonzero_fromStr$0evev4b(_49)]);
 			while (true) {
 				const _149: rt.Result<rt.u8, rt.ParseIntError> | rt.Done = iter5.next();
 				if (_149 === rt.DONE) {
@@ -774,13 +773,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args12[0], "|", args12[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args12[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args12[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args12[1]), "|", rt.fmtSpec({ alternate: true }, args12[1])]));
 				}
 			}
-			const _139: rt.Result<rt.u8, rt.ParseIntError> = parse$1srq5rw(_49);
+			const _139: rt.Result<rt.u8, rt.ParseIntError> = parse$150tkxc(_49);
 			if (!_139.ok) {
 				const part12 = _139.error.kind;
 				const args14: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part12)];
 				fmt_put(out, rt.fmtFormat([args14[0]]));
 			}
-			const _195: rt.Result<rt.u8, rt.ParseIntError> = nonzero_fromStrRadix$14i0wt8(_49, radix2);
+			const _195: rt.Result<rt.u8, rt.ParseIntError> = nonzero_fromStrRadix$1dc3cul(_49, radix2);
 			if (_195.ok) {
 				const arg24 = _195.value;
 				const args16: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(arg24, f)];
@@ -792,7 +791,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 3) {
 			const radix3: rt.u32 = radix;
-			const iter6: rt.Iter<rt.Result<rt.u16, rt.ParseIntError>> = rt.iterSlice([parse$1osnhn3(_49), nonzero_fromStr$0lgcgfz(_49)]);
+			const iter6: rt.Iter<rt.Result<rt.u16, rt.ParseIntError>> = rt.iterSlice([parse$0y6waa4(_49), nonzero_fromStr$1lm2uzl(_49)]);
 			while (true) {
 				const _236: rt.Result<rt.u16, rt.ParseIntError> | rt.Done = iter6.next();
 				if (_236 === rt.DONE) {
@@ -809,13 +808,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args22[0], "|", args22[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args22[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args22[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args22[1]), "|", rt.fmtSpec({ alternate: true }, args22[1])]));
 				}
 			}
-			const _226: rt.Result<rt.u16, rt.ParseIntError> = parse$1osnhn3(_49);
+			const _226: rt.Result<rt.u16, rt.ParseIntError> = parse$0y6waa4(_49);
 			if (!_226.ok) {
 				const part11 = _226.error.kind;
 				const args24: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part11)];
 				fmt_put(out, rt.fmtFormat([args24[0]]));
 			}
-			const _282: rt.Result<rt.u16, rt.ParseIntError> = nonzero_fromStrRadix$1lxegnk(_49, radix3);
+			const _282: rt.Result<rt.u16, rt.ParseIntError> = nonzero_fromStrRadix$1cv6o7i(_49, radix3);
 			if (_282.ok) {
 				const arg22 = _282.value;
 				const args26: rt.Fmt[] = [(f: rt.Formatter) => rt.u16Display(arg22, f)];
@@ -827,7 +826,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 4) {
 			const radix4: rt.u32 = radix;
-			const iter7: rt.Iter<rt.Result<rt.u32, rt.ParseIntError>> = rt.iterSlice([parse$1gszg8m(_49), nonzero_fromStr$0nnqa9n(_49)]);
+			const iter7: rt.Iter<rt.Result<rt.u32, rt.ParseIntError>> = rt.iterSlice([parse$1s5pqso(_49), nonzero_fromStr$0gvyqp3(_49)]);
 			while (true) {
 				const _323: rt.Result<rt.u32, rt.ParseIntError> | rt.Done = iter7.next();
 				if (_323 === rt.DONE) {
@@ -844,13 +843,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args32[0], "|", args32[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args32[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args32[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args32[1]), "|", rt.fmtSpec({ alternate: true }, args32[1])]));
 				}
 			}
-			const _313: rt.Result<rt.u32, rt.ParseIntError> = parse$1gszg8m(_49);
+			const _313: rt.Result<rt.u32, rt.ParseIntError> = parse$1s5pqso(_49);
 			if (!_313.ok) {
 				const part10 = _313.error.kind;
 				const args34: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part10)];
 				fmt_put(out, rt.fmtFormat([args34[0]]));
 			}
-			const _369: rt.Result<rt.u32, rt.ParseIntError> = nonzero_fromStrRadix$1d9m2yx(_49, radix4);
+			const _369: rt.Result<rt.u32, rt.ParseIntError> = nonzero_fromStrRadix$18imw6k(_49, radix4);
 			if (_369.ok) {
 				const arg20 = _369.value;
 				const args36: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(arg20, f)];
@@ -862,7 +861,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 5) {
 			const radix5: rt.u32 = radix;
-			const iter8: rt.Iter<rt.Result<rt.u64, rt.ParseIntError>> = rt.iterSlice([parse$06gw7w3(_49), nonzero_fromStr$1oqlbkr(_49)]);
+			const iter8: rt.Iter<rt.Result<rt.u64, rt.ParseIntError>> = rt.iterSlice([parse$129b0a7(_49), nonzero_fromStr$19lq810(_49)]);
 			while (true) {
 				const _410: rt.Result<rt.u64, rt.ParseIntError> | rt.Done = iter8.next();
 				if (_410 === rt.DONE) {
@@ -879,13 +878,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args42[0], "|", args42[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args42[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args42[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args42[1]), "|", rt.fmtSpec({ alternate: true }, args42[1])]));
 				}
 			}
-			const _400: rt.Result<rt.u64, rt.ParseIntError> = parse$06gw7w3(_49);
+			const _400: rt.Result<rt.u64, rt.ParseIntError> = parse$129b0a7(_49);
 			if (!_400.ok) {
 				const part9 = _400.error.kind;
 				const args44: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part9)];
 				fmt_put(out, rt.fmtFormat([args44[0]]));
 			}
-			const _456: rt.Result<rt.u64, rt.ParseIntError> = nonzero_fromStrRadix$1jz5doi(_49, radix5);
+			const _456: rt.Result<rt.u64, rt.ParseIntError> = nonzero_fromStrRadix$1u3fi38(_49, radix5);
 			if (_456.ok) {
 				const arg18 = _456.value;
 				const args46: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg18, f)];
@@ -897,7 +896,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 6) {
 			const radix6: rt.u32 = radix;
-			const iter9: rt.Iter<rt.Result<rt.u128, rt.ParseIntError>> = rt.iterSlice([parse$1qgvwsg(_49), nonzero_fromStr$0tkab53(_49)]);
+			const iter9: rt.Iter<rt.Result<rt.u128, rt.ParseIntError>> = rt.iterSlice([parse$0y8gj7z(_49), nonzero_fromStr$1lyc2jq(_49)]);
 			while (true) {
 				const _497: rt.Result<rt.u128, rt.ParseIntError> | rt.Done = iter9.next();
 				if (_497 === rt.DONE) {
@@ -914,13 +913,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args52[0], "|", args52[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args52[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args52[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args52[1]), "|", rt.fmtSpec({ alternate: true }, args52[1])]));
 				}
 			}
-			const _487: rt.Result<rt.u128, rt.ParseIntError> = parse$1qgvwsg(_49);
+			const _487: rt.Result<rt.u128, rt.ParseIntError> = parse$0y8gj7z(_49);
 			if (!_487.ok) {
 				const part8 = _487.error.kind;
 				const args54: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part8)];
 				fmt_put(out, rt.fmtFormat([args54[0]]));
 			}
-			const _543: rt.Result<rt.u128, rt.ParseIntError> = nonzero_fromStrRadix$1d0ksj7(_49, radix6);
+			const _543: rt.Result<rt.u128, rt.ParseIntError> = nonzero_fromStrRadix$0yvapq5(_49, radix6);
 			if (_543.ok) {
 				const arg16 = _543.value;
 				const args56: rt.Fmt[] = [(f: rt.Formatter) => rt.u128Display(arg16, f)];
@@ -932,7 +931,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 7) {
 			const radix7: rt.u32 = radix;
-			const iter10: rt.Iter<rt.Result<rt.usize, rt.ParseIntError>> = rt.iterSlice([parse$15q33cp(_49), nonzero_fromStr$1q8byvk(_49)]);
+			const iter10: rt.Iter<rt.Result<rt.usize, rt.ParseIntError>> = rt.iterSlice([parse$02m155k(_49), nonzero_fromStr$06k4xxy(_49)]);
 			while (true) {
 				const _584: rt.Result<rt.usize, rt.ParseIntError> | rt.Done = iter10.next();
 				if (_584 === rt.DONE) {
@@ -949,13 +948,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args62[0], "|", args62[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args62[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args62[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args62[1]), "|", rt.fmtSpec({ alternate: true }, args62[1])]));
 				}
 			}
-			const _574: rt.Result<rt.usize, rt.ParseIntError> = parse$15q33cp(_49);
+			const _574: rt.Result<rt.usize, rt.ParseIntError> = parse$02m155k(_49);
 			if (!_574.ok) {
 				const part7 = _574.error.kind;
 				const args64: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part7)];
 				fmt_put(out, rt.fmtFormat([args64[0]]));
 			}
-			const _630: rt.Result<rt.usize, rt.ParseIntError> = nonzero_fromStrRadix$07g34i1(_49, radix7);
+			const _630: rt.Result<rt.usize, rt.ParseIntError> = nonzero_fromStrRadix$0rmwudb(_49, radix7);
 			if (_630.ok) {
 				const arg14 = _630.value;
 				const args66: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(arg14, f)];
@@ -967,7 +966,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 8) {
 			const radix8: rt.u32 = radix;
-			const iter11: rt.Iter<rt.Result<rt.i8, rt.ParseIntError>> = rt.iterSlice([parse$1t9x185(_49), nonzero_fromStr$0ujk11v(_49)]);
+			const iter11: rt.Iter<rt.Result<rt.i8, rt.ParseIntError>> = rt.iterSlice([parse$1bfudtm(_49), nonzero_fromStr$0xht6mx(_49)]);
 			while (true) {
 				const _671: rt.Result<rt.i8, rt.ParseIntError> | rt.Done = iter11.next();
 				if (_671 === rt.DONE) {
@@ -984,13 +983,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args72[0], "|", args72[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args72[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args72[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args72[1]), "|", rt.fmtSpec({ alternate: true }, args72[1])]));
 				}
 			}
-			const _661: rt.Result<rt.i8, rt.ParseIntError> = parse$1t9x185(_49);
+			const _661: rt.Result<rt.i8, rt.ParseIntError> = parse$1bfudtm(_49);
 			if (!_661.ok) {
 				const part6 = _661.error.kind;
 				const args74: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part6)];
 				fmt_put(out, rt.fmtFormat([args74[0]]));
 			}
-			const _717: rt.Result<rt.i8, rt.ParseIntError> = nonzero_fromStrRadix$17bacti(_49, radix8);
+			const _717: rt.Result<rt.i8, rt.ParseIntError> = nonzero_fromStrRadix$0qjnxek(_49, radix8);
 			if (_717.ok) {
 				const arg12 = _717.value;
 				const args76: rt.Fmt[] = [(f: rt.Formatter) => rt.i8Display(arg12, f)];
@@ -1002,7 +1001,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 9) {
 			const radix9: rt.u32 = radix;
-			const iter12: rt.Iter<rt.Result<rt.i16, rt.ParseIntError>> = rt.iterSlice([parse$19hh5l5(_49), nonzero_fromStr$0rlmwxp(_49)]);
+			const iter12: rt.Iter<rt.Result<rt.i16, rt.ParseIntError>> = rt.iterSlice([parse$034rhh2(_49), nonzero_fromStr$021o7ki(_49)]);
 			while (true) {
 				const _758: rt.Result<rt.i16, rt.ParseIntError> | rt.Done = iter12.next();
 				if (_758 === rt.DONE) {
@@ -1019,13 +1018,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args82[0], "|", args82[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args82[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args82[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args82[1]), "|", rt.fmtSpec({ alternate: true }, args82[1])]));
 				}
 			}
-			const _748: rt.Result<rt.i16, rt.ParseIntError> = parse$19hh5l5(_49);
+			const _748: rt.Result<rt.i16, rt.ParseIntError> = parse$034rhh2(_49);
 			if (!_748.ok) {
 				const part5 = _748.error.kind;
 				const args84: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part5)];
 				fmt_put(out, rt.fmtFormat([args84[0]]));
 			}
-			const _804: rt.Result<rt.i16, rt.ParseIntError> = nonzero_fromStrRadix$059mp1l(_49, radix9);
+			const _804: rt.Result<rt.i16, rt.ParseIntError> = nonzero_fromStrRadix$0dk3w71(_49, radix9);
 			if (_804.ok) {
 				const arg10 = _804.value;
 				const args86: rt.Fmt[] = [(f: rt.Formatter) => rt.i16Display(arg10, f)];
@@ -1037,7 +1036,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 10) {
 			const radix10: rt.u32 = radix;
-			const iter13: rt.Iter<rt.Result<rt.i32, rt.ParseIntError>> = rt.iterSlice([parse$1wk8j8i(_49), nonzero_fromStr$06ydblo(_49)]);
+			const iter13: rt.Iter<rt.Result<rt.i32, rt.ParseIntError>> = rt.iterSlice([parse$1wp6z3o(_49), nonzero_fromStr$1myv2t6(_49)]);
 			while (true) {
 				const _845: rt.Result<rt.i32, rt.ParseIntError> | rt.Done = iter13.next();
 				if (_845 === rt.DONE) {
@@ -1054,13 +1053,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args92[0], "|", args92[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args92[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args92[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args92[1]), "|", rt.fmtSpec({ alternate: true }, args92[1])]));
 				}
 			}
-			const _835: rt.Result<rt.i32, rt.ParseIntError> = parse$1wk8j8i(_49);
+			const _835: rt.Result<rt.i32, rt.ParseIntError> = parse$1wp6z3o(_49);
 			if (!_835.ok) {
 				const part4 = _835.error.kind;
 				const args94: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part4)];
 				fmt_put(out, rt.fmtFormat([args94[0]]));
 			}
-			const _891: rt.Result<rt.i32, rt.ParseIntError> = nonzero_fromStrRadix$0kf0g60(_49, radix10);
+			const _891: rt.Result<rt.i32, rt.ParseIntError> = nonzero_fromStrRadix$0o6ntrm(_49, radix10);
 			if (_891.ok) {
 				const arg8 = _891.value;
 				const args96: rt.Fmt[] = [(f: rt.Formatter) => rt.i32Display(arg8, f)];
@@ -1072,7 +1071,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 11) {
 			const radix11: rt.u32 = radix;
-			const iter14: rt.Iter<rt.Result<rt.i64, rt.ParseIntError>> = rt.iterSlice([parse$0zmco93(_49), nonzero_fromStr$1oeehgy(_49)]);
+			const iter14: rt.Iter<rt.Result<rt.i64, rt.ParseIntError>> = rt.iterSlice([parse$00wf0ig(_49), nonzero_fromStr$10p52cj(_49)]);
 			while (true) {
 				const _932: rt.Result<rt.i64, rt.ParseIntError> | rt.Done = iter14.next();
 				if (_932 === rt.DONE) {
@@ -1089,13 +1088,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args102[0], "|", args102[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args102[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args102[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args102[1]), "|", rt.fmtSpec({ alternate: true }, args102[1])]));
 				}
 			}
-			const _922: rt.Result<rt.i64, rt.ParseIntError> = parse$0zmco93(_49);
+			const _922: rt.Result<rt.i64, rt.ParseIntError> = parse$00wf0ig(_49);
 			if (!_922.ok) {
 				const part3 = _922.error.kind;
 				const args104: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part3)];
 				fmt_put(out, rt.fmtFormat([args104[0]]));
 			}
-			const _978: rt.Result<rt.i64, rt.ParseIntError> = nonzero_fromStrRadix$0ynvtyj(_49, radix11);
+			const _978: rt.Result<rt.i64, rt.ParseIntError> = nonzero_fromStrRadix$0ebk8xe(_49, radix11);
 			if (_978.ok) {
 				const arg6 = _978.value;
 				const args106: rt.Fmt[] = [(f: rt.Formatter) => rt.i64Display(arg6, f)];
@@ -1107,7 +1106,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else if (_53 === 12) {
 			const radix12: rt.u32 = radix;
-			const iter15: rt.Iter<rt.Result<rt.i128, rt.ParseIntError>> = rt.iterSlice([parse$1gx0slj(_49), nonzero_fromStr$1b9wkfh(_49)]);
+			const iter15: rt.Iter<rt.Result<rt.i128, rt.ParseIntError>> = rt.iterSlice([parse$1bh1yup(_49), nonzero_fromStr$081k88g(_49)]);
 			while (true) {
 				const _1019: rt.Result<rt.i128, rt.ParseIntError> | rt.Done = iter15.next();
 				if (_1019 === rt.DONE) {
@@ -1124,13 +1123,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args112[0], "|", args112[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args112[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args112[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args112[1]), "|", rt.fmtSpec({ alternate: true }, args112[1])]));
 				}
 			}
-			const _1009: rt.Result<rt.i128, rt.ParseIntError> = parse$1gx0slj(_49);
+			const _1009: rt.Result<rt.i128, rt.ParseIntError> = parse$1bh1yup(_49);
 			if (!_1009.ok) {
 				const part2 = _1009.error.kind;
 				const args114: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part2)];
 				fmt_put(out, rt.fmtFormat([args114[0]]));
 			}
-			const _1065: rt.Result<rt.i128, rt.ParseIntError> = nonzero_fromStrRadix$0cet6d1(_49, radix12);
+			const _1065: rt.Result<rt.i128, rt.ParseIntError> = nonzero_fromStrRadix$17xzbib(_49, radix12);
 			if (_1065.ok) {
 				const arg4 = _1065.value;
 				const args116: rt.Fmt[] = [(f: rt.Formatter) => rt.i128Display(arg4, f)];
@@ -1142,7 +1141,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 			}
 		} else {
 			const radix13: rt.u32 = radix;
-			const iter16: rt.Iter<rt.Result<rt.isize, rt.ParseIntError>> = rt.iterSlice([parse$1jrkp2i(_49), nonzero_fromStr$1hl5h4e(_49)]);
+			const iter16: rt.Iter<rt.Result<rt.isize, rt.ParseIntError>> = rt.iterSlice([parse$16jvjal(_49), nonzero_fromStr$1gsgexo(_49)]);
 			while (true) {
 				const _1106: rt.Result<rt.isize, rt.ParseIntError> | rt.Done = iter16.next();
 				if (_1106 === rt.DONE) {
@@ -1159,13 +1158,13 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					fmt_put(out, rt.fmtFormat([args122[0], "|", args122[1], "|", rt.fmtSpec({ align: ">", width: 50 }, args122[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args122[0]), "|", rt.fmtSpec({ align: ">", width: 20 }, args122[1]), "|", rt.fmtSpec({ alternate: true }, args122[1])]));
 				}
 			}
-			const _1096: rt.Result<rt.isize, rt.ParseIntError> = parse$1jrkp2i(_49);
+			const _1096: rt.Result<rt.isize, rt.ParseIntError> = parse$16jvjal(_49);
 			if (!_1096.ok) {
 				const part = _1096.error.kind;
 				const args124: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtWriteStr(f, part)];
 				fmt_put(out, rt.fmtFormat([args124[0]]));
 			}
-			const _1152: rt.Result<rt.isize, rt.ParseIntError> = nonzero_fromStrRadix$1bz0mya(_49, radix13);
+			const _1152: rt.Result<rt.isize, rt.ParseIntError> = nonzero_fromStrRadix$0k1ynqn(_49, radix13);
 			if (_1152.ok) {
 				const arg2 = _1152.value;
 				const args126: rt.Fmt[] = [(f: rt.Formatter) => rt.isizeDisplay(arg2, f)];
@@ -1183,13 +1182,12 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
  * `String` made from and extended by iterators of chars and of strings, each the kind
  * picks, from text of chars of every UTF-8 width and its parts between `/`s.
  */
-export function iters(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const s: string = text(dataData, dataStart, dataLen);
+export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	const s: string = text(data);
 	const chars: rt.char[] = rt.iterToArray(rt.strChars(s), "next", 4);
 	const parts: string[] = rt.iterToArray(rt.strSplit(s, "/"), "next", 8);
 	const nexts: rt.Cell<rt.u8> = new rt.Cell(0);
-	const _16: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(dataData, dataStart, dataLen), 0, rt.usizeDiv(dataLen, 2));
-	const named: strs_Named.Named = { name: text(_16.data, _16.start, _16.length) };
+	const named: strs_Named.Named = { name: text(rt.byteSliceRange(data, 0, rt.usizeDiv(data.length, 2))) };
 	const _21: rt.u8 = rt.u8Rem(kind, 4);
 	if (_21 === 0) {
 		fmt_put(out, rt.stringExtendChars("", rt.strChars(s)));
@@ -1363,8 +1361,9 @@ export function drains(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 	if (mid > dataLen) {
 		rt.panic("mid > len");
 	}
-	let s: string = text(dataData, dataStart, mid);
-	const named: strs_Named.Named = { name: text(dataData, dataStart, mid) };
+	const head: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, mid);
+	let s: string = text(head);
+	const named: strs_Named.Named = { name: text(head) };
 	const iter: rt.Iter<rt.ByteSlice> = rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart + mid, dataLen - mid), 4);
 	while (true) {
 		const _18: rt.ByteSlice | rt.Done = iter.next();
@@ -1408,9 +1407,8 @@ export function drains(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
  * hint's lower bound first, which panics past `isize::MAX` before it reads a char, and
  * else the chars panic with `consumed` past the eighth.
  */
-export function hinted(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function hinted(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _70!: rt.usize;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const pick: (a0: rt.usize) => rt.u32 = (i: rt.usize): rt.u32 => {
 		const _4: rt.usize = rt.usizeRem(option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0) as rt.usize, [0, 5, 8, 9, 2147483645, 2147483648, 4294967295].length);
 		if (!(_4 < 7)) {
@@ -1424,10 +1422,7 @@ export function hinted(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 	const sub: rt.usize = rt.usizeDiv(option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, 1), 0) as rt.usize, [0, 5, 8, 9, 2147483645, 2147483648, 4294967295].length);
 	let t: string = "aé";
 	const _25: rt.Place<string> = rt.place(() => t, (value) => t = value);
-	const _30: rt.ByteSlice | undefined = rt.byteSliceGetRange(data, 2);
-	const _32: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of());
-	const _29: rt.ByteSlice = option_unwrapOr$1a4gm66(_30, _32.data, _32.start, _32.length);
-	const _26: string = text(_29.data, _29.start, _29.length);
+	const _26: string = text(option_unwrapOr$1rbuegs(rt.byteSliceGetRange(data, 2), rt.byteSliceFrom(Uint8Array.of())));
 	_25.v = _25.v + _26;
 	const calls: rt.Cell<rt.usize> = new rt.Cell(0);
 	const f: (a0: rt.u32) => rt.char = (_2: rt.u32): rt.char => {

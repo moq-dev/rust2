@@ -71,8 +71,7 @@ export function hasRemainingMut$bytes_BufMut_mut_mut_bytes_BytesMut(self: rt.Pla
  * `self`.
  */
 export function putI128Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i128): void {
-	const _3: rt.ByteSlice = rt.byteSliceFrom(rt.i128ToBeBytes(n).reverse());
-	putSlice$bytes_BufMut_mut_Vec_u8(self, _3.data, _3.start, _3.length);
+	putSlice$bytes_BufMut_mut_Vec_u8(self, rt.byteSliceFrom(rt.i128ToBeBytes(n).reverse()));
 }
 
 /**
@@ -96,8 +95,7 @@ export function putI128Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n:
  * `self`.
  */
 export function putI128Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i128): void {
-	const _3: rt.ByteSlice = rt.byteSliceFrom(rt.i128ToBeBytes(n).reverse());
-	putSlice$bytes_BufMut_mut_bytes_BytesMut(self, _3.data, _3.start, _3.length);
+	putSlice$bytes_BufMut_mut_bytes_BytesMut(self, rt.byteSliceFrom(rt.i128ToBeBytes(n).reverse()));
 }
 
 /**
@@ -267,8 +265,8 @@ export function putI8$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut
  * assert_eq!(b"hello\0", &dst);
  * ```
  */
-export function putSlice$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, srcData: Uint8Array, srcStart: number, srcLen: number): void {
-	rt.byteVecExtendFromSlice(self.v, new rt.ByteSlice(srcData, srcStart, srcLen));
+export function putSlice$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, src: rt.ByteSlice): void {
+	rt.byteVecExtendFromSlice(self.v, src);
 }
 
 /**
@@ -292,8 +290,8 @@ export function putSlice$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, src
  * assert_eq!(b"hello\0", &dst);
  * ```
  */
-export function putSlice$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, srcData: Uint8Array, srcStart: number, srcLen: number): void {
-	rt.bytesMutExtend(self.v, new rt.ByteSlice(srcData, srcStart, srcLen));
+export function putSlice$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, src: rt.ByteSlice): void {
+	rt.bytesMutExtend(self.v, src);
 }
 
 /**

@@ -5,9 +5,9 @@ import { unwrapOr$0k15iai as option_unwrapOr$0k15iai } from "./core/option.ts";
 import { put as fmt_put } from "./fmt.ts";
 
 /** The scalars to try: the edges, then each big-endian `u32` in `data`, zero-padded. */
-export function scalars(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u32[] {
+export function scalars(data: rt.ByteSlice): rt.u32[] {
 	const all: rt.u32[] = [0, 127, 128, 255, 256, 2047, 2048, 55295, 55296, 56319, 56320, 57343, 57344, 65533, 65535, 65536, 1114109, 1114111, 1114112, 4294967295].slice();
-	let rest: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+	let rest: rt.ByteSlice = data;
 	while (true) {
 		if (!((rest.length === 0))) {
 			const buf: Uint8Array = rt.bytes(4);
@@ -65,10 +65,10 @@ export function class_(c: rt.char): rt.u8 {
 	return 2;
 }
 
-export function chars(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function chars(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _4: rt.u8 = rt.u8Rem(kind, 4);
 	if (_4 === 0) {
-		for (const _10 of scalars(dataData, dataStart, dataLen)) {
+		for (const _10 of scalars(data)) {
 			const _14: rt.char | undefined = rt.charFromU32(_10);
 			if (_14 === undefined) {
 				rt.byteVecPush(out, 255);
@@ -79,7 +79,7 @@ export function chars(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 			}
 		}
 	} else if (_4 === 1) {
-		for (const n2 of scalars(dataData, dataStart, dataLen)) {
+		for (const n2 of scalars(data)) {
 			const c2: rt.char = option_unwrapOr$0k15iai(rt.charFromU32(n2), (n2 & 0xff) as rt.char);
 			rt.byteVecPush(out, c2 & 0xff);
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(c2 & 0xffff)));
@@ -92,7 +92,7 @@ export function chars(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(((c2 as rt.u32) & 0xff) as rt.u16)));
 		}
 	} else if (_4 === 2) {
-		const cs: rt.char[] = rt.iterToArray(rt.iterFilterMap(rt.iterSlice(scalars(dataData, dataStart, dataLen)), (a0: rt.u32): rt.char | undefined => {
+		const cs: rt.char[] = rt.iterToArray(rt.iterFilterMap(rt.iterSlice(scalars(data)), (a0: rt.u32): rt.char | undefined => {
 			return rt.charFromU32(a0);
 		}), "next", 4);
 		const sorted: rt.BTreeSet<rt.char> = rt.btreeNew(rt.cmp) as rt.BTreeSet<rt.char>;
@@ -119,7 +119,7 @@ export function chars(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(_128 as rt.u32)));
 		}
 	} else {
-		for (const _140 of scalars(dataData, dataStart, dataLen)) {
+		for (const _140 of scalars(data)) {
 			const _144: rt.char | undefined = rt.charFromU32(_140);
 			if (_144 !== undefined) {
 				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtCharDisplay(_144, f)];

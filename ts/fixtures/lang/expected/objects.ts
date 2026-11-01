@@ -218,9 +218,8 @@ export function counts(out: rt.ByteVec, arcs: rt.Arc<rt.u8>[], items: rt.Arc<rt.
 	}), undefined, true);
 }
 
-export function objects(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function objects(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _625!: rt.Waker;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const by: rt.u8 = option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data), 5);
 	const one: rt.Arc<rt.u8> = new rt.Arc(by);
 	const two: rt.Arc<rt.u8> = new rt.Arc(rt.u8WrappingAdd(by, 1));

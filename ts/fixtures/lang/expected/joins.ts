@@ -44,8 +44,7 @@ export function ids(v: joins_Logged.Logged[], log: rt.RefCell<rt.ByteVec>, out: 
  * `concat` and `join` of what `kind` picks, each over the parts of `data` between its
  * zeros, as many as `kind`'s high bits pick, none and empty ones included.
  */
-export function joins(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function joins(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const all: rt.ByteSlice[] = rt.iterToArray(rt.byteSliceSplit(data, (_2: rt.u8): boolean => {
 		return _2 === 0;
 	}), "next", 8);
@@ -188,10 +187,9 @@ export function joins(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 		log[Symbol.dispose]();
 	} else if (_26 === 4) {
 		const owned2: string[] = rt.iterToArray(rt.iterMap(rt.iterSlice(parts), (p3: rt.ByteSlice): string => {
-			const _35: rt.ByteSlice = p3;
-			return text(_35.data, _35.start, _35.length);
+			return text(p3);
 		}), undefined, 12, true);
-		const sep4: string = text(seps.data, seps.start, seps.length);
+		const sep4: string = text(seps);
 		fmt_put(out, rt.strsJoin(owned2, ""));
 		fmt_put(out, rt.strsJoin(owned2, sep4));
 		const borrowed: string[] = rt.iterToArray(rt.iterMap(rt.iterSlice(owned2), (a02: string): string => {
@@ -231,16 +229,14 @@ export function joins(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 			if (rt.usizeRem(_214[0], 2) === 0) {
 				return "ab";
 			}
-			const _93: rt.ByteSlice = _214[1];
-			return text(_93.data, _93.start, _93.length);
+			return text(_214[1]);
 		}), undefined, 12, true);
 		fmt_put(out, rt.strsJoin(texts, ""));
 		fmt_put(out, rt.strsJoin(texts, "--"));
 	} else {
 		const big: rt.ByteVec = rt.byteVecOf(1, 1 << 16);
 		const wide4: rt.u16[] = rt.vecFromElem(1, 1 << 16, undefined);
-		const _508: rt.ByteSlice = rt.byteVecSlice(big);
-		const text_: string = text(_508.data, _508.start, _508.length);
+		const text_: string = text(rt.byteVecSlice(big));
 		const refs: (a0: rt.usize) => rt.ByteSlice[] = (n: rt.usize): rt.ByteSlice[] => {
 			return rt.vecFromElem(rt.byteSliceRange(rt.byteVecSlice(big), 0), n, undefined);
 		};

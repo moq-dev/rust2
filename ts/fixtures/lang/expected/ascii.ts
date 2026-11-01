@@ -35,9 +35,8 @@ export function upperText(s: rt.Place<string>): void {
  * Read `e` alternately from the front and the back as `data`'s bits say, putting its
  * length before each step, then what `Display` writes of what is left.
  */
-export function steps$ascii_EscapeDefault(e: rt.Iter<rt.u8>, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function steps$ascii_EscapeDefault(e: rt.Iter<rt.u8>, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let next!: rt.u8 | undefined;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	let i: rt.usize = 0;
 	while (true) {
 		rt.byteVecPush(out, e.len() & 0xff);
@@ -72,9 +71,8 @@ export function steps$ascii_EscapeDefault(e: rt.Iter<rt.u8>, dataData: Uint8Arra
 }
 
 /** Every byte, through each method of `u8`. */
-export function bytes(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function bytes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _67!: rt.usize;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const all: rt.ByteVec = rt.iterToByteVec(new rt.RangeInclusive(0, 255, rt.u8Step), undefined, true);
 	b0: {
 		const _6: rt.u8 = rt.u8Rem(kind, 4);
@@ -161,7 +159,7 @@ export function bytes(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 				if (_149 === rt.DONE) {
 					break b0;
 				}
-				steps$ascii_EscapeDefault(rt.escapeAscii(_149), data.data, data.start, data.length, out);
+				steps$ascii_EscapeDefault(rt.escapeAscii(_149), data, out);
 			}
 		}
 	}
@@ -171,9 +169,9 @@ export function bytes(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
  * The chars at each edge, then each of `data`'s big-endian `u32`s that is one, through
  * each method of `char`.
  */
-export function chars(_1: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function chars(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const all: rt.char[] = [0, 9, 10, 11, 12, 13, 31, 32, 33, 47, 48, 55, 56, 57, 58, 64, 65, 70, 71, 90, 91, 96, 97, 102, 103, 122, 123, 126, 127, 128, 192, 255, 256, 383, 304, 8490, 55295, 57344, 65535, 65536, 1114111].slice();
-	const _9: rt.Iter<rt.char> = rt.iterFilterMap(rt.byteSliceChunks(new rt.ByteSlice(dataData, dataStart, dataLen), 4), (c2: rt.ByteSlice): rt.char | undefined => {
+	const _9: rt.Iter<rt.char> = rt.iterFilterMap(rt.byteSliceChunks(data, 4), (c2: rt.ByteSlice): rt.char | undefined => {
 		return rt.charFromU32(rt.u32FromBeBytes(rt.bytesFromFn(4, (i2: rt.usize): rt.u8 => {
 			return option_unwrapOr$0r2bmpr(rt.byteSliceGet(c2, i2), 0);
 		})));
@@ -213,9 +211,8 @@ export function chars(_1: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
  * `data` as bytes and as text, through the ASCII methods of slices and `str`, and those
  * of a `Vec<u8>` and a `String` they deref to.
  */
-export function slices(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let next!: rt.u8 | undefined;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const half: rt.usize = rt.usizeDiv(data.length, 2);
 	if (half > data.length) {
 		rt.panic("mid > len");

@@ -10,7 +10,7 @@ import { mapOr$0qqbaqw as option_mapOr$0qqbaqw, mapOr$0ucbp7g as option_mapOr$0u
  * Each byte an operation on the cells, its value the operand; each puts what it read and
  * what dropped.
  */
-export function borrows(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function borrows(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const log: rt.Arc<rt.Mutex<rt.ByteVec>> = new rt.Arc(new rt.Mutex(new rt.ByteVec()));
 	const count: rt.Cell<rt.u32> = new rt.Cell(0);
 	const pair: rt.Cell<[rt.u64, rt.u64]> = new rt.Cell([0, 0] as [rt.u64, rt.u64]);
@@ -18,7 +18,7 @@ export function borrows(dataData: Uint8Array, dataStart: number, dataLen: number
 	const polling: borrows_Polling.Polling = borrows_Polling.default$Default();
 	const shared: rt.RefCell<rt.ByteVec> = new rt.RefCell(new rt.ByteVec());
 	const owned: rt.RefCell<borrows_Noisy.Noisy> = new rt.RefCell(new borrows_Noisy.Noisy(170, rt.arcClone(log)));
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const _25: rt.u8 = rt.u8Rem(op, 10);
 		if (_25 === 0) {
 			const _28: rt.u32 = rt.u32WrappingAdd(count.v, op as rt.u32);

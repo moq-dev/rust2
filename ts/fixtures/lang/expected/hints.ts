@@ -3,7 +3,7 @@
 import * as rt from "./rt.ts";
 import { copy$array_u32, copy$array_u64 } from "./lib.ts";
 import { thenSome$1ugl8af } from "./core/bool.ts";
-import { unwrapOr$1a4gm66 as option_unwrapOr$1a4gm66, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, mapOr$0ow0wo0 as option_mapOr$0ow0wo0, mapOr$0r2th8w as option_mapOr$0r2th8w, mapOr$0pdoq6p as option_mapOr$0pdoq6p, mapOr$0amk6zv as option_mapOr$0amk6zv, mapOr$1umcrqz as option_mapOr$1umcrqz, mapOr$08xwngs as option_mapOr$08xwngs } from "./core/option.ts";
+import { unwrapOr$1rbuegs as option_unwrapOr$1rbuegs, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, mapOr$0ow0wo0 as option_mapOr$0ow0wo0, mapOr$0r2th8w as option_mapOr$0r2th8w, mapOr$0pdoq6p as option_mapOr$0pdoq6p, mapOr$0amk6zv as option_mapOr$0amk6zv, mapOr$1umcrqz as option_mapOr$1umcrqz, mapOr$08xwngs as option_mapOr$08xwngs } from "./core/option.ts";
 import { unwrapOr$0u9zzk3 as result_unwrapOr$0u9zzk3 } from "./core/result.ts";
 import * as hints_Countdown from "./hints.Countdown.ts";
 import * as Endless from "./hints.Endless.ts";
@@ -1700,9 +1700,8 @@ export function u32Of(n: rt.u64): rt.u32 {
  * lengths `data`'s first two bytes pick or of its fourth byte on, as each reads from the
  * front or the back by the third byte's other bits.
  */
-export function hints(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function hints(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let it!: rt.Peekable<rt.u64>;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
 		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
@@ -1720,9 +1719,7 @@ export function hints(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
 	const m: rt.u64 = _7[1];
 	const steps: rt.u8 = at(2);
 	const arm: rt.u8 = steps >> 5;
-	const _33: rt.ByteSlice | undefined = rt.byteSliceGetRange(data, 3);
-	const _35: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of());
-	const bytes: rt.ByteSlice = option_unwrapOr$1a4gm66(_33, _35.data, _35.start, _35.length);
+	const bytes: rt.ByteSlice = option_unwrapOr$1rbuegs(rt.byteSliceGetRange(data, 3), rt.byteSliceFrom(Uint8Array.of()));
 	const _37: rt.u8 = rt.u8Rem(kind, 24);
 	if (_37 === 0) {
 		const _39: rt.u8 = rt.u8Rem(arm, 5);
@@ -2149,30 +2146,30 @@ export function hints(kind: rt.u8, dataData: Uint8Array, dataStart: number, data
  * a `TrustedLen` iterator, and after the first of another, which it reserves for again
  * whenever it fills.
  */
-export function reserves(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function reserves(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _4: rt.u8 = rt.u8Rem(rt.u8Div(kind, 13), 6);
 	if (_4 === 0) {
-		typed$u8_hints_reserves_closure0(kind, dataData, dataStart, dataLen, (i5: rt.u32): rt.u8 => {
+		typed$u8_hints_reserves_closure0(kind, data, (i5: rt.u32): rt.u8 => {
 			return i5 & 0xff;
 		}, { vec: 2147483647, pairs: 268435455, set: 469762048, map: 117440512 }, out);
 	} else if (_4 === 1) {
-		typed$u32_hints_reserves_closure1(kind, dataData, dataStart, dataLen, (i4: rt.u32): rt.u32 => {
+		typed$u32_hints_reserves_closure1(kind, data, (i4: rt.u32): rt.u32 => {
 			return i4;
 		}, { vec: 536870911, pairs: 268435455, set: 234881024, map: 117440512 }, out);
 	} else if (_4 === 2) {
-		typed$tuple3_u8_u8_u8_hints_reserves_closure2(kind, dataData, dataStart, dataLen, (i3: rt.u32): [rt.u8, rt.u8, rt.u8] => {
+		typed$tuple3_u8_u8_u8_hints_reserves_closure2(kind, data, (i3: rt.u32): [rt.u8, rt.u8, rt.u8] => {
 			return [i3 & 0xff, 0, 0] as [rt.u8, rt.u8, rt.u8];
 		}, { vec: 715827882, pairs: 268435455, set: 234881024, map: 117440512 }, out);
 	} else if (_4 === 3) {
-		typed$tuple2_u64_u8_hints_reserves_closure3(kind, dataData, dataStart, dataLen, (i2: rt.u32): [rt.u64, rt.u8] => {
+		typed$tuple2_u64_u8_hints_reserves_closure3(kind, data, (i2: rt.u32): [rt.u64, rt.u8] => {
 			return [i2 as rt.u64, i2 & 0xff] as [rt.u64, rt.u8];
 		}, { vec: 134217727, pairs: 89478485, set: 58720256, map: 58720256 }, out);
 	} else if (_4 === 5) {
-		typed$hints_Unit_hints_reserves_closure4(kind, dataData, dataStart, dataLen, (_2: rt.u32): hints_Unit.Unit => {
+		typed$hints_Unit_hints_reserves_closure4(kind, data, (_2: rt.u32): hints_Unit.Unit => {
 			return {};
 		}, { vec: 4294967295, pairs: 536870911, set: 536870911, map: 234881024 }, out);
 	} else {
-		typed$array275_u32_hints_reserves_closure5(kind, dataData, dataStart, dataLen, (i: rt.u32): rt.u32[] => {
+		typed$array275_u32_hints_reserves_closure5(kind, data, (i: rt.u32): rt.u32[] => {
 			return Array.from({ length: 275 }, (): rt.u32 => {
 				return i;
 			});
@@ -2181,13 +2178,12 @@ export function reserves(kind: rt.u8, dataData: Uint8Array, dataStart: number, d
 }
 
 /** `reserves` of elements `make` makes. */
-export function typed$array275_u32_hints_reserves_closure5(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u32) => rt.u32[], most: Most.Most, out: rt.ByteVec): void {
+export function typed$array275_u32_hints_reserves_closure5(kind: rt.u8, data: rt.ByteSlice, make: (a0: rt.u32) => rt.u32[], most: Most.Most, out: rt.ByteVec): void {
 	let _20!: [rt.u64, rt.u64];
 	let past!: rt.u64;
 	let count!: rt.u64;
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const coll: rt.u8 = rt.u8Rem(kind, 13);
 	const _11: rt.usize = rt.usizeRem(at(2) as rt.usize, 5);
@@ -2254,13 +2250,12 @@ export function typed$array275_u32_hints_reserves_closure5(kind: rt.u8, dataData
 }
 
 /** `reserves` of elements `make` makes. */
-export function typed$hints_Unit_hints_reserves_closure4(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u32) => hints_Unit.Unit, most: Most.Most, out: rt.ByteVec): void {
+export function typed$hints_Unit_hints_reserves_closure4(kind: rt.u8, data: rt.ByteSlice, make: (a0: rt.u32) => hints_Unit.Unit, most: Most.Most, out: rt.ByteVec): void {
 	let _20!: [rt.u64, rt.u64];
 	let past!: rt.u64;
 	let count!: rt.u64;
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const coll: rt.u8 = rt.u8Rem(kind, 13);
 	const _11: rt.usize = rt.usizeRem(at(2) as rt.usize, 5);
@@ -2327,13 +2322,12 @@ export function typed$hints_Unit_hints_reserves_closure4(kind: rt.u8, dataData: 
 }
 
 /** `reserves` of elements `make` makes. */
-export function typed$tuple2_u64_u8_hints_reserves_closure3(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u32) => [rt.u64, rt.u8], most: Most.Most, out: rt.ByteVec): void {
+export function typed$tuple2_u64_u8_hints_reserves_closure3(kind: rt.u8, data: rt.ByteSlice, make: (a0: rt.u32) => [rt.u64, rt.u8], most: Most.Most, out: rt.ByteVec): void {
 	let _20!: [rt.u64, rt.u64];
 	let past!: rt.u64;
 	let count!: rt.u64;
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const coll: rt.u8 = rt.u8Rem(kind, 13);
 	const _11: rt.usize = rt.usizeRem(at(2) as rt.usize, 5);
@@ -2400,13 +2394,12 @@ export function typed$tuple2_u64_u8_hints_reserves_closure3(kind: rt.u8, dataDat
 }
 
 /** `reserves` of elements `make` makes. */
-export function typed$tuple3_u8_u8_u8_hints_reserves_closure2(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u32) => [rt.u8, rt.u8, rt.u8], most: Most.Most, out: rt.ByteVec): void {
+export function typed$tuple3_u8_u8_u8_hints_reserves_closure2(kind: rt.u8, data: rt.ByteSlice, make: (a0: rt.u32) => [rt.u8, rt.u8, rt.u8], most: Most.Most, out: rt.ByteVec): void {
 	let _20!: [rt.u64, rt.u64];
 	let past!: rt.u64;
 	let count!: rt.u64;
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const coll: rt.u8 = rt.u8Rem(kind, 13);
 	const _11: rt.usize = rt.usizeRem(at(2) as rt.usize, 5);
@@ -2473,13 +2466,12 @@ export function typed$tuple3_u8_u8_u8_hints_reserves_closure2(kind: rt.u8, dataD
 }
 
 /** `reserves` of elements `make` makes. */
-export function typed$u32_hints_reserves_closure1(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u32) => rt.u32, most: Most.Most, out: rt.ByteVec): void {
+export function typed$u32_hints_reserves_closure1(kind: rt.u8, data: rt.ByteSlice, make: (a0: rt.u32) => rt.u32, most: Most.Most, out: rt.ByteVec): void {
 	let _20!: [rt.u64, rt.u64];
 	let past!: rt.u64;
 	let count!: rt.u64;
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const coll: rt.u8 = rt.u8Rem(kind, 13);
 	const _11: rt.usize = rt.usizeRem(at(2) as rt.usize, 5);
@@ -2546,13 +2538,12 @@ export function typed$u32_hints_reserves_closure1(kind: rt.u8, dataData: Uint8Ar
 }
 
 /** `reserves` of elements `make` makes. */
-export function typed$u8_hints_reserves_closure0(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u32) => rt.u8, most: Most.Most, out: rt.ByteVec): void {
+export function typed$u8_hints_reserves_closure0(kind: rt.u8, data: rt.ByteSlice, make: (a0: rt.u32) => rt.u8, most: Most.Most, out: rt.ByteVec): void {
 	let _20!: [rt.u64, rt.u64];
 	let past!: rt.u64;
 	let count!: rt.u64;
-	const captured = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(captured, i), 0);
+		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
 	const coll: rt.u8 = rt.u8Rem(kind, 13);
 	const _11: rt.usize = rt.usizeRem(at(2) as rt.usize, 5);

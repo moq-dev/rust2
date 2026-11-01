@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- A function the config's roots don't name takes each `&[u8]` or `&[u8; N]` parameter as
-  its `data`, `start`, and `length`: `read(buf, form)` is
-  `read(buf.data, buf.start, buf.length, form)`. One that returns a `Result` of byte slices
+- A function the config's roots don't name takes each `&[u8]` or `&[u8; N]` parameter
+  whose object its body never makes as its `data`, `start`, and `length`:
+  `read(buf, form)` is `read(buf.data, buf.start, buf.length, form)`. A caller takes
+  which from the output. One that returns a `Result` of byte slices
   and scalars returns its error or `undefined`, and leaves the `Ok`'s parts in a
   module-level slot, such as `sliceOut`. If the `Ok`'s first part is a number, it returns
   that, or `undefined` for an error, and leaves the rest, or the error as `err`, in the

@@ -2,16 +2,15 @@
 
 import * as rt from "./rt.ts";
 import { toDigit$01k9ewn } from "./core/char/methods.ts";
-import { fromStr$04in3ec as num_fromStr$04in3ec, fromStr$0itzmqn as num_fromStr$0itzmqn, fromStr$1czfc3o as num_fromStr$1czfc3o, fromStr$0j0pk4t as num_fromStr$0j0pk4t, fromStr$1lgb5f6 as num_fromStr$1lgb5f6, fromStr$05ll6v8 as num_fromStr$05ll6v8, fromStrRadix$00d2t0z as num_fromStrRadix$00d2t0z, fromStrRadix$1pa0ruh as num_fromStrRadix$1pa0ruh, fromStrRadix$0bx4ko0 as num_fromStrRadix$0bx4ko0, fromStrRadix$1c5e8ay as num_fromStrRadix$1c5e8ay, fromStrRadix$09xsupv as num_fromStrRadix$09xsupv, fromStrRadix$0xkpex4 as num_fromStrRadix$0xkpex4, fromStr$0nzirqb as num_fromStr$0nzirqb, fromStr$0xayo7b as num_fromStr$0xayo7b, fromStr$1t0zoao as num_fromStr$1t0zoao, fromStr$1s0pfra as num_fromStr$1s0pfra, fromStr$13au6mu as num_fromStr$13au6mu, fromStr$1vgxk0s as num_fromStr$1vgxk0s, fromStrRadix$0aggpkp as num_fromStrRadix$0aggpkp, fromStrRadix$1queob6 as num_fromStrRadix$1queob6, fromStrRadix$1ovtdjc as num_fromStrRadix$1ovtdjc, fromStrRadix$0cic1mm as num_fromStrRadix$0cic1mm, fromStrRadix$1uup0fy as num_fromStrRadix$1uup0fy, fromStrRadix$1xobho4 as num_fromStrRadix$1xobho4 } from "./core/num.ts";
+import { fromStr$0zyj6he as num_fromStr$0zyj6he, fromStr$17ewwma as num_fromStr$17ewwma, fromStr$0zhqfgx as num_fromStr$0zhqfgx, fromStr$116mp4t as num_fromStr$116mp4t, fromStr$0ovlgjd as num_fromStr$0ovlgjd, fromStr$1grmucc as num_fromStr$1grmucc, fromStrRadix$0366bau as num_fromStrRadix$0366bau, fromStrRadix$02mhuxs as num_fromStrRadix$02mhuxs, fromStrRadix$1bgm1z0 as num_fromStrRadix$1bgm1z0, fromStrRadix$11y6fsf as num_fromStrRadix$11y6fsf, fromStrRadix$0s9rspw as num_fromStrRadix$0s9rspw, fromStrRadix$1473bi0 as num_fromStrRadix$1473bi0, fromStr$0qvzsmz as num_fromStr$0qvzsmz, fromStr$0yqu2i9 as num_fromStr$0yqu2i9, fromStr$08wf09w as num_fromStr$08wf09w, fromStr$1ypcnp8 as num_fromStr$1ypcnp8, fromStr$1hq0zfa as num_fromStr$1hq0zfa, fromStr$10ypyht as num_fromStr$10ypyht, fromStrRadix$0g0g31i as num_fromStrRadix$0g0g31i, fromStrRadix$1ku3myt as num_fromStrRadix$1ku3myt, fromStrRadix$05zvwcf as num_fromStrRadix$05zvwcf, fromStrRadix$1gp4jqq as num_fromStrRadix$1gp4jqq, fromStrRadix$0nj08um as num_fromStrRadix$0nj08um, fromStrRadix$0tjqkb6 as num_fromStrRadix$0tjqkb6 } from "./core/num.ts";
 import { isSomeAnd$09tpccf, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$11c0we2 as option_unwrapOr$11c0we2 } from "./core/option.ts";
 import { eq$0pee78b as result_eq$0pee78b, eq$1mi4cle as result_eq$1mi4cle, eq$1ukayff as result_eq$1ukayff, eq$1hy1is1 as result_eq$1hy1is1, eq$1hd8lo9 as result_eq$1hd8lo9, eq$0w2dfat as result_eq$0w2dfat, eq$06vyx9e as result_eq$06vyx9e, eq$08241oi as result_eq$08241oi, eq$0nbftnc as result_eq$0nbftnc, eq$1gq81ib as result_eq$1gq81ib, eq$12e5exx as result_eq$12e5exx, eq$1xhgva4 as result_eq$1xhgva4, unwrapOr$01jdcm7 as result_unwrapOr$01jdcm7, unwrapOr$0nhd29g as result_unwrapOr$0nhd29g, unwrapOr$09i71ei as result_unwrapOr$09i71ei } from "./core/result.ts";
-import { parse$10fbnat, parse$03wo3fg, parse$0n1hysl, parse$0clhdfr, parse$1g7h2lx, parse$0xv93nb, parse$0685pdb, parse$0bmbg8t, parse$1jryscd, parse$0sdtyv9, parse$01247e1, parse$15yahcp } from "./core/str.ts";
+import { parse$082ztwj, parse$0xnscjy, parse$12szghw, parse$11m1f1e, parse$1ci7nyc, parse$07xyv4i, parse$069o3rw, parse$0fi19ig, parse$1aq2uo0, parse$0o4ono0, parse$0at0fdl, parse$08wetap } from "./core/str.ts";
 import { put as fmt_put } from "./fmt.ts";
 import * as Scaled from "./ints.Scaled.ts";
 
 /** Apply operation `op` to operands taken from `data`. */
-export function u8Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function u8Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.u8) => undefined = (out2: rt.ByteVec, v3: rt.u8): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u128ToBeBytes(v3 as rt.u128)));
 		rt.byteVecPush(out2, rt.u8FromBeBytes(rt.u8ToBeBytes(v3)) === v3 ? 1 : 0);
@@ -174,8 +173,7 @@ export function u8Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function u16Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function u16Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.u16) => undefined = (out2: rt.ByteVec, v3: rt.u16): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u128ToBeBytes(v3 as rt.u128)));
 		rt.byteVecPush(out2, rt.u16FromBeBytes(rt.u16ToBeBytes(v3)) === v3 ? 1 : 0);
@@ -338,8 +336,7 @@ export function u16Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function u32Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function u32Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.u32) => undefined = (out2: rt.ByteVec, v3: rt.u32): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u128ToBeBytes(v3 as rt.u128)));
 		rt.byteVecPush(out2, rt.u32FromBeBytes(rt.u32ToBeBytes(v3)) === v3 ? 1 : 0);
@@ -502,8 +499,7 @@ export function u32Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function u64Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function u64Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, v3: rt.u64): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u128ToBeBytes(rt.u128Cast(v3))));
 		rt.byteVecPush(out2, rt.u64Eq(rt.u64FromBeBytes(rt.u64ToBeBytes(v3)), v3) ? 1 : 0);
@@ -666,8 +662,7 @@ export function u64Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function u128Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function u128Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.u128) => undefined = (out2: rt.ByteVec, v3: rt.u128): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u128ToBeBytes(v3)));
 		rt.byteVecPush(out2, rt.u128Eq(rt.u128FromBeBytes(rt.u128ToBeBytes(v3)), v3) ? 1 : 0);
@@ -830,8 +825,7 @@ export function u128Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function usizeOp(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function usizeOp(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.usize) => undefined = (out2: rt.ByteVec, v3: rt.usize): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u128ToBeBytes(v3 as rt.u128)));
 		rt.byteVecPush(out2, rt.usizeFromBeBytes(rt.usizeToBeBytes(v3)) === v3 ? 1 : 0);
@@ -994,8 +988,7 @@ export function usizeOp(op: rt.u8, dataData: Uint8Array, dataStart: number, data
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function i8Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i8Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.i8) => undefined = (out2: rt.ByteVec, v3: rt.i8): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i128ToBeBytes(v3 as rt.i128)));
 		rt.byteVecPush(out2, rt.i8FromBeBytes(rt.i8ToBeBytes(v3)) === v3 ? 1 : 0);
@@ -1158,8 +1151,7 @@ export function i8Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function i16Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i16Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.i16) => undefined = (out2: rt.ByteVec, v3: rt.i16): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i128ToBeBytes(v3 as rt.i128)));
 		rt.byteVecPush(out2, rt.i16FromBeBytes(rt.i16ToBeBytes(v3)) === v3 ? 1 : 0);
@@ -1322,8 +1314,7 @@ export function i16Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function i32Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i32Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.i32) => undefined = (out2: rt.ByteVec, v3: rt.i32): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i128ToBeBytes(v3 as rt.i128)));
 		rt.byteVecPush(out2, rt.i32FromBeBytes(rt.i32ToBeBytes(v3)) === v3 ? 1 : 0);
@@ -1486,8 +1477,7 @@ export function i32Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function i64Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i64Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.i64) => undefined = (out2: rt.ByteVec, v3: rt.i64): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i128ToBeBytes(rt.i128Cast(v3))));
 		rt.byteVecPush(out2, rt.i64Eq(rt.i64FromBeBytes(rt.i64ToBeBytes(v3)), v3) ? 1 : 0);
@@ -1650,8 +1640,7 @@ export function i64Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLe
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function i128Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i128Op(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.i128) => undefined = (out2: rt.ByteVec, v3: rt.i128): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i128ToBeBytes(v3)));
 		rt.byteVecPush(out2, rt.i128Eq(rt.i128FromBeBytes(rt.i128ToBeBytes(v3)), v3) ? 1 : 0);
@@ -1814,8 +1803,7 @@ export function i128Op(op: rt.u8, dataData: Uint8Array, dataStart: number, dataL
 }
 
 /** Apply operation `op` to operands taken from `data`. */
-export function isizeOp(op: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function isizeOp(op: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _68: (a0: rt.ByteVec, a1: rt.isize) => undefined = (out2: rt.ByteVec, v3: rt.isize): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.i128ToBeBytes(v3 as rt.i128)));
 		rt.byteVecPush(out2, rt.isizeFromBeBytes(rt.isizeToBeBytes(v3)) === v3 ? 1 : 0);
@@ -1978,8 +1966,7 @@ export function isizeOp(op: rt.u8, dataData: Uint8Array, dataStart: number, data
 }
 
 /** Negate, which overflows at the minimum. */
-export function i8Neg(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i8Neg(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const buf: Uint8Array = Uint8Array.of(0);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -1987,8 +1974,7 @@ export function i8Neg(dataData: Uint8Array, dataStart: number, dataLen: number, 
 }
 
 /** Negate, which overflows at the minimum. */
-export function i16Neg(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i16Neg(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const buf: Uint8Array = rt.bytes(2);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -1996,8 +1982,7 @@ export function i16Neg(dataData: Uint8Array, dataStart: number, dataLen: number,
 }
 
 /** Negate, which overflows at the minimum. */
-export function i32Neg(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i32Neg(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const buf: Uint8Array = rt.bytes(4);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -2005,8 +1990,7 @@ export function i32Neg(dataData: Uint8Array, dataStart: number, dataLen: number,
 }
 
 /** Negate, which overflows at the minimum. */
-export function i64Neg(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i64Neg(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const buf: Uint8Array = rt.bytes(8);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -2014,8 +1998,7 @@ export function i64Neg(dataData: Uint8Array, dataStart: number, dataLen: number,
 }
 
 /** Negate, which overflows at the minimum. */
-export function i128Neg(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function i128Neg(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const buf: Uint8Array = rt.bytes(16);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -2023,8 +2006,7 @@ export function i128Neg(dataData: Uint8Array, dataStart: number, dataLen: number
 }
 
 /** Negate, which overflows at the minimum. */
-export function isizeNeg(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function isizeNeg(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const buf: Uint8Array = rt.bytes(4);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -2032,8 +2014,7 @@ export function isizeNeg(dataData: Uint8Array, dataStart: number, dataLen: numbe
 }
 
 /** Cast a value of type `from` to type `to`, both indexes into the twelve types. */
-export function cast(from: rt.u8, to: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function cast(from: rt.u8, to: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _5: rt.u8 = rt.u8Rem(from, 12);
 	if (_5 === 0) {
 		const buf: Uint8Array = Uint8Array.of(0);
@@ -2699,8 +2680,7 @@ export function cast(from: rt.u8, to: rt.u8, dataData: Uint8Array, dataStart: nu
 }
 
 /** Conversions that check, and ones that cannot fail. */
-export function convert(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function convert(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const buf: Uint8Array = rt.bytes(8);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -3081,7 +3061,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_25, radix), 99))));
 						}
 						const radix2: rt.u32 = radix;
-						const _40: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$1uup0fy(_19.value, radix2);
+						const _40: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$0nj08um(_19.value, radix2);
 						if (_40.ok) {
 							const arg48 = _40.value;
 							const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(arg48, f)];
@@ -3110,8 +3090,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args4[0], "|", args4[1], "|", args4[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args4[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args4[0]), "|", args4[3], "|", args4[4]]));
 						}
 						if (radix2 === 10) {
-							const parsed: rt.Result<rt.u8, rt.ParseIntError> = parse$01247e1(_19.value);
-							const from: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$13au6mu(_19.value);
+							const parsed: rt.Result<rt.u8, rt.ParseIntError> = parse$0at0fdl(_19.value);
+							const from: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$1hq0zfa(_19.value);
 							if (from.ok) {
 								max = rt.u8Mul(from.value === 255 ? 1 : 0, 4);
 							} else {
@@ -3130,7 +3110,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _128: string = s;
 					const radix3: rt.u32 = radix;
-					const _131: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$1uup0fy(_128, radix3);
+					const _131: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$0nj08um(_128, radix3);
 					if (_131.ok) {
 						const arg47 = _131.value;
 						const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(arg47, f)];
@@ -3159,8 +3139,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args8[0], "|", args8[1], "|", args8[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args8[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args8[0]), "|", args8[3], "|", args8[4]]));
 					}
 					if (radix3 === 10) {
-						const parsed2: rt.Result<rt.u8, rt.ParseIntError> = parse$01247e1(_128);
-						const from2: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$13au6mu(_128);
+						const parsed2: rt.Result<rt.u8, rt.ParseIntError> = parse$0at0fdl(_128);
+						const from2: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$1hq0zfa(_128);
 						if (from2.ok) {
 							max2 = rt.u8Mul(from2.value === 255 ? 1 : 0, 4);
 						} else {
@@ -3179,7 +3159,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix4: rt.u32 = _199;
 							for (const _207 of edges(255, 0, 8, radix4)) {
 								const radix5: rt.u32 = radix4;
-								const _218: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$1uup0fy(_207, radix5);
+								const _218: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$0nj08um(_207, radix5);
 								if (_218.ok) {
 									const arg46 = _218.value;
 									const args10: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(arg46, f)];
@@ -3208,8 +3188,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args12[0], "|", args12[1], "|", args12[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args12[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args12[0]), "|", args12[3], "|", args12[4]]));
 								}
 								if (radix5 === 10) {
-									const parsed3: rt.Result<rt.u8, rt.ParseIntError> = parse$01247e1(_207);
-									const from3: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$13au6mu(_207);
+									const parsed3: rt.Result<rt.u8, rt.ParseIntError> = parse$0at0fdl(_207);
+									const from3: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$1hq0zfa(_207);
 									if (from3.ok) {
 										max3 = rt.u8Mul(from3.value === 255 ? 1 : 0, 4);
 									} else {
@@ -3233,7 +3213,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _310: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text), "1");
 					const radix7: rt.u32 = radix6;
-					const _315: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$1uup0fy(_310, radix7);
+					const _315: rt.Result<rt.u8, rt.ParseIntError> = num_fromStrRadix$0nj08um(_310, radix7);
 					if (_315.ok) {
 						const arg45 = _315.value;
 						const args14: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(arg45, f)];
@@ -3262,8 +3242,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args16[0], "|", args16[1], "|", args16[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args16[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args16[0]), "|", args16[3], "|", args16[4]]));
 					}
 					if (radix7 === 10) {
-						const parsed4: rt.Result<rt.u8, rt.ParseIntError> = parse$01247e1(_310);
-						const from4: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$13au6mu(_310);
+						const parsed4: rt.Result<rt.u8, rt.ParseIntError> = parse$0at0fdl(_310);
+						const from4: rt.Result<rt.u8, rt.ParseIntError> = num_fromStr$1hq0zfa(_310);
 						if (from4.ok) {
 							max4 = rt.u8Mul(from4.value === 255 ? 1 : 0, 4);
 						} else {
@@ -3291,7 +3271,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_399, radix8), 99))));
 						}
 						const radix9: rt.u32 = radix8;
-						const _414: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1queob6(_393.value, radix9);
+						const _414: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1ku3myt(_393.value, radix9);
 						if (_414.ok) {
 							const arg44 = _414.value;
 							const args18: rt.Fmt[] = [(f: rt.Formatter) => rt.u16Display(arg44, f)];
@@ -3320,8 +3300,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args20[0], "|", args20[1], "|", args20[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args20[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args20[0]), "|", args20[3], "|", args20[4]]));
 						}
 						if (radix9 === 10) {
-							const parsed5: rt.Result<rt.u16, rt.ParseIntError> = parse$0bmbg8t(_393.value);
-							const from5: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0xayo7b(_393.value);
+							const parsed5: rt.Result<rt.u16, rt.ParseIntError> = parse$0fi19ig(_393.value);
+							const from5: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0yqu2i9(_393.value);
 							if (from5.ok) {
 								max5 = rt.u8Mul(from5.value === 65535 ? 1 : 0, 4);
 							} else {
@@ -3340,7 +3320,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _502: string = s3;
 					const radix10: rt.u32 = radix8;
-					const _505: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1queob6(_502, radix10);
+					const _505: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1ku3myt(_502, radix10);
 					if (_505.ok) {
 						const arg43 = _505.value;
 						const args22: rt.Fmt[] = [(f: rt.Formatter) => rt.u16Display(arg43, f)];
@@ -3369,8 +3349,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args24[0], "|", args24[1], "|", args24[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args24[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args24[0]), "|", args24[3], "|", args24[4]]));
 					}
 					if (radix10 === 10) {
-						const parsed6: rt.Result<rt.u16, rt.ParseIntError> = parse$0bmbg8t(_502);
-						const from6: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0xayo7b(_502);
+						const parsed6: rt.Result<rt.u16, rt.ParseIntError> = parse$0fi19ig(_502);
+						const from6: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0yqu2i9(_502);
 						if (from6.ok) {
 							max6 = rt.u8Mul(from6.value === 65535 ? 1 : 0, 4);
 						} else {
@@ -3389,7 +3369,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix11: rt.u32 = _573;
 							for (const _581 of edges(65535, 0, 16, radix11)) {
 								const radix12: rt.u32 = radix11;
-								const _592: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1queob6(_581, radix12);
+								const _592: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1ku3myt(_581, radix12);
 								if (_592.ok) {
 									const arg42 = _592.value;
 									const args26: rt.Fmt[] = [(f: rt.Formatter) => rt.u16Display(arg42, f)];
@@ -3418,8 +3398,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args28[0], "|", args28[1], "|", args28[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args28[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args28[0]), "|", args28[3], "|", args28[4]]));
 								}
 								if (radix12 === 10) {
-									const parsed7: rt.Result<rt.u16, rt.ParseIntError> = parse$0bmbg8t(_581);
-									const from7: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0xayo7b(_581);
+									const parsed7: rt.Result<rt.u16, rt.ParseIntError> = parse$0fi19ig(_581);
+									const from7: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0yqu2i9(_581);
 									if (from7.ok) {
 										max7 = rt.u8Mul(from7.value === 65535 ? 1 : 0, 4);
 									} else {
@@ -3443,7 +3423,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _684: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text2), "1");
 					const radix14: rt.u32 = radix13;
-					const _689: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1queob6(_684, radix14);
+					const _689: rt.Result<rt.u16, rt.ParseIntError> = num_fromStrRadix$1ku3myt(_684, radix14);
 					if (_689.ok) {
 						const arg41 = _689.value;
 						const args30: rt.Fmt[] = [(f: rt.Formatter) => rt.u16Display(arg41, f)];
@@ -3472,8 +3452,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args32[0], "|", args32[1], "|", args32[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args32[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args32[0]), "|", args32[3], "|", args32[4]]));
 					}
 					if (radix14 === 10) {
-						const parsed8: rt.Result<rt.u16, rt.ParseIntError> = parse$0bmbg8t(_684);
-						const from8: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0xayo7b(_684);
+						const parsed8: rt.Result<rt.u16, rt.ParseIntError> = parse$0fi19ig(_684);
+						const from8: rt.Result<rt.u16, rt.ParseIntError> = num_fromStr$0yqu2i9(_684);
 						if (from8.ok) {
 							max8 = rt.u8Mul(from8.value === 65535 ? 1 : 0, 4);
 						} else {
@@ -3501,7 +3481,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_773, radix15), 99))));
 						}
 						const radix16: rt.u32 = radix15;
-						const _788: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$1ovtdjc(_767.value, radix16);
+						const _788: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$05zvwcf(_767.value, radix16);
 						if (_788.ok) {
 							const arg40 = _788.value;
 							const args34: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(arg40, f)];
@@ -3530,8 +3510,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args36[0], "|", args36[1], "|", args36[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args36[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args36[0]), "|", args36[3], "|", args36[4]]));
 						}
 						if (radix16 === 10) {
-							const parsed9: rt.Result<rt.u32, rt.ParseIntError> = parse$1jryscd(_767.value);
-							const from9: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$1t0zoao(_767.value);
+							const parsed9: rt.Result<rt.u32, rt.ParseIntError> = parse$1aq2uo0(_767.value);
+							const from9: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$08wf09w(_767.value);
 							if (from9.ok) {
 								max9 = rt.u8Mul(from9.value === 4294967295 ? 1 : 0, 4);
 							} else {
@@ -3550,7 +3530,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _876: string = s5;
 					const radix17: rt.u32 = radix15;
-					const _879: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$1ovtdjc(_876, radix17);
+					const _879: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$05zvwcf(_876, radix17);
 					if (_879.ok) {
 						const arg39 = _879.value;
 						const args38: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(arg39, f)];
@@ -3579,8 +3559,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args40[0], "|", args40[1], "|", args40[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args40[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args40[0]), "|", args40[3], "|", args40[4]]));
 					}
 					if (radix17 === 10) {
-						const parsed10: rt.Result<rt.u32, rt.ParseIntError> = parse$1jryscd(_876);
-						const from10: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$1t0zoao(_876);
+						const parsed10: rt.Result<rt.u32, rt.ParseIntError> = parse$1aq2uo0(_876);
+						const from10: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$08wf09w(_876);
 						if (from10.ok) {
 							max10 = rt.u8Mul(from10.value === 4294967295 ? 1 : 0, 4);
 						} else {
@@ -3599,7 +3579,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix18: rt.u32 = _947;
 							for (const _955 of edges(4294967295, 0, 32, radix18)) {
 								const radix19: rt.u32 = radix18;
-								const _966: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$1ovtdjc(_955, radix19);
+								const _966: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$05zvwcf(_955, radix19);
 								if (_966.ok) {
 									const arg38 = _966.value;
 									const args42: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(arg38, f)];
@@ -3628,8 +3608,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args44[0], "|", args44[1], "|", args44[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args44[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args44[0]), "|", args44[3], "|", args44[4]]));
 								}
 								if (radix19 === 10) {
-									const parsed11: rt.Result<rt.u32, rt.ParseIntError> = parse$1jryscd(_955);
-									const from11: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$1t0zoao(_955);
+									const parsed11: rt.Result<rt.u32, rt.ParseIntError> = parse$1aq2uo0(_955);
+									const from11: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$08wf09w(_955);
 									if (from11.ok) {
 										max11 = rt.u8Mul(from11.value === 4294967295 ? 1 : 0, 4);
 									} else {
@@ -3653,7 +3633,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _1058: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text3), "1");
 					const radix21: rt.u32 = radix20;
-					const _1063: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$1ovtdjc(_1058, radix21);
+					const _1063: rt.Result<rt.u32, rt.ParseIntError> = num_fromStrRadix$05zvwcf(_1058, radix21);
 					if (_1063.ok) {
 						const arg37 = _1063.value;
 						const args46: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(arg37, f)];
@@ -3682,8 +3662,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args48[0], "|", args48[1], "|", args48[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args48[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args48[0]), "|", args48[3], "|", args48[4]]));
 					}
 					if (radix21 === 10) {
-						const parsed12: rt.Result<rt.u32, rt.ParseIntError> = parse$1jryscd(_1058);
-						const from12: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$1t0zoao(_1058);
+						const parsed12: rt.Result<rt.u32, rt.ParseIntError> = parse$1aq2uo0(_1058);
+						const from12: rt.Result<rt.u32, rt.ParseIntError> = num_fromStr$08wf09w(_1058);
 						if (from12.ok) {
 							max12 = rt.u8Mul(from12.value === 4294967295 ? 1 : 0, 4);
 						} else {
@@ -3711,7 +3691,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_1147, radix22), 99))));
 						}
 						const radix23: rt.u32 = radix22;
-						const _1162: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$0cic1mm(_1141.value, radix23);
+						const _1162: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$1gp4jqq(_1141.value, radix23);
 						if (_1162.ok) {
 							const arg36 = _1162.value;
 							const args50: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg36, f)];
@@ -3740,8 +3720,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args52[0], "|", args52[1], "|", args52[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args52[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args52[0]), "|", args52[3], "|", args52[4]]));
 						}
 						if (radix23 === 10) {
-							const parsed13: rt.Result<rt.u64, rt.ParseIntError> = parse$0sdtyv9(_1141.value);
-							const from13: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1s0pfra(_1141.value);
+							const parsed13: rt.Result<rt.u64, rt.ParseIntError> = parse$0o4ono0(_1141.value);
+							const from13: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1ypcnp8(_1141.value);
 							if (from13.ok) {
 								max13 = rt.u8Mul(rt.u64Eq(from13.value, { hi: 0xffffffff, lo: 0xffffffff } as rt.u64) ? 1 : 0, 4);
 							} else {
@@ -3760,7 +3740,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _1250: string = s7;
 					const radix24: rt.u32 = radix22;
-					const _1253: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$0cic1mm(_1250, radix24);
+					const _1253: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$1gp4jqq(_1250, radix24);
 					if (_1253.ok) {
 						const arg35 = _1253.value;
 						const args54: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg35, f)];
@@ -3789,8 +3769,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args56[0], "|", args56[1], "|", args56[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args56[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args56[0]), "|", args56[3], "|", args56[4]]));
 					}
 					if (radix24 === 10) {
-						const parsed14: rt.Result<rt.u64, rt.ParseIntError> = parse$0sdtyv9(_1250);
-						const from14: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1s0pfra(_1250);
+						const parsed14: rt.Result<rt.u64, rt.ParseIntError> = parse$0o4ono0(_1250);
+						const from14: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1ypcnp8(_1250);
 						if (from14.ok) {
 							max14 = rt.u8Mul(rt.u64Eq(from14.value, { hi: 0xffffffff, lo: 0xffffffff } as rt.u64) ? 1 : 0, 4);
 						} else {
@@ -3809,7 +3789,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix25: rt.u32 = _1321;
 							for (const _1329 of edges({ hi: 0, w2: 0, w1: 0xffffffff, lo: 0xffffffff } as rt.u128, 0, 64, radix25)) {
 								const radix26: rt.u32 = radix25;
-								const _1340: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$0cic1mm(_1329, radix26);
+								const _1340: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$1gp4jqq(_1329, radix26);
 								if (_1340.ok) {
 									const arg34 = _1340.value;
 									const args58: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg34, f)];
@@ -3838,8 +3818,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args60[0], "|", args60[1], "|", args60[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args60[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args60[0]), "|", args60[3], "|", args60[4]]));
 								}
 								if (radix26 === 10) {
-									const parsed15: rt.Result<rt.u64, rt.ParseIntError> = parse$0sdtyv9(_1329);
-									const from15: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1s0pfra(_1329);
+									const parsed15: rt.Result<rt.u64, rt.ParseIntError> = parse$0o4ono0(_1329);
+									const from15: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1ypcnp8(_1329);
 									if (from15.ok) {
 										max15 = rt.u8Mul(rt.u64Eq(from15.value, { hi: 0xffffffff, lo: 0xffffffff } as rt.u64) ? 1 : 0, 4);
 									} else {
@@ -3863,7 +3843,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _1432: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text4), "1");
 					const radix28: rt.u32 = radix27;
-					const _1437: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$0cic1mm(_1432, radix28);
+					const _1437: rt.Result<rt.u64, rt.ParseIntError> = num_fromStrRadix$1gp4jqq(_1432, radix28);
 					if (_1437.ok) {
 						const arg33 = _1437.value;
 						const args62: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg33, f)];
@@ -3892,8 +3872,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args64[0], "|", args64[1], "|", args64[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args64[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args64[0]), "|", args64[3], "|", args64[4]]));
 					}
 					if (radix28 === 10) {
-						const parsed16: rt.Result<rt.u64, rt.ParseIntError> = parse$0sdtyv9(_1432);
-						const from16: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1s0pfra(_1432);
+						const parsed16: rt.Result<rt.u64, rt.ParseIntError> = parse$0o4ono0(_1432);
+						const from16: rt.Result<rt.u64, rt.ParseIntError> = num_fromStr$1ypcnp8(_1432);
 						if (from16.ok) {
 							max16 = rt.u8Mul(rt.u64Eq(from16.value, { hi: 0xffffffff, lo: 0xffffffff } as rt.u64) ? 1 : 0, 4);
 						} else {
@@ -3921,7 +3901,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_1521, radix29), 99))));
 						}
 						const radix30: rt.u32 = radix29;
-						const _1536: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0aggpkp(_1515.value, radix30);
+						const _1536: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0g0g31i(_1515.value, radix30);
 						if (_1536.ok) {
 							const arg32 = _1536.value;
 							const args66: rt.Fmt[] = [(f: rt.Formatter) => rt.u128Display(arg32, f)];
@@ -3950,8 +3930,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args68[0], "|", args68[1], "|", args68[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args68[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args68[0]), "|", args68[3], "|", args68[4]]));
 						}
 						if (radix30 === 10) {
-							const parsed17: rt.Result<rt.u128, rt.ParseIntError> = parse$0685pdb(_1515.value);
-							const from17: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0nzirqb(_1515.value);
+							const parsed17: rt.Result<rt.u128, rt.ParseIntError> = parse$069o3rw(_1515.value);
+							const from17: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0qvzsmz(_1515.value);
 							if (from17.ok) {
 								max17 = rt.u8Mul(rt.u128Eq(from17.value, { hi: 0xffffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128) ? 1 : 0, 4);
 							} else {
@@ -3970,7 +3950,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _1624: string = s9;
 					const radix31: rt.u32 = radix29;
-					const _1627: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0aggpkp(_1624, radix31);
+					const _1627: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0g0g31i(_1624, radix31);
 					if (_1627.ok) {
 						const arg31 = _1627.value;
 						const args70: rt.Fmt[] = [(f: rt.Formatter) => rt.u128Display(arg31, f)];
@@ -3999,8 +3979,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args72[0], "|", args72[1], "|", args72[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args72[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args72[0]), "|", args72[3], "|", args72[4]]));
 					}
 					if (radix31 === 10) {
-						const parsed18: rt.Result<rt.u128, rt.ParseIntError> = parse$0685pdb(_1624);
-						const from18: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0nzirqb(_1624);
+						const parsed18: rt.Result<rt.u128, rt.ParseIntError> = parse$069o3rw(_1624);
+						const from18: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0qvzsmz(_1624);
 						if (from18.ok) {
 							max18 = rt.u8Mul(rt.u128Eq(from18.value, { hi: 0xffffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128) ? 1 : 0, 4);
 						} else {
@@ -4019,7 +3999,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix32: rt.u32 = _1695;
 							for (const _1702 of edges({ hi: 0xffffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128, 0, 128, radix32)) {
 								const radix33: rt.u32 = radix32;
-								const _1713: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0aggpkp(_1702, radix33);
+								const _1713: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0g0g31i(_1702, radix33);
 								if (_1713.ok) {
 									const arg30 = _1713.value;
 									const args74: rt.Fmt[] = [(f: rt.Formatter) => rt.u128Display(arg30, f)];
@@ -4048,8 +4028,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args76[0], "|", args76[1], "|", args76[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args76[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args76[0]), "|", args76[3], "|", args76[4]]));
 								}
 								if (radix33 === 10) {
-									const parsed19: rt.Result<rt.u128, rt.ParseIntError> = parse$0685pdb(_1702);
-									const from19: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0nzirqb(_1702);
+									const parsed19: rt.Result<rt.u128, rt.ParseIntError> = parse$069o3rw(_1702);
+									const from19: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0qvzsmz(_1702);
 									if (from19.ok) {
 										max19 = rt.u8Mul(rt.u128Eq(from19.value, { hi: 0xffffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128) ? 1 : 0, 4);
 									} else {
@@ -4073,7 +4053,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _1805: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text5), "1");
 					const radix35: rt.u32 = radix34;
-					const _1810: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0aggpkp(_1805, radix35);
+					const _1810: rt.Result<rt.u128, rt.ParseIntError> = num_fromStrRadix$0g0g31i(_1805, radix35);
 					if (_1810.ok) {
 						const arg29 = _1810.value;
 						const args78: rt.Fmt[] = [(f: rt.Formatter) => rt.u128Display(arg29, f)];
@@ -4102,8 +4082,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args80[0], "|", args80[1], "|", args80[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args80[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args80[0]), "|", args80[3], "|", args80[4]]));
 					}
 					if (radix35 === 10) {
-						const parsed20: rt.Result<rt.u128, rt.ParseIntError> = parse$0685pdb(_1805);
-						const from20: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0nzirqb(_1805);
+						const parsed20: rt.Result<rt.u128, rt.ParseIntError> = parse$069o3rw(_1805);
+						const from20: rt.Result<rt.u128, rt.ParseIntError> = num_fromStr$0qvzsmz(_1805);
 						if (from20.ok) {
 							max20 = rt.u8Mul(rt.u128Eq(from20.value, { hi: 0xffffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128) ? 1 : 0, 4);
 						} else {
@@ -4131,7 +4111,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_1894, radix36), 99))));
 						}
 						const radix37: rt.u32 = radix36;
-						const _1909: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$1xobho4(_1888.value, radix37);
+						const _1909: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$0tjqkb6(_1888.value, radix37);
 						if (_1909.ok) {
 							const arg28 = _1909.value;
 							const args82: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(arg28, f)];
@@ -4160,8 +4140,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args84[0], "|", args84[1], "|", args84[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args84[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args84[0]), "|", args84[3], "|", args84[4]]));
 						}
 						if (radix37 === 10) {
-							const parsed21: rt.Result<rt.usize, rt.ParseIntError> = parse$15yahcp(_1888.value);
-							const from21: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$1vgxk0s(_1888.value);
+							const parsed21: rt.Result<rt.usize, rt.ParseIntError> = parse$08wetap(_1888.value);
+							const from21: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$10ypyht(_1888.value);
 							if (from21.ok) {
 								max21 = rt.u8Mul(from21.value === 4294967295 ? 1 : 0, 4);
 							} else {
@@ -4180,7 +4160,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _1997: string = s11;
 					const radix38: rt.u32 = radix36;
-					const _2000: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$1xobho4(_1997, radix38);
+					const _2000: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$0tjqkb6(_1997, radix38);
 					if (_2000.ok) {
 						const arg27 = _2000.value;
 						const args86: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(arg27, f)];
@@ -4209,8 +4189,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args88[0], "|", args88[1], "|", args88[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args88[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args88[0]), "|", args88[3], "|", args88[4]]));
 					}
 					if (radix38 === 10) {
-						const parsed22: rt.Result<rt.usize, rt.ParseIntError> = parse$15yahcp(_1997);
-						const from22: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$1vgxk0s(_1997);
+						const parsed22: rt.Result<rt.usize, rt.ParseIntError> = parse$08wetap(_1997);
+						const from22: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$10ypyht(_1997);
 						if (from22.ok) {
 							max22 = rt.u8Mul(from22.value === 4294967295 ? 1 : 0, 4);
 						} else {
@@ -4229,7 +4209,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix39: rt.u32 = _2068;
 							for (const _2076 of edges(4294967295, 0, 32, radix39)) {
 								const radix40: rt.u32 = radix39;
-								const _2087: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$1xobho4(_2076, radix40);
+								const _2087: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$0tjqkb6(_2076, radix40);
 								if (_2087.ok) {
 									const arg26 = _2087.value;
 									const args90: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(arg26, f)];
@@ -4258,8 +4238,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args92[0], "|", args92[1], "|", args92[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args92[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args92[0]), "|", args92[3], "|", args92[4]]));
 								}
 								if (radix40 === 10) {
-									const parsed23: rt.Result<rt.usize, rt.ParseIntError> = parse$15yahcp(_2076);
-									const from23: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$1vgxk0s(_2076);
+									const parsed23: rt.Result<rt.usize, rt.ParseIntError> = parse$08wetap(_2076);
+									const from23: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$10ypyht(_2076);
 									if (from23.ok) {
 										max23 = rt.u8Mul(from23.value === 4294967295 ? 1 : 0, 4);
 									} else {
@@ -4283,7 +4263,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _2179: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text6), "1");
 					const radix42: rt.u32 = radix41;
-					const _2184: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$1xobho4(_2179, radix42);
+					const _2184: rt.Result<rt.usize, rt.ParseIntError> = num_fromStrRadix$0tjqkb6(_2179, radix42);
 					if (_2184.ok) {
 						const arg25 = _2184.value;
 						const args94: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(arg25, f)];
@@ -4312,8 +4292,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args96[0], "|", args96[1], "|", args96[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args96[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args96[0]), "|", args96[3], "|", args96[4]]));
 					}
 					if (radix42 === 10) {
-						const parsed24: rt.Result<rt.usize, rt.ParseIntError> = parse$15yahcp(_2179);
-						const from24: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$1vgxk0s(_2179);
+						const parsed24: rt.Result<rt.usize, rt.ParseIntError> = parse$08wetap(_2179);
+						const from24: rt.Result<rt.usize, rt.ParseIntError> = num_fromStr$10ypyht(_2179);
 						if (from24.ok) {
 							max24 = rt.u8Mul(from24.value === 4294967295 ? 1 : 0, 4);
 						} else {
@@ -4341,7 +4321,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_2268, radix43), 99))));
 						}
 						const radix44: rt.u32 = radix43;
-						const _2283: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$09xsupv(_2262.value, radix44);
+						const _2283: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$0s9rspw(_2262.value, radix44);
 						if (_2283.ok) {
 							const arg24 = _2283.value;
 							const args98: rt.Fmt[] = [(f: rt.Formatter) => rt.i8Display(arg24, f)];
@@ -4370,8 +4350,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args100[0], "|", args100[1], "|", args100[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args100[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args100[0]), "|", args100[3], "|", args100[4]]));
 						}
 						if (radix44 === 10) {
-							const parsed25: rt.Result<rt.i8, rt.ParseIntError> = parse$1g7h2lx(_2262.value);
-							const from25: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$1lgb5f6(_2262.value);
+							const parsed25: rt.Result<rt.i8, rt.ParseIntError> = parse$1ci7nyc(_2262.value);
+							const from25: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$0ovlgjd(_2262.value);
 							if (from25.ok) {
 								max25 = rt.u8Mul(from25.value === 127 ? 1 : 0, 4);
 							} else {
@@ -4390,7 +4370,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _2371: string = s13;
 					const radix45: rt.u32 = radix43;
-					const _2374: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$09xsupv(_2371, radix45);
+					const _2374: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$0s9rspw(_2371, radix45);
 					if (_2374.ok) {
 						const arg23 = _2374.value;
 						const args102: rt.Fmt[] = [(f: rt.Formatter) => rt.i8Display(arg23, f)];
@@ -4419,8 +4399,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args104[0], "|", args104[1], "|", args104[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args104[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args104[0]), "|", args104[3], "|", args104[4]]));
 					}
 					if (radix45 === 10) {
-						const parsed26: rt.Result<rt.i8, rt.ParseIntError> = parse$1g7h2lx(_2371);
-						const from26: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$1lgb5f6(_2371);
+						const parsed26: rt.Result<rt.i8, rt.ParseIntError> = parse$1ci7nyc(_2371);
+						const from26: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$0ovlgjd(_2371);
 						if (from26.ok) {
 							max26 = rt.u8Mul(from26.value === 127 ? 1 : 0, 4);
 						} else {
@@ -4439,7 +4419,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix46: rt.u32 = _2442;
 							for (const _2453 of edges(127, rt.u128Add(127, 1), 8, radix46)) {
 								const radix47: rt.u32 = radix46;
-								const _2464: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$09xsupv(_2453, radix47);
+								const _2464: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$0s9rspw(_2453, radix47);
 								if (_2464.ok) {
 									const arg22 = _2464.value;
 									const args106: rt.Fmt[] = [(f: rt.Formatter) => rt.i8Display(arg22, f)];
@@ -4468,8 +4448,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args108[0], "|", args108[1], "|", args108[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args108[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args108[0]), "|", args108[3], "|", args108[4]]));
 								}
 								if (radix47 === 10) {
-									const parsed27: rt.Result<rt.i8, rt.ParseIntError> = parse$1g7h2lx(_2453);
-									const from27: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$1lgb5f6(_2453);
+									const parsed27: rt.Result<rt.i8, rt.ParseIntError> = parse$1ci7nyc(_2453);
+									const from27: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$0ovlgjd(_2453);
 									if (from27.ok) {
 										max27 = rt.u8Mul(from27.value === 127 ? 1 : 0, 4);
 									} else {
@@ -4493,7 +4473,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _2556: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text7), "1");
 					const radix49: rt.u32 = radix48;
-					const _2561: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$09xsupv(_2556, radix49);
+					const _2561: rt.Result<rt.i8, rt.ParseIntError> = num_fromStrRadix$0s9rspw(_2556, radix49);
 					if (_2561.ok) {
 						const arg21 = _2561.value;
 						const args110: rt.Fmt[] = [(f: rt.Formatter) => rt.i8Display(arg21, f)];
@@ -4522,8 +4502,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args112[0], "|", args112[1], "|", args112[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args112[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args112[0]), "|", args112[3], "|", args112[4]]));
 					}
 					if (radix49 === 10) {
-						const parsed28: rt.Result<rt.i8, rt.ParseIntError> = parse$1g7h2lx(_2556);
-						const from28: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$1lgb5f6(_2556);
+						const parsed28: rt.Result<rt.i8, rt.ParseIntError> = parse$1ci7nyc(_2556);
+						const from28: rt.Result<rt.i8, rt.ParseIntError> = num_fromStr$0ovlgjd(_2556);
 						if (from28.ok) {
 							max28 = rt.u8Mul(from28.value === 127 ? 1 : 0, 4);
 						} else {
@@ -4551,7 +4531,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_2645, radix50), 99))));
 						}
 						const radix51: rt.u32 = radix50;
-						const _2660: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$1pa0ruh(_2639.value, radix51);
+						const _2660: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$02mhuxs(_2639.value, radix51);
 						if (_2660.ok) {
 							const arg20 = _2660.value;
 							const args114: rt.Fmt[] = [(f: rt.Formatter) => rt.i16Display(arg20, f)];
@@ -4580,8 +4560,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args116[0], "|", args116[1], "|", args116[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args116[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args116[0]), "|", args116[3], "|", args116[4]]));
 						}
 						if (radix51 === 10) {
-							const parsed29: rt.Result<rt.i16, rt.ParseIntError> = parse$03wo3fg(_2639.value);
-							const from29: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$0itzmqn(_2639.value);
+							const parsed29: rt.Result<rt.i16, rt.ParseIntError> = parse$0xnscjy(_2639.value);
+							const from29: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$17ewwma(_2639.value);
 							if (from29.ok) {
 								max29 = rt.u8Mul(from29.value === 32767 ? 1 : 0, 4);
 							} else {
@@ -4600,7 +4580,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _2748: string = s15;
 					const radix52: rt.u32 = radix50;
-					const _2751: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$1pa0ruh(_2748, radix52);
+					const _2751: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$02mhuxs(_2748, radix52);
 					if (_2751.ok) {
 						const arg19 = _2751.value;
 						const args118: rt.Fmt[] = [(f: rt.Formatter) => rt.i16Display(arg19, f)];
@@ -4629,8 +4609,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args120[0], "|", args120[1], "|", args120[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args120[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args120[0]), "|", args120[3], "|", args120[4]]));
 					}
 					if (radix52 === 10) {
-						const parsed30: rt.Result<rt.i16, rt.ParseIntError> = parse$03wo3fg(_2748);
-						const from30: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$0itzmqn(_2748);
+						const parsed30: rt.Result<rt.i16, rt.ParseIntError> = parse$0xnscjy(_2748);
+						const from30: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$17ewwma(_2748);
 						if (from30.ok) {
 							max30 = rt.u8Mul(from30.value === 32767 ? 1 : 0, 4);
 						} else {
@@ -4649,7 +4629,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix53: rt.u32 = _2819;
 							for (const _2830 of edges(32767, rt.u128Add(32767, 1), 16, radix53)) {
 								const radix54: rt.u32 = radix53;
-								const _2841: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$1pa0ruh(_2830, radix54);
+								const _2841: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$02mhuxs(_2830, radix54);
 								if (_2841.ok) {
 									const arg18 = _2841.value;
 									const args122: rt.Fmt[] = [(f: rt.Formatter) => rt.i16Display(arg18, f)];
@@ -4678,8 +4658,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args124[0], "|", args124[1], "|", args124[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args124[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args124[0]), "|", args124[3], "|", args124[4]]));
 								}
 								if (radix54 === 10) {
-									const parsed31: rt.Result<rt.i16, rt.ParseIntError> = parse$03wo3fg(_2830);
-									const from31: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$0itzmqn(_2830);
+									const parsed31: rt.Result<rt.i16, rt.ParseIntError> = parse$0xnscjy(_2830);
+									const from31: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$17ewwma(_2830);
 									if (from31.ok) {
 										max31 = rt.u8Mul(from31.value === 32767 ? 1 : 0, 4);
 									} else {
@@ -4703,7 +4683,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _2933: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text8), "1");
 					const radix56: rt.u32 = radix55;
-					const _2938: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$1pa0ruh(_2933, radix56);
+					const _2938: rt.Result<rt.i16, rt.ParseIntError> = num_fromStrRadix$02mhuxs(_2933, radix56);
 					if (_2938.ok) {
 						const arg17 = _2938.value;
 						const args126: rt.Fmt[] = [(f: rt.Formatter) => rt.i16Display(arg17, f)];
@@ -4732,8 +4712,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args128[0], "|", args128[1], "|", args128[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args128[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args128[0]), "|", args128[3], "|", args128[4]]));
 					}
 					if (radix56 === 10) {
-						const parsed32: rt.Result<rt.i16, rt.ParseIntError> = parse$03wo3fg(_2933);
-						const from32: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$0itzmqn(_2933);
+						const parsed32: rt.Result<rt.i16, rt.ParseIntError> = parse$0xnscjy(_2933);
+						const from32: rt.Result<rt.i16, rt.ParseIntError> = num_fromStr$17ewwma(_2933);
 						if (from32.ok) {
 							max32 = rt.u8Mul(from32.value === 32767 ? 1 : 0, 4);
 						} else {
@@ -4761,7 +4741,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_3022, radix57), 99))));
 						}
 						const radix58: rt.u32 = radix57;
-						const _3037: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$0bx4ko0(_3016.value, radix58);
+						const _3037: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$1bgm1z0(_3016.value, radix58);
 						if (_3037.ok) {
 							const arg16 = _3037.value;
 							const args130: rt.Fmt[] = [(f: rt.Formatter) => rt.i32Display(arg16, f)];
@@ -4790,8 +4770,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args132[0], "|", args132[1], "|", args132[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args132[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args132[0]), "|", args132[3], "|", args132[4]]));
 						}
 						if (radix58 === 10) {
-							const parsed33: rt.Result<rt.i32, rt.ParseIntError> = parse$0n1hysl(_3016.value);
-							const from33: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$1czfc3o(_3016.value);
+							const parsed33: rt.Result<rt.i32, rt.ParseIntError> = parse$12szghw(_3016.value);
+							const from33: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$0zhqfgx(_3016.value);
 							if (from33.ok) {
 								max33 = rt.u8Mul(from33.value === 2147483647 ? 1 : 0, 4);
 							} else {
@@ -4810,7 +4790,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _3125: string = s17;
 					const radix59: rt.u32 = radix57;
-					const _3128: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$0bx4ko0(_3125, radix59);
+					const _3128: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$1bgm1z0(_3125, radix59);
 					if (_3128.ok) {
 						const arg15 = _3128.value;
 						const args134: rt.Fmt[] = [(f: rt.Formatter) => rt.i32Display(arg15, f)];
@@ -4839,8 +4819,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args136[0], "|", args136[1], "|", args136[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args136[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args136[0]), "|", args136[3], "|", args136[4]]));
 					}
 					if (radix59 === 10) {
-						const parsed34: rt.Result<rt.i32, rt.ParseIntError> = parse$0n1hysl(_3125);
-						const from34: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$1czfc3o(_3125);
+						const parsed34: rt.Result<rt.i32, rt.ParseIntError> = parse$12szghw(_3125);
+						const from34: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$0zhqfgx(_3125);
 						if (from34.ok) {
 							max34 = rt.u8Mul(from34.value === 2147483647 ? 1 : 0, 4);
 						} else {
@@ -4859,7 +4839,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix60: rt.u32 = _3196;
 							for (const _3207 of edges(2147483647, rt.u128Add(2147483647, 1), 32, radix60)) {
 								const radix61: rt.u32 = radix60;
-								const _3218: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$0bx4ko0(_3207, radix61);
+								const _3218: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$1bgm1z0(_3207, radix61);
 								if (_3218.ok) {
 									const arg14 = _3218.value;
 									const args138: rt.Fmt[] = [(f: rt.Formatter) => rt.i32Display(arg14, f)];
@@ -4888,8 +4868,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args140[0], "|", args140[1], "|", args140[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args140[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args140[0]), "|", args140[3], "|", args140[4]]));
 								}
 								if (radix61 === 10) {
-									const parsed35: rt.Result<rt.i32, rt.ParseIntError> = parse$0n1hysl(_3207);
-									const from35: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$1czfc3o(_3207);
+									const parsed35: rt.Result<rt.i32, rt.ParseIntError> = parse$12szghw(_3207);
+									const from35: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$0zhqfgx(_3207);
 									if (from35.ok) {
 										max35 = rt.u8Mul(from35.value === 2147483647 ? 1 : 0, 4);
 									} else {
@@ -4913,7 +4893,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _3310: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text9), "1");
 					const radix63: rt.u32 = radix62;
-					const _3315: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$0bx4ko0(_3310, radix63);
+					const _3315: rt.Result<rt.i32, rt.ParseIntError> = num_fromStrRadix$1bgm1z0(_3310, radix63);
 					if (_3315.ok) {
 						const arg13 = _3315.value;
 						const args142: rt.Fmt[] = [(f: rt.Formatter) => rt.i32Display(arg13, f)];
@@ -4942,8 +4922,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args144[0], "|", args144[1], "|", args144[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args144[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args144[0]), "|", args144[3], "|", args144[4]]));
 					}
 					if (radix63 === 10) {
-						const parsed36: rt.Result<rt.i32, rt.ParseIntError> = parse$0n1hysl(_3310);
-						const from36: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$1czfc3o(_3310);
+						const parsed36: rt.Result<rt.i32, rt.ParseIntError> = parse$12szghw(_3310);
+						const from36: rt.Result<rt.i32, rt.ParseIntError> = num_fromStr$0zhqfgx(_3310);
 						if (from36.ok) {
 							max36 = rt.u8Mul(from36.value === 2147483647 ? 1 : 0, 4);
 						} else {
@@ -4971,7 +4951,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_3399, radix64), 99))));
 						}
 						const radix65: rt.u32 = radix64;
-						const _3414: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$1c5e8ay(_3393.value, radix65);
+						const _3414: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$11y6fsf(_3393.value, radix65);
 						if (_3414.ok) {
 							const arg12 = _3414.value;
 							const args146: rt.Fmt[] = [(f: rt.Formatter) => rt.i64Display(arg12, f)];
@@ -5000,8 +4980,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args148[0], "|", args148[1], "|", args148[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args148[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args148[0]), "|", args148[3], "|", args148[4]]));
 						}
 						if (radix65 === 10) {
-							const parsed37: rt.Result<rt.i64, rt.ParseIntError> = parse$0clhdfr(_3393.value);
-							const from37: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$0j0pk4t(_3393.value);
+							const parsed37: rt.Result<rt.i64, rt.ParseIntError> = parse$11m1f1e(_3393.value);
+							const from37: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$116mp4t(_3393.value);
 							if (from37.ok) {
 								max37 = rt.u8Mul(rt.i64Eq(from37.value, { hi: 0x7fffffff, lo: 0xffffffff } as rt.i64) ? 1 : 0, 4);
 							} else {
@@ -5020,7 +5000,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _3502: string = s19;
 					const radix66: rt.u32 = radix64;
-					const _3505: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$1c5e8ay(_3502, radix66);
+					const _3505: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$11y6fsf(_3502, radix66);
 					if (_3505.ok) {
 						const arg11 = _3505.value;
 						const args150: rt.Fmt[] = [(f: rt.Formatter) => rt.i64Display(arg11, f)];
@@ -5049,8 +5029,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args152[0], "|", args152[1], "|", args152[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args152[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args152[0]), "|", args152[3], "|", args152[4]]));
 					}
 					if (radix66 === 10) {
-						const parsed38: rt.Result<rt.i64, rt.ParseIntError> = parse$0clhdfr(_3502);
-						const from38: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$0j0pk4t(_3502);
+						const parsed38: rt.Result<rt.i64, rt.ParseIntError> = parse$11m1f1e(_3502);
+						const from38: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$116mp4t(_3502);
 						if (from38.ok) {
 							max38 = rt.u8Mul(rt.i64Eq(from38.value, { hi: 0x7fffffff, lo: 0xffffffff } as rt.i64) ? 1 : 0, 4);
 						} else {
@@ -5069,7 +5049,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix67: rt.u32 = _3573;
 							for (const _3584 of edges({ hi: 0, w2: 0, w1: 0x7fffffff, lo: 0xffffffff } as rt.u128, rt.u128Add({ hi: 0, w2: 0, w1: 0x7fffffff, lo: 0xffffffff } as rt.u128, 1), 64, radix67)) {
 								const radix68: rt.u32 = radix67;
-								const _3595: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$1c5e8ay(_3584, radix68);
+								const _3595: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$11y6fsf(_3584, radix68);
 								if (_3595.ok) {
 									const arg10 = _3595.value;
 									const args154: rt.Fmt[] = [(f: rt.Formatter) => rt.i64Display(arg10, f)];
@@ -5098,8 +5078,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args156[0], "|", args156[1], "|", args156[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args156[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args156[0]), "|", args156[3], "|", args156[4]]));
 								}
 								if (radix68 === 10) {
-									const parsed39: rt.Result<rt.i64, rt.ParseIntError> = parse$0clhdfr(_3584);
-									const from39: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$0j0pk4t(_3584);
+									const parsed39: rt.Result<rt.i64, rt.ParseIntError> = parse$11m1f1e(_3584);
+									const from39: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$116mp4t(_3584);
 									if (from39.ok) {
 										max39 = rt.u8Mul(rt.i64Eq(from39.value, { hi: 0x7fffffff, lo: 0xffffffff } as rt.i64) ? 1 : 0, 4);
 									} else {
@@ -5123,7 +5103,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _3687: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text10), "1");
 					const radix70: rt.u32 = radix69;
-					const _3692: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$1c5e8ay(_3687, radix70);
+					const _3692: rt.Result<rt.i64, rt.ParseIntError> = num_fromStrRadix$11y6fsf(_3687, radix70);
 					if (_3692.ok) {
 						const arg9 = _3692.value;
 						const args158: rt.Fmt[] = [(f: rt.Formatter) => rt.i64Display(arg9, f)];
@@ -5152,8 +5132,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args160[0], "|", args160[1], "|", args160[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args160[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args160[0]), "|", args160[3], "|", args160[4]]));
 					}
 					if (radix70 === 10) {
-						const parsed40: rt.Result<rt.i64, rt.ParseIntError> = parse$0clhdfr(_3687);
-						const from40: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$0j0pk4t(_3687);
+						const parsed40: rt.Result<rt.i64, rt.ParseIntError> = parse$11m1f1e(_3687);
+						const from40: rt.Result<rt.i64, rt.ParseIntError> = num_fromStr$116mp4t(_3687);
 						if (from40.ok) {
 							max40 = rt.u8Mul(rt.i64Eq(from40.value, { hi: 0x7fffffff, lo: 0xffffffff } as rt.i64) ? 1 : 0, 4);
 						} else {
@@ -5181,7 +5161,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_3776, radix71), 99))));
 						}
 						const radix72: rt.u32 = radix71;
-						const _3791: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$00d2t0z(_3770.value, radix72);
+						const _3791: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$0366bau(_3770.value, radix72);
 						if (_3791.ok) {
 							const arg8 = _3791.value;
 							const args162: rt.Fmt[] = [(f: rt.Formatter) => rt.i128Display(arg8, f)];
@@ -5210,8 +5190,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args164[0], "|", args164[1], "|", args164[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args164[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args164[0]), "|", args164[3], "|", args164[4]]));
 						}
 						if (radix72 === 10) {
-							const parsed41: rt.Result<rt.i128, rt.ParseIntError> = parse$10fbnat(_3770.value);
-							const from41: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$04in3ec(_3770.value);
+							const parsed41: rt.Result<rt.i128, rt.ParseIntError> = parse$082ztwj(_3770.value);
+							const from41: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$0zyj6he(_3770.value);
 							if (from41.ok) {
 								max41 = rt.u8Mul(rt.i128Eq(from41.value, { hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.i128) ? 1 : 0, 4);
 							} else {
@@ -5230,7 +5210,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _3879: string = s21;
 					const radix73: rt.u32 = radix71;
-					const _3882: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$00d2t0z(_3879, radix73);
+					const _3882: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$0366bau(_3879, radix73);
 					if (_3882.ok) {
 						const arg7 = _3882.value;
 						const args166: rt.Fmt[] = [(f: rt.Formatter) => rt.i128Display(arg7, f)];
@@ -5259,8 +5239,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args168[0], "|", args168[1], "|", args168[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args168[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args168[0]), "|", args168[3], "|", args168[4]]));
 					}
 					if (radix73 === 10) {
-						const parsed42: rt.Result<rt.i128, rt.ParseIntError> = parse$10fbnat(_3879);
-						const from42: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$04in3ec(_3879);
+						const parsed42: rt.Result<rt.i128, rt.ParseIntError> = parse$082ztwj(_3879);
+						const from42: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$0zyj6he(_3879);
 						if (from42.ok) {
 							max42 = rt.u8Mul(rt.i128Eq(from42.value, { hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.i128) ? 1 : 0, 4);
 						} else {
@@ -5279,7 +5259,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix74: rt.u32 = _3950;
 							for (const _3961 of edges({ hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128, rt.u128Add({ hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.u128, 1), 128, radix74)) {
 								const radix75: rt.u32 = radix74;
-								const _3972: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$00d2t0z(_3961, radix75);
+								const _3972: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$0366bau(_3961, radix75);
 								if (_3972.ok) {
 									const arg6 = _3972.value;
 									const args170: rt.Fmt[] = [(f: rt.Formatter) => rt.i128Display(arg6, f)];
@@ -5308,8 +5288,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args172[0], "|", args172[1], "|", args172[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args172[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args172[0]), "|", args172[3], "|", args172[4]]));
 								}
 								if (radix75 === 10) {
-									const parsed43: rt.Result<rt.i128, rt.ParseIntError> = parse$10fbnat(_3961);
-									const from43: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$04in3ec(_3961);
+									const parsed43: rt.Result<rt.i128, rt.ParseIntError> = parse$082ztwj(_3961);
+									const from43: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$0zyj6he(_3961);
 									if (from43.ok) {
 										max43 = rt.u8Mul(rt.i128Eq(from43.value, { hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.i128) ? 1 : 0, 4);
 									} else {
@@ -5333,7 +5313,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _4064: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text11), "1");
 					const radix77: rt.u32 = radix76;
-					const _4069: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$00d2t0z(_4064, radix77);
+					const _4069: rt.Result<rt.i128, rt.ParseIntError> = num_fromStrRadix$0366bau(_4064, radix77);
 					if (_4069.ok) {
 						const arg5 = _4069.value;
 						const args174: rt.Fmt[] = [(f: rt.Formatter) => rt.i128Display(arg5, f)];
@@ -5362,8 +5342,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args176[0], "|", args176[1], "|", args176[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args176[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args176[0]), "|", args176[3], "|", args176[4]]));
 					}
 					if (radix77 === 10) {
-						const parsed44: rt.Result<rt.i128, rt.ParseIntError> = parse$10fbnat(_4064);
-						const from44: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$04in3ec(_4064);
+						const parsed44: rt.Result<rt.i128, rt.ParseIntError> = parse$082ztwj(_4064);
+						const from44: rt.Result<rt.i128, rt.ParseIntError> = num_fromStr$0zyj6he(_4064);
 						if (from44.ok) {
 							max44 = rt.u8Mul(rt.i128Eq(from44.value, { hi: 0x7fffffff, w2: 0xffffffff, w1: 0xffffffff, lo: 0xffffffff } as rt.i128) ? 1 : 0, 4);
 						} else {
@@ -5391,7 +5371,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(option_unwrapOr$11c0we2(toDigit$01k9ewn(_4153, radix78), 99))));
 						}
 						const radix79: rt.u32 = radix78;
-						const _4168: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$0xkpex4(_4147.value, radix79);
+						const _4168: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$1473bi0(_4147.value, radix79);
 						if (_4168.ok) {
 							const arg4 = _4168.value;
 							const args178: rt.Fmt[] = [(f: rt.Formatter) => rt.isizeDisplay(arg4, f)];
@@ -5420,8 +5400,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							fmt_put(out, rt.fmtFormat([args180[0], "|", args180[1], "|", args180[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args180[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args180[0]), "|", args180[3], "|", args180[4]]));
 						}
 						if (radix79 === 10) {
-							const parsed45: rt.Result<rt.isize, rt.ParseIntError> = parse$0xv93nb(_4147.value);
-							const from45: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$05ll6v8(_4147.value);
+							const parsed45: rt.Result<rt.isize, rt.ParseIntError> = parse$07xyv4i(_4147.value);
+							const from45: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$1grmucc(_4147.value);
 							if (from45.ok) {
 								max45 = rt.u8Mul(from45.value === 2147483647 ? 1 : 0, 4);
 							} else {
@@ -5440,7 +5420,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _4256: string = s23;
 					const radix80: rt.u32 = radix78;
-					const _4259: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$0xkpex4(_4256, radix80);
+					const _4259: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$1473bi0(_4256, radix80);
 					if (_4259.ok) {
 						const arg3 = _4259.value;
 						const args182: rt.Fmt[] = [(f: rt.Formatter) => rt.isizeDisplay(arg3, f)];
@@ -5469,8 +5449,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args184[0], "|", args184[1], "|", args184[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args184[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args184[0]), "|", args184[3], "|", args184[4]]));
 					}
 					if (radix80 === 10) {
-						const parsed46: rt.Result<rt.isize, rt.ParseIntError> = parse$0xv93nb(_4256);
-						const from46: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$05ll6v8(_4256);
+						const parsed46: rt.Result<rt.isize, rt.ParseIntError> = parse$07xyv4i(_4256);
+						const from46: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$1grmucc(_4256);
 						if (from46.ok) {
 							max46 = rt.u8Mul(from46.value === 2147483647 ? 1 : 0, 4);
 						} else {
@@ -5489,7 +5469,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 							const radix81: rt.u32 = _4327;
 							for (const _4338 of edges(2147483647, rt.u128Add(2147483647, 1), 32, radix81)) {
 								const radix82: rt.u32 = radix81;
-								const _4349: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$0xkpex4(_4338, radix82);
+								const _4349: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$1473bi0(_4338, radix82);
 								if (_4349.ok) {
 									const arg2 = _4349.value;
 									const args186: rt.Fmt[] = [(f: rt.Formatter) => rt.isizeDisplay(arg2, f)];
@@ -5518,8 +5498,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 									fmt_put(out, rt.fmtFormat([args188[0], "|", args188[1], "|", args188[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args188[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args188[0]), "|", args188[3], "|", args188[4]]));
 								}
 								if (radix82 === 10) {
-									const parsed47: rt.Result<rt.isize, rt.ParseIntError> = parse$0xv93nb(_4338);
-									const from47: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$05ll6v8(_4338);
+									const parsed47: rt.Result<rt.isize, rt.ParseIntError> = parse$07xyv4i(_4338);
+									const from47: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$1grmucc(_4338);
 									if (from47.ok) {
 										max47 = rt.u8Mul(from47.value === 2147483647 ? 1 : 0, 4);
 									} else {
@@ -5543,7 +5523,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 					}
 					const _4441: string = result_unwrapOr$01jdcm7(rt.strFromUtf8(text12), "1");
 					const radix84: rt.u32 = radix83;
-					const _4446: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$0xkpex4(_4441, radix84);
+					const _4446: rt.Result<rt.isize, rt.ParseIntError> = num_fromStrRadix$1473bi0(_4441, radix84);
 					if (_4446.ok) {
 						const arg = _4446.value;
 						const args190: rt.Fmt[] = [(f: rt.Formatter) => rt.isizeDisplay(arg, f)];
@@ -5572,8 +5552,8 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 						fmt_put(out, rt.fmtFormat([args192[0], "|", args192[1], "|", args192[2], "|", rt.fmtSpec({ align: ">", width: 42 }, args192[0]), "|", rt.fmtSpec({ align: "<", width: 3, precision: 5 }, args192[0]), "|", args192[3], "|", args192[4]]));
 					}
 					if (radix84 === 10) {
-						const parsed48: rt.Result<rt.isize, rt.ParseIntError> = parse$0xv93nb(_4441);
-						const from48: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$05ll6v8(_4441);
+						const parsed48: rt.Result<rt.isize, rt.ParseIntError> = parse$07xyv4i(_4441);
+						const from48: rt.Result<rt.isize, rt.ParseIntError> = num_fromStr$1grmucc(_4441);
 						if (from48.ok) {
 							max48 = rt.u8Mul(from48.value === 2147483647 ? 1 : 0, 4);
 						} else {
@@ -5594,8 +5574,7 @@ export function parses(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
  * itself, wider, and to `usize` and `isize` where std has `From`; and a `char`'s and the
  * crate's own, which convert the same way.
  */
-export function widenings(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function widenings(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _4: rt.u8 = rt.u8Rem(kind, 13);
 	if (_4 === 0) {
 		const buf: Uint8Array = Uint8Array.of(0);

@@ -547,8 +547,8 @@ export function twice(f: (a0: rt.u8) => rt.u8, x: rt.u8): rt.u8 {
 	return f(f(x));
 }
 
-export function bumpAll(f: (a0: rt.u8) => undefined, xsData: Uint8Array, xsStart: number, xsLen: number): void {
-	for (const _5 of rt.byteSliceView(new rt.ByteSlice(xsData, xsStart, xsLen))) {
+export function bumpAll(f: (a0: rt.u8) => undefined, xs: rt.ByteSlice): void {
+	for (const _5 of rt.byteSliceView(xs)) {
 		f(_5);
 	}
 }
@@ -573,11 +573,10 @@ export function flip(x: rt.u8): rt.u8 {
 	return x ^ 90;
 }
 
-export function fns(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function fns(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let ptr!: (a0: rt.u8) => rt.u8;
-	if (dataLen >= 2) {
-		const rest: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart + 2, dataLen - 2);
-		const _10: [rt.u8, rt.u8] = [dataData[dataStart], dataData[dataStart + 1]];
+	if (data.length >= 2) {
+		const _10: [rt.u8, rt.u8] = [data.data[data.start], data.data[data.start + 1]];
 		const a: rt.u8 = _10[0];
 		const b: rt.u8 = _10[1];
 		const mul: (a0: rt.u8) => rt.u8 = (x: rt.u8): rt.u8 => {
@@ -603,7 +602,7 @@ export function fns(dataData: Uint8Array, dataStart: number, dataLen: number, ou
 		bumpAll((x2: rt.u8): undefined => {
 			sum = rt.u32WrappingAdd(sum, x2 as rt.u32);
 			rt.byteVecPush(seen, x2);
-		}, rest.data, rest.start, rest.length);
+		}, rt.byteSliceRange(data, 2));
 		const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(sum, f), (f: rt.Formatter) => rt.fmtList(rt.byteVecView(seen), f, rt.u8Debug)];
 		fmt_put(out, rt.fmtFormat([args6[0], " ", args6[1], " "]));
 		const fs: Array<(a0: rt.u8) => rt.u8> = [adder(a), halve, mul, ptr];
@@ -624,7 +623,8 @@ export function fns(dataData: Uint8Array, dataStart: number, dataLen: number, ou
 			if (_115 === rt.DONE) {
 				break;
 			}
-			const y: rt.u8 = _115[1](option_unwrapOr$0r2bmpr(rt.byteSliceGet(rest, _115[0]), b));
+			const i: rt.usize = _115[0];
+			const y: rt.u8 = _115[1](option_unwrapOr$0r2bmpr(rt.byteSliceGet(rt.byteSliceRange(data, 2), i), b));
 			const _133: rt.u32 = hook.f(y);
 			const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(y, f), (f: rt.Formatter) => rt.u32Display(_133, f)];
 			fmt_put(out, rt.fmtFormat([args8[0], ":", args8[1], " "]));

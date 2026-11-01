@@ -13,13 +13,9 @@ export function cases(): [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefine
 		slices(a0.data, a0.start, a0.length, a1);
 	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["made", (a02: rt.ByteSlice, a12: rt.ByteVec): undefined => {
 		made(a02.data, a02.start, a02.length, a12);
-	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["events", (a03: rt.ByteSlice, a13: rt.ByteVec): undefined => {
-		events(a03.data, a03.start, a03.length, a13);
-	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["random", (a04: rt.ByteSlice, a14: rt.ByteVec): undefined => {
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["events", events as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["random", (a04: rt.ByteSlice, a14: rt.ByteVec): undefined => {
 		random(a04.data, a04.start, a04.length, a14);
-	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::bytes_mut", (a05: rt.ByteSlice, a15: rt.ByteVec): undefined => {
-		bytesMut(a05.data, a05.start, a05.length, a15);
-	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::reads", (a06: rt.ByteSlice, a16: rt.ByteVec): undefined => {
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::bytes_mut", bytesMut as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::reads", (a06: rt.ByteSlice, a16: rt.ByteVec): undefined => {
 		reads(a06.data, a06.start, a06.length, a16);
 	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::writes", (a07: rt.ByteSlice, a17: rt.ByteVec): undefined => {
 		writes(a07.data, a07.start, a07.length, a17);
@@ -144,8 +140,8 @@ export function made(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * `tracing`'s events, which evaluate nothing without a subscriber: no field marks `out`,
  * one in a branch included.
  */
-export function events(_dataData: Uint8Array, _dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	rt.byteVecPush(out, dataLen & 0xff);
+export function events(data: rt.ByteSlice, out: rt.ByteVec): void {
+	rt.byteVecPush(out, data.length & 0xff);
 }
 
 /**

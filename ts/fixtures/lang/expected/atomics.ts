@@ -24,12 +24,11 @@ export function order(b: rt.u8, valid: rt.AtomicOrdering[]): rt.AtomicOrdering {
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function i16s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i16s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.i16;
 	let current!: rt.i16;
 	let result!: rt.Result<rt.i16, rt.i16>;
 	let x!: rt.i16;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(2);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -138,12 +137,11 @@ export function i16s(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function i32s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i32s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.i32;
 	let current!: rt.i32;
 	let result!: rt.Result<rt.i32, rt.i32>;
 	let x!: rt.i32;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(4);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -252,12 +250,11 @@ export function i32s(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function i64s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i64s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.i64;
 	let current!: rt.i64;
 	let result!: rt.Result<rt.i64, rt.i64>;
 	let x!: rt.i64;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(8);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -366,12 +363,11 @@ export function i64s(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function i8s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function i8s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.i8;
 	let current!: rt.i8;
 	let result!: rt.Result<rt.i8, rt.i8>;
 	let x!: rt.i8;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = Uint8Array.of(0);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -480,12 +476,11 @@ export function i8s(dataData: Uint8Array, dataStart: number, dataLen: number, ou
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function isizes(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function isizes(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.isize;
 	let current!: rt.isize;
 	let result!: rt.Result<rt.isize, rt.isize>;
 	let x!: rt.isize;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(4);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -594,12 +589,11 @@ export function isizes(dataData: Uint8Array, dataStart: number, dataLen: number,
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function u16s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u16s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.u16;
 	let current!: rt.u16;
 	let result!: rt.Result<rt.u16, rt.u16>;
 	let x!: rt.u16;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(2);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -708,12 +702,11 @@ export function u16s(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function u32s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u32s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.u32;
 	let current!: rt.u32;
 	let result!: rt.Result<rt.u32, rt.u32>;
 	let x!: rt.u32;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(4);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -822,12 +815,11 @@ export function u32s(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function u64s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u64s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.u64;
 	let current!: rt.u64;
 	let result!: rt.Result<rt.u64, rt.u64>;
 	let x!: rt.u64;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(8);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -936,12 +928,11 @@ export function u64s(dataData: Uint8Array, dataStart: number, dataLen: number, o
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function u8s(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function u8s(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.u8;
 	let current!: rt.u8;
 	let result!: rt.Result<rt.u8, rt.u8>;
 	let x!: rt.u8;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = Uint8Array.of(0);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -1050,12 +1041,11 @@ export function u8s(dataData: Uint8Array, dataStart: number, dataLen: number, ou
  * Steps of an operation, an ordering, and an operand on one atomic, each putting
  * what it read.
  */
-export function usizes(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function usizes(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: rt.usize;
 	let current!: rt.usize;
 	let result!: rt.Result<rt.usize, rt.usize>;
 	let x!: rt.usize;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const buf: Uint8Array = rt.bytes(4);
 	const n: rt.usize = rt.min(data.length, rt.byteSliceFrom(buf).length);
 	rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(data, 0, n));
@@ -1160,23 +1150,23 @@ export function usizes(dataData: Uint8Array, dataStart: number, dataLen: number,
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.usizeToBeBytes(atomic.v)));
 }
 
-export function bools(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function bools(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let old!: boolean;
-	const flag: rt.Atomic<boolean> = new rt.Atomic(isSomeAnd$09tpccf(rt.byteSliceFirst(new rt.ByteSlice(dataData, dataStart, dataLen)), (_2: rt.u8): boolean => {
+	const flag: rt.Atomic<boolean> = new rt.Atomic(isSomeAnd$09tpccf(rt.byteSliceFirst(data), (_2: rt.u8): boolean => {
 		return (_2 & 1) === 1;
 	}));
-	let dataData2: Uint8Array = dataData;
-	let dataStart2: number = dataStart;
-	let dataLen2: number = dataLen;
-	while (dataLen2 >= 2) {
-		const op: rt.u8 = dataData2[dataStart2];
-		const b: rt.u8 = dataData2[dataStart2 + 1];
-		const restData: Uint8Array = dataData2;
-		const restStart: number = dataStart2 + 2;
-		const restLen: number = dataLen2 - 2;
-		dataData2 = restData;
-		dataStart2 = restStart;
-		dataLen2 = restLen;
+	let dataData: Uint8Array = data.data;
+	let dataStart: number = data.start;
+	let dataLen: number = data.length;
+	while (dataLen >= 2) {
+		const op: rt.u8 = dataData[dataStart];
+		const b: rt.u8 = dataData[dataStart + 1];
+		const restData: Uint8Array = dataData;
+		const restStart: number = dataStart + 2;
+		const restLen: number = dataLen - 2;
+		dataData = restData;
+		dataStart = restStart;
+		dataLen = restLen;
 		const op2: rt.u8 = op;
 		const b2: rt.u8 = b;
 		const v: boolean = (b2 & 1) === 1;
@@ -1233,11 +1223,11 @@ export function sent(stats: Stats.Stats, ord: rt.AtomicOrdering): rt.u64 {
 	return rt.atomicLoad(stats.sent, ord);
 }
 
-export function shared(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function shared(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let stats2!: rt.Arc<Stats.Stats>;
 	const stats: rt.Arc<Stats.Stats> = new rt.Arc(Stats.default$Default());
 	const peer: rt.Arc<Stats.Stats> = rt.arcClone(stats);
-	for (const b of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const b of rt.byteSliceView(data)) {
 		if (!((b & 1) === 0)) {
 			stats2 = peer;
 		} else {
@@ -1248,39 +1238,39 @@ export function shared(dataData: Uint8Array, dataStart: number, dataLen: number,
 		rt.atomicStore(stats2.value.open, b > 128, 1);
 		rt.byteVecPush(out, rt.atomicLoad(stats2.value.open, 2) ? 1 : 0);
 	}
-	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u64ToBeBytes(sent(peer.value, order(dataLen & 0xff, [0, 2, 4])))));
+	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u64ToBeBytes(sent(peer.value, order(data.length & 0xff, [0, 2, 4])))));
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.usizeToBeBytes(rt.atomicLoad(peer.value.peers, 4))));
 	rt.byteVecPush(out, stats.strong & 0xff);
 	peer[Symbol.dispose]();
 	stats[Symbol.dispose]();
 }
 
-export function atomics(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function atomics(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _4: rt.u8 = rt.u8Rem(kind, 12);
 	if (_4 === 0) {
-		u8s(dataData, dataStart, dataLen, out);
+		u8s(data, out);
 	} else if (_4 === 1) {
-		u16s(dataData, dataStart, dataLen, out);
+		u16s(data, out);
 	} else if (_4 === 2) {
-		u32s(dataData, dataStart, dataLen, out);
+		u32s(data, out);
 	} else if (_4 === 3) {
-		u64s(dataData, dataStart, dataLen, out);
+		u64s(data, out);
 	} else if (_4 === 4) {
-		usizes(dataData, dataStart, dataLen, out);
+		usizes(data, out);
 	} else if (_4 === 5) {
-		i8s(dataData, dataStart, dataLen, out);
+		i8s(data, out);
 	} else if (_4 === 6) {
-		i16s(dataData, dataStart, dataLen, out);
+		i16s(data, out);
 	} else if (_4 === 7) {
-		i32s(dataData, dataStart, dataLen, out);
+		i32s(data, out);
 	} else if (_4 === 8) {
-		i64s(dataData, dataStart, dataLen, out);
+		i64s(data, out);
 	} else if (_4 === 9) {
-		isizes(dataData, dataStart, dataLen, out);
+		isizes(data, out);
 	} else if (_4 === 10) {
-		bools(dataData, dataStart, dataLen, out);
+		bools(data, out);
 	} else {
-		shared(dataData, dataStart, dataLen, out);
+		shared(data, out);
 	}
 }
 

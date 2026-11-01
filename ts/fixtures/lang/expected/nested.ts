@@ -13,24 +13,24 @@ import * as nested_Unit from "./nested.Unit.ts";
  * Run case `kind % 8` over `data`, whose bytes pick each `None`, `Some(None)`, or
  * `Some(Some(_))`.
  */
-export function nested(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function nested(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _4: rt.u8 = rt.u8Rem(kind, 8);
 	if (_4 === 0) {
-		made(dataData, dataStart, dataLen, out);
+		made(data, out);
 	} else if (_4 === 1) {
-		keys(dataData, dataStart, dataLen, out);
+		keys(data.data, data.start, data.length, out);
 	} else if (_4 === 2) {
-		iters(dataData, dataStart, dataLen, out);
+		iters(data, out);
 	} else if (_4 === 3) {
-		consumers(dataData, dataStart, dataLen, out);
+		consumers(data, out);
 	} else if (_4 === 4) {
-		panics(dataData, dataStart, dataLen, out);
+		panics(data, out);
 	} else if (_4 === 5) {
-		closures(dataData, dataStart, dataLen, out);
+		closures(data, out);
 	} else if (_4 === 6) {
-		elements(dataData, dataStart, dataLen, out);
+		elements(data, out);
 	} else {
-		units(dataData, dataStart, dataLen, out);
+		units(data, out);
 	}
 }
 
@@ -76,8 +76,8 @@ export function tried(a: undefined | rt.None, b: rt.u8 | undefined | rt.None): r
 	return rt.None;
 }
 
-export function made(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const b of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function made(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const b of rt.byteSliceView(data)) {
 		const o: rt.u8 | undefined | rt.None = pick(b);
 		const u: undefined | rt.None = unit(b);
 		rt.byteVecPush(out, code(o));
@@ -201,8 +201,7 @@ export function halve(n: rt.u8): rt.u8 | undefined | rt.None {
 	return thenSome$0d5am30(rt.u8Rem(n, 2) === 0, rt.u8Div(n, 2));
 }
 
-export function iters(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function iters(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const items: Array<rt.u8 | undefined> = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.u8 | undefined => {
 		const b: rt.u8 = _2;
 		return thenSome$0d5am30(rt.u8Rem(b, 2) === 0, b);
@@ -255,8 +254,7 @@ export function iters(dataData: Uint8Array, dataStart: number, dataLen: number, 
  * Each consumer that returns an `Option` of the item, over items that are each `None`
  * for an odd byte: its `None` apart from its `Some(None)`.
  */
-export function consumers(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function consumers(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const items: Array<rt.u8 | undefined> = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.u8 | undefined => {
 		const b: rt.u8 = _2;
 		return thenSome$0d5am30(rt.u8Rem(b, 2) === 0, b);
@@ -352,8 +350,7 @@ export function consumers(dataData: Uint8Array, dataStart: number, dataLen: numb
  * `Option<()>`: its `None` ends or skips, where its `Some(None)` is an item. Each count is
  * of the closure's calls.
  */
-export function closures(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function closures(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let called: rt.u8 = 0;
 	const _6: rt.Iter<rt.u8> = rt.iterSlice(rt.byteSliceView(data));
 	const _8: rt.Place<rt.u8> = rt.place(() => called, (value) => called = value);
@@ -484,8 +481,7 @@ export function closures(dataData: Uint8Array, dataStart: number, dataLen: numbe
  * then a map keyed by them: an empty collection's and an out-of-range `None` apart from a
  * `Some(None)`. The first byte is also the index.
  */
-export function elements(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
+export function elements(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _8: (a0: rt.Place<rt.u8 | undefined>) => undefined = (o8: rt.Place<rt.u8 | undefined>): undefined => {
 		o8.v = option_mapOr$06rr3sb(o8.v, 66, (_2: rt.u8): rt.u8 | undefined => {
 			return undefined;
@@ -703,8 +699,8 @@ export function elements(dataData: Uint8Array, dataStart: number, dataLen: numbe
 	weak[Symbol.dispose]();
 }
 
-export function panics(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
-	for (const b of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+export function panics(data: rt.ByteSlice, out: rt.ByteVec): void {
+	for (const b of rt.byteSliceView(data)) {
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.optionExpect(pick(b), "picked none", rt.None), 225));
 		rt.byteVecPush(out, code(rt.optionUnwrap(pick(b), rt.None)));
 		rt.optionUnwrap(unit(b ^ 1), rt.None);
@@ -719,27 +715,27 @@ export function half(b: rt.u8): rt.u8 {
 }
 
 /** Each of `data` through `f`, read from its parameter: a function item too. */
-export function each$u8_nested_half(dataData: Uint8Array, dataStart: number, dataLen: number, _: (a0: rt.u8) => rt.u8): rt.ByteVec {
-	return rt.iterToByteVec(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), half), undefined, true);
+export function each$u8_nested_half(data: rt.ByteSlice, _: (a0: rt.u8) => rt.u8): rt.ByteVec {
+	return rt.iterToByteVec(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), half), undefined, true);
 }
 
 /** Each of `data` through `f`, read from its parameter: a function item too. */
-export function each$unit_nested_ignore(dataData: Uint8Array, dataStart: number, dataLen: number, _: (a0: rt.u8) => undefined): undefined[] {
-	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), ignore as (a0: rt.u8) => undefined), undefined, 0, true);
+export function each$unit_nested_ignore(data: rt.ByteSlice, _: (a0: rt.u8) => undefined): undefined[] {
+	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), ignore as (a0: rt.u8) => undefined), undefined, 0, true);
 }
 
 /** Each of `data` through `f`, read from its parameter: a function item too. */
-export function each$unit_nested_units_closure3(dataData: Uint8Array, dataStart: number, dataLen: number, f: (a0: rt.u8) => undefined): undefined[] {
-	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), f), undefined, 0, true);
+export function each$unit_nested_units_closure3(data: rt.ByteSlice, f: (a0: rt.u8) => undefined): undefined[] {
+	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), f), undefined, 0, true);
 }
 
 /** Each of `data` through a pointer. */
-export function pointed(dataData: Uint8Array, dataStart: number, dataLen: number, f: (a0: rt.u8) => undefined): undefined[] {
-	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), f), undefined, 0, true);
+export function pointed(data: rt.ByteSlice, f: (a0: rt.u8) => undefined): undefined[] {
+	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), f), undefined, 0, true);
 }
 
-export function madeAll$nested_Unit(m: nested_Unit.Unit, dataData: Uint8Array, dataStart: number, dataLen: number): undefined[] {
-	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), (_2: rt.u8): undefined => {
+export function madeAll$nested_Unit(m: nested_Unit.Unit, data: rt.ByteSlice): undefined[] {
+	return rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): undefined => {
 		nested_Unit.made$nested_Made(m, _2);
 	}), undefined, 0, true);
 }
@@ -748,9 +744,8 @@ export function madeAll$nested_Unit(m: nested_Unit.Unit, dataData: Uint8Array, d
  * The `()` results of closures, functions, pointers, a `dyn Fn`, and a method returning an
  * associated type, as the items of a `Vec`, a `VecDeque`, an `Option`, and a `Result`.
  */
-export function units(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function units(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let f!: (a0: rt.u8) => undefined;
-	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const units: undefined[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): undefined => {}), undefined, 0, true);
 	const _7: rt.Iter<undefined> = rt.iterMap(rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), (_22: rt.u8): undefined => {});
 	const q: rt.VecDeque<undefined> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<undefined>, _7, undefined, 0, true);
@@ -765,11 +760,11 @@ export function units(dataData: Uint8Array, dataStart: number, dataLen: number, 
 		}
 		f = (_24: rt.u8): undefined => {};
 	}
-	const byPointer: undefined[] = pointed(data.data, data.start, data.length, f);
-	const generic: undefined[] = each$unit_nested_units_closure3(data.data, data.start, data.length, (_25: rt.u8): undefined => {});
-	const byName: undefined[] = each$unit_nested_ignore(data.data, data.start, data.length, ignore as (a0: rt.u8) => undefined);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(each$u8_nested_half(data.data, data.start, data.length, half))), undefined, true);
-	const methods: undefined[] = madeAll$nested_Unit({}, data.data, data.start, data.length);
+	const byPointer: undefined[] = pointed(data, f);
+	const generic: undefined[] = each$unit_nested_units_closure3(data, (_25: rt.u8): undefined => {});
+	const byName: undefined[] = each$unit_nested_ignore(data, ignore as (a0: rt.u8) => undefined);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(each$u8_nested_half(data, half))), undefined, true);
+	const methods: undefined[] = madeAll$nested_Unit({}, data);
 	const dynamic: undefined[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), rt.lent(ignore as (a0: rt.u8) => undefined)), undefined, 0, true);
 	const iter: rt.Iter<undefined[]> = rt.iterSlice([units, named, byPointer, generic, byName, methods, dynamic]);
 	while (true) {

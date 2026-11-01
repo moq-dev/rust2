@@ -25,13 +25,13 @@ export const TABLE: rt.ByteSlice = /* @__PURE__ */ rt.byteSliceFrom(Uint8Array.o
  * Each byte an operation on the statics; each puts what it read. First, what each holds,
  * which only the value it starts with can be.
  */
-export function statics(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function statics(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _68!: rt.u8;
 	rt.iterExtendBytes(out, rt.iterSlice(rt.u64ToBeBytes(rt.atomicLoad(COUNT, 0)).reverse()), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(rt.i64ToBeBytes(rt.atomicLoad(WIDE, 0)).reverse()), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.atomicLoad(SIGNED, 0) & 0xff, rt.atomicLoad(FLAG, 0) ? 1 : 0, rt.atomicLoad(SIZE, 0) & 0xff)), undefined, true);
 	rt.byteVecPush(out, next(false));
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const n: rt.u8 = rt.u8Div(op, 6);
 		const _38: rt.u8 = rt.u8Rem(op, 6);
 		if (_38 === 0) {
@@ -123,7 +123,7 @@ export function first(): rt.ByteVec {
 export const FORCED: rt.Atomic<rt.u8> = /* @__PURE__ */ new rt.Atomic(0);
 
 /** Each byte an operation on statics and constants read from memory; each puts what it read. */
-export function cells(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function cells(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterSlice(rt.byteSliceView(rt.stringAsBytes(COUNTER.name))), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(COUNTER.steps), undefined, true);
 	const _10: Counter.Counter = COUNTER;
@@ -148,7 +148,7 @@ export function cells(dataData: Uint8Array, dataStart: number, dataLen: number, 
 	rt.cellSet(tally, _40);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(tally.v, new rt.Cell(250).v, new rt.Cell([1, 2] as [rt.u8, rt.u8]).v[1])), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(new rt.Cell(new rt.Cell(3)).v.v, new rt.Cell(new rt.Cell(4)).v.v)), undefined, true);
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const n2: rt.u8 = rt.u8Div(op, 8);
 		const _68: rt.u8 = rt.u8Rem(op, 8);
 		if (_68 === 0) {
@@ -243,10 +243,10 @@ export const STARTED: rt.Once = /* @__PURE__ */ new rt.OnceLock(undefined);
  * Each byte an operation on a `Once`, its own or a static's; each puts what it saw. One
  * whose function runs again from within it panics, as wasm32's does, if its byte is odd.
  */
-export function onces(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+export function onces(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const once: rt.Once = new rt.OnceLock(undefined);
 	const owned: rt.Arc<undefined> = new rt.Arc(undefined);
-	for (const op of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
+	for (const op of rt.byteSliceView(data)) {
 		const n: rt.u8 = rt.u8Div(op, 6);
 		const _13: rt.u8 = rt.u8Rem(op, 6);
 		if (_13 === 0) {
