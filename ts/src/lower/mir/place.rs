@@ -441,11 +441,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 
 	/// `base`, a `ty`, cast to its `variant`, which MIR reads without a switch where the
 	/// others can't be, as a derived `==` reads the other operand after comparing
-	/// discriminants. `tsc` narrows only what a switch tests.
+	/// discriminants. `tsc` narrows only what a switch tests, and nothing read through a
+	/// cast, as a generic type's `rt.Ptr` field is read as its instance's type.
 	fn as_variant(&mut self, base: Expr, ty: Ty<'tcx>, variant: VariantIdx, span: Span) -> Expr {
 		match ty.kind() {
 			ty::Adt(adt, _)
-				if self.b.t.crates.translates(adt.did()) || Std::of(self.tcx, adt.did()) == Some(Std::Result) =>
+				if self.b.t.crates.translates(adt.did())
+					|| Std::of(self.tcx, adt.did()) == Some(Std::Result)
+					|| matches!(base, Expr::As(..)) =>
 			{
 				match self.variant_ty(ty, variant, span) {
 					Some(variant) => Expr::As(Box::new(base), variant),
@@ -610,18 +613,18 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				_ if transparent(self.b.t, ty) || crate::lower::library::wrapped(tcx, ty).is_some() => base,
 				None if self.b.t.own(adt.did()) => {
 					let info = self.b.t.adt(*adt, span);
-					match info.repr {
+					let def = &adt.variant(variant.unwrap_or(rustc_abi::FIRST_VARIANT)).fields[field];
+					let read = match info.repr {
 						AdtRepr::Struct { fields, .. } => base.field(fields[field.index()]),
 						AdtRepr::Slots(_) => {
-							self.err(span, format!("a field of union `{ty}` read apart from its place"))
+							return self.err(span, format!("a field of union `{ty}` read apart from its place"));
 						}
 						AdtRepr::Union | AdtRepr::Tags => {
-							let variant = variant.unwrap_or(rustc_abi::FIRST_VARIANT);
-							let def = &adt.variant(variant).fields[field];
-							let name = crate::lower::field_name(def.name.as_str(), field.index());
-							base.member(name)
+							base.member(crate::lower::field_name(def.name.as_str(), field.index()))
 						}
-					}
+					};
+					let ty::Adt(_, args) = ty.kind() else { unreachable!() };
+					self.b.t.held_field(read, def.did, args, span)
 				}
 				_ => self.err(span, format!("a field of `{ty}`")),
 			},
@@ -1074,8 +1077,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		Expr::rt("place", vec![get, set])
 	}
 
-	/// The `rt.Place` of `place`, a reborrow `&mut *r` of a reference `r` that is one, which is `r`'s.
-	/// A shared reborrow `&*r` is what `r` points at instead.
+	/// The `rt.Place` of `place`, a reborrow `&mut *r` of a reference or pointer `r` that is
+	/// one, which is `r`'s. A shared reborrow `&*r` is what `r` points at instead, and so is
+	/// a `&mut` to an object that a pointer to is a place, such as a `Cell`.
 	pub(super) fn reborrowed(
 		&mut self,
 		kind: mir::BorrowKind,
@@ -1083,7 +1087,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		span: Span,
 		out: &mut Vec<Stmt>,
 	) -> Option<Expr> {
-		if !matches!(kind, mir::BorrowKind::Mut { .. }) {
+		if !matches!(kind, mir::BorrowKind::Mut { .. })
+			|| !self.b.t.needs_place(place.ty(&self.mir.local_decls, self.tcx).ty)
+		{
 			return None;
 		}
 		let [rest @ .., ProjectionElem::Deref] = place.projection.as_slice() else {

@@ -2,8 +2,8 @@
 
 import * as rt from "./rt.ts";
 
-export interface Window {
-	at: rt.u16[];
+export interface Window<T> {
+	at: rt.Ptr<T>;
 }
 
 //# sourceMappingURL=pointers.Window.ts.map

@@ -181,7 +181,12 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 				let info = self.t.adt(*adt, span);
 				let def = adt.variant(variant);
 				match info.repr {
-					AdtRepr::Struct { ctor, fields } => self.t.construct(info.sym, &ctor, &fields, values),
+					AdtRepr::Struct { ctor, fields } => {
+						let values = (def.fields.iter().zip(values))
+							.map(|(field, v)| self.t.field_value(v, adt.did(), field.did, args, span))
+							.collect();
+						self.t.construct(info.sym, &ctor, &fields, values)
+					}
 					AdtRepr::Tags => {
 						let ts_ty = self.t.ty(ty, span);
 						Expr::As(Box::new(Expr::Str(def.name.to_string())), ts_ty)
