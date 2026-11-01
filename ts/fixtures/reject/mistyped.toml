@@ -1,4 +1,0 @@
-# A typing gap translation doesn't refuse, which `tsc` fails at the Rust the source map
-# names: `mistyped.txt` holds the errors.
-package = "reject-fixture"
-roots = ["mistyped"]

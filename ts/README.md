@@ -333,7 +333,10 @@ type is one instance's, declaring the instance it takes as `self`:
 `fmt$fmt_Debug_fmt_Pair(self: Wrap<Pair.Pair>, f: rt.Formatter)`. A reference or pointer
 in a generic type to what only an instance decides the form of, such as `*mut T` or
 `&'a mut T`, is an `rt.Ptr<T>`: the object, an `rt.Place<T>`, or an `rt.ByteSlice`,
-which each read of an instance's field casts to what it holds. A type's module exports the
+which each read of an instance's field casts to what it holds. So is a run of a
+parameter, whose `u8` instance holds bytes: `[T; N]` is an `rt.ArrayOf<T>`, a `T[]` or a
+`Uint8Array`, and `[T]`, `Vec<T>`, and `Cow<[T]>` an `rt.SliceOf<T>`, an `rt.VecOf<T>`,
+and an `rt.CowOf<T>`. A type's module exports the
 type by its own name, which a caller writes `Decoder.Decoder`, and a function whose name
 and exports it as its own: `function new_` is `Decoder.new`. A module imports a function
 or value by its name, and a type's module whole by the type's, `import * as Decoder`,
@@ -846,7 +849,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
   `NonZero`, and raw pointers: a linked list of boxed nodes as `hashlink` keeps one, through a union and a
   `MaybeUninit` entry, pointers to locals, fields, and whole structs, those
   `UnsafeCell::get` gives, as crossbeam-epoch's own `OnceLock` keeps its collector, and
-  those a generic type holds to its parameter, at each form a pointer takes. Its
+  those a generic type holds to its parameter, at each form a pointer takes, and a
+  generic type's arrays, slices, `Vec`s, and `Cow`s of its parameter at bytes, at
+  `u16`, and at values that drop. Its
   differential test runs through `caller.ts`, a
   hand-written caller that also prints a `printable` error nothing translated prints,
   and adds every 64- and 128-bit case over each pair of values next to a power of two,
@@ -889,8 +894,7 @@ built natively for wasm32 and run beside its translation on the same inputs by
   from either end, and its `shared` feature adds a module of the dependency's name, with
   the errors in `refused.txt`, `rev.txt`, and `shared.txt`.
 - `reject` holds constructs outside the subset; its expected errors are `expected.txt`,
-  and its expected census is `census.md`. `mistyped.toml` translates a typing gap that
-  `tsc` rejects, with the errors in `mistyped.txt`.
+  and its expected census is `census.md`.
 
 `tests/spawn.ts` checks that `rt.spawn` yields to a timer after its 128-poll budget, and
 rejects when a future panics as it drops. `tests/retain.ts` runs a collection's `retain`

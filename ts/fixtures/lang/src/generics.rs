@@ -1,5 +1,9 @@
 //! Methods on generic structs and enums, each instance its own method.
 
+use std::borrow::Cow;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::fmt::{Pair, put};
 use crate::shapes::{Area, Meters, Point, Shape, Track};
 
@@ -186,4 +190,196 @@ pub fn reset<X: Default>(xs: &mut [X]) {
 	for x in xs.iter_mut() {
 		*x = X::default();
 	}
+}
+
+/// A generic type holding runs of its parameter in each form JS keeps a run of bytes
+/// apart in, which only an instance decides.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Runs<'a, T: Clone> {
+	pub array: [T; 3],
+	pub list: Vec<T>,
+	pub view: &'a [T],
+	pub boxed: Box<[T]>,
+	pub cow: Cow<'a, [T]>,
+	pub pairs: Vec<[T; 2]>,
+	pub maybe: Option<Vec<T>>,
+}
+
+/// An enum holding a run of its parameter in a variant.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Run<T> {
+	Listed(Vec<T>),
+	Fixed { array: [T; 2] },
+	Empty,
+}
+
+impl<T: Copy + Default> Runs<'_, T> {
+	fn total(&self) -> usize {
+		self.array.len() + self.list.len() + self.view.len() + self.boxed.len() + self.cow.len() + self.pairs.len()
+	}
+
+	fn push(&mut self, item: T) {
+		self.list.push(item);
+		self.cow.to_mut().push(item);
+		self.pairs.push([item; 2]);
+		self.array.rotate_left(1);
+		self.array[2] = item;
+		self.boxed[0] = item;
+		if let Some(maybe) = &mut self.maybe {
+			maybe.push(item);
+		}
+	}
+
+	fn run(&self) -> Run<T> {
+		match self.list.len() % 3 {
+			0 => Run::Listed(self.list.clone()),
+			1 => Run::Fixed {
+				array: [self.array[0], self.array[2]],
+			},
+			_ => Run::Empty,
+		}
+	}
+}
+
+impl<T: Copy> Run<T> {
+	fn first(&self) -> Option<T> {
+		match self {
+			Run::Listed(list) => list.first().copied(),
+			Run::Fixed { array } => Some(array[0]),
+			Run::Empty => None,
+		}
+	}
+}
+
+/// A generic type JS copies, holding an array of its parameter.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Fixed<T> {
+	pub pair: [T; 2],
+	pub tag: u8,
+}
+
+/// `fixed` with its pair swapped, in a copy of it.
+fn swapped<T: Copy>(fixed: Fixed<T>) -> Fixed<T> {
+	let mut copy = fixed;
+	copy.pair.swap(0, 1);
+	copy
+}
+
+/// A generic type lending a run of its parameter, which it writes through, and a function
+/// of one.
+struct Lends<'a, T> {
+	run: &'a mut [T],
+	last: fn(&[T]) -> Option<&T>,
+}
+
+/// Writes `item` over each element of `run`, through a `&mut` to a field.
+fn fill<T: Copy>(run: &mut [T], item: T) {
+	for x in run {
+		*x = item;
+	}
+}
+
+/// [`Runs`] at bytes and at another element: made, written through its fields and
+/// through `&mut`s to them, copied, compared, and printed.
+macro_rules! runs_of {
+	($data:expr, $out:expr, $ty:ty) => {{
+		let data: Vec<$ty> = $data.iter().map(|&b| <$ty>::from(b)).collect();
+		let n = data.first().copied().unwrap_or_default();
+		let mut runs = Runs {
+			array: [n; 3],
+			list: data.clone(),
+			view: &data,
+			boxed: data.clone().into_boxed_slice(),
+			cow: Cow::Borrowed(&data),
+			pairs: Vec::new(),
+			maybe: (data.len() % 2 == 0).then(Vec::new),
+		};
+		let before = runs.clone();
+		for &x in data.iter().take(3) {
+			runs.push(x);
+		}
+		if let Some(pair) = runs.pairs.first_mut() {
+			fill(pair, n);
+		}
+		fill(&mut runs.array[1..], <$ty>::from(7u8));
+		let mut taken = std::mem::take(&mut runs.list);
+		let lent = Lends {
+			run: &mut taken,
+			last: <[$ty]>::last,
+		};
+		let last = (lent.last)(runs.view).copied();
+		if let Some(x) = lent.run.last_mut() {
+			*x = n;
+		}
+		fill(lent.run, <$ty>::from(3u8));
+		let run = runs.run();
+		let fixed = Fixed { pair: [n, n], tag: 1 };
+		let mut copy = fixed;
+		copy.pair[0] = <$ty>::from(9u8);
+		let swapped = swapped(copy);
+		put(
+			$out,
+			&format!(
+				"{runs:?} {before:?} {taken:?} {run:?} {fixed:?} {copy:?} {swapped:?} {} {} {:?} {last:?}",
+				runs.total(),
+				runs == before,
+				run.first(),
+			),
+		);
+	}};
+}
+
+/// Logs its id as it drops, and as it is cloned, the id with the high bit set.
+struct Ticked {
+	id: u8,
+	log: Rc<RefCell<Vec<u8>>>,
+}
+
+impl Clone for Ticked {
+	fn clone(&self) -> Self {
+		self.log.borrow_mut().push(0x80 | self.id);
+		Self {
+			id: self.id,
+			log: self.log.clone(),
+		}
+	}
+}
+
+impl Drop for Ticked {
+	fn drop(&mut self) {
+		self.log.borrow_mut().push(self.id);
+	}
+}
+
+/// [`Runs`], [`Run`], and [`Fixed`] at `u8`, whose runs JS keeps as bytes, and at
+/// `u16`, then [`Runs`] and [`Run`] of values that drop, in the order of their fields.
+pub fn runs(data: &[u8], out: &mut Vec<u8>) {
+	runs_of!(data, out, u8);
+	runs_of!(data, out, u16);
+	let log = Rc::new(RefCell::new(Vec::new()));
+	let tick = |id: u8| Ticked { id, log: log.clone() };
+	let ticks: Vec<Ticked> = data.iter().map(|&id| tick(id)).collect();
+	let runs = Runs {
+		array: [tick(1), tick(2), tick(3)],
+		list: ticks.clone(),
+		view: &ticks,
+		boxed: Box::new([tick(4)]),
+		cow: match data.len() % 2 {
+			0 => Cow::Borrowed(&ticks),
+			_ => Cow::Owned(vec![tick(7)]),
+		},
+		pairs: vec![[tick(5), tick(6)]],
+		maybe: data.first().map(|&id| vec![tick(!id)]),
+	};
+	drop(runs);
+	let run = match data.len() % 3 {
+		0 => Run::Listed(vec![tick(8)]),
+		1 => Run::Fixed {
+			array: [tick(9), tick(10)],
+		},
+		_ => Run::Empty,
+	};
+	drop(run);
+	drop(ticks);
+	out.extend(log.borrow().iter());
 }

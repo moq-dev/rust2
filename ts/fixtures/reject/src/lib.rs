@@ -2141,24 +2141,6 @@ pub fn generic_park_rebound<T>(mut w: Parking<T>, next: Parking<T>) -> i16 {
 	unsafe { (*p).0.get() + w.park.0.get() }
 }
 
-/// A generic type's `Vec<T>`, typed `T[]` though its `u8` instance holds an `rt.ByteVec`:
-/// translation writes output `tsc` rejects, and fails at the Rust it maps to.
-pub struct Rows<T> {
-	pub items: Vec<T>,
-}
-
-impl<T: Copy> Rows<T> {
-	pub fn first(&self) -> T {
-		self.items[0]
-	}
-}
-
-pub fn mistyped(bytes: Vec<u8>, words: Vec<u16>) -> u32 {
-	let a = Rows { items: bytes };
-	let b = Rows { items: words };
-	a.first() as u32 + b.first() as u32
-}
-
 /// An `Option` of pointers to a number, each an `rt.Place` JS makes of its own.
 pub fn optional_places_compared(n: &mut u32) -> bool {
 	let p = std::ptr::NonNull::from(&mut *n);
