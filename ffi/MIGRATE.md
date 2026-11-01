@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- moq's export names kio's clock, which replaces moq-clock, under `moq_clock_`: `moq_now`
+  is `moq_clock_now` (C++ `moq::clock_now`, Kotlin `clockNow`), `moq_origin`
+  `moq_clock_origin`, `moq_instant` `moq_clock_instant`, `moq_now_wall`
+  `moq_clock_now_wall`, `moq_interval_every` `moq_clock_interval_every`, and so on for
+  each of moq-clock's items. moq-mux's `Clock`, which held `moq_clock`, is `moq_mux_clock`,
+  and its `TIMESCALE` `moq_mux_clock_fixed_timescale`. moq-net's own renames at the new
+  pin follow: `moq_path_invalid` is `moq_path_error`, and
+  `moq_origin_consumer_request_broadcast` is `moq_origin_consumer_request`.
+
 - Kotlin returns bytes as a `Bytes`, not a `ByteArray`: Rust's buffer as `bytes.buffer`, a
   read-only `ByteBuffer`, copied up to 1 KiB and otherwise a direct one lent uncopied
   until `bytes.close()` frees it. Read it in `use { }`, or copy it out with

@@ -69,13 +69,13 @@ census checkout="":
     cargo run --locked --quiet -- --config moq/model.toml --manifest-path "$src/rs/moq-net/Cargo.toml" --census target/census/model.md -- --package moq-wasm
     cargo run --locked --quiet -- --config moq/kio.toml --manifest-path "$src/rs/kio/Cargo.toml" --census target/census/kio.md
 
-# Check out the pinned moq revision in target/moq.
+# Check out the pinned moq revision, or another, in target/moq.
 [private]
-moq-pin:
+moq-pin rev=moq_rev:
     [ -d target/moq/.git ] || git clone --quiet --filter=blob:none https://github.com/moq-dev/moq target/moq
     # Fetch only a missing pin; the partial clone would otherwise fetch it lazily to look it up.
-    GIT_NO_LAZY_FETCH=1 git -C target/moq cat-file -e {{ moq_rev }}^{commit} 2> /dev/null || git -C target/moq fetch --quiet --depth 1 origin {{ moq_rev }}
-    git -C target/moq checkout --quiet --detach {{ moq_rev }}
+    GIT_NO_LAZY_FETCH=1 git -C target/moq cat-file -e {{ rev }}^{commit} 2> /dev/null || git -C target/moq fetch --quiet --depth 1 origin {{ rev }}
+    git -C target/moq checkout --quiet --detach {{ rev }}
 
 # Time the codec natively, as moq's WASM, as moq's hand-written TS, and translated, in Node, Bun, Chrome, and Firefox; `--route name=dir` adds another run's translations.
 [arg("route", long)]

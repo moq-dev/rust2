@@ -1,6 +1,6 @@
 /* moq's exported C API against the real library: a broadcast's track, published and
  * subscribed to in one process, with every read polled as a future, and an origin.
- * moq-pattern, moq-clock, moq-tokio, hang, and moq-mux export into the same library, and
+ * moq-pattern, kio, moq-tokio, hang, and moq-mux export into the same library, and
  * each names the others' types, the catalog is lent to C for a call, and a session's
  * config is filled in field by field.
  *
@@ -207,12 +207,12 @@ int main(void) {
 	moq_group_consumer_read_frame_future_free(reading);
 	CHECK(frame != NULL && is(moq_frame_frame_payload(frame), "hello"));
 	CHECK(moq_frame_frame_timestamp(frame) == NULL);
-	/* When it arrived: moq-clock's `Instant`, from moq-clock's own export. */
-	moq_instant *arrived = moq_frame_frame_arrived(frame);
-	moq_instant *now = moq_now();
-	CHECK(moq_instant_checked_duration_since(now, arrived).some);
-	moq_instant_free(now);
-	moq_instant_free(arrived);
+	/* When it arrived: kio's clock's `Instant`, from kio's own export. */
+	moq_clock_instant *arrived = moq_frame_frame_arrived(frame);
+	moq_clock_instant *now = moq_clock_now();
+	CHECK(moq_clock_instant_checked_duration_since(now, arrived).some);
+	moq_clock_instant_free(now);
+	moq_clock_instant_free(arrived);
 	moq_frame_frame_free(frame);
 
 	/* A timestamp is a `Copy` value behind a handle: passing it copies it out. The track
@@ -299,21 +299,21 @@ int main(void) {
 
 	/* Paths own their segments, so C builds them, and relative ones, from a string. */
 	moq_path *cam = NULL;
-	moq_path_invalid path_invalid;
-	CHECK(!moq_path_new(str("/cam/"), &cam, &path_invalid) && path_invalid == MOQ_PATH_INVALID_EMPTY_SEGMENT);
-	CHECK(moq_path_new(str("cam"), &cam, &path_invalid));
+	moq_path_error path_error;
+	CHECK(!moq_path_new(str("/cam/"), &cam, &path_error) && path_error == MOQ_PATH_ERROR_EMPTY_SEGMENT);
+	CHECK(moq_path_new(str("cam"), &cam, &path_error));
 	CHECK(is(moq_path_as_str(cam), "cam"));
 	moq_path *joined = NULL;
-	CHECK(moq_path_join(path, cam, &joined, &path_invalid));
+	CHECK(moq_path_join(path, cam, &joined, &path_error));
 	CHECK(is(moq_path_as_str(joined), "room/alice/cam"));
 	moq_path *stripped = moq_path_strip_prefix(joined, path);
 	CHECK(stripped != NULL && moq_path_eq(stripped, cam));
 	moq_path_free(stripped);
 	CHECK(moq_path_strip_prefix(path, joined) == NULL);
 	moq_relative *up = NULL;
-	CHECK(moq_relative_new(str("../bob"), &up, &path_invalid));
+	CHECK(moq_relative_new(str("../bob"), &up, &path_error));
 	moq_path *resolved = NULL;
-	CHECK(moq_path_resolve(joined, up, &resolved, &path_invalid));
+	CHECK(moq_path_resolve(joined, up, &resolved, &path_error));
 	CHECK(is(moq_path_as_str(resolved), "room/bob"));
 	moq_path_free(resolved);
 	moq_relative_free(up);
@@ -327,11 +327,11 @@ int main(void) {
 	 * made from the waker and held across polls, since what a poll registers lives only
 	 * as long as its waiter. It runs until every owner of the origin is gone. */
 	moq_waiter *waiter = moq_waiter_new(waker);
-	now = moq_now();
-	moq_instant *deadline = NULL;
+	now = moq_clock_now();
+	moq_clock_instant *deadline = NULL;
 	CHECK(moq_origin_driver_poll(driver, now, waiter, &deadline, &err));
-	moq_instant_free(deadline);
-	moq_instant_free(now);
+	moq_clock_instant_free(deadline);
+	moq_clock_instant_free(now);
 	/* A client publishes the origin through moq-net's generic `with_publisher`, at each
 	 * type that implements its bound, by reference, so C keeps its handle. */
 	moq_client *client = moq_client_new();
@@ -343,14 +343,14 @@ int main(void) {
 	moq_origin_producer_free(origin);
 	/* The last owner's drop wakes the driver, which then finishes, cleanly. */
 	CHECK(wakes > before);
-	now = moq_now();
+	now = moq_clock_now();
 	deadline = NULL;
 	err = NULL;
 	CHECK(!moq_origin_driver_poll(driver, now, waiter, &deadline, &err));
 	CHECK(deadline == NULL && err != NULL && is(moq_error_to_string(err), "closed"));
 	moq_error_free(err);
 	err = NULL;
-	moq_instant_free(now);
+	moq_clock_instant_free(now);
 	moq_waiter_free(waiter);
 	moq_origin_driver_free(driver);
 
@@ -655,10 +655,10 @@ int main(void) {
 	moq_connection_established_future_free(establishing);
 	CHECK(established != NULL);
 
-	moq_origin_consumer_request_broadcast_future *requesting = moq_origin_consumer_request_broadcast(remote, str("live"), NULL);
+	moq_origin_consumer_request_future *requesting = moq_origin_consumer_request(remote, str("live"), NULL);
 	moq_broadcast_consumer *remote_broadcast = NULL;
-	AWAIT(moq_origin_consumer_request_broadcast_poll(requesting, session_waker, &remote_broadcast, &err));
-	moq_origin_consumer_request_broadcast_future_free(requesting);
+	AWAIT(moq_origin_consumer_request_poll(requesting, session_waker, &remote_broadcast, &err));
+	moq_origin_consumer_request_future_free(requesting);
 	CHECK(remote_broadcast != NULL);
 	moq_track_consumer *remote_track = NULL;
 	CHECK(moq_broadcast_consumer_track(remote_broadcast, str("video"), &remote_track, &err));
