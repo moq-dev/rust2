@@ -436,8 +436,7 @@ export function parts(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecPush(out, 253);
 		} else {
 			_168[1].v = rt.strToAsciiUppercase(_168[1].v);
-			const part2 = rt.min(b, rt.stringLen(_168[0].v));
-			putUpper(out, rt.strGetMut(_168[0], part2));
+			putUpper(out, rt.strGetMut(_168[0], rt.min(b, rt.stringLen(_168[0].v))));
 		}
 		fmt_put(out, array[1]);
 		let held: string | undefined = text;

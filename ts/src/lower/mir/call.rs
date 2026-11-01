@@ -1492,7 +1492,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						_ => Expr::rt("boundsRange", vec![range, len()]),
 					};
 					let pair = self.path(checked, "bounds", out);
-					(base, (pair.clone().index(Expr::lit("0")), Some(pair.index(Expr::lit("1")))))
+					(
+						base,
+						(pair.clone().index(Expr::lit("0")), Some(pair.index(Expr::lit("1")))),
+					)
 				}
 				None => return None,
 			};
