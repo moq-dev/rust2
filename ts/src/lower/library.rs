@@ -1320,8 +1320,12 @@ fn mapping<'tcx>(
 			// `Some` of a value is the value.
 			let some = matches!(to.kind(), ty::Adt(adt, args)
 				if Std::of(tcx, adt.did()) == Some(Std::Option) && args.type_at(0) == targ(gargs, 1));
-			if to == from || some || (string(tcx, to) && string(tcx, from.peel_refs())) {
+			if to == from || some {
 				return Some(value);
+			}
+			// A `&mut str` is the `rt.Place` of its text.
+			if string(tcx, to) && string(tcx, from.peel_refs()) {
+				return Some(b.t.pointee_value(targ(gargs, 1), value));
 			}
 			// A `Vec` is owned, and a reference to a slice, an array, or a `Vec` borrows its slice.
 			if let Some(elem) = cow_slice(tcx, to) {
@@ -2184,7 +2188,7 @@ fn mapping<'tcx>(
 			return Some(b.err(span, cow_variant(cow)));
 		}
 		("ToString", "to_string") | ("ToOwned", "to_owned") if matches!(self_ty()?.peel_refs().kind(), ty::Str) => {
-			args.pop()?
+			b.t.pointee_value(self_ty()?, args.pop()?)
 		}
 
 		// Panics, which format their message as std does.

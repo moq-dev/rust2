@@ -1,9 +1,11 @@
 //! The ASCII methods of `u8`, `char`, byte slices, and `str`: their tests, case maps, and
 //! case-insensitive equality, each case changed in place through a `&mut` to where the
 //! value is, slices trimmed, and what `escape_ascii` yields from either end and writes.
-//! Every byte is tried, and the chars at each edge of ASCII and past it.
+//! Every byte is tried, and the chars at each edge of ASCII and past it. A `String`'s case
+//! also changes through a `&mut str` to it wherever it is, and to parts of it.
 
 use std::ascii;
+use std::borrow::BorrowMut;
 use std::fmt::Write;
 
 use crate::fmt::put;
@@ -315,6 +317,126 @@ pub fn slices(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 				out.extend(e.clone());
 				i += 1;
 			}
+		}
+	}
+}
+
+/// ASCII letters between chars of each wider UTF-8 length, so a case change shows at
+/// each side of every part.
+const MIXED: &str = "a\u{c9}b\u{800}c\u{1f600}dZ";
+
+/// `s[a..b]`'s case changed through the `&mut str` it is given.
+fn upper_part(s: &mut str, a: usize, b: usize) {
+	s[a..b].make_ascii_uppercase();
+}
+
+/// A part `get_mut` or `split_at_mut_checked` may give, upper-cased and put, or 0xfe if
+/// it gave none.
+fn put_upper(out: &mut Vec<u8>, part: Option<&mut str>) {
+	match part {
+		Some(part) => {
+			part.make_ascii_uppercase();
+			put(out, part);
+		}
+		None => out.push(0xfe),
+	}
+}
+
+/// Case changed through a `&mut str` to a `String` where a local, a tuple, an array, a
+/// `Vec`, or an `Option` holds it, and to parts of one at byte offsets `data` picks up to
+/// two past the end, the `String` put after each change. A part off a char boundary,
+/// backwards, or out of bounds panics as std's does; a checked one gives `None`.
+pub fn parts(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	let text = match kind & 0x10 {
+		0 => MIXED,
+		_ => "",
+	};
+	let at = |i: usize| data.get(i).map_or(0, |&b| usize::from(b) % (text.len() + 3));
+	let (a, b) = (at(0), at(1));
+	let mut s = text.to_string();
+	let mut pair = (7u8, text.to_string());
+	let mut array = [String::from("q"), text.to_string()];
+	let mut v = vec![text.to_string(), text.to_string()];
+	match kind % 8 {
+		0 => {
+			s.as_mut_str().make_ascii_uppercase();
+			put(out, &s);
+			s[a..b].make_ascii_lowercase();
+			put(out, &s);
+		}
+		1 => {
+			pair.1.make_ascii_uppercase();
+			put(out, &pair.1);
+			pair.1[a..].make_ascii_lowercase();
+			put(out, &pair.1);
+			out.push(pair.0);
+		}
+		2 => {
+			array[1].make_ascii_uppercase();
+			put(out, &array[1]);
+			array[1][..b].make_ascii_lowercase();
+			put(out, &array[1]);
+			put(out, &array[0]);
+		}
+		3 => {
+			for t in v.iter_mut() {
+				t.make_ascii_uppercase();
+			}
+			AsMut::<str>::as_mut(&mut v[0])[..].make_ascii_lowercase();
+			v[1][a..b].make_ascii_lowercase();
+			put(out, &v[0]);
+			put(out, &v[1]);
+		}
+		4 => {
+			// Two parts at once, each written after the other's write.
+			let (x, y) = s.split_at_mut(a);
+			x.make_ascii_uppercase();
+			y.make_ascii_uppercase();
+			x.make_ascii_lowercase();
+			put(out, x);
+			put(out, y);
+			let (y0, y1) = y.split_at_mut(b.saturating_sub(a));
+			y1.make_ascii_lowercase();
+			put(out, y0);
+			put(out, y1);
+			put(out, &s);
+		}
+		5 => {
+			put_upper(out, s.get_mut(a..b));
+			put_upper(out, pair.1.get_mut(a..));
+			put_upper(out, v[1].get_mut(..b));
+			put(out, &s);
+			put(out, &pair.1);
+			put(out, &v[1]);
+		}
+		6 => {
+			match BorrowMut::<str>::borrow_mut(&mut array[1]).split_at_mut_checked(a) {
+				Some((x, y)) => {
+					y.make_ascii_uppercase();
+					put_upper(out, x.get_mut(b.min(x.len())..));
+				}
+				None => out.push(0xfd),
+			}
+			put(out, &array[1]);
+			let mut held = Some(text.to_string());
+			if let Some(t) = held.as_mut() {
+				t.make_ascii_uppercase();
+			}
+			put(out, held.as_deref().unwrap_or("-"));
+		}
+		_ => {
+			// A part of a part, through a `&mut str` given.
+			upper_part(&mut v[1][a..], 0, b.saturating_sub(a));
+			put(out, &v[1]);
+			upper_part(&mut s, a, b);
+			put(out, &String::from(&mut s[..a]));
+			put(out, &(&mut s[a..]).to_string());
+			let leaked = pair.1.leak();
+			leaked[b.min(a)..].make_ascii_uppercase();
+			put(out, leaked);
+			let empty: &mut str = Default::default();
+			empty.make_ascii_uppercase();
+			put(out, empty);
 		}
 	}
 }
