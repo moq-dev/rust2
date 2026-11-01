@@ -71,14 +71,11 @@ pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Res
 	let dir = dir.join("browser").join(package);
 	std::fs::create_dir_all(&dir).map_err(|err| format!("creating {}: {err}", dir.display()))?;
 	if config_overrides_all(manifest, &args)? {
-		return Err(format!(
-			"cargo's config overrides every package's dev profile with `\"*\"`, which would reach {package} through the root that picks the browser's randomness, as it never reaches a workspace member: set it in the workspace's Cargo.toml instead"
-		));
+		return Err(overrides_all(package, "cargo's config"));
 	}
 	// What cargo compiles, build scripts' dependencies too, which the profile overrides.
 	let built = tree(manifest, package, "normal,build", &args)?;
-	let members = members(manifest, &args)?;
-	let text = manifest_text(package, package_dir, &workspace, &args, &picks, &built, &members)?;
+	let text = manifest_text(package, package_dir, &workspace, &args, &picks, &built)?;
 	write(&dir.join("Cargo.toml"), &text)?;
 	write(&dir.join("lib.rs"), "")?;
 	// The workspace's own versions, wherever the root needs no other.
@@ -267,14 +264,13 @@ fn config_overrides_all(manifest: &Path, args: &Args) -> Result<bool, String> {
 	}
 }
 
-/// The names of the members of the workspace `manifest` belongs to.
-fn members(manifest: &Path, args: &Args) -> Result<Vec<String>, String> {
-	let output = cargo_tree(manifest, &["--workspace", "--depth", "0"], args)?;
-	Ok((output.lines())
-		.filter_map(|line| line.split(' ').next())
-		.filter(|name| !name.is_empty())
-		.map(String::from)
-		.collect())
+/// The error for a `"*"` dev-profile override that `from` sets: it overrides every package
+/// but a workspace member, and the package is no member of the root's workspace, so it
+/// would reach the package there as it never does natively.
+fn overrides_all(package: &str, from: &str) -> String {
+	format!(
+		"{from} overrides every package's dev profile with `\"*\"`, which skips workspace members but would reach {package} through the root that picks the browser's randomness: override the packages by name instead"
+	)
 }
 
 /// What `cargo tree` prints for the workspace `manifest` belongs to with `tree`'s args and
@@ -307,7 +303,6 @@ fn manifest_text(
 	args: &Args,
 	picks: &[(&Package, &str)],
 	built: &[Package],
-	members: &[String],
 ) -> Result<String, String> {
 	let mut dependencies = toml::Table::new();
 	// A feature named as the package's own, `<package>/<feature>`, by its name there.
@@ -390,44 +385,32 @@ fn manifest_text(
 		.and_then(|p| p.as_table_mut())
 		.and_then(|p| p.remove("dev"));
 	if let Some(toml::Value::Table(dev)) = dev {
-		let dev = dev_profile(dev, built, members);
+		let dev = dev_profile(dev, package, built)?;
 		root.insert("profile".into(), toml::toml! { dev = dev }.into());
 	}
 	toml::to_string(&root).map_err(|err| format!("writing the root package: {err}"))
 }
 
-/// The workspace's dev profile `dev` as the root's, for the `built` packages, of which
-/// `members` were the workspace's own: `"*"` overrides every package but a member, which
-/// outside the workspace it would override too, so it becomes each other package's
-/// override, under the one that already matches it. An override of a package never built
-/// goes, which cargo would warn of.
-fn dev_profile(mut dev: toml::Table, built: &[Package], members: &[String]) -> toml::Table {
+/// The workspace's dev profile `dev` as the root's, for the `built` packages, but its
+/// overrides of packages never built, which cargo would warn of.
+fn dev_profile(mut dev: toml::Table, package: &str, built: &[Package]) -> Result<toml::Table, String> {
 	let Some(toml::Value::Table(mut overrides)) = dev.remove("package") else {
-		return dev;
+		return Ok(dev);
 	};
-	let all = overrides.remove("*");
-	let matches = |spec: &str, p: &Package| {
-		spec_parts(spec).is_some_and(|(name, version)| {
+	if overrides.contains_key("*") {
+		return Err(overrides_all(package, "the workspace's Cargo.toml"));
+	}
+	// A spec of another form, such as a URL, may match one.
+	overrides.retain(|spec, _| {
+		let Some((name, version)) = spec_parts(spec) else {
+			return true;
+		};
+		(built.iter()).any(|p| {
 			p.name == name && version.is_none_or(|v| p.version == v || p.version.starts_with(&format!("{v}.")))
 		})
-	};
-	// A spec of another form, such as a URL, may match one.
-	overrides.retain(|spec, _| spec_parts(spec).is_none() || built.iter().any(|p| matches(spec, p)));
-	if let Some(toml::Value::Table(all)) = all {
-		for package in built.iter().filter(|p| !members.contains(&p.name)) {
-			let spec = (overrides.keys())
-				.find(|spec| matches(spec, package))
-				.cloned()
-				.unwrap_or_else(|| format!("{}@{}", package.name, package.version));
-			if let toml::Value::Table(named) = overrides.entry(spec).or_insert_with(|| toml::Table::new().into()) {
-				for (key, value) in &all {
-					named.entry(key.clone()).or_insert_with(|| value.clone());
-				}
-			}
-		}
-	}
+	});
 	dev.insert("package".into(), overrides.into());
-	dev
+	Ok(dev)
 }
 
 /// The name and version, if any, of a package spec of the form `name`, `name@version`, or
@@ -512,29 +495,23 @@ mod tests {
 	}
 
 	#[test]
-	fn keeps_star_off_the_members() {
+	fn keeps_the_overrides_cargo_applies() {
 		let package = |name: &str| Package {
 			name: name.into(),
 			version: "1.0.0".into(),
 			source: Source::Registry,
 		};
-		let packages = [
-			package("member"),
-			package("dep"),
-			package("named"),
-			package("versioned"),
-		];
+		let built = [package("named"), package("versioned")];
 		let dev: toml::Table = toml::from_str(
 			r#"
 			debug = 1
-			[package."*"]
-			debug-assertions = false
-			opt-level = 1
 			[package.named]
 			opt-level = 3
 			[package.unbuilt]
 			opt-level = 3
 			[package."versioned@1"]
+			opt-level = 2
+			[package."versioned@2"]
 			opt-level = 2
 			[package."https://example.com/index#other@1.0.0"]
 			opt-level = 2
@@ -544,20 +521,17 @@ mod tests {
 		let expected: toml::Table = toml::from_str(
 			r#"
 			debug = 1
-			[package."dep@1.0.0"]
-			debug-assertions = false
-			opt-level = 1
 			[package.named]
-			debug-assertions = false
 			opt-level = 3
 			[package."versioned@1"]
-			debug-assertions = false
 			opt-level = 2
 			[package."https://example.com/index#other@1.0.0"]
 			opt-level = 2
 			"#,
 		)
 		.unwrap();
-		assert_eq!(dev_profile(dev, &packages, &["member".into()]), expected);
+		assert_eq!(dev_profile(dev, "pkg", &built), Ok(expected));
+		let star: toml::Table = toml::from_str("[package.\"*\"]\ndebug-assertions = false").unwrap();
+		assert!(dev_profile(star, "pkg", &built).is_err());
 	}
 }
