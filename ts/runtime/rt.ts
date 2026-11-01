@@ -144,7 +144,7 @@ export type VecOf<T> = T[] | ByteVec;
 export type CowOf<T> = Cow<T> | ByteCow;
 
 /** The pointer to element `index` of `s`, a slice, a `[T; N]`, or a `Vec`'s storage. */
-export function sliceAsPtr<T>(s: T[], index = 0): Place<T> {
+export function sliceAsPtr<T>(s: { [i: number]: T }, index = 0): Place<T> {
 	const view = (s as { [VIEW]?: View<T> })[VIEW];
 	return view ? new AtIndex(view.s, view.start + index) : new AtIndex(s, index);
 }
@@ -159,24 +159,85 @@ export function byteVecAsPtr(v: ByteVec): Place<number> {
 	return new AtIndex(v.data, 0);
 }
 
-/** The array and index `p` points at, which only a pointer into an array has. */
-function elemOf<T>(p: Place<T>, what: string): AtIndex<T> {
-	if (p instanceof AtIndex) return p;
-	throw new Error(`rust2-ts: ${what} of a pointer to a value in no array`);
+/** The array of one element that a pointer to a value in no array points into, by its place. */
+const LONE = /* @__PURE__ */ new WeakMap<Place<unknown>, unknown[]>();
+
+/** The traps of an array of one element, the value at `p`. */
+class Lone<T> implements ProxyHandler<T[]> {
+	readonly p: Place<T>;
+
+	constructor(p: Place<T>) {
+		this.p = p;
+	}
+
+	get(target: T[], key: string | symbol): unknown {
+		return key === "0" ? this.p.v : Reflect.get(target, key);
+	}
+
+	set(target: T[], key: string | symbol, value: T): boolean {
+		if (key !== "0") return Reflect.set(target, key, value);
+		this.p.v = value;
+		return true;
+	}
+
+	has(target: T[], key: string | symbol): boolean {
+		return key === "0" || Reflect.has(target, key);
+	}
+
+	getOwnPropertyDescriptor(target: T[], key: string | symbol): PropertyDescriptor | undefined {
+		if (key !== "0") return Reflect.getOwnPropertyDescriptor(target, key);
+		return { value: this.p.v, writable: true, enumerable: true, configurable: true };
+	}
 }
 
-/** `p.add(n)`, `p.offset(n)`, and their wrapping forms: `n` elements past where `p` points. */
+/**
+ * Where `p` points, as an element of an array: its own, or for a pointer to a value in no
+ * array, element 0 of an array of one that reads and writes it, as Rust treats one.
+ */
+function elemOf<T>(p: Place<T>): AtIndex<T> {
+	if (p instanceof AtIndex) return p;
+	let lone = LONE.get(p) as T[] | undefined;
+	if (!lone) {
+		lone = new Proxy(new Array<T>(1), new Lone(p));
+		LONE.set(p, lone);
+	}
+	return new AtIndex(lone, 0);
+}
+
+/**
+ * The index `n` elements of `size` bytes past `index`, where wasm32's 32-bit addresses
+ * wrap: two indices whose addresses differ by a multiple of 2^32 are the same.
+ */
+function wrapIndex(index: number, n: number, size: number): number {
+	// The addresses of indices a period apart are the same.
+	const low = size & -size;
+	const period = low ? 2 ** 32 / low : 2 ** 32;
+	const at = (index + n) % period;
+	return at >= period / 2 ? at - period : at < -period / 2 ? at + period : at;
+}
+
+/** `p.add(n)` and `p.offset(n)`: `n` elements past where `p` points. */
 export function ptrAdd<T>(p: Place<T>, n: number): Place<T> {
 	if (n === 0) return p;
-	const at = elemOf(p, "an offset");
+	const at = elemOf(p);
 	return new AtIndex(at.array, at.index + n);
+}
+
+/**
+ * `p.wrapping_add(n)` and `wrapping_offset`, `n` an offset of `size`-byte elements read
+ * as wasm32's `isize`, wrapping as a 32-bit address does.
+ */
+export function ptrWrappingAdd<T>(p: Place<T>, n: number, size: number): Place<T> {
+	if (n === 0) return p;
+	const at = elemOf(p);
+	return new AtIndex(at.array, wrapIndex(at.index, n | 0, size));
 }
 
 /** `p.offset_from(origin)`: how many elements `p` is past `origin`, in the same array. */
 export function ptrOffsetFrom<T>(p: Place<T>, origin: Place<T>): number {
 	if (p === origin) return 0;
-	const [a, b] = [elemOf(p, "`offset_from`"), elemOf(origin, "`offset_from`")];
-	if (a.array !== b.array) throw new Error("rust2-ts: `offset_from` of pointers into different arrays");
+	const [a, b] = [elemOf(p), elemOf(origin)];
+	if (a.array !== b.array) throw new Error("rust2-ts: `offset_from` of pointers JS keeps in different arrays");
 	return a.index - b.index;
 }
 
@@ -186,11 +247,7 @@ export function ptrOffsetFrom<T>(p: Place<T>, origin: Place<T>): number {
  */
 export function ptrCopy<T>(src: Place<T>, dst: Place<T>, n: number, copy?: (value: T) => T): void {
 	if (n === 0) return;
-	if (n === 1 && !(src instanceof AtIndex && dst instanceof AtIndex)) {
-		dst.v = copy ? copy(src.v) : src.v;
-		return;
-	}
-	const [from, to] = [elemOf(src, "a copy"), elemOf(dst, "a copy")];
+	const [from, to] = [elemOf(src), elemOf(dst)];
 	if (ArrayBuffer.isView(from.array) && ArrayBuffer.isView(to.array)) {
 		const bytes = from.array as unknown as Uint8Array;
 		(to.array as unknown as Uint8Array).set(bytes.subarray(from.index, from.index + n), to.index);
@@ -202,17 +259,24 @@ export function ptrCopy<T>(src: Place<T>, dst: Place<T>, n: number, copy?: (valu
 
 /** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` elements from `p`. */
 export function ptrSlice<T>(p: Place<T>, len: number): T[] {
-	if (len === 0) return [];
-	const at = elemOf(p, "a slice");
+	// One of none from a dangling pointer points nowhere.
+	if (len === 0 && !(p instanceof AtIndex)) return [];
+	const at = elemOf(p);
 	const array = at.array as T[];
 	return at.index === 0 && len === array.length ? array : sliceView(array, at.index, at.index + len);
 }
 
-/** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` bytes from `p`. */
-export function ptrByteSlice(p: Place<number>, len: number): ByteSlice {
-	if (len === 0) return new ByteSlice(new Uint8Array(0), 0, 0);
-	const at = elemOf(p, "a slice");
-	return new ByteSlice(at.array as Uint8Array, at.index, len);
+/**
+ * `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` bytes from `p`, which
+ * may be `mutable` only if they are in an array of bytes.
+ */
+export function ptrByteSlice(p: Place<number>, len: number, mutable: boolean): ByteSlice {
+	if (len === 0 && !(p instanceof AtIndex)) return new ByteSlice(new Uint8Array(0), 0, 0);
+	const at = elemOf(p);
+	if (at.array instanceof Uint8Array) return new ByteSlice(at.array, at.index, len);
+	// A byte in no array, which no `Uint8Array` can share.
+	if (mutable) throw new Error("rust2-ts: a mutable slice of a byte in no array of bytes");
+	return new ByteSlice(Uint8Array.of(p.v), 0, len);
 }
 
 /**

@@ -286,6 +286,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("elements::arrays", |_, data, out| elements::arrays(data, out)),
 		("elements::segments", |_, data, out| elements::segments(data, out)),
 		("elements::inline", |_, data, out| elements::inline(data, out)),
+		("elements::edges", |_, data, out| elements::edges(data, out)),
 	]
 }
 

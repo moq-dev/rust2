@@ -31,11 +31,11 @@ export function write(self: Storage, offset: rt.usize, src: rt.ByteSlice): void 
 }
 
 export function read(self: Storage, len: rt.usize): rt.ByteSlice {
-	return rt.ptrByteSlice(self.data, len);
+	return rt.ptrByteSlice(self.data, len, false);
 }
 
 export function drop$ops_Drop(self: Storage): void {
-	(({ v: rt.ptrByteSlice(self.data, self.capacity) }.v));
+	(({ v: rt.ptrByteSlice(self.data, self.capacity, true) }.v));
 }
 
 export { new_ as new };

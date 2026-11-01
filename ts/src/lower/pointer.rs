@@ -648,7 +648,13 @@ pub fn call<'tcx>(
 					"sub" | "wrapping_sub" => Expr::unary("-", n),
 					_ => n,
 				};
-				Expr::rt("ptrAdd", vec![p, n])
+				match name.starts_with("wrapping") {
+					true => {
+						let size = super::iter::size_of(b, pointee(), span);
+						Expr::rt("ptrWrappingAdd", vec![p, n, size])
+					}
+					false => Expr::rt("ptrAdd", vec![p, n]),
+				}
 			}
 		}
 		("ptr" | "NonNull", "offset_from" | "offset_from_unsigned") => {
@@ -701,7 +707,10 @@ pub fn call<'tcx>(
 					)));
 				}
 				Some(why) => return Ok(Some(b.err(span, why))),
-				None if matches!(pointee().kind(), ty::Uint(ty::UintTy::U8)) => Expr::rt("ptrByteSlice", vec![p, len]),
+				None if matches!(pointee().kind(), ty::Uint(ty::UintTy::U8)) => {
+					let mutable = !matches!(name, "from_raw_parts" | "slice_from_raw_parts");
+					Expr::rt("ptrByteSlice", vec![p, len, Expr::lit(mutable.to_string())])
+				}
 				None => Expr::rt("ptrSlice", vec![p, len]),
 			};
 			// A raw pointer to a slice is an `rt.Place` of it, as one to any value JS copies is.

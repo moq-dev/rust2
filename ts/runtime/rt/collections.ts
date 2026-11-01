@@ -372,15 +372,25 @@ export class AtIndex<T> implements Place<T> {
 	}
 
 	get v(): T {
+		this.check();
 		return this.array[this.index];
 	}
 
 	set v(value: T) {
-		// A JS array grows by a write past its end, where a `Vec`'s length stays until `set_len`.
-		if (Array.isArray(this.array) && this.index >= this.array.length) {
-			throw new Error("rust2-ts: a write through a pointer past the end of an array");
-		}
+		this.check();
 		this.array[this.index] = value;
+	}
+
+	/**
+	 * Fails past either end of the array, which JS doesn't keep Rust's memory around: a JS
+	 * array grows by a write past its end, where a `Vec`'s length stays until `set_len`, and
+	 * a shared subslice is a copy, which a pointer moved past it would read nothing of.
+	 */
+	private check(): void {
+		const length = (this.array as ArrayLike<T>).length;
+		if (this.index < 0 || this.index >= length) {
+			throw new Error("rust2-ts: a read or write through a pointer past the array JS keeps it in");
+		}
 	}
 }
 

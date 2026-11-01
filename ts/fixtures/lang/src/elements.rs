@@ -2,7 +2,8 @@
 //! `MaybeUninit` array's elements, moved by `add`, `sub`, `offset`, and their wrapping
 //! forms, measured by `offset_from`, copied between by `ptr::copy` and
 //! `copy_nonoverlapping`, overlapping either way, and made slices again, as `smallvec`'s
-//! inline storage and moq-net's frame segments use them.
+//! inline storage and moq-net's frame segments use them, and the edges: addresses that
+//! wrap, a value in no array, and a slice of none.
 
 use std::mem::MaybeUninit;
 use std::ptr::{self, NonNull};
@@ -249,6 +250,53 @@ pub fn inline(data: &[u8], out: &mut Vec<u8>) {
 		pair.1 = 8;
 	}
 	out.extend(src.iter().chain(&dst).flat_map(|p| p.map_or([0, 0], |(a, b)| [a, b])));
+}
+
+/// Pointers wrapped around wasm32's 32-bit addresses and back, to a value in no array, as
+/// the array of one Rust treats it as, and into a mutable part of an array, measured from
+/// the array, and the pointer an empty slice keeps.
+pub fn edges(data: &[u8], out: &mut Vec<u8>) {
+	for &n in data {
+		let bytes = [n, 1, 2, 3];
+		let p = bytes.as_ptr();
+		let wide = [u16::from(n), 7, 8];
+		let q = wide.as_ptr();
+		unsafe {
+			out.push(*p.wrapping_add(usize::MAX).wrapping_add(1));
+			out.push(*p.wrapping_add(1 << 31).wrapping_add(1 << 31));
+			out.push(*p.wrapping_sub(usize::MAX).wrapping_offset(-1));
+			out.extend(q.wrapping_add(1 << 31).wrapping_add(1).read().to_le_bytes());
+			out.extend(
+				q.wrapping_add(3 << 30)
+					.wrapping_add(1 << 30)
+					.wrapping_add(2)
+					.read()
+					.to_le_bytes(),
+			);
+		}
+		let mut lone = u32::from(n) + 42;
+		let at = &raw mut lone;
+		unsafe {
+			out.push(slice::from_raw_parts(at, 1)[0] as u8);
+			slice::from_raw_parts_mut(at, 1)[0] += 1;
+			out.push(at.add(1).sub(1).read() as u8);
+			out.push(at.add(1).offset_from(at) as u8);
+		}
+		out.push(lone as u8);
+		let mut a = [u32::from(n), 1, 2, 3];
+		let base = a.as_mut_ptr();
+		let part = &mut a[1..3];
+		let at = &raw mut part[1];
+		unsafe {
+			out.push(at.offset_from(base) as u8);
+			*at += 5;
+			let empty = slice::from_raw_parts(at.add(1), 0);
+			out.push(empty.as_ptr().offset_from(base) as u8);
+			let none = slice::from_raw_parts(bytes.as_ptr().add(2), 0);
+			out.push(none.as_ptr().offset_from(p) as u8);
+		}
+		out.extend(a.iter().map(|&x| x as u8));
+	}
 }
 
 fn emit(values: &[u32], out: &mut Vec<u8>) {

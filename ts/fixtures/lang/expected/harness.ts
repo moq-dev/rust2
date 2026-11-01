@@ -23,7 +23,7 @@ import { defaults as defaults_defaults } from "./defaults.ts";
 import { durations } from "./durations.ts";
 import { dyns, shared as dyns_shared, anys, fns } from "./dyns.ts";
 import { edits as edits_edits, bytes as edits_bytes } from "./edits.ts";
-import { vecs as elements_vecs, arrays as elements_arrays, segments as elements_segments, inline } from "./elements.ts";
+import { vecs as elements_vecs, arrays as elements_arrays, segments as elements_segments, inline, edges as elements_edges } from "./elements.ts";
 import { eqs } from "./errors.ts";
 import { fields as fields_fields } from "./fields.ts";
 import { floats, mulAdds as floats_mulAdds, formats as floats_formats, parses as floats_parses } from "./floats.ts";
@@ -282,6 +282,8 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		elements_segments(data98, out99);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::inline", (_2199: rt.u8, data99: rt.ByteSlice, out100: rt.ByteVec): undefined => {
 		inline(data99, out100);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::edges", (_2200: rt.u8, data100: rt.ByteSlice, out101: rt.ByteVec): undefined => {
+		elements_edges(data100, out101);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
