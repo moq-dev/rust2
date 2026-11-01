@@ -19,7 +19,8 @@
 //! of `Result`s and std's errors, inclusive ranges read through each adaptor, iterators'
 //! size hints, the capacity overflows collections reserving by them panic with, the
 //! capacity of a `Vec`, `VecDeque`, and `BinaryHeap` as each grows and shrinks, pointers
-//! into arrays moved, measured, and copied between, tuples of
+//! into arrays moved, measured, and copied between, memory from `alloc` typed by a cast of
+//! its pointer, grown, shrunk, and freed, and the `Layout`s it is laid out by, tuples of
 //! collections collected and extended by their items, zero-sized values, which MIR
 //! never assigns, with std's impls of them, and functions generic over an array's length.
 //!
@@ -67,6 +68,7 @@ mod folds;
 mod generics;
 pub mod harness;
 mod hashes;
+mod heap;
 mod hints;
 mod holds;
 mod ints;

@@ -15,6 +15,7 @@ use crate::ts::{self, FieldId, Function, Item, SymId};
 /// file's path from there, and its text.
 pub const RUNTIME: &[(&str, &str)] = &[
 	("rt.ts", include_str!("../runtime/rt.ts")),
+	("rt/alloc.ts", include_str!("../runtime/rt/alloc.ts")),
 	("rt/ascii.ts", include_str!("../runtime/rt/ascii.ts")),
 	("rt/bytes.ts", include_str!("../runtime/rt/bytes.ts")),
 	("rt/collections.ts", include_str!("../runtime/rt/collections.ts")),

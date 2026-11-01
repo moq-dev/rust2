@@ -105,6 +105,20 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 			},
 			ty::Adt(adt, args) => {
 				let fields = children(valtree);
+				// Its alignment is an enum, whose variant `i` is `1 << i`.
+				if Std::of(tcx, adt.did()) == Some(Std::Layout) {
+					let size = fields.first().and_then(|(_, size)| leaf(*size));
+					let align = (fields.get(1).and_then(|(_, align)| children(*align).first().copied()))
+						.and_then(|(_, variant)| children(variant).first().copied())
+						.and_then(|(_, index)| leaf(index));
+					return match (size, align) {
+						(Some(size), Some(index)) => super::alloc::object(
+							Expr::lit(size.to_u32().to_string()),
+							Expr::lit((1u64 << index.to_u32()).to_string()),
+						),
+						_ => self.err(span, format!("a constant of type `{ty}` without its fields")),
+					};
+				}
 				// Its nanoseconds are a pattern type, which only it reads.
 				if Std::of(tcx, adt.did()) == Some(Std::Duration) {
 					return match super::time::constant(&fields) {

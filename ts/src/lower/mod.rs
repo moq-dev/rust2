@@ -5,6 +5,7 @@
 //! call is always a direct call. Types are translated once, generically, and a function of
 //! a type is a module-level one taking `self` first, so a bundler drops what goes unused.
 
+mod alloc;
 mod bind;
 pub use bind::check_module;
 mod body;
@@ -1739,6 +1740,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				library::Std::Hasher => Type::Rt("Hasher", vec![]),
 				library::Std::RandomState => Type::Rt("RandomState", vec![]),
 				library::Std::Duration => Type::Rt("Duration", vec![]),
+				library::Std::Layout => Type::Rt("Layout", vec![]),
+				library::Std::LayoutError => Type::Rt("LayoutError", vec![]),
 				library::Std::Bytes => Type::Rt("ByteSlice", vec![]),
 				library::Std::BytesMut => Type::Rt("BytesMut", vec![]),
 				library::Std::ThreadRng => Type::Rt("ThreadRng", vec![]),

@@ -13,6 +13,7 @@ import { drop as dispose, dropAll, type Pending } from "./rt/task.ts";
 
 import { AtIndex } from "./rt/collections.ts";
 import { UNPRINTABLE } from "./rt/unicode.ts";
+export * from "./rt/alloc.ts";
 export * from "./rt/ascii.ts";
 export * from "./rt/bytes.ts";
 export * from "./rt/collections.ts";

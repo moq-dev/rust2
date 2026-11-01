@@ -172,5 +172,7 @@ roots = [
     "pointers_apart",
     "lone_byte_slices",
     "reached_out",
+    "bytes_as_values",
+    "zeroed",
 ]
 printable = ["Meters"]

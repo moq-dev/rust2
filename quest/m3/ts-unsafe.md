@@ -33,10 +33,12 @@ none of its own `unsafe`.
   with a span; a pointer from elsewhere, such as a field, fails there loudly at run time.
   A pointer to an element JS keeps as an object, such as a tuple or the crate's struct, is
   that object, which knows no array it is in, so arithmetic on one stays refused:
-  hashbrown's buckets and kio's `log.rs` reach it. smallvec's pointer arithmetic
-  translates, but it spills to memory from `alloc::alloc`, which this Plan refuses, so it
-  translates whole only once the maintainer decides how a typed allocation
-  (`Layout::array::<T>`, then a cast to `*mut T`) is modeled or that smallvec is mapped.
+  hashbrown's buckets and kio's `log.rs` reach it.
+- Decided with the maintainer on 2026-11-01, typed allocation: memory from `alloc` for a
+  `Layout::array::<T>(n)`, or an equal layout of `T`'s size and alignment, cast to `*mut T`
+  is a fresh JS array of `T`s, which `realloc` copies and `dealloc` frees. Untyped and
+  byte allocation stay refused. smallvec spills to it, and `Vec::from_raw_parts` of it is
+  left.
 - `ManuallyDrop<T>` as `T` with its drop skipped, as `MaybeUninit` is: crossbeam-epoch's
   `Local` reaches it, though crossbeam's tagged pointers stay refused.
 - A union over a type parameter, whose layout has no fixed offsets until an instance

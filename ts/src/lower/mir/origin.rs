@@ -69,6 +69,14 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		if self.b.t.zero_sized(pointee) || self.b.t.pointee(pointee) != Pointee::Place {
 			return None;
 		}
+		// Only a cast types memory from `alloc`, which has no bytes before or after.
+		if matches!(pointee.kind(), ty::Uint(ty::UintTy::U8))
+			&& matches!(owner.as_str(), "ptr" | "NonNull" | "raw")
+			&& !matches!(name.as_str(), "cast" | "as_ptr" | "new" | "new_unchecked" | "is_null")
+			&& args.iter().any(|a| self.allocated(&a.node))
+		{
+			return Some(super::alloc::BYTES.into());
+		}
 		let out = |o: Origin, n: Option<i128>, what: &str| {
 			let index = o.index?;
 			let past = o.array.len().is_some_and(|len| index + n.unwrap_or(0) > len);
@@ -271,7 +279,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	}
 
 	/// The local `op` reads whole, if the body assigns it once.
-	fn traced(&self, op: &Operand<'tcx>) -> Option<Local> {
+	pub(super) fn traced(&self, op: &Operand<'tcx>) -> Option<Local> {
 		let local = op.place()?.as_local()?;
 		(self.defs[local] == 1 && !self.is_arg(local)).then_some(local)
 	}
@@ -284,7 +292,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	}
 
 	/// The function, its generic arguments, and its arguments, of the call that assigns `local`.
-	fn def_call(
+	pub(super) fn def_call(
 		&self,
 		local: Local,
 	) -> Option<(

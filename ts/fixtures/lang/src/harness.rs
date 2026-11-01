@@ -288,6 +288,8 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("elements::segments", |_, data, out| elements::segments(data, out)),
 		("elements::inline", |_, data, out| elements::inline(data, out)),
 		("elements::edges", |_, data, out| elements::edges(data, out)),
+		("heap::spills", |_, data, out| heap::spills(data, out)),
+		("heap::layouts", |_, data, out| heap::layouts(data, out)),
 	]
 }
 
