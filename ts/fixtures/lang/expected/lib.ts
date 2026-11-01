@@ -733,6 +733,10 @@ export function copy$tuple2_u64_u64(v: [rt.u64, rt.u64]): [rt.u64, rt.u64] {
 	return [v[0], v[1]];
 }
 
+export function copy$tuple2_u64_u8(v: [rt.u64, rt.u8]): [rt.u64, rt.u8] {
+	return [v[0], v[1]];
+}
+
 export function copy$tuple2_u8_String(v: [rt.u8, string]): [rt.u8, string] {
 	return [v[0], v[1]];
 }

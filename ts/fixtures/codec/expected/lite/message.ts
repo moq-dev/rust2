@@ -3,25 +3,29 @@
 import * as rt from "../rt.ts";
 import * as DecodeError from "../coding/decode.DecodeError.ts";
 import * as Decoder from "../coding/decode.Decoder.ts";
+import { sizeOut } from "../coding/varint.ts";
 import { mapErr$0577706 as result_mapErr$0577706, mapErr$04g1m7s as result_mapErr$04g1m7s, andThen$0hcfsqc as result_andThen$0hcfsqc, andThen$1kvlask as result_andThen$1kvlask, unwrapOr$0jeml8j as result_unwrapOr$0jeml8j } from "../core/result.ts";
 import type * as Group from "../lite/group.Group.ts";
 import type * as Probe from "../lite/probe.Probe.ts";
 import type * as Control from "../stats.Control.ts";
 
 /** Read a lite message's varint size prefix, refusing one past `max`. */
-export function decodeSize(r: Decoder.Decoder, max: rt.usize): rt.Result<rt.usize, DecodeError.DecodeError> {
-	const _3: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-	if (_3.ok) {
-		const size: rt.u64 = _3.value;
+export function decodeSize(r: Decoder.Decoder, max: rt.usize): rt.usize | undefined {
+	const part: rt.u64 | undefined = Decoder.varint(r);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const size: rt.u64 = part as rt.u64;
 		const _8: rt.Result<rt.usize, rt.TryFromIntError> = rt.usizeTryFrom(size);
 		if (_8.ok) {
 			if (_8.value <= max) {
-				return _8 as rt.Result<rt.usize, DecodeError.DecodeError>;
+				return _8.value;
 			}
 		}
-		return rt.Err({ tag: "MessageTooLarge", size: result_unwrapOr$0jeml8j(rt.usizeTryFrom(size), 4294967295), max } as DecodeError.DecodeError);
+		sizeOut.err = { tag: "MessageTooLarge", size: result_unwrapOr$0jeml8j(rt.usizeTryFrom(size), 4294967295), max } as DecodeError.DecodeError;
+		return undefined;
 	}
-	return _3;
+	sizeOut.err = err as DecodeError.DecodeError;
+	return undefined;
 }
 
 /**
@@ -29,9 +33,10 @@ export function decodeSize(r: Decoder.Decoder, max: rt.usize): rt.Result<rt.usiz
  * [`Message::decode_msg`], for a body whose bounds come from the session.
  */
 export function decodeWith$lite_group_Group_coding_decode_Decode_lite_version_Version_T_decode_closure0_lite_group_Group(r: Decoder.Decoder, decode: (a0: Decoder.Decoder) => rt.Result<Group.Group, DecodeError.DecodeError>): rt.Result<Group.Group, DecodeError.DecodeError> {
-	const _3: rt.Result<rt.usize, DecodeError.DecodeError> = decodeSize(r, 65535);
-	if (_3.ok) {
-		const _9: rt.Result<Decoder.Decoder, DecodeError.DecodeError> = Decoder.sub(r, _3.value);
+	const part: rt.usize | undefined = decodeSize(r, 65535);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? sizeOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const _9: rt.Result<Decoder.Decoder, DecodeError.DecodeError> = Decoder.sub(r, part as rt.usize);
 		if (_9.ok) {
 			const body: Decoder.Decoder = _9.value;
 			const result: rt.Result<Group.Group, DecodeError.DecodeError> = result_andThen$0hcfsqc(result_mapErr$0577706(decode(body), DecodeError.complete), (msg: Group.Group): rt.Result<Group.Group, DecodeError.DecodeError> => {
@@ -47,7 +52,7 @@ export function decodeWith$lite_group_Group_coding_decode_Decode_lite_version_Ve
 		}
 		return _9;
 	}
-	return _3;
+	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /**
@@ -55,9 +60,10 @@ export function decodeWith$lite_group_Group_coding_decode_Decode_lite_version_Ve
  * [`Message::decode_msg`], for a body whose bounds come from the session.
  */
 export function decodeWith$lite_probe_Probe_coding_decode_Decode_lite_version_Version_T_decode_closure0_lite_probe_Probe(r: Decoder.Decoder, decode: (a0: Decoder.Decoder) => rt.Result<Probe.Probe, DecodeError.DecodeError>): rt.Result<Probe.Probe, DecodeError.DecodeError> {
-	const _3: rt.Result<rt.usize, DecodeError.DecodeError> = decodeSize(r, 65535);
-	if (_3.ok) {
-		const _9: rt.Result<Decoder.Decoder, DecodeError.DecodeError> = Decoder.sub(r, _3.value);
+	const part: rt.usize | undefined = decodeSize(r, 65535);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? sizeOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const _9: rt.Result<Decoder.Decoder, DecodeError.DecodeError> = Decoder.sub(r, part as rt.usize);
 		if (_9.ok) {
 			const body: Decoder.Decoder = _9.value;
 			const result: rt.Result<Probe.Probe, DecodeError.DecodeError> = result_andThen$1kvlask(result_mapErr$04g1m7s(decode(body), DecodeError.complete), (msg: Probe.Probe): rt.Result<Probe.Probe, DecodeError.DecodeError> => {
@@ -73,7 +79,7 @@ export function decodeWith$lite_probe_Probe_coding_decode_Decode_lite_version_Ve
 		}
 		return _9;
 	}
-	return _3;
+	return rt.Err(err as DecodeError.DecodeError);
 }
 
 //# sourceMappingURL=message.ts.map

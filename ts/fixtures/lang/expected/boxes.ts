@@ -134,7 +134,7 @@ export function boxes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		bytes(fromMut, out);
 		bytes(rt.byteVecSlice(source), out);
 		bytes(rt.byteSliceFrom(rt.byteSliceToArray(data2)), out);
-		const spare: rt.ByteVec = new rt.ByteVec(64);
+		const spare: rt.ByteVec = rt.byteVecWithCapacity(64);
 		rt.byteVecExtendFromSlice(spare, data2);
 		let fromVec: rt.ByteSlice = rt.byteVecSlice(spare);
 		scramble(rt.place(() => fromVec, (value4) => fromVec = value4));
@@ -239,7 +239,7 @@ export function boxes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 		wides(fromRef2, out);
 		wides(wide, out);
-		const fromVec2: rt.u16[] = wide.slice();
+		const fromVec2: rt.u16[] = rt.vecExact(wide.slice(), 2);
 		const _295: rt.Place<rt.u16> | undefined = rt.sliceLastMut(fromVec2);
 		if (_295 !== undefined) {
 			_295.v = 48879;
@@ -980,7 +980,7 @@ export function impls(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecPush(v4, 119);
 			bytes(rt.byteVecSlice(v4), out);
 		}
-		const spare: rt.ByteVec = new rt.ByteVec(32);
+		const spare: rt.ByteVec = rt.byteVecWithCapacity(32);
 		rt.byteVecExtendFromSlice(spare, data2);
 		const _417: rt.ByteVec = spare;
 		boxed$4_Vec_u8(_417.length === 4 ? rt.Ok(rt.byteSliceView(rt.byteVecSlice(_417))) : rt.Err(_417), out);

@@ -213,7 +213,7 @@ export function folded(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 			const _199: rt.Iter<Guard.Guard> = rt.iterSlice(guards(1, 4), rt.drop);
 			_1090 = false;
 			const captured54 = c;
-			const _198: rt.Iter<Guard.Guard> = rt.iterMap(_199, rt.closure((g66: Guard.Guard): Guard.Guard => {
+			const queue: rt.VecDeque<Guard.Guard> = rt.dequeFromVec(rt.iterToArray(rt.iterMap(_199, rt.closure((g66: Guard.Guard): Guard.Guard => {
 				const _974: rt.u32 = Guard.id(g66);
 				const _1223: rt.u32 = Guard.id(captured54);
 				const args100: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(_974, f), (f: rt.Formatter) => rt.u32Display(_1223, f)];
@@ -221,8 +221,7 @@ export function folded(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 				return g66;
 			}, (): void => {
 				captured54[Symbol.dispose]();
-			}));
-			const queue: rt.VecDeque<Guard.Guard> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<Guard.Guard>, rt.iterSlice(rt.iterToArray(_198, "next", 8, true)));
+			})), "next", 8, true)) as rt.VecDeque<Guard.Guard>;
 			const _206: rt.Iter<Guard.Guard> = rt.iterSlice(guards(4, 7), rt.drop);
 			_1089 = false;
 			const captured55 = d;

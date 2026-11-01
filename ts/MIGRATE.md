@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `rt.vecCapacity`, `rt.vecReserve`, `rt.vecReserveExact`, and `rt.dequeReserve` are now
+  `Vec::capacity`, `reserve`, and `reserve_exact` and `VecDeque::reserve` of a vector, its
+  element size in bytes last, as in `rt.vecReserve(v, additional, 4)`, not the arithmetic
+  an extend reserved by; `rt.vecPush` and `rt.vecGrow` are gone. `rt.dequeClone` and
+  `rt.heapClone` take the element size after the clone function.
 - Every translation needs `tsc` 7.0 or later on `PATH`, not only one with bindings: it
   type-checks the output, and fails at the Rust span of each error, where it succeeded
   before.
@@ -9,7 +14,7 @@
   whose object its body never makes as its `data`, `start`, and `length`:
   `read(buf, form)` is `read(buf.data, buf.start, buf.length, form)`. A caller takes
   which from the output. One that returns a `Result` of byte slices
-  and scalars returns its error or `undefined`, and leaves the `Ok`'s parts in a
+  and scalars, or of numbers alone, returns its error or `undefined`, and leaves the `Ok`'s parts in a
   module-level slot, such as `sliceOut`. If the `Ok`'s first part is a number, it returns
   that, or `undefined` for an error, and leaves the rest, or the error as `err`, in the
   slot, such as `readOut`. A root still takes an `rt.ByteSlice` and returns

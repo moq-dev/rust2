@@ -29,27 +29,30 @@ export interface Group {
 /** Decode a message body (without size prefix). */
 export function decodeMsg$lite_message_Message(r: Decoder.Decoder, version: lite_version_Version.Version): rt.Result<Group, DecodeError.DecodeError> {
 	let frameStart!: rt.u64;
-	const _3: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-	if (_3.ok) {
-		const subscribe: rt.u64 = _3.value;
-		const _8: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-		if (_8.ok) {
-			const sequence: rt.u64 = _8.value;
+	const part: rt.u64 | undefined = Decoder.varint(r);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const subscribe: rt.u64 = part as rt.u64;
+		const part2: rt.u64 | undefined = Decoder.varint(r);
+		const err2: DecodeError.DecodeError | undefined = part2 === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+		if (err2 === undefined) {
+			const sequence: rt.u64 = part2 as rt.u64;
 			if (!lite_version_Version.hasFrameBounds(version)) {
 				frameStart = 0;
 			} else {
-				const _15: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-				if (_15.ok) {
-					frameStart = _15.value;
+				const part3: rt.u64 | undefined = Decoder.varint(r);
+				const err3: DecodeError.DecodeError | undefined = part3 === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+				if (err3 === undefined) {
+					frameStart = part3 as rt.u64;
 				} else {
-					return _15;
+					return rt.Err(err3 as DecodeError.DecodeError);
 				}
 			}
 			return rt.Ok({ subscribe, sequence, frameStart });
 		}
-		return _8;
+		return rt.Err(err2 as DecodeError.DecodeError);
 	}
-	return _3;
+	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /** Encode this message body (without size prefix). */

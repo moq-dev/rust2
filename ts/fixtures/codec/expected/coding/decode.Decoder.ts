@@ -103,7 +103,7 @@ export function sub(self: Decoder, len: rt.usize): rt.Result<Decoder, DecodeErro
 }
 
 /** Read a single byte. */
-export function u8(self: Decoder): rt.Result<rt.u8, DecodeError.DecodeError> {
+export function u8(self: Decoder): rt.u8 | undefined {
 	const err: DecodeError.DecodeError | undefined = slice(self, 1);
 	const part: Uint8Array = sliceOut.pData;
 	const part2: number = sliceOut.pStart;
@@ -112,13 +112,16 @@ export function u8(self: Decoder): rt.Result<rt.u8, DecodeError.DecodeError> {
 		if (0 >= part3) {
 			rt.panic("index out of bounds: the len is " + part3 + " but the index is " + 0);
 		}
-		return rt.Ok(part[part2]);
+		return part[part2];
 	}
-	return rt.Err(err as DecodeError.DecodeError);
+	u8Out.err = err as DecodeError.DecodeError;
+	return undefined;
 }
 
+export const u8Out: { err: unknown } = { err: undefined };
+
 /** Read a big-endian `u16`. */
-export function u16(self: Decoder): rt.Result<rt.u16, DecodeError.DecodeError> {
+export function u16(self: Decoder): rt.u16 | undefined {
 	const err: DecodeError.DecodeError | undefined = slice(self, 2);
 	const part: Uint8Array = sliceOut.pData;
 	const part2: number = sliceOut.pStart;
@@ -131,30 +134,40 @@ export function u16(self: Decoder): rt.Result<rt.u16, DecodeError.DecodeError> {
 		if (1 >= part3) {
 			rt.panic("index out of bounds: the len is " + part3 + " but the index is " + 1);
 		}
-		return rt.Ok((_9 << 8) | part[part2 + 1]);
+		return (_9 << 8) | part[part2 + 1];
 	}
-	return rt.Err(err as DecodeError.DecodeError);
+	u16Out.err = err as DecodeError.DecodeError;
+	return undefined;
 }
+
+export const u16Out: { err: unknown } = { err: undefined };
 
 /** Read a byte that must be 0 or 1. */
-export function bool(self: Decoder): rt.Result<boolean, DecodeError.DecodeError> {
-	const _2: rt.Result<rt.u8, DecodeError.DecodeError> = u8(self);
-	if (_2.ok) {
-		const val: rt.u8 = _2.value;
+export function bool(self: Decoder): DecodeError.DecodeError | undefined {
+	const part: rt.u8 | undefined = u8(self);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? u8Out.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const val: rt.u8 = part as rt.u8;
 		if (val === 0) {
-			return rt.Ok(false);
+			boolOut.p = false;
+			return undefined;
 		}
 		if (val === 1) {
-			return rt.Ok(true);
+			boolOut.p = true;
+			return undefined;
 		}
-		return rt.Err({ tag: "InvalidValue" } as DecodeError.DecodeError);
+		return { tag: "InvalidValue" } as DecodeError.DecodeError;
 	}
-	return _2;
+	return err as DecodeError.DecodeError;
 }
 
+export const boolOut: { p: boolean } = { p: undefined as never };
+
 /** Read a varint. */
-export function varint(self: Decoder): rt.Result<rt.u64, DecodeError.DecodeError> {
-	let _0!: rt.Result<rt.u64, DecodeError.DecodeError>;
+export function varint(self: Decoder): rt.u64 | undefined {
+	let _0Err!: boolean;
+	let _02!: rt.u64;
+	let _03!: DecodeError.DecodeError;
 	const part: rt.u64 | undefined = read(self.bufData, self.bufStart, self.bufLen, self.form);
 	const err2: DecodeError.DecodeError | undefined = part === undefined ? readOut.err as DecodeError.DecodeError : undefined;
 	const part2: Uint8Array = readOut.p_1Data;
@@ -165,22 +178,34 @@ export function varint(self: Decoder): rt.Result<rt.u64, DecodeError.DecodeError
 		self.bufData = part2;
 		self.bufStart = part3;
 		self.bufLen = part4;
-		_0 = rt.Ok(value);
+		_0Err = false;
+		_02 = value;
 	} else if ((err2 as DecodeError.DecodeError).tag === "Short") {
-		_0 = rt.Err(short(self, rt.usizeAdd(self.bufLen, 1)));
+		const _8: DecodeError.DecodeError = short(self, rt.usizeAdd(self.bufLen, 1));
+		_0Err = true;
+		_03 = _8;
 	} else {
-		_0 = rt.Err(err2 as DecodeError.DecodeError);
+		const err: DecodeError.DecodeError = err2 as DecodeError.DecodeError;
+		_0Err = true;
+		_03 = err;
 	}
-	return _0;
+	if (_0Err) {
+		varintOut.err = _03;
+		return undefined;
+	}
+	return _02;
 }
+
+export const varintOut: { err: unknown } = { err: undefined };
 
 /** Read an optional varint: 0 is `None`, and `n + 1` is `Some(n)`. */
 export function varintOpt(self: Decoder): rt.Result<rt.u64 | undefined, DecodeError.DecodeError> {
-	const _3: rt.Result<rt.u64, DecodeError.DecodeError> = varint(self);
-	if (_3.ok) {
-		return rt.Ok(rt.u64CheckedSub(_3.value, 1));
+	const part: rt.u64 | undefined = varint(self);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		return rt.Ok(rt.u64CheckedSub(part as rt.u64, 1));
 	}
-	return _3;
+	return rt.Err(err as DecodeError.DecodeError);
 }
 
 /** Read a varint length, then that many raw bytes. */
@@ -189,27 +214,28 @@ export function bytes(self: Decoder): DecodeError.DecodeError | undefined {
 	const startData: Uint8Array = self.bufData;
 	const startStart: number = self.bufStart;
 	const startLen: number = self.bufLen;
-	const _6: rt.Result<rt.u64, DecodeError.DecodeError> = varint(self);
-	if (_6.ok) {
-		const _3: rt.Result<rt.usize, DecodeError.DecodeError> = result_mapErr$06mnjtr(rt.usizeTryFrom(_6.value), (_2: rt.TryFromIntError): DecodeError.DecodeError => {
+	const part: rt.u64 | undefined = varint(self);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const _3: rt.Result<rt.usize, DecodeError.DecodeError> = result_mapErr$06mnjtr(rt.usizeTryFrom(part as rt.u64), (_2: rt.TryFromIntError): DecodeError.DecodeError => {
 			return { tag: "BoundsExceeded" } as DecodeError.DecodeError;
 		});
 		if (_3.ok) {
-			const err: DecodeError.DecodeError | undefined = slice(self, _3.value);
-			const part: Uint8Array = sliceOut.pData;
-			const part2: number = sliceOut.pStart;
-			const part3: number = sliceOut.pLen;
+			const err2: DecodeError.DecodeError | undefined = slice(self, _3.value);
+			const part2: Uint8Array = sliceOut.pData;
+			const part3: number = sliceOut.pStart;
+			const part4: number = sliceOut.pLen;
 			const _15: (a0: DecodeError.DecodeError) => undefined = (_22: DecodeError.DecodeError): undefined => {
 				self.bufData = startData;
 				self.bufStart = startStart;
 				self.bufLen = startLen;
 			};
-			_0 = inspectErr$156koiv((err !== undefined ? rt.Err(err as DecodeError.DecodeError) : rt.Ok(new rt.ByteSlice(part, part2, part3))) as rt.Result<rt.ByteSlice, DecodeError.DecodeError>, _15);
+			_0 = inspectErr$156koiv((err2 !== undefined ? rt.Err(err2 as DecodeError.DecodeError) : rt.Ok(new rt.ByteSlice(part2, part3, part4))) as rt.Result<rt.ByteSlice, DecodeError.DecodeError>, _15);
 		} else {
 			_0 = _3;
 		}
 	} else {
-		_0 = _6;
+		_0 = rt.Err(err as DecodeError.DecodeError);
 	}
 	const result: rt.Result<rt.ByteSlice, DecodeError.DecodeError> = _0;
 	if (!result.ok) {
