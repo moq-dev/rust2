@@ -1447,3 +1447,44 @@ struct Loaded(u8, u8);
 fn next_read<T>(items: &mut std::slice::Iter<'_, T>) -> Option<T> {
 	items.next().map(|r| unsafe { std::ptr::read(r) })
 }
+
+/// Pointers callees keep, through references, to values with no cell in them, which their
+/// variables are assigned again past while they are kept: each made again before it is
+/// read, as zlib's stream takes its window each round, by a callee over a type parameter:
+/// one into an array and one into a struct.
+pub fn reattached(data: &[u8], out: &mut Vec<u8>) {
+	let mut window = Window {
+		at: std::ptr::null_mut(),
+	};
+	let mut buf = [0u16; 4];
+	let mut slot = Slot {
+		at: std::ptr::null_mut(),
+	};
+	let mut pair = Reattached(0, 0);
+	for &n in data {
+		attach(&mut window.at, &mut buf);
+		unsafe { (*window.at)[usize::from(n % 4)] ^= u16::from(n) << 7 };
+		out.extend(buf.map(|b| (b >> 4) as u8));
+		buf = [u16::from(n); 4];
+		attach(&mut slot.at, &mut pair);
+		unsafe { (*slot.at).1 = (*slot.at).0.wrapping_add(n) };
+		out.extend([pair.0, pair.1]);
+		pair = Reattached(pair.1, n);
+	}
+	out.extend(buf.map(|b| b as u8));
+}
+
+/// A struct JS keeps as an object that only [`reattached`] points into.
+struct Reattached(u8, u8);
+
+struct Window {
+	at: *mut [u16; 4],
+}
+
+struct Slot {
+	at: *mut Reattached,
+}
+
+fn attach<T>(at: &mut *mut T, to: &mut T) {
+	*at = to;
+}

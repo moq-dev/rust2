@@ -146,6 +146,8 @@ pub enum Std {
 	BTreeSet,
 	/// `rt.VecDeque`, a ring buffer.
 	VecDeque,
+	/// `rt.LinkedList`, nodes linked both ways.
+	LinkedList,
 	/// `rt.BinaryHeap`, std's max-heap in an array, and `rt.PeekMut`, its greatest element lent.
 	BinaryHeap,
 	PeekMut,
@@ -239,6 +241,7 @@ impl Std {
 			(rustc_span::Symbol::intern("BTreeMap"), Self::BTreeMap),
 			(rustc_span::Symbol::intern("BTreeSet"), Self::BTreeSet),
 			(rustc_span::Symbol::intern("VecDeque"), Self::VecDeque),
+			(rustc_span::Symbol::intern("LinkedList"), Self::LinkedList),
 			(rustc_span::Symbol::intern("BinaryHeap"), Self::BinaryHeap),
 			(rustc_span::Symbol::intern("Duration"), Self::Duration),
 		] {
@@ -933,6 +936,10 @@ pub(super) fn none_last(owner: &str, name: &str) -> bool {
 					| "remove"
 					| "swap_remove_front"
 					| "swap_remove_back"
+			)
+			| (
+				"LinkedList",
+				"pop_front" | "pop_back" | "front" | "back" | "front_mut" | "back_mut"
 			)
 			| ("BinaryHeap", "pop" | "peek")
 			| ("HashSet", "get" | "take" | "replace")
@@ -2391,7 +2398,7 @@ fn clone_into<'tcx>(b: &mut Body<'_, '_, 'tcx>, elem: Ty<'tcx>, name: &str, span
 /// Whether `clone_from` of `ty` clones, and drops what it writes over, as
 /// `*self = source.clone()` would: `Clone`'s own, and std's own over such types, where it
 /// only reuses memory, if nothing drops or it is an `Option`'s.
-fn clone_from_clones<'tcx>(t: &mut Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
+pub(super) fn clone_from_clones<'tcx>(t: &mut Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
 	let tcx = t.tcx;
 	let clone_from = super::collections::trait_fn(tcx, "Clone", "clone_from");
 	let resolved = Instance::try_resolve(tcx, t.typing_env_pub(), clone_from, tcx.mk_args(&[ty.into()]));
@@ -2957,6 +2964,20 @@ pub fn default_value<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span,
 	Some(match ty.kind() {
 		_ if nothing(tcx, ty) => Expr::undefined(),
 		ty::Adt(adt, _) if empty_iter(tcx, adt.did()) => b.zero_sized_std(ty, Vec::new(), span).ok()?,
+		// A list's iterators, over an empty list.
+		ty::Adt(adt, _)
+			if is_std(tcx, adt.did())
+				&& matches!(
+					std_path(tcx, adt.did())
+						.iter()
+						.map(String::as_str)
+						.collect::<Vec<_>>()
+						.as_slice(),
+					["collections", "linked_list", "Iter" | "IterMut" | "IntoIter"]
+				) =>
+		{
+			Expr::rt("listIter", vec![Expr::rt("listNew", Vec::new())])
+		}
 		ty::Tuple(parts) => Expr::Array(parts.iter().map(|t| part(b, t, out)).collect()),
 		ty::Array(elem, n) => {
 			let n = n.try_to_target_usize(tcx)?;

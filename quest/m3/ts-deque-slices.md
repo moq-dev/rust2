@@ -28,7 +28,3 @@ Public API: the translator's output.
 ## Required
 
 - [The rest of std the model reaches](/quest/m2/ts-model/std-rest.md) - `VecDeque` carries std's capacity, which the split depends on
-
-## Related
-
-- [LinkedList](/quest/m3/ts-linked-list.md) - the other std collection whose `Debug` is still refused

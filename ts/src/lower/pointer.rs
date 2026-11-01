@@ -79,8 +79,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 
 	/// Why pointers to `ty` that are not null don't compare as their JS values, if they
 	/// don't. Two `rt.Place`s of one place are two objects, and Rust leaves where a value of
-	/// no bytes is unspecified, but a pointer to `()` is an identity.
-	pub fn incomparable(&self, ty: Ty<'tcx>) -> Option<String> {
+	/// no bytes is unspecified, but a pointer to `()` is an identity. Notes the comparison of
+	/// those that do, for [`Self::taken`].
+	pub fn incomparable(&mut self, ty: Ty<'tcx>) -> Option<String> {
 		if self.identity_pointee(ty) {
 			return None;
 		}
@@ -90,7 +91,10 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			));
 		}
 		match self.pointee(ty) {
-			Pointee::Object | Pointee::Bytes => None,
+			Pointee::Object | Pointee::Bytes => {
+				self.compare(ty);
+				None
+			}
 			Pointee::Place => Some(format!(
 				"comparing pointers to `{ty}`, each a place JS makes of its own"
 			)),

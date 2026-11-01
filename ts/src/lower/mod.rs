@@ -230,6 +230,11 @@ pub struct Translator<'a, 'tcx> {
 	cloned: rustc_data_structures::fx::FxHashSet<DefId>,
 	/// Those this run reached.
 	cloning: rustc_data_structures::fx::FxHashSet<DefId>,
+	/// The types with no `UnsafeCell` whose pointers the runs before compared, into which
+	/// a callee may keep a pointer through a reference.
+	compared: rustc_data_structures::fx::FxHashSet<Ty<'tcx>>,
+	/// Those this run compared.
+	comparing: rustc_data_structures::fx::FxHashSet<Ty<'tcx>>,
 	/// The trait of each trait object, by its principal trait.
 	objects: rustc_data_structures::fx::FxHashMap<DefId, dynamic::Object>,
 	/// The class wrapping each type as each trait object.
@@ -356,7 +361,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// it knows once it has reached them. So it runs again while it reaches a body whose
 	/// writes it didn't read, or an instance of one writing a type parameter that it didn't
 	/// judge by. A closure's clone may come before or after the closure is made, which
-	/// makes it as its clones need, so it runs again too when it reaches a new one.
+	/// makes it as its clones need, so it runs again too when it reaches a new one, and a
+	/// comparison of pointers may come before or after the borrows it decides.
 	fn settle<R>(
 		tcx: TyCtxt<'tcx>,
 		config: &'a Config,
@@ -365,8 +371,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	) -> Option<(Self, R)> {
 		let mut read = rustc_data_structures::fx::FxHashSet::default();
 		let mut cloned = rustc_data_structures::fx::FxHashSet::default();
+		let mut compared = rustc_data_structures::fx::FxHashSet::default();
 		loop {
-			let mut t = Self::new(tcx, config, census, read, cloned)?;
+			let mut t = Self::new(tcx, config, census, read, cloned, compared)?;
 			t.bind();
 			let out = reach(&mut t);
 			let reached: Vec<Instance<'tcx>> = t
@@ -376,13 +383,15 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				.copied()
 				.filter(|&instance| t.crates.translates(instance.def_id()) && t.writes.unread(instance))
 				.collect();
-			if reached.is_empty() && t.cloning.is_subset(&t.cloned) {
+			if reached.is_empty() && t.cloning.is_subset(&t.cloned) && t.comparing.is_subset(&t.compared) {
 				return Some((t, out));
 			}
 			read = std::mem::take(&mut t.read);
 			read.extend(reached);
 			cloned = std::mem::take(&mut t.cloned);
 			cloned.extend(t.cloning.drain());
+			compared = std::mem::take(&mut t.compared);
+			compared.extend(t.comparing.drain());
 		}
 	}
 
@@ -403,6 +412,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		census: bool,
 		read: rustc_data_structures::fx::FxHashSet<Instance<'tcx>>,
 		cloned: rustc_data_structures::fx::FxHashSet<DefId>,
+		compared: rustc_data_structures::fx::FxHashSet<Ty<'tcx>>,
 	) -> Option<Self> {
 		if tcx.data_layout.pointer_size().bits() != 32 {
 			tcx.dcx().err(
@@ -441,6 +451,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			lowered: Default::default(),
 			cloned,
 			cloning: Default::default(),
+			compared,
+			comparing: Default::default(),
 			held: false,
 			sites: Default::default(),
 			site: None,
@@ -1171,6 +1183,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					| library::Std::BTreeMap
 					| library::Std::BTreeSet
 					| library::Std::VecDeque
+					| library::Std::LinkedList
 					| library::Std::BinaryHeap
 					| library::Std::PeekMut
 					| library::Std::Entry
@@ -1530,6 +1543,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				| library::Std::HashSet
 				| library::Std::BTreeSet
 				| library::Std::VecDeque
+				| library::Std::LinkedList
 				| library::Std::BinaryHeap
 				| library::Std::PeekMut => {
 					let (name, n) = match std {
@@ -1540,6 +1554,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						library::Std::BTreeSet => ("BTreeSet", 1),
 						library::Std::BinaryHeap => ("BinaryHeap", 1),
 						library::Std::PeekMut => ("PeekMut", 1),
+						library::Std::LinkedList => ("LinkedList", 1),
 						_ => ("VecDeque", 1),
 					};
 					let tys: Vec<Ty<'tcx>> = args.types().take(n).collect();

@@ -9,6 +9,7 @@ import { scoped, discarded, iterated } from "./drops/closures.ts";
 import { folded as folds_folded, rfolded as folds_rfolded } from "./drops/folds.ts";
 import { inside as inside_inside } from "./drops/inside.ts";
 import { looped, collected, drained, extended, compared as iters_compared } from "./drops/iters.ts";
+import { run as lists_run } from "./drops/lists.ts";
 import { boxed as objects_boxed, shared, anys, fns } from "./drops/objects.ts";
 import { run as once_run } from "./drops/once.ts";
 import * as Held from "./drops.Held.ts";
@@ -1275,6 +1276,11 @@ export function inside(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 /** Run scenario `arg % 9` of what std's comparisons of iterators drop. */
 export function compared(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	iters_compared(log, id, arg);
+}
+
+/** Run scenario `arg % 8` of what a `LinkedList` drops, and when. */
+export function lists(log: Log.Log, id: rt.u32, arg: rt.u8): void {
+	lists_run(log, id, arg);
 }
 
 /**

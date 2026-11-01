@@ -77,15 +77,50 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 
 	/// Whether a `ty` is, or holds by value at any depth, a part that `object` says is a JS
 	/// object, into which a raw pointer may be made through a reference that the crate's
-	/// code can't follow back to where it was borrowed, by any body or by `body` alone.
+	/// code can't follow back to where it was borrowed, by any body or by `body` alone. A
+	/// part with no `UnsafeCell` counts only if the crate compares pointers to it or to what
+	/// it holds: an assignment of where it is disables a pointer made through a reference to
+	/// it, so a read through one after is undefined in both Stacked and Tree Borrows, but
+	/// comparing its address is not.
 	pub fn taken(&self, body: DefId, ty: Ty<'tcx>, object: &dyn Fn(Ty<'tcx>) -> bool) -> bool {
-		let (writes, polymorphic) = (&self.writes, self.polymorphic());
+		let (tcx, writes, polymorphic, env) = (self.tcx, &self.writes, self.polymorphic(), self.typing_env());
 		let local = writes.taken_in.get(&body);
-		by_value(self.tcx, self.typing_env(), ty).any(|part| {
+		by_value(tcx, env, ty).any(|part| {
 			object(part)
-				&& (writes.contains(&writes.taken, false, self.tcx, part, polymorphic)
-					|| local.is_some_and(|local| writes.contains(local, false, self.tcx, part, polymorphic)))
+				&& (!part.is_freeze(tcx, env) || by_value(tcx, env, part).any(|held| self.compared(held)))
+				&& (writes.contains(&writes.taken, false, tcx, part, polymorphic)
+					|| local.is_some_and(|local| writes.contains(local, false, tcx, part, polymorphic)))
 		})
+	}
+
+	/// Note a comparison of pointers to a `ty`, which [`Self::taken`] counts from the next
+	/// run on if a pointer may be made into it, or into what holds it, through a reference,
+	/// by any body.
+	pub fn compare(&mut self, ty: Ty<'tcx>) {
+		let (tcx, env, writes, polymorphic) = (self.tcx, self.typing_env(), &self.writes, self.polymorphic());
+		let stored = storage(tcx, ty);
+		let kept = (ty.has_param() || ty.is_freeze(tcx, env))
+			&& std::iter::once(&writes.taken)
+				.chain(writes.taken_in.values())
+				.any(|taken| {
+					writes.contains(taken, true, tcx, ty, polymorphic)
+						|| taken
+							.concrete
+							.iter()
+							.any(|&taken| by_value(tcx, env, taken).any(|part| storage(tcx, part) == stored))
+				});
+		if kept {
+			self.comparing.insert(stored);
+		}
+	}
+
+	/// Whether the runs before compared pointers to a `ty`, a type parameter standing for
+	/// any.
+	fn compared(&self, ty: Ty<'tcx>) -> bool {
+		let ty = storage(self.tcx, ty);
+		self.compared
+			.iter()
+			.any(|&compared| compared == ty || compared.has_param())
 	}
 
 	/// `value`, a `ty` read out of where it is kept, as a value of its own, as Rust's read
