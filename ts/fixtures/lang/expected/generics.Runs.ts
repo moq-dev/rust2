@@ -2,15 +2,15 @@
 
 import * as rt from "./rt.ts";
 import { copy$array_u16, copy$array_u8 } from "./lib.ts";
-import { clone$096c3ul as option_clone$096c3ul, clone$1grnave as option_clone$1grnave } from "./core/option.ts";
+import { clone$0hmts8n as option_clone$0hmts8n, clone$1grnave as option_clone$1grnave } from "./core/option.ts";
 import type * as generics_Run from "./generics.Run.ts";
 
 export function clone$Clone_u16(self: Runs<rt.u16>): Runs<rt.u16> {
-	return new Runs(copy$array_u16(copy$array_u16(self.array as rt.u16[])), (self.list as rt.u16[]).slice(), self.view as rt.u16[], (self.boxed as rt.u16[]).slice(), rt.cowClone(self.cow as rt.Cow<rt.u16>), (self.pairs as rt.u16[][]).map(copy$array_u16), option_clone$096c3ul(self.maybe as rt.u16[] | undefined));
+	return new Runs(copy$array_u16(copy$array_u16(self.array as rt.u16[])), rt.vecExact((self.list as rt.u16[]).slice(), 2), self.view as rt.u16[], (self.boxed as rt.u16[]).slice(), rt.cowClone(self.cow as rt.Cow<rt.u16>), rt.vecExact((self.pairs as rt.u16[][]).map(copy$array_u16), 4), option_clone$0hmts8n(self.maybe as rt.u16[] | undefined));
 }
 
 export function clone$Clone_u8(self: Runs<rt.u8>): Runs<rt.u8> {
-	return new Runs(copy$array_u8(rt.byteSliceToArray(rt.byteSliceFrom(self.array as Uint8Array))), rt.byteVecFrom(rt.byteVecView(self.list as rt.ByteVec)), self.view as rt.ByteSlice, rt.byteSliceFrom(rt.byteSliceToArray(self.boxed as rt.ByteSlice)), rt.byteCowClone(self.cow as rt.ByteCow), (self.pairs as Uint8Array[]).map(copy$array_u8), option_clone$1grnave(self.maybe as rt.ByteVec | undefined));
+	return new Runs(copy$array_u8(rt.byteSliceToArray(rt.byteSliceFrom(self.array as Uint8Array))), rt.byteVecFrom(rt.byteVecView(self.list as rt.ByteVec)), self.view as rt.ByteSlice, rt.byteSliceFrom(rt.byteSliceToArray(self.boxed as rt.ByteSlice)), rt.byteCowClone(self.cow as rt.ByteCow), rt.vecExact((self.pairs as Uint8Array[]).map(copy$array_u8), 2), option_clone$1grnave(self.maybe as rt.ByteVec | undefined));
 }
 
 export function fmt$fmt_Debug_u16(self: Runs<rt.u16>, f: rt.Formatter): rt.Result<undefined, rt.FmtError> {
@@ -161,7 +161,7 @@ export function push$u8(self: Runs<rt.u8>, item: rt.u8): void {
 export function run$u16(self: Runs<rt.u16>): generics_Run.Run<rt.u16> {
 	const _2: rt.usize = rt.usizeRem((self.list as rt.u16[]).length, 3);
 	if (_2 === 0) {
-		return { tag: "Listed", _0: (self.list as rt.u16[]).slice() } as generics_Run.Run<rt.u16>;
+		return { tag: "Listed", _0: rt.vecExact((self.list as rt.u16[]).slice(), 2) } as generics_Run.Run<rt.u16>;
 	}
 	if (_2 === 1) {
 		return { tag: "Fixed", array: [(self.array as rt.u16[])[0], (self.array as rt.u16[])[2]] } as generics_Run.Run<rt.u16>;

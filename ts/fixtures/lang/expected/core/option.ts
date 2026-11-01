@@ -1400,6 +1400,13 @@ export function mapOr$1hjjwvv(self: [rt.Mutex<rt.u8>, rt.u8] | undefined, defaul
 	return f(self);
 }
 
+export function mapOr$1ttssgs(self: [rt.u8, rt.ByteSlice] | undefined, default_: [rt.u8, rt.ByteSlice], f: (a0: [rt.u8, rt.ByteSlice]) => [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
 export function mapOr$0mmpeqx(self: [rt.u8, rt.u8] | undefined, default_: rt.u8, f: (a0: [rt.u8, rt.u8]) => rt.u8): rt.u8 {
 	if (self === undefined) {
 		return default_;
@@ -1878,11 +1885,11 @@ export function clone$14nprly(self: string | undefined): string | undefined {
 	return self;
 }
 
-export function clone$096c3ul(self: rt.u16[] | undefined): rt.u16[] | undefined {
+export function clone$0hmts8n(self: rt.u16[] | undefined): rt.u16[] | undefined {
 	if (self === undefined) {
 		return undefined;
 	}
-	return self.slice();
+	return rt.vecExact(self.slice(), 2);
 }
 
 export function clone$1grnave(self: rt.ByteVec | undefined): rt.ByteVec | undefined {

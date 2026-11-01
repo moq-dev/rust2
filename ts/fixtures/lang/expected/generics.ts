@@ -75,7 +75,7 @@ export function methods(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _193: rt.u8 = option_unwrapOr$0r2bmpr(Wrap.get$Option_u8(none), some.count);
 	const args10: rt.Fmt[] = [(f: rt.Formatter) => Wrap.fmt$fmt_Debug_Vec_u16(list, f), (f: rt.Formatter) => Wrap.fmt$fmt_Debug_Option_u8(none, f), (f: rt.Formatter) => Wrap.fmt$fmt_Debug_Option_u8(some, f), (f: rt.Formatter) => Wrap.fmt$fmt_Debug_Result_u8_shapes_Shape(err, f), (f: rt.Formatter) => rt.u8Debug(_193, f)];
 	fmt_put(out, rt.fmtFormat([args10[0], " ", args10[1], " ", args10[2], " ", args10[3], " ", args10[4]]));
-	const tagged: generics_Tagged.Tagged<Either.Either<rt.u8, rt.u16>, rt.i16> = new generics_Tagged.Tagged({ tag: "Right", value: 500 } as Either.Either<rt.u8, rt.u16>, Wrap.new$i16(rt.i16Sub(at(8) as rt.i16, 100)), [Wrap.new$i16(-1), Wrap.new$i16(at(9) as rt.i16)].slice());
+	const tagged: generics_Tagged.Tagged<Either.Either<rt.u8, rt.u16>, rt.i16> = new generics_Tagged.Tagged({ tag: "Right", value: 500 } as Either.Either<rt.u8, rt.u16>, Wrap.new$i16(rt.i16Sub(at(8) as rt.i16, 100)), rt.vecExact([Wrap.new$i16(-1), Wrap.new$i16(at(9) as rt.i16)].slice(), 4));
 	const _237: Wrap.Wrap<rt.i16> | undefined = generics_Tagged.first$generics_Either_u8_u16_i16(tagged);
 	const args12: rt.Fmt[] = [(f: rt.Formatter) => generics_Tagged.fmt$fmt_Debug_generics_Either_u8_u16_i16(tagged, f), (f: rt.Formatter) => rt.fmtOption(_237, f, (value: Wrap.Wrap<rt.i16>, f: rt.Formatter) => Wrap.fmt$fmt_Debug_i16(value, f))];
 	fmt_put(out, rt.fmtFormat([args12[0], " ", args12[1]]));
@@ -205,9 +205,9 @@ export function runs(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return _22 as rt.u16;
 	}), undefined, 2, true);
 	const n2: rt.u16 = option_unwrapOrDefault$001fvl5(rt.sliceFirst(data3));
-	const _129: rt.u16[] = data3.slice();
+	const _129: rt.u16[] = rt.vecExact(data3.slice(), 2);
 	const _131: rt.u16[] = data3;
-	const _133: rt.u16[] = data3.slice();
+	const _133: rt.u16[] = rt.vecExact(data3.slice(), 2);
 	const _136: rt.Cow<rt.u16> = new rt.Borrowed(data3);
 	const _139: rt.u16[][] = [];
 	const runs2: Runs.Runs<rt.u16> = new Runs.Runs(Array.from({ length: 3 }, (): rt.u16 => {
@@ -260,7 +260,7 @@ export function runs(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return tick(_28);
 	}), undefined, 8, true);
 	const _246: Ticked.Ticked[] = [tick(1), tick(2), tick(3)];
-	const _256: Ticked.Ticked[] = ticks.map(Ticked.clone$Clone);
+	const _256: Ticked.Ticked[] = rt.vecExact(ticks.map(Ticked.clone$Clone), 8);
 	const _258: Ticked.Ticked[] = ticks;
 	const _260: Ticked.Ticked[] = [tick(4)];
 	if (rt.usizeRem(data.length, 2) === 0) {

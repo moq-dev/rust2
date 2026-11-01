@@ -170,14 +170,14 @@ export function bytes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
  * each method of `char`.
  */
 export function chars(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
-	const all: rt.char[] = [0, 9, 10, 11, 12, 13, 31, 32, 33, 47, 48, 55, 56, 57, 58, 64, 65, 70, 71, 90, 91, 96, 97, 102, 103, 122, 123, 126, 127, 128, 192, 255, 256, 383, 304, 8490, 55295, 57344, 65535, 65536, 1114111].slice();
+	const all: rt.char[] = rt.vecExact([0, 9, 10, 11, 12, 13, 31, 32, 33, 47, 48, 55, 56, 57, 58, 64, 65, 70, 71, 90, 91, 96, 97, 102, 103, 122, 123, 126, 127, 128, 192, 255, 256, 383, 304, 8490, 55295, 57344, 65535, 65536, 1114111].slice(), 4);
 	const _9: rt.Iter<rt.char> = rt.iterFilterMap(rt.byteSliceChunks(data, 4), (c2: rt.ByteSlice): rt.char | undefined => {
 		return rt.charFromU32(rt.u32FromBeBytes(rt.bytesFromFn(4, (i2: rt.usize): rt.u8 => {
 			return option_unwrapOr$0r2bmpr(rt.byteSliceGet(c2, i2), 0);
 		})));
 	});
 	rt.iterExtend(all, _9, "next", 4);
-	const others: rt.char[] = all.slice();
+	const others: rt.char[] = rt.vecExact(all.slice(), 4);
 	const iter: rt.Iter<[rt.usize, rt.char]> = rt.iterEnumerate(rt.iterSlice(all));
 	while (true) {
 		const _19: [rt.usize, rt.char] | rt.Done = iter.next();

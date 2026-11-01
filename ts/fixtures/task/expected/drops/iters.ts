@@ -404,8 +404,7 @@ export function collected(log: Log.Log, id: rt.u32): void {
 	v9.push(_223);
 	const _228: Guard.Guard = guard(20);
 	v9.push(_228);
-	const _218: rt.Iter<Guard.Guard> = rt.iterSlice(v9, rt.drop);
-	const queue: rt.VecDeque<Guard.Guard> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<Guard.Guard>, rt.iterSlice(rt.iterToArray(_218, "next", 8, true)));
+	const queue: rt.VecDeque<Guard.Guard> = rt.dequeFromVec(rt.iterToArray(rt.iterSlice(v9, rt.drop), "next", 8, true)) as rt.VecDeque<Guard.Guard>;
 	const v10: [rt.u32, Guard.Guard][] = [];
 	const _237: [rt.u32, Guard.Guard] = [1, guard(21)];
 	v10.push(_237);

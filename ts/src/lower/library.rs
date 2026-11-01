@@ -1987,10 +1987,28 @@ fn mapping<'tcx>(
 			true => Expr::New(Box::new(Expr::Rt("ByteVec".into())), Vec::new()),
 			false => Expr::Array(Vec::new()),
 		},
-		("Vec", "with_capacity") => match is_u8(targ(gargs, 0)) {
-			true => Expr::New(Box::new(Expr::Rt("ByteVec".into())), args),
-			false => Expr::Array(Vec::new()),
-		},
+		// What reads or sets a capacity is given the size of the elements, by which std's
+		// grows it.
+		("Vec", "with_capacity") if is_u8(targ(gargs, 0)) => Expr::rt("byteVecWithCapacity", args),
+		("Vec", "capacity") if is_u8(targ(gargs, 0)) => args.pop()?.member("data").member("length"),
+		("Vec", "reserve" | "reserve_exact" | "shrink_to") if is_u8(targ(gargs, 0)) => {
+			rt2(args, "byteVec", &super::camel(&name))
+		}
+		("Vec", "shrink_to_fit") if is_u8(targ(gargs, 0)) => {
+			Expr::rt("byteVecShrinkTo", vec![args.pop()?, Expr::lit("0")])
+		}
+		("Vec", "with_capacity" | "capacity" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit") => {
+			let mut values = args;
+			if name == "shrink_to_fit" {
+				values.push(Expr::lit("0"));
+			}
+			values.push(super::iter::size_of(b, targ(gargs, 0), span));
+			let f = match name.as_str() {
+				"shrink_to_fit" => "shrinkTo".to_string(),
+				_ => super::camel(&name),
+			};
+			rt2(values, "vec", &f)
+		}
 		("Vec", "push") => {
 			let mut values = args;
 			match is_u8(targ(gargs, 0)) {
@@ -2534,14 +2552,20 @@ pub fn cow_cloned<'tcx>(b: &mut Body<'_, '_, 'tcx>, op: &str, cow: Expr, elem: T
 	Expr::rt(format!("cow{op}"), args)
 }
 
-/// A clone of `value`, a slice, array, or `Vec` of `elem` other than bytes, as a `Vec`: a
-/// copy of the array if each element's clone is itself, or else each element cloned.
+/// A clone of `value`, a slice, array, or `Vec` of `elem` other than bytes, as a `Vec` with
+/// room for exactly its elements, as std's allocates one.
 fn vec_clone<'tcx>(b: &mut Body<'_, '_, 'tcx>, value: Expr, elem: Ty<'tcx>, span: Span) -> Option<Expr> {
-	let clone = super::collections::clone_fn(b, elem, span);
-	if matches!(&clone, Expr::Lit(l) if l == "undefined") {
-		return Some(value.method("slice", Vec::new()));
+	let v = slice_clone(b, value, elem, span);
+	Some(Expr::rt("vecExact", vec![v, super::iter::size_of(b, elem, span)]))
+}
+
+/// A clone of `value`, a slice, array, or `Vec` of `elem` other than bytes, as an array: a
+/// copy of it if each element's clone is itself, or else each element cloned.
+fn slice_clone<'tcx>(b: &mut Body<'_, '_, 'tcx>, value: Expr, elem: Ty<'tcx>, span: Span) -> Expr {
+	match super::collections::clone_fn(b, elem, span) {
+		Expr::Lit(l) if l == "undefined" => value.method("slice", Vec::new()),
+		clone => value.method("map", vec![clone]),
 	}
-	Some(value.method("map", vec![clone]))
 }
 
 /// A `Box<[elem]>` of clones of the elements of `slice`, as std's `From<&[T]>` and `Clone`
@@ -2552,7 +2576,7 @@ fn slice_boxed<'tcx>(b: &mut Body<'_, '_, 'tcx>, slice: Expr, elem: Ty<'tcx>, sp
 			"byteSliceFrom",
 			vec![Expr::rt("byteSliceToArray", vec![slice])],
 		)),
-		_ => vec_clone(b, slice, elem, span),
+		_ => Some(slice_clone(b, slice, elem, span)),
 	}
 }
 
