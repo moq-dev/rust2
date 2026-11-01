@@ -1158,7 +1158,11 @@ fn deque<'tcx>(
 			values.push(super::iter::size_of(b, item, span));
 			empty(b, Expr::rt("dequeWithCapacity", values), coll, span)
 		}
-		(_, "capacity" | "push_back" | "push_front" | "insert" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit") => {
+		(
+			_,
+			"capacity" | "push_back" | "push_front" | "insert" | "reserve" | "reserve_exact" | "shrink_to"
+			| "shrink_to_fit",
+		) => {
 			let f = match name {
 				"capacity" => "dequeCapacity",
 				"push_back" => "dequePushBack",
@@ -1209,7 +1213,10 @@ fn deque<'tcx>(
 			Expr::rt("dequeClone", values)
 		}
 		// `From<Vec<T>>` keeps the vector's capacity, and `From<[T; N]>` has room for `N`.
-		("From", "from") if matches!(library::targ(call.args, 1).kind(), ty::Array(..)) || b.t.std_of(library::targ(call.args, 1)) == Some(Std::Vec) => {
+		("From", "from")
+			if matches!(library::targ(call.args, 1).kind(), ty::Array(..))
+				|| b.t.std_of(library::targ(call.args, 1)) == Some(Std::Vec) =>
+		{
 			let from = library::targ(call.args, 1);
 			let bytes = matches!(item.kind(), ty::Uint(ty::UintTy::U8));
 			let v = match (bytes, from.is_array(), b.t.copy_fn(item, span)) {

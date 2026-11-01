@@ -1977,7 +1977,10 @@ fn mapping<'tcx>(
 		}
 		// What changes or reads a capacity is given the size of its elements, by which
 		// std's grows it.
-		("Vec", "with_capacity" | "capacity" | "push" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit") => {
+		(
+			"Vec",
+			"with_capacity" | "capacity" | "push" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit",
+		) => {
 			let mut values = args;
 			if name == "shrink_to_fit" {
 				values.push(Expr::lit("0"));

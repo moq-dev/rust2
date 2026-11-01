@@ -1402,10 +1402,16 @@ fn collected<'tcx>(
 		let bare = Expr::lit(is_vec_into_iter(b.t.tcx, from).to_string());
 		let src_size = size_of(b, src, span);
 		return match bytes {
-			true => Expr::rt("iterToByteVecInPlace", tail(vec![iter, src_size, bare], vec![take, trusted])),
+			true => Expr::rt(
+				"iterToByteVecInPlace",
+				tail(vec![iter, src_size, bare], vec![take, trusted]),
+			),
 			false => {
 				let size = size_of(b, elem, span);
-				Expr::rt("iterToArrayInPlace", tail(vec![iter, src_size, size, bare], vec![take, trusted]))
+				Expr::rt(
+					"iterToArrayInPlace",
+					tail(vec![iter, src_size, size, bare], vec![take, trusted]),
+				)
 			}
 		};
 	}
@@ -1479,13 +1485,11 @@ fn in_place<'tcx>(t: &Translator<'_, 'tcx>, iter: Ty<'tcx>, elem: Ty<'tcx>) -> O
 			.map(|item| item.def_id)
 	};
 	// `<I as SourceIter>::Source`, a `vec::IntoIter` of what it collects in place of.
-	let Some(src) = assoc(source, "Source").and_then(|item| {
+	let src = assoc(source, "Source").and_then(|item| {
 		let projection = Ty::new_projection(tcx, ty::IsRigid::No, item, [iter]);
 		tcx.try_normalize_erasing_regions(env, ty::Unnormalized::new_wip(projection))
 			.ok()
-	}) else {
-		return None;
-	};
+	})?;
 	let ty::Adt(adt, src_args) = src.kind() else {
 		return None;
 	};
