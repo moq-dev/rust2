@@ -2,6 +2,7 @@
 
 import * as rt from "./rt.ts";
 import { copy$Result_array0_u8_u8, copy$Result_array1_u8_u8, copy$Result_array5_u8_u8, drop$Result_results_Logged_results_Logged } from "./lib.ts";
+import { madeOut$u8 } from "./cells.ts";
 import { unwrapOr$17ntxfo as option_unwrapOr$17ntxfo, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, mapOr$1w5qtj7 as option_mapOr$1w5qtj7, mapOr$02k4ito as option_mapOr$02k4ito } from "./core/option.ts";
 import { map$03hz3l7 as result_map$03hz3l7 } from "./core/result.ts";
 import * as results_Logged from "./results.Logged.ts";
@@ -27,17 +28,19 @@ export function results(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void 
 }
 
 /** `Ok` for a byte not divisible by 3, else `Err`. */
-export function split(b: rt.u8): rt.Result<rt.u8, rt.u8> {
+export function split(b: rt.u8): rt.u8 | undefined {
 	if (!(rt.u8Rem(b, 3) === 0)) {
-		return rt.Ok(b);
+		return b;
 	}
-	return rt.Err(b);
+	madeOut$u8.err = b;
+	return undefined;
 }
 
 /** Of bytes, which JS copies, so a `&mut` lends each as its place. */
 export function copied(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const results: rt.Result<rt.u8, rt.u8>[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.Result<rt.u8, rt.u8> => {
-		return split(_2);
+		const part = split(_2);
+		return part === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part);
 	}), undefined, 2, true);
 	for (const _9 of results) {
 		rt.iterExtendBytes(out, rt.iterResult(_9), undefined, true);
@@ -232,7 +235,9 @@ export function owned(data: rt.ByteSlice, out: rt.ByteVec): void {
 /** Of `()`, which JS holds as `undefined`, so an `Option` of one is `rt.None`. */
 export function units(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const results: rt.Result<undefined, rt.u8>[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): rt.Result<undefined, rt.u8> => {
-		return result_map$03hz3l7(split(_2), (_24: rt.u8): undefined => {});
+		const part: rt.u8 | undefined = split(_2);
+		const err: rt.u8 | undefined = part === undefined ? madeOut$u8.err as rt.u8 : undefined;
+		return result_map$03hz3l7((err !== undefined ? rt.Err(err as rt.u8) : rt.Ok(part as rt.u8)) as rt.Result<rt.u8, rt.u8>, (_24: rt.u8): undefined => {});
 	}), undefined, 2, true);
 	rt.byteVecPush(out, rt.iterCount(rt.iterFlatten(rt.iterSlice(results), (value: rt.Result<undefined, rt.u8>) => rt.iterResult(value), false, undefined, true)) & 0xff);
 	const iter: rt.Iter<rt.Place<rt.Result<undefined, rt.u8>>> = rt.iterSliceMut(results);

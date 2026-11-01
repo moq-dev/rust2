@@ -1864,9 +1864,9 @@ export function keyed$Option_u8_2_keys_arrays_closure5(data: rt.ByteSlice, make:
 			return make(b4);
 		}));
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: Array<rt.u8 | undefined> = make(b4).slice();
+		const _487: Array<rt.u8 | undefined> = rt.vecExact(make(b4).slice(), 2);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: Array<rt.u8 | undefined> = make(rt.u8Div(b4, 2)).slice();
+		const _498: Array<rt.u8 | undefined> = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 2);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -2120,9 +2120,9 @@ export function keyed$bool_2_keys_arrays_closure4(data: rt.ByteSlice, make: (a0:
 			return make(b4);
 		});
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: boolean[] = make(b4).slice();
+		const _487: boolean[] = rt.vecExact(make(b4).slice(), 1);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: boolean[] = make(rt.u8Div(b4, 2)).slice();
+		const _498: boolean[] = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 1);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -2375,9 +2375,9 @@ export function keyed$char_2_keys_arrays_closure3(data: rt.ByteSlice, make: (a0:
 			return make(b4);
 		}));
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: rt.char[] = make(b4).slice();
+		const _487: rt.char[] = rt.vecExact(make(b4).slice(), 4);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: rt.char[] = make(rt.u8Div(b4, 2)).slice();
+		const _498: rt.char[] = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 4);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -2631,9 +2631,9 @@ export function keyed$i32_2_keys_arrays_closure2(data: rt.ByteSlice, make: (a0: 
 			return make(b4);
 		});
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: rt.i32[] = make(b4).slice();
+		const _487: rt.i32[] = rt.vecExact(make(b4).slice(), 4);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: rt.i32[] = make(rt.u8Div(b4, 2)).slice();
+		const _498: rt.i32[] = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 4);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -2886,9 +2886,9 @@ export function keyed$keys_Hop_2_keys_arrays_closure6(data: rt.ByteSlice, make: 
 			return make(b4);
 		}));
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: Hop.Hop[] = make(b4).map(copy$keys_Hop);
+		const _487: Hop.Hop[] = rt.vecExact(make(b4).map(copy$keys_Hop), 8);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: Hop.Hop[] = make(rt.u8Div(b4, 2)).map(copy$keys_Hop);
+		const _498: Hop.Hop[] = rt.vecExact(make(rt.u8Div(b4, 2)).map(copy$keys_Hop), 8);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -3142,9 +3142,9 @@ export function keyed$u16_2_keys_arrays_closure0(data: rt.ByteSlice, make: (a0: 
 			return make(b4);
 		}));
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: rt.u16[] = make(b4).slice();
+		const _487: rt.u16[] = rt.vecExact(make(b4).slice(), 2);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: rt.u16[] = make(rt.u8Div(b4, 2)).slice();
+		const _498: rt.u16[] = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 2);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -3398,9 +3398,9 @@ export function keyed$u32_0_keys_arrays_closure7(data: rt.ByteSlice, make: (a0: 
 			return make(b4);
 		}));
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: rt.u32[] = make(b4).slice();
+		const _487: rt.u32[] = rt.vecExact(make(b4).slice(), 4);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: rt.u32[] = make(rt.u8Div(b4, 2)).slice();
+		const _498: rt.u32[] = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 4);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -3654,9 +3654,9 @@ export function keyed$u32_275_keys_arrays_closure8(data: rt.ByteSlice, make: (a0
 			return make(b4);
 		}));
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: rt.u32[] = make(b4).slice();
+		const _487: rt.u32[] = rt.vecExact(make(b4).slice(), 4);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: rt.u32[] = make(rt.u8Div(b4, 2)).slice();
+		const _498: rt.u32[] = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 4);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -3910,9 +3910,9 @@ export function keyed$u64_2_keys_arrays_closure1(data: rt.ByteSlice, make: (a0: 
 			return make(b4);
 		}));
 		rt.byteVecPush(out, rt.hashAdd(options, _476) ? 1 : 0);
-		const _487: rt.u64[] = make(b4).slice();
+		const _487: rt.u64[] = rt.vecExact(make(b4).slice(), 8);
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(vecs, _487, i3 & 0xff), 204));
-		const _498: rt.u64[] = make(rt.u8Div(b4, 2)).slice();
+		const _498: rt.u64[] = rt.vecExact(make(rt.u8Div(b4, 2)).slice(), 8);
 		rt.byteVecPush(out, rt.btreeAdd(lists, _498) ? 1 : 0);
 	}
 	rt.iterExtendBytes(out, rt.btreeValues(pairs), undefined, true);
@@ -4081,7 +4081,7 @@ export function taken$0_keys_byte_refs_closure1(data: rt.ByteSlice, make: (a0: r
 	rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap([vec.length, deque.n, rt.hashLen(set), rt.btreeLen(ordered), rt.hashLen(map), rt.btreeLen(tree)], (n: rt.usize): rt.u8 => {
 		return n & 0xff;
 	})), undefined, true);
-	rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterSlice(vec.map(copy$array_u8)), rt.lending((p2: rt.ByteSlice): boolean => {
+	rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterSlice(rt.vecExact(vec.map(copy$array_u8), 0)), rt.lending((p2: rt.ByteSlice): boolean => {
 		return rt.byteSliceFirst(p2) !== rt.byteSliceLast(p2);
 	}, (f2) => (held5) => f2(rt.byteSliceFrom(held5))))) & 0xff);
 	rt.iterExtendBytes(out, rt.iterFlatten(rt.iterLend(rt.iterSlice(rt.iterToArray(rt.iterFilter(rt.iterCopied(rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), rt.byteSliceToArray), rt.lending((p3: rt.ByteSlice): boolean => {
@@ -4089,7 +4089,7 @@ export function taken$0_keys_byte_refs_closure1(data: rt.ByteSlice, make: (a0: r
 			return _22 < 2;
 		});
 	}, (f4) => (held6) => f4(rt.byteSliceFrom(held6)))), "next", 0)), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 0), undefined, true);
-	const rest: rt.Peekable<Uint8Array> = rt.iterPeekable(rt.iterSkipWhile(rt.dequeIter(rt.dequeClone(deque, copy$array_u8)), rt.lending((p4: rt.ByteSlice): boolean => {
+	const rest: rt.Peekable<Uint8Array> = rt.iterPeekable(rt.iterSkipWhile(rt.dequeIter(rt.dequeClone(deque, copy$array_u8, 0)), rt.lending((p4: rt.ByteSlice): boolean => {
 		return rt.byteSliceFirst(p4) === 64;
 	}, (f6) => (held7) => f6(rt.byteSliceFrom(held7)))));
 	const _214: rt.ByteSlice | undefined = rt.optionMap(rt.peekablePeek(rest), rt.byteSliceFrom);
@@ -4156,7 +4156,7 @@ export function taken$0_keys_byte_refs_closure1(data: rt.ByteSlice, make: (a0: r
 	rt.byteVecPush(_307.value, (sorted ? 1 : 0) | 128);
 	rt.refMutRelease(_307);
 	const second: Dropped.Dropped = new Dropped.Dropped(2, log);
-	const _314: rt.Iter<Uint8Array> = rt.iterSlice(vec.map(copy$array_u8));
+	const _314: rt.Iter<Uint8Array> = rt.iterSlice(rt.vecExact(vec.map(copy$array_u8), 0));
 	const make2 = (captured2: Dropped.Dropped): (a0: rt.ByteSlice) => boolean => {
 		return rt.closure(rt.cloning((p10: rt.ByteSlice): boolean => {
 			if (!Dropped.live(captured2)) {
@@ -4382,7 +4382,7 @@ export function taken$2_keys_byte_refs_closure0(data: rt.ByteSlice, make: (a0: r
 	rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap([vec.length, deque.n, rt.hashLen(set), rt.btreeLen(ordered), rt.hashLen(map), rt.btreeLen(tree)], (n: rt.usize): rt.u8 => {
 		return n & 0xff;
 	})), undefined, true);
-	rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterSlice(vec.map(copy$array_u8)), rt.lending((p2: rt.ByteSlice): boolean => {
+	rt.byteVecPush(out, rt.iterCount(rt.iterFilter(rt.iterSlice(rt.vecExact(vec.map(copy$array_u8), 2)), rt.lending((p2: rt.ByteSlice): boolean => {
 		return rt.byteSliceFirst(p2) !== rt.byteSliceLast(p2);
 	}, (f2) => (held5) => f2(rt.byteSliceFrom(held5))))) & 0xff);
 	rt.iterExtendBytes(out, rt.iterFlatten(rt.iterLend(rt.iterSlice(rt.iterToArray(rt.iterFilter(rt.iterCopied(rt.iterLend(rt.iterSlice(pairs), rt.byteSliceFrom), rt.byteSliceToArray), rt.lending((p3: rt.ByteSlice): boolean => {
@@ -4390,7 +4390,7 @@ export function taken$2_keys_byte_refs_closure0(data: rt.ByteSlice, make: (a0: r
 			return _22 < 2;
 		});
 	}, (f4) => (held6) => f4(rt.byteSliceFrom(held6)))), "next", 2)), rt.byteSliceFrom), (value: rt.ByteSlice) => rt.iterSlice(rt.byteSliceView(value)), false, 2), undefined, true);
-	const rest: rt.Peekable<Uint8Array> = rt.iterPeekable(rt.iterSkipWhile(rt.dequeIter(rt.dequeClone(deque, copy$array_u8)), rt.lending((p4: rt.ByteSlice): boolean => {
+	const rest: rt.Peekable<Uint8Array> = rt.iterPeekable(rt.iterSkipWhile(rt.dequeIter(rt.dequeClone(deque, copy$array_u8, 2)), rt.lending((p4: rt.ByteSlice): boolean => {
 		return rt.byteSliceFirst(p4) === 64;
 	}, (f6) => (held7) => f6(rt.byteSliceFrom(held7)))));
 	const _214: rt.ByteSlice | undefined = rt.optionMap(rt.peekablePeek(rest), rt.byteSliceFrom);
@@ -4457,7 +4457,7 @@ export function taken$2_keys_byte_refs_closure0(data: rt.ByteSlice, make: (a0: r
 	rt.byteVecPush(_307.value, (sorted ? 1 : 0) | 128);
 	rt.refMutRelease(_307);
 	const second: Dropped.Dropped = new Dropped.Dropped(2, log);
-	const _314: rt.Iter<Uint8Array> = rt.iterSlice(vec.map(copy$array_u8));
+	const _314: rt.Iter<Uint8Array> = rt.iterSlice(rt.vecExact(vec.map(copy$array_u8), 2));
 	const make2 = (captured2: Dropped.Dropped): (a0: rt.ByteSlice) => boolean => {
 		return rt.closure(rt.cloning((p10: rt.ByteSlice): boolean => {
 			if (!Dropped.live(captured2)) {

@@ -6,7 +6,7 @@ import { put as fmt_put } from "./fmt.ts";
 
 /** The scalars to try: the edges, then each big-endian `u32` in `data`, zero-padded. */
 export function scalars(data: rt.ByteSlice): rt.u32[] {
-	const all: rt.u32[] = [0, 127, 128, 255, 256, 2047, 2048, 55295, 55296, 56319, 56320, 57343, 57344, 65533, 65535, 65536, 1114109, 1114111, 1114112, 4294967295].slice();
+	const all: rt.u32[] = rt.vecExact([0, 127, 128, 255, 256, 2047, 2048, 55295, 55296, 56319, 56320, 57343, 57344, 65533, 65535, 65536, 1114109, 1114111, 1114112, 4294967295].slice(), 4);
 	let rest: rt.ByteSlice = data;
 	while (true) {
 		if (!((rest.length === 0))) {

@@ -44,6 +44,16 @@ pub fn info<'tcx>(t: &mut Translator<'_, 'tcx>, def_id: DefId, args: GenericArgs
 		return info.clone();
 	}
 	let tcx = t.tcx;
+	// The future of a call that consumes an async closure `Fn` or `FnMut` call owns what the
+	// closure captured: its body is rustc's by-move one, and its class one of its own.
+	let by_move = match tcx.type_of(def_id).skip_binder().kind() {
+		ty::Coroutine(_, identity) => identity.as_coroutine().kind_ty() != args.as_coroutine().kind_ty(),
+		_ => false,
+	};
+	let body_id = match by_move {
+		true => tcx.coroutine_by_move_body_def_id(def_id),
+		false => def_id,
+	};
 	let parent = tcx.typeck_root_def_id(def_id);
 	let base = crate::lower::names::future_base(tcx.item_name(parent).as_str());
 	// The suffix of the instance of `parent` it is part of, in `parent`'s Rust module, then
@@ -66,6 +76,9 @@ pub fn info<'tcx>(t: &mut Translator<'_, 'tcx>, def_id: DefId, args: GenericArgs
 		at = tcx.parent(at);
 	}
 	parts.extend(within.into_iter().rev());
+	if by_move {
+		parts.push("once".into());
+	}
 	parts.retain(|part| !part.is_empty());
 	let suffix = parts.join("_");
 	let sym = t.program.sym(Symbol {
@@ -124,7 +137,7 @@ pub fn info<'tcx>(t: &mut Translator<'_, 'tcx>, def_id: DefId, args: GenericArgs
 			};
 		}
 	};
-	let resume = super::instance_mir(t, instance, span);
+	let resume = super::instance_mir(t, Instance::new_raw(body_id, args), span);
 	let moved = resume
 		.as_ref()
 		.map(|mir| moved_upvars(mir, def_id, layout))
@@ -230,7 +243,7 @@ pub fn info<'tcx>(t: &mut Translator<'_, 'tcx>, def_id: DefId, args: GenericArgs
 		name: String::new(),
 		alias: None,
 	});
-	let drop = tcx.optimized_mir(def_id).coroutine_drop().cloned();
+	let drop = tcx.optimized_mir(body_id).coroutine_drop().cloned();
 	let body: Vec<Stmt> = match drop {
 		Some(drop) => {
 			let mir = instance.instantiate_mir_and_normalize_erasing_regions(

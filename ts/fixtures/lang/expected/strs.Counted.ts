@@ -4,16 +4,16 @@ import * as rt from "./rt.ts";
 
 /** A crate's own iterator over `items`, which counts each `next` it is asked. */
 export interface Counted<T> {
-	items: T[];
+	items: rt.SliceOf<T>;
 	nexts: rt.Cell<rt.u8>;
 }
 
 export function next$iter_Iterator_String(self: Counted<string>): string | rt.Done {
 	rt.cellSet(self.nexts, rt.u8Add(self.nexts.v, 1));
-	const _8: [string, string[]] | undefined = rt.sliceSplitFirst(self.items);
+	const _8: [string, string[]] | undefined = rt.sliceSplitFirst(self.items as string[]);
 	if (_8 !== undefined) {
 		const val: [string, string[]] = _8;
-		self.items = val[1];
+		(self.items as string[]) = val[1];
 		return val[0];
 	}
 	return rt.DONE;
@@ -21,10 +21,10 @@ export function next$iter_Iterator_String(self: Counted<string>): string | rt.Do
 
 export function next$iter_Iterator_char(self: Counted<rt.char>): rt.char | rt.Done {
 	rt.cellSet(self.nexts, rt.u8Add(self.nexts.v, 1));
-	const _8: [rt.char, rt.char[]] | undefined = rt.sliceSplitFirst(self.items);
+	const _8: [rt.char, rt.char[]] | undefined = rt.sliceSplitFirst(self.items as rt.char[]);
 	if (_8 !== undefined) {
 		const val: [rt.char, rt.char[]] = _8;
-		self.items = val[1];
+		(self.items as rt.char[]) = val[1];
 		return val[0];
 	}
 	return rt.DONE;
@@ -32,10 +32,10 @@ export function next$iter_Iterator_char(self: Counted<rt.char>): rt.char | rt.Do
 
 export function next$iter_Iterator_ref_str(self: Counted<string>): string | rt.Done {
 	rt.cellSet(self.nexts, rt.u8Add(self.nexts.v, 1));
-	const _8: [string, string[]] | undefined = rt.sliceSplitFirst(self.items);
+	const _8: [string, string[]] | undefined = rt.sliceSplitFirst(self.items as string[]);
 	if (_8 !== undefined) {
 		const val: [string, string[]] = _8;
-		self.items = val[1];
+		(self.items as string[]) = val[1];
 		return val[0];
 	}
 	return rt.DONE;

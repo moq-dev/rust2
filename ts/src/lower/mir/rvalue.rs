@@ -460,11 +460,15 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		out: &mut Vec<Stmt>,
 	) -> Option<Expr> {
 		match kind {
-			AggregateKind::Closure(def_id, args) => return Some(self.closure(*def_id, args, ops, span, out)),
+			AggregateKind::Closure(def_id, args) => {
+				return Some(self.closure(Ty::new_closure(self.tcx, *def_id, args), ops, span, out));
+			}
+			AggregateKind::CoroutineClosure(def_id, args) => {
+				return Some(self.closure(Ty::new_coroutine_closure(self.tcx, *def_id, args), ops, span, out));
+			}
 			AggregateKind::Coroutine(def_id, args) => {
 				return Some(super::coroutine::construct(self, *def_id, args, ops, span, out));
 			}
-			AggregateKind::CoroutineClosure(..) => return Some(self.err(span, "async closures are not supported")),
 			AggregateKind::RawPtr(..) => return Some(self.err(span, "a raw pointer made from parts")),
 			_ => {}
 		}
@@ -725,25 +729,25 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	}
 
 	/// A closure that captures nothing, as an arrow function.
-	pub(super) fn bare_closure(
-		&mut self,
-		def_id: rustc_hir::def_id::DefId,
-		args: ty::GenericArgsRef<'tcx>,
-		span: Span,
-	) -> Expr {
-		self.closure(def_id, args, &IndexVec::new(), span, &mut Vec::new())
+	pub(super) fn bare_closure(&mut self, ty: Ty<'tcx>, span: Span) -> Expr {
+		self.closure(ty, &IndexVec::new(), span, &mut Vec::new())
 	}
 
-	/// A closure, as an arrow function over what it captured.
+	/// A closure, as an arrow function over what it captured. An async closure's makes the
+	/// future of a call, borrowing what it captured, and one that owns what drops and that
+	/// `Fn` or `FnMut` call also carries what makes the future of a call that consumes it,
+	/// which owns what it captured, as rustc's by-move body does.
 	fn closure(
 		&mut self,
-		def_id: rustc_hir::def_id::DefId,
-		args: ty::GenericArgsRef<'tcx>,
+		ty: Ty<'tcx>,
 		ops: &IndexVec<FieldIdx, Operand<'tcx>>,
 		span: Span,
 		out: &mut Vec<Stmt>,
 	) -> Expr {
 		let tcx = self.tcx;
+		let (ty::Closure(def_id, args) | ty::CoroutineClosure(def_id, args)) = *ty.kind() else {
+			unreachable!("a closure")
+		};
 		let instance = Instance::new_raw(def_id, args);
 		let Some(mir) = super::instance_mir(self.b.t, instance, span) else {
 			return Expr::undefined();
@@ -813,25 +817,46 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			};
 			captures.push(Capture { value, pointee: false });
 		}
-		let sig = tcx.instantiate_bound_regions_with_erased(args.as_closure().sig());
 		// A value, whose `()` result is `undefined` as its type says.
 		let ret = self
 			.b
 			.t
-			.ty(sig.output(), mir.local_decls[mir::RETURN_PLACE].source_info.span);
-		let ty = Ty::new_closure(tcx, def_id, args);
-		let glue = match self.b.t.drops(ty) {
-			true => Some(self.b.t.closure_glue(ty, &captures, span)),
-			false => None,
+			.ty(mir.return_ty(), mir.local_decls[mir::RETURN_PLACE].source_info.span);
+		let drops = self.b.t.drops(ty);
+		let glue = drops.then(|| self.b.t.closure_glue(ty, &captures, span));
+		let by_move = match ty.kind() {
+			ty::CoroutineClosure(_, args) if drops && args.as_coroutine_closure().kind() != ty::ClosureKind::FnOnce => {
+				let shim = Instance {
+					def: ty::InstanceKind::Shim(ty::ShimKind::ConstructCoroutineInClosure {
+						coroutine_closure_def_id: def_id,
+						receiver_by_ref: false,
+					}),
+					args,
+				};
+				let mir = shim.instantiate_mir_and_normalize_erasing_regions(
+					tcx,
+					self.b.t.typing_env_pub(),
+					ty::EarlyBinder::bind(tcx, tcx.instance_mir(shim.def).clone()),
+				);
+				let ret = self.b.t.ty(mir.return_ty(), span);
+				let mut inner = Fx::new(&mut *self.b, &mir, Env::Closure(captures.clone()), span);
+				let inputs = inner.params();
+				let body = inner.lower();
+				Some(Expr::Arrow(inputs, ret, body))
+			}
+			_ => None,
 		};
 		let mut inner = Fx::new(&mut *self.b, &mir, Env::Closure(captures), span);
 		let inputs = inner.params();
 		let body = inner.lower();
 		let mut f = Expr::Arrow(inputs, ret, body);
+		if let Some(once) = by_move {
+			f = Expr::rt("byMove", vec![f, once]);
+		}
 		let make = made.then(|| self.b.fresh("make"));
 		if let Some(make) = &make {
 			// Its clone, made again of each capture's, in order, as rustc's clones them.
-			let upvars = args.as_closure().upvar_tys();
+			let upvars = crate::lower::captured(ty).unwrap_or_default();
 			let clones = std::iter::zip(&params, upvars)
 				.map(|(param, ty)| {
 					let value = Expr::ident(&param.name);
