@@ -721,6 +721,10 @@ const asciiCases = [
 	// Text of every char `ascii.rs` tries, each once.
 	...[0, 1, 2, 3].map((kind) => Uint8Array.of(op("ascii::slices"), kind, ...Array.from({ length: 41 }, (_, i) => i))),
 	Uint8Array.of(op("ascii::chars"), 0, ...[0xd7ff, 0xd800, 0xdfff, 0xe000, 0x1f600, 0x10ffff, 0x110000].flatMap((n) => [n >>> 24, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff])),
+	// `parts` of each kind at every pair of byte offsets up to two past the end of its
+	// 14 bytes of text, and of no text.
+	...Array.from({ length: 8 * 17 * 17 }, (_, i) => Uint8Array.of(op("ascii::parts"), i % 8, Math.floor(i / 8) % 17, Math.floor(i / 8 / 17))),
+	...Array.from({ length: 8 * 3 * 3 }, (_, i) => Uint8Array.of(op("ascii::parts"), 0x10 | (i % 8), Math.floor(i / 8) % 3, Math.floor(i / 24))),
 ];
 
 export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases];

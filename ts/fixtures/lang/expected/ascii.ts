@@ -2,7 +2,7 @@
 
 import * as rt from "./rt.ts";
 import type * as ascii_Held from "./ascii.Held.ts";
-import { isSomeAnd$09tpccf, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$0l7j3f6 as option_unwrapOr$0l7j3f6, mapOr$02k4ito as option_mapOr$02k4ito, mapOr$0jad0p1 as option_mapOr$0jad0p1 } from "./core/option.ts";
+import { isSomeAnd$09tpccf, unwrapOr$1iemzn8 as option_unwrapOr$1iemzn8, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$0l7j3f6 as option_unwrapOr$0l7j3f6, mapOr$1t0muvr as option_mapOr$1t0muvr, mapOr$02k4ito as option_mapOr$02k4ito, mapOr$0jad0p1 as option_mapOr$0jad0p1, asDeref$0w8at8i as option_asDeref$0w8at8i } from "./core/option.ts";
 import { put as fmt_put } from "./fmt.ts";
 
 /** Each test of `b`, a bit apiece. */
@@ -324,6 +324,141 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				}
 			}
 		}
+	}
+}
+
+/** `s[a..b]`'s case changed through the `&mut str` it is given. */
+export function upperPart(s: rt.Place<string>, a: rt.usize, b: rt.usize): void {
+	const _5: rt.Place<string> = rt.strPart(s, a, b);
+	_5.v = rt.strToAsciiUppercase(_5.v);
+}
+
+/**
+ * A part `get_mut` or `split_at_mut_checked` may give, upper-cased and put, or 0xfe if
+ * it gave none.
+ */
+export function putUpper(out: rt.ByteVec, part: rt.Place<string> | undefined): void {
+	if (part === undefined) {
+		rt.byteVecPush(out, 254);
+	} else {
+		part.v = rt.strToAsciiUppercase(part.v);
+		fmt_put(out, part.v);
+	}
+}
+
+/**
+ * Case changed through a `&mut str` to a `String` where a local, a tuple, an array, a
+ * `Vec`, or an `Option` holds it, and to parts of one at byte offsets `data` picks up to
+ * two past the end, the `String` put after each change. A part off a char boundary,
+ * backwards, or out of bounds panics as std's does; a checked one gives `None`.
+ */
+export function parts(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	let text!: string;
+	if ((kind & 16) === 0) {
+		text = "aÉbࠀc😀dZ";
+	} else {
+		text = "";
+	}
+	const _7: string = text;
+	const at: (a0: rt.usize) => rt.usize = (i: rt.usize): rt.usize => {
+		return option_mapOr$1t0muvr(rt.byteSliceGet(data, i), 0, (_2: rt.u8): rt.usize => {
+			return rt.usizeRem(_2 as rt.usize, rt.usizeAdd(rt.stringLen(_7), 3));
+		});
+	};
+	const _10: [rt.usize, rt.usize] = [at(0), at(1)];
+	const a: rt.usize = _10[0];
+	const b: rt.usize = _10[1];
+	let s: string = text;
+	const pair: [rt.u8, string] = [7, text];
+	const array: string[] = ["q", text];
+	const v: string[] = [text, text];
+	const _32: rt.u8 = rt.u8Rem(kind, 8);
+	if (_32 === 0) {
+		s = rt.strToAsciiUppercase(s);
+		fmt_put(out, s);
+		const _41: rt.Place<string> = rt.strPart(rt.place(() => s, (value15) => s = value15), a, b);
+		_41.v = rt.strToAsciiLowercase(_41.v);
+		fmt_put(out, s);
+	} else if (_32 === 1) {
+		pair[1] = rt.strToAsciiUppercase(pair[1]);
+		fmt_put(out, pair[1]);
+		const _54: rt.Place<string> = rt.strPart(rt.place(() => pair[1], (value14) => pair[1] = value14), a);
+		_54.v = rt.strToAsciiLowercase(_54.v);
+		fmt_put(out, pair[1]);
+		rt.byteVecPush(out, pair[0]);
+	} else if (_32 === 2) {
+		array[1] = rt.strToAsciiUppercase(array[1]);
+		fmt_put(out, array[1]);
+		const _73: rt.Place<string> = rt.strPart(rt.place(() => array[1], (value13) => array[1] = value13), 0, b);
+		_73.v = rt.strToAsciiLowercase(_73.v);
+		fmt_put(out, array[1]);
+		fmt_put(out, array[0]);
+	} else if (_32 === 3) {
+		const iter: rt.Iter<rt.Place<string>> = rt.iterSliceMut(v);
+		while (true) {
+			const _93: rt.Place<string> | rt.Done = iter.next();
+			if (_93 === rt.DONE) {
+				break;
+			}
+			_93.v = rt.strToAsciiUppercase(_93.v);
+		}
+		const at6 = rt.idx(v, 0);
+		const _100: rt.Place<string> = rt.strPart(rt.place(() => v[at6], (value11) => v[at6] = value11), 0);
+		_100.v = rt.strToAsciiLowercase(_100.v);
+		const at7 = rt.idx(v, 1);
+		const _105: rt.Place<string> = rt.strPart(rt.place(() => v[at7], (value12) => v[at7] = value12), a, b);
+		_105.v = rt.strToAsciiLowercase(_105.v);
+		fmt_put(out, v[rt.idx(v, 0)]);
+		fmt_put(out, v[rt.idx(v, 1)]);
+	} else if (_32 === 4) {
+		const _119: [rt.Place<string>, rt.Place<string>] = rt.strSplitAtMut(rt.place(() => s, (value10) => s = value10), a);
+		_119[0].v = rt.strToAsciiUppercase(_119[0].v);
+		_119[1].v = rt.strToAsciiUppercase(_119[1].v);
+		_119[0].v = rt.strToAsciiLowercase(_119[0].v);
+		fmt_put(out, _119[0].v);
+		fmt_put(out, _119[1].v);
+		const _131: [rt.Place<string>, rt.Place<string>] = rt.strSplitAtMut(_119[1], rt.usizeSaturatingSub(b, a));
+		_131[1].v = rt.strToAsciiLowercase(_131[1].v);
+		fmt_put(out, _131[0].v);
+		fmt_put(out, _131[1].v);
+		fmt_put(out, s);
+	} else if (_32 === 5) {
+		putUpper(out, rt.strGetMut(rt.place(() => s, (value7) => s = value7), a, b));
+		putUpper(out, rt.strGetMut(rt.place(() => pair[1], (value8) => pair[1] = value8), a));
+		const at4 = rt.idx(v, 1);
+		putUpper(out, rt.strGetMut(rt.place(() => v[at4], (value9) => v[at4] = value9), 0, b));
+		fmt_put(out, s);
+		fmt_put(out, pair[1]);
+		fmt_put(out, v[rt.idx(v, 1)]);
+	} else if (_32 === 6) {
+		const _168: [rt.Place<string>, rt.Place<string>] | undefined = rt.strSplitAtMutChecked(rt.place(() => array[1], (value5) => array[1] = value5), a);
+		if (_168 === undefined) {
+			rt.byteVecPush(out, 253);
+		} else {
+			_168[1].v = rt.strToAsciiUppercase(_168[1].v);
+			putUpper(out, rt.strGetMut(_168[0], rt.min(b, rt.stringLen(_168[0].v))));
+		}
+		fmt_put(out, array[1]);
+		let held: string | undefined = text;
+		const _191: rt.Place<string> | undefined = held === undefined ? undefined : rt.place(() => held as string, (value6) => held = value6);
+		if (_191 !== undefined) {
+			_191.v = rt.strToAsciiUppercase(_191.v);
+		}
+		fmt_put(out, option_unwrapOr$1iemzn8(option_asDeref$0w8at8i(held), "-"));
+	} else {
+		const at2 = rt.idx(v, 1);
+		upperPart(rt.strPart(rt.place(() => v[at2], (value) => v[at2] = value), a), 0, rt.usizeSaturatingSub(b, a));
+		fmt_put(out, v[rt.idx(v, 1)]);
+		upperPart(rt.place(() => s, (value2) => s = value2), a, b);
+		fmt_put(out, rt.strPart(rt.place(() => s, (value3) => s = value3), 0, a).v);
+		fmt_put(out, rt.strPart(rt.place(() => s, (value4) => s = value4), a).v);
+		const leaked: rt.Place<string> = { v: pair[1] };
+		const _234: rt.Place<string> = rt.strPart(leaked, rt.min(b, a));
+		_234.v = rt.strToAsciiUppercase(_234.v);
+		fmt_put(out, leaked.v);
+		const empty: rt.Place<string> = { v: "" };
+		empty.v = rt.strToAsciiUppercase(empty.v);
+		fmt_put(out, empty.v);
 	}
 }
 
