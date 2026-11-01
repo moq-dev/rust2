@@ -37,7 +37,7 @@ pub struct Root {
 /// The root package for `package` of `manifest`, written in `dir`, if what it builds with
 /// for [`TARGET`] holds a crate that leaves the browser's randomness to the binary.
 pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Result<Option<Root>, String> {
-	let args = Args::parse(cargo);
+	let args = Args::parse(cargo)?;
 	let packages = tree(manifest, package, "normal", &args)?;
 	let picks: Vec<_> = (packages.iter())
 		.filter_map(|p| {
@@ -144,7 +144,7 @@ struct Args {
 }
 
 impl Args {
-	fn parse(cargo: &[String]) -> Self {
+	fn parse(cargo: &[String]) -> Result<Self, String> {
 		let mut parsed = Self {
 			features: Vec::new(),
 			no_default: false,
@@ -157,21 +157,19 @@ impl Args {
 					parsed.no_default = true;
 					continue;
 				}
-				"--features" | "-F" => args.next().map(String::as_str),
+				"--features" | "-F" => args.next().ok_or_else(|| format!("{arg} needs a value"))?,
 				_ => match arg.strip_prefix("--features=").or_else(|| arg.strip_prefix("-F")) {
-					Some(value) => Some(value.strip_prefix('=').unwrap_or(value)),
+					Some(value) => value.strip_prefix('=').unwrap_or(value),
 					None => {
 						parsed.rest.push(arg.clone());
 						continue;
 					}
 				},
 			};
-			let named = value.into_iter().flat_map(|v| v.split([',', ' ']));
-			parsed
-				.features
-				.extend(named.filter(|f| !f.is_empty()).map(String::from));
+			let named = value.split([',', ' ']).filter(|f| !f.is_empty());
+			parsed.features.extend(named.map(String::from));
 		}
-		parsed
+		Ok(parsed)
 	}
 
 	/// Each `--config` arg, with its value.
@@ -477,7 +475,7 @@ mod tests {
 			&["-F=a", "--features", "dep/b"],
 		] {
 			let cargo: Vec<String> = spelling.iter().map(|s| s.to_string()).collect();
-			let args = Args::parse(&cargo);
+			let args = Args::parse(&cargo).unwrap();
 			assert_eq!(
 				(args.features, args.rest),
 				(vec!["a".into(), "dep/b".into()], vec![]),
@@ -485,13 +483,16 @@ mod tests {
 			);
 		}
 		let cargo = ["--no-default-features", "--locked", "--config", "a=1", "--quiet"];
-		let args = Args::parse(&cargo.map(String::from));
+		let args = Args::parse(&cargo.map(String::from)).unwrap();
 		assert!(args.no_default);
 		assert_eq!(args.rest, ["--locked", "--config", "a=1", "--quiet"]);
 		assert_eq!(
 			args.resolution(),
 			["--locked", "--config", "a=1", "--no-default-features"]
 		);
+		for trailing in ["--features", "-F"] {
+			assert!(Args::parse(&[trailing.to_string()]).is_err(), "{trailing}");
+		}
 	}
 
 	#[test]
