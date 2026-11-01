@@ -274,14 +274,14 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		capacity_deques(a0153, a1153.data, a1153.start, a1153.length, a2153);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::heaps", (a0154: rt.u8, a1154: rt.ByteSlice, a2154: rt.ByteVec): undefined => {
 		capacity_heaps(a0154, a1154.data, a1154.start, a1154.length, a2154);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::vecs", (_2193: rt.u8, data93: rt.ByteSlice, out94: rt.ByteVec): undefined => {
-		elements_vecs(data93, out94);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::arrays", (_2194: rt.u8, data94: rt.ByteSlice, out95: rt.ByteVec): undefined => {
-		elements_arrays(data94, out95);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::segments", (_2195: rt.u8, data95: rt.ByteSlice, out96: rt.ByteVec): undefined => {
-		elements_segments(data95, out96);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::inline", (_2196: rt.u8, data96: rt.ByteSlice, out97: rt.ByteVec): undefined => {
-		inline(data96, out97);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::vecs", (_2196: rt.u8, data96: rt.ByteSlice, out97: rt.ByteVec): undefined => {
+		elements_vecs(data96, out97);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::arrays", (_2197: rt.u8, data97: rt.ByteSlice, out98: rt.ByteVec): undefined => {
+		elements_arrays(data97, out98);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::segments", (_2198: rt.u8, data98: rt.ByteSlice, out99: rt.ByteVec): undefined => {
+		elements_segments(data98, out99);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::inline", (_2199: rt.u8, data99: rt.ByteSlice, out100: rt.ByteVec): undefined => {
+		inline(data99, out100);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
