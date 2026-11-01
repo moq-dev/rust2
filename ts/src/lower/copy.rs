@@ -60,10 +60,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			},
 			_ => return false,
 		};
-		object
-			&& self
-				.writes
-				.contains(&self.writes.into, false, self.tcx, ty)
+		object && self.writes.contains(&self.writes.into, false, self.tcx, ty)
 			|| parts.into_iter().any(|t| self.changes(t))
 	}
 
