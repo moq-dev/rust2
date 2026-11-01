@@ -117,7 +117,7 @@ export function dyns(dataData: Uint8Array, dataStart: number, dataLen: number, o
 			const i: rt.usize = _94[0];
 			const x: rt.u8 = _94[1];
 			const _101: dyns_Named.Named = make(rt.u8WrappingAdd(x, i & 0xff), x);
-			rt.vecPush(shapes, _101, 8);
+			shapes.push(_101);
 		}
 		const _106: rt.usize = shapes.length;
 		let iterStart: rt.usize = 0;
@@ -469,7 +469,7 @@ export function anys(dataData: Uint8Array, dataStart: number, dataLen: number, o
 			} else {
 				_237 = new Any.of$dyns_Square({ side: i & 0xffff });
 			}
-			rt.vecPush(boxes, _237, 8);
+			boxes.push(_237);
 		}
 		const kept: Any.Any[] = [];
 		const iter5: rt.Iter<[rt.usize, Any.Any]> = rt.iterEnumerate(rt.iterSlice(boxes, rt.drop));
@@ -500,7 +500,7 @@ export function anys(dataData: Uint8Array, dataStart: number, dataLen: number, o
 					rt.drop(other3);
 				}
 			} else {
-				rt.vecPush(kept, _261.error, 8);
+				kept.push(_261.error);
 			}
 		}
 		rt.drop(iter5);
@@ -610,7 +610,7 @@ export function fns(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const _94: (a0: rt.u8) => rt.u8 = (x3: rt.u8): rt.u8 => {
 			return rt.u8WrappingAdd(twice(halve, x3), captured);
 		};
-		rt.vecPush(fs, _94, 8);
+		fs.push(_94);
 		rt.sliceSwap(fs, 0, rt.usizeRem(b as rt.usize, fs.length));
 		let captured2: rt.u8 = 0;
 		const hook: Hook.Hook = new Hook.Hook((x4: rt.u8): rt.u32 => {
@@ -645,7 +645,7 @@ export function fns(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}))(b);
 		const args12: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.byteVecView(part6), f, rt.u8Debug)];
 		fmt_put(out, rt.fmtFormat([args12[0], " "]));
-		const part7 = rt.once(rt.optionUnwrap(rt.vecPop(fs)))(a);
+		const part7 = rt.once(rt.optionUnwrap(fs.pop()))(a);
 		const args14: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(part7, f)];
 		fmt_put(out, rt.fmtFormat([args14[0], " "]));
 		const captured4 = b;

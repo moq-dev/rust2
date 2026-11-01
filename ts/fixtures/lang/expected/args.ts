@@ -53,7 +53,7 @@ export function kept(data: rt.ByteSlice, n: rt.u8): rt.ByteSlice[] {
 		if (!(iterStart++ < iterEnd)) {
 			return all;
 		}
-		rt.vecPush(all, data, 8);
+		all.push(data);
 	}
 }
 

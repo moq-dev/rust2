@@ -466,7 +466,7 @@ export function lent(data: rt.ByteSlice, out: rt.ByteVec): void {
 			break;
 		}
 		_126[1].v = _126[0] as rt.u32;
-		rt.vecPush(held, rt.place(() => _126[1].v as rt.u32, (value13) => (_126[1].v as rt.u32) = value13), 4);
+		held.push(rt.place(() => _126[1].v as rt.u32, (value13) => (_126[1].v as rt.u32) = value13));
 	}
 	const iter4: rt.Iter<rt.Place<rt.u32>> = rt.iterSlice(held);
 	while (true) {
@@ -570,11 +570,11 @@ export function taken(data: rt.ByteSlice, out: rt.ByteVec): void {
 			const _34: rt.u32[] = [];
 			const old2 = wide;
 			wide = _34;
-			wide = rt.iterToArrayInPlace(rt.iterMap(rt.iterFilter(rt.iterSlice(old2), (_25: rt.u32): boolean => {
+			wide = rt.iterToArray(rt.iterMap(rt.iterFilter(rt.iterSlice(old2), (_25: rt.u32): boolean => {
 				return _25 > ((b4 as rt.u32));
 			}), (x3: rt.u32): rt.u32 => {
 				return rt.u32Div(x3, 2);
-			}), 4, 4, false, "next");
+			}), "next", 4);
 		})();
 		return held.length === 0;
 	}) as rt.u32)));
@@ -591,7 +591,7 @@ export function taken(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const swapped: rt.ByteVec = new rt.ByteVec();
 	for (const _39 of rt.byteSliceView(data)) {
 		const _45: rt.ByteVec = swap(_39);
-		rt.iterExtendBytes(swapped, rt.byteVecIntoIter(_45), undefined, true);
+		rt.iterExtendBytes(swapped, rt.iterSlice(rt.byteVecView(_45)), undefined, true);
 	}
 	const list: (a0: rt.u8) => undefined = (b6: rt.u8): undefined => {
 		const taken2 = pair[1].listed;
@@ -604,7 +604,7 @@ export function taken(data: rt.ByteSlice, out: rt.ByteVec): void {
 	});
 	for (const _57 of rt.byteSliceView(data)) {
 		const _63: rt.ByteVec = option_unwrapOrDefault$0wx44sw(restock(pair[1], _57));
-		rt.iterExtendBytes(swapped, rt.byteVecIntoIter(_63), undefined, true);
+		rt.iterExtendBytes(swapped, rt.iterSlice(rt.byteVecView(_63)), undefined, true);
 	}
 	const taken3 = pair[1].stale;
 	pair[1].stale = new rt.ByteVec();
@@ -763,9 +763,9 @@ export function elements(data: rt.ByteSlice, out: rt.ByteVec): void {
 			return 0;
 		});
 		_214.v = rt.u32Add(_214.v, _213);
-		rt.dequePushBack(queue, b2 as rt.u32, 4);
+		rt.dequePushBack(queue, b2 as rt.u32);
 		if (rt.u8Rem(b2, 3) === 0) {
-			rt.dequePushFront(queue, rt.u32Add(b2 as rt.u32, 1), 4);
+			rt.dequePushFront(queue, rt.u32Add(b2 as rt.u32, 1));
 		}
 	}
 	const iter12: rt.Iter<[rt.u8, rt.u8]> = rt.hashValues(hash);

@@ -6,14 +6,14 @@ import { put as fmt_put } from "./fmt.ts";
 
 /** The scalars to try: the edges, then each big-endian `u32` in `data`, zero-padded. */
 export function scalars(data: rt.ByteSlice): rt.u32[] {
-	const all: rt.u32[] = [0, 127, 128, 255, 256, 2047, 2048, 55295, 55296, 56319, 56320, 57343, 57344, 65533, 65535, 65536, 1114109, 1114111, 1114112, 4294967295].slice();
+	const all: rt.u32[] = rt.vecExact([0, 127, 128, 255, 256, 2047, 2048, 55295, 55296, 56319, 56320, 57343, 57344, 65533, 65535, 65536, 1114109, 1114111, 1114112, 4294967295].slice(), 4);
 	let rest: rt.ByteSlice = data;
 	while (true) {
 		if (!((rest.length === 0))) {
 			const buf: Uint8Array = rt.bytes(4);
 			const n: rt.usize = rt.min(rest.length, 4);
 			rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(rest, 0, n));
-			rt.vecPush(all, rt.u32FromBeBytes(buf), 4);
+			all.push(rt.u32FromBeBytes(buf));
 			rest = rt.byteSliceRange(rest, n);
 		} else {
 			return all;
@@ -92,9 +92,9 @@ export function chars(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(((c2 as rt.u32) & 0xff) as rt.u16)));
 		}
 	} else if (_4 === 2) {
-		const cs: rt.char[] = rt.iterToArrayInPlace(rt.iterFilterMap(rt.iterSlice(scalars(data)), (a0: rt.u32): rt.char | undefined => {
+		const cs: rt.char[] = rt.iterToArray(rt.iterFilterMap(rt.iterSlice(scalars(data)), (a0: rt.u32): rt.char | undefined => {
 			return rt.charFromU32(a0);
-		}), 4, 4, false, "next");
+		}), "next", 4);
 		const sorted: rt.BTreeSet<rt.char> = rt.btreeNew(rt.cmp) as rt.BTreeSet<rt.char>;
 		const seen: rt.HashSet<rt.char> = rt.hashNew() as rt.HashSet<rt.char>;
 		const iter3: rt.Iter<[rt.usize, rt.char]> = rt.iterEnumerate(rt.iterSlice(cs));

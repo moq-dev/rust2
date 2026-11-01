@@ -271,8 +271,8 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 
 	/// An iterator stepped in place, from the `rt.Iter` its mapping makes: `{ s, i: 0 }`
 	/// from `rt.iterSlice(s)`, or `rt.iterSlice(s, drop)` of items it owns, which its drop
-	/// drops again, or `rt.byteVecIntoIter(v)` of a `Vec<u8>`'s bytes, and `{ start, end }`
-	/// from `new rt.Range(start, end)`. A moved one is already made.
+	/// drops again, and `{ start, end }` from `new rt.Range(start, end)`. A moved one is
+	/// already made.
 	pub(super) fn stepped_make(&mut self, value: Expr, span: rustc_span::Span) -> Expr {
 		let rt = |f: &Expr, name: &str| matches!(f, Expr::Rt(n) if n == name);
 		let object = |fields: [(&str, Expr); 2]| {
@@ -282,9 +282,6 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 			Expr::Call(f, mut args) if rt(&f, "iterSlice") && matches!(args.len(), 1 | 2) => {
 				args.truncate(1);
 				object([("s", args.pop().unwrap()), ("i", Expr::lit("0"))])
-			}
-			Expr::Call(f, args) if rt(&f, "byteVecIntoIter") && args.len() == 1 => {
-				object([("s", Expr::rt("byteVecView", args)), ("i", Expr::lit("0"))])
 			}
 			Expr::New(f, args) if rt(&f, "Range") && args.len() == 2 => {
 				let [start, end] = <[Expr; 2]>::try_from(args).expect("checked above");

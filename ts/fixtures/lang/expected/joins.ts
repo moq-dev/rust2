@@ -125,9 +125,9 @@ export function joins(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		wides(rt.slicesJoin(slices, 2, [sep2]), out);
 		wides(rt.slicesJoin(slices, 2, rt.sliceRange(wideSeps, 0)), out);
 		const boxed2: rt.u16[][] = rt.iterToArray(rt.iterMap(rt.iterMap(rt.iterSlice(wide), (a015: rt.u16[]): rt.u16[] => {
-			return a015.slice();
+			return rt.vecExact(a015.slice(), 2);
 		}), (a016: rt.u16[]): rt.u16[] => {
-			return rt.vecIntoBoxed(a016);
+			return a016;
 		}), undefined, 8, true);
 		wides(rt.slicesJoin(boxed2, 2), out);
 		wides(rt.slicesJoin(boxed2, 2, [sep2]), out);
@@ -221,7 +221,7 @@ export function joins(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			if (rt.usizeRem(_212[0], 2) === 0) {
 				return new rt.Borrowed(rt.sliceRange(_212[1], 0));
 			}
-			return _212[1].slice();
+			return rt.vecExact(_212[1].slice(), 2);
 		}), undefined, 12, true);
 		wides(rt.slicesJoin(wide3, 2, undefined, rt.cowSlice), out);
 		wides(rt.slicesJoin(wide3, 2, [65535], rt.cowSlice), out);
@@ -235,10 +235,10 @@ export function joins(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		fmt_put(out, rt.strsJoin(texts, "--"));
 	} else {
 		const big: rt.ByteVec = rt.byteVecOf(1, 1 << 16);
-		const wide4: rt.u16[] = rt.vecFromElem(1, 1 << 16, undefined, 2);
+		const wide4: rt.u16[] = rt.vecFromElem(1, 1 << 16, undefined);
 		const text_: string = text(rt.byteVecSlice(big));
 		const refs: (a0: rt.usize) => rt.ByteSlice[] = (n: rt.usize): rt.ByteSlice[] => {
-			return rt.vecFromElem(rt.byteSliceRange(rt.byteVecSlice(big), 0), n, undefined, 8);
+			return rt.vecFromElem(rt.byteSliceRange(rt.byteVecSlice(big), 0), n, undefined);
 		};
 		const _512: rt.u8 = rt.u8Rem(option_unwrapOr$0r2bmpr(rt.byteSliceFirst(data), 0), 7);
 		if (_512 === 0) {
@@ -248,17 +248,17 @@ export function joins(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		} else if (_512 === 2) {
 			bytes(rt.byteSlicesJoin(refs(rt.usizeAdd(1 << 14, 1)), rt.byteSliceRange(rt.byteVecSlice(big), 0)), out);
 		} else if (_512 === 3) {
-			wides(rt.slicesJoin(rt.vecFromElem(rt.sliceRange(wide4, 0), rt.usizeAdd(1 << 14, 1), undefined, 8), 2), out);
+			wides(rt.slicesJoin(rt.vecFromElem(rt.sliceRange(wide4, 0), rt.usizeAdd(1 << 14, 1), undefined), 2), out);
 		} else if (_512 === 4) {
-			fmt_put(out, rt.strsJoin(rt.vecFromElem(text_, rt.usizeAdd(1 << 15, 1), undefined, 8), ""));
+			fmt_put(out, rt.strsJoin(rt.vecFromElem(text_, rt.usizeAdd(1 << 15, 1), undefined), ""));
 		} else if (_512 === 5) {
-			fmt_put(out, rt.strsJoin(rt.vecFromElem(text_, rt.usizeAdd(1 << 16, 1), undefined, 8), ""));
+			fmt_put(out, rt.strsJoin(rt.vecFromElem(text_, rt.usizeAdd(1 << 16, 1), undefined), ""));
 		} else {
 			const sep5: Sentinel.Sentinel[] = rt.iterToArray(rt.iterMap(new rt.Range(0, 1 << 16), (i: rt.i32): Sentinel.Sentinel => {
 				return { _0: (i & 0xff) ^ 90 };
 			}), undefined, 1, true);
 			const _597: Sentinel.Sentinel[] = [];
-			rt.slicesJoin(rt.vecFromElem(_597, rt.usizeAdd(1 << 16, 1), undefined, 8), 1, rt.sliceRange(sep5, 0), undefined, Sentinel.clone$Clone);
+			rt.slicesJoin(rt.vecFromElem(_597, rt.usizeAdd(1 << 16, 1), undefined), 1, rt.sliceRange(sep5, 0), undefined, Sentinel.clone$Clone);
 		}
 	}
 }

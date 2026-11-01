@@ -729,17 +729,14 @@ they need.
   and Chrome; 64 keys a node measured best of 16 to 128. A hash map's JS primitive keys
   are a JS `Map`'s, the engine's own hash table; its other keys go into a second `Map`
   by their translated hash, chained by `Eq`. `VecDeque` is a ring buffer over an array
-  whose length is a power of two. A `Vec`, `VecDeque`, and `BinaryHeap` hold std's
-  capacity, apart from the array's length: `RawVec`'s amortized growth and its least
-  allocation by element size, `with_capacity`, `reserve`, `reserve_exact`, `shrink_to`,
-  and what `collect`, `extend`, `clone`, and `From` allocate, a `collect` in place of a
-  `Vec`'s `into_iter` included, so `capacity` reads std's and each grows and panics where
-  std's does. An array's `cap` property is its capacity where that differs from its
-  length, and an `rt.ByteVec`'s is its buffer's length. A `Vec<u8>` taken from a `Bytes`
-  or a shared `BytesMut` holds what `bytes` gave it, which nothing here counts: reading
-  its capacity, or keeping it in place, throws until a `shrink_to` at most its length
-  sets it. On `just ts bench`'s `push/` workloads a push takes 1.2-2x the time JS's own
-  `push` did, Bun the most, for reading the capacity it checks. A `LinkedList` is nodes linked both ways, as std's are,
+  whose length is a power of two. A `Vec`, `VecDeque`, and `BinaryHeap` hold what std
+  guarantees of their capacity: at least their length and what `with_capacity`,
+  `reserve`, and `reserve_exact` ask for, and std's exactly where its doubling fixes it,
+  as through pushes. One holds a capacity, as `cap`, only where `with_capacity`, `reserve`,
+  `shrink_to`, a `clone`, or a `collect` or `extend` set it, so a push never reads or
+  writes one. Reading it doubles it while short of the length, from the least std's
+  `RawVec` allocates for the element size, which a run of pushes grows std's to. A
+  `Vec<u8>`'s is its buffer's length. A `LinkedList` is nodes linked both ways, as std's are,
   so `append` is O(1) and `split_off` walks from the nearer end; each node is the place
   `iter_mut` and `front_mut` lend of an item JS copies. Dropping a whole map or set drops its entries in the
   runtime's order, keys' for a B-tree, not std's node by node: std leaves that order

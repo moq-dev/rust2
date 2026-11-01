@@ -143,7 +143,7 @@ export function zeros(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const v2: undefined[] = rt.vecWithCapacity(n, 0);
 		const _154: rt.Iter<undefined> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_28: rt.u8): undefined => {});
 		rt.iterExtend(v2, _154, undefined, 0, true);
-		rt.byteVecPush(out, rt.vecFromElem({}, n, undefined, 0).length & 0xff);
+		rt.byteVecPush(out, rt.vecFromElem({}, n, undefined).length & 0xff);
 		rt.byteVecPush(out, v2.length & 0xff);
 	} else {
 		rt.iterFromFn((): rt.u8 | undefined => {
@@ -293,7 +293,7 @@ export function impls(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.iterExtendBytes(out, rt.strBytes(rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[0]), " ", rt.fmtSpec({ align: ">", width: 9 }, args4[1]), "|", rt.fmtSpec({ align: "<", width: 9 }, args4[2]), "|"])), undefined, true);
 		rt.byteVecPush(out, rt.iterCount(rt.iterEmpty() as rt.Iter<rt.u8>) & 0xff);
 	} else if (_7 === 1) {
-		const sorted: zeros_Tagged.Tagged<string>[] = tags.map(zeros_Tagged.clone$Clone_String);
+		const sorted: zeros_Tagged.Tagged<string>[] = rt.vecExact(tags.map(zeros_Tagged.clone$Clone_String), 1);
 		rt.sliceSort(sorted, rt.cmpLt(zeros_Tagged.partialCmp$cmp_PartialOrd_String));
 		rt.iterExtendBytes(out, rt.iterMap(rt.iterSlice(sorted), (t3: zeros_Tagged.Tagged<string>): rt.u8 => {
 			return t3.n;
@@ -541,7 +541,7 @@ export function writes(kind: rt.u8, _dataData: Uint8Array, _dataStart: number, d
 		rt.cellReplace(_113, undefined);
 		rt.cellSet(_113, undefined);
 		rt.sliceSwap([undefined, undefined, undefined], 0, n as rt.usize);
-		const v: zeros_Unit.Unit[] = rt.vecFromElem({}, 2, undefined, 0);
+		const v: zeros_Unit.Unit[] = rt.vecFromElem({}, 2, undefined);
 		rt.sliceSwap(v, 0, 1);
 		rt.byteVecPush(out, ([undefined, undefined, undefined].length & 0xff) | (((v.length & 0xff) << 4) & 0xff));
 		const _141: rt.Cell<undefined> = new rt.Cell(undefined);

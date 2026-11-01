@@ -1208,7 +1208,7 @@ export function drains(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				return x8.tag;
 			}), undefined, true);
 			rt.dropAll(taken);
-			rt.iterExtendBytes(out, rt.byteVecIntoIter(rt.iterToByteVec(rt.byteVecDrain(bytes, { end: b }), "fold", true)), undefined, true);
+			rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.iterToByteVec(rt.byteVecDrain(bytes, { end: b }), "fold", true))), undefined, true);
 			rt.drop(rt.vecDrain(words, { end: b }));
 		} else if (_31 === 3) {
 			const drain4: rt.Iter<slices_Item.Item> = rt.vecDrain(items, new rt.RangeFrom(a, rt.usizeStep), rt.drop);
@@ -1263,7 +1263,7 @@ export function drains(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			const other: rt.ByteVec = rt.byteVecFrom(Uint8Array.of(238));
 			const _195: rt.Iter<rt.u8> = rt.iterRev(rt.byteVecDrain(bytes, new rt.Range(a, b)));
 			rt.iterExtendBytes(other, _195, "fold", true);
-			rt.iterExtendBytes(out, rt.byteVecIntoIter(other), undefined, true);
+			rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(other)), undefined, true);
 			rt.dropAll(kept);
 		}
 		flush(out);
@@ -1275,7 +1275,7 @@ export function drains(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.iterExtendBytes(out, rt.iterMap(rt.iterSlice(words), (_26: rt.u32): rt.u8 => {
 			return _26 & 0xff;
 		}), undefined, true);
-		rt.vecPush(items, new slices_Item.Item(255), 1);
+		items.push(new slices_Item.Item(255));
 		rt.dropAll(items);
 		flush(out);
 	}
@@ -1934,7 +1934,7 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			});
 			rt.sliceCopyFromSlice(more, rt.sliceRange(array, 0, 3));
 			rt.sliceCopyFromSlice(rt.sliceRangeMut(array, 2), more);
-			const source: slices_Pair.Pair[] = rt.vecFromElem({ a: 4, b: 5 }, c, copy$slices_Pair, 4);
+			const source: slices_Pair.Pair[] = rt.vecFromElem({ a: 4, b: 5 }, c, copy$slices_Pair);
 			rt.sliceCopyFromSlice(rt.sliceRangeMut(pairs, 0, b), source, copy$slices_Pair);
 		} else if (_60 === 6) {
 			const source2: slices_Noisy.Noisy[] = rt.iterToArray(rt.iterMap(new rt.Range(0, c), (tag3: rt.usize): slices_Noisy.Noisy => {

@@ -129,7 +129,7 @@ export function strs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		if (_13 === 2) {
 			const seen: rt.char[] = [];
 			const parts2: rt.Iter<string> = rt.strSplit(s, (c9: rt.char): boolean => {
-				rt.vecPush(seen, c9, 4);
+				seen.push(c9);
 				if (!(c9 === sep)) {
 					return rt.isAsciiDigit(c9);
 				}
@@ -160,12 +160,12 @@ export function strs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		} else if (_13 === 4) {
 			const seen2: rt.char[] = [];
 			fmt_put(out, rt.strTrimStartMatches(s, (c5: rt.char): boolean => {
-				rt.vecPush(seen2, c5, 4);
+				seen2.push(c5);
 				return c5 === sep;
 			}));
 			putSeen(out, seen2);
 			fmt_put(out, rt.strTrimEndMatches(s, (c6: rt.char): boolean => {
-				rt.vecPush(seen2, c6, 4);
+				seen2.push(c6);
 				return c6 !== sep;
 			}));
 			putSeen(out, seen2);
@@ -174,7 +174,7 @@ export function strs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			}) ? 1 : 0);
 			fmt_put(out, rt.strTrimStartMatches(s, digit));
 			putOffset(out, rt.strRfind(s, (c8: rt.char): boolean => {
-				rt.vecPush(seen2, c8, 4);
+				seen2.push(c8);
 				return c8 === sep;
 			}));
 			putSeen(out, seen2);
@@ -411,7 +411,7 @@ export function unescape(path: string): string[] {
 				if (ch === 47) {
 					const taken = part;
 					part = "";
-					rt.vecPush(parts, taken, 12);
+					parts.push(taken);
 				} else if (ch === 92) {
 					const _14: rt.char | rt.Done = chars.next();
 					if (_14 === rt.DONE) {
@@ -430,7 +430,7 @@ export function unescape(path: string): string[] {
 				break;
 			}
 		}
-		rt.vecPush(parts, part, 12);
+		parts.push(part);
 		return parts;
 	}
 	return [];
@@ -556,7 +556,7 @@ export function edit(s: rt.Place<string>, op: rt.u8, a: rt.u8, b: rt.u8, out: rt
 		if (!(rt.u8Rem(b, 2) === 1)) {
 			const seen: rt.char[] = [];
 			s.v = rt.stringRetain(s.v, (c: rt.char): boolean => {
-				rt.vecPush(seen, c, 4);
+				seen.push(c);
 				return rt.u32Rem(c as rt.u32, 3) !== rt.u8Rem(a, 3) as rt.u32;
 			});
 			putSeen(out, seen);
@@ -710,7 +710,7 @@ export function parses(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 	const _39: string | undefined = one;
 	if (_39 === undefined) {
-		all = ["true", "false", "True", "FALSE", "", " true", "true ", "t", "truefalse", "a", "é", "ࠀ", "😀", "􏿿", "ab", "a😀", "😀a", "éé", "0", "+0", "-0", "000", "1", "+1", "-1", "+", "-", "--1", "+-1", "1_0", "0x1", "127", "128", "-128", "-129", "255", "256", "32767", "32768", "-32768", "-32769", "65535", "65536", "2147483647", "2147483648", "-2147483648", "-2147483649", "4294967295", "4294967296", "9223372036854775807", "9223372036854775808", "-9223372036854775808", "-9223372036854775809", "18446744073709551615", "18446744073709551616", "170141183460469231731687303715884105727", "170141183460469231731687303715884105728", "-170141183460469231731687303715884105728", "-170141183460469231731687303715884105729", "340282366920938463463374607431768211455", "340282366920938463463374607431768211456"].slice();
+		all = rt.vecExact(["true", "false", "True", "FALSE", "", " true", "true ", "t", "truefalse", "a", "é", "ࠀ", "😀", "􏿿", "ab", "a😀", "😀a", "éé", "0", "+0", "-0", "000", "1", "+1", "-1", "+", "-", "--1", "+-1", "1_0", "0x1", "127", "128", "-128", "-129", "255", "256", "32767", "32768", "-32768", "-32769", "65535", "65536", "2147483647", "2147483648", "-2147483648", "-2147483649", "4294967295", "4294967296", "9223372036854775807", "9223372036854775808", "-9223372036854775808", "-9223372036854775809", "18446744073709551615", "18446744073709551616", "170141183460469231731687303715884105727", "170141183460469231731687303715884105728", "-170141183460469231731687303715884105728", "-170141183460469231731687303715884105729", "340282366920938463463374607431768211455", "340282366920938463463374607431768211456"].slice(), 8);
 	} else {
 		all = [_39];
 	}

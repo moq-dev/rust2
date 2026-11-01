@@ -10,8 +10,6 @@ import {
 	bytes,
 	byteVecExtendFromSlice,
 	byteVecPush,
-	byteVecReserve,
-	byteVecWithCapacity,
 	copyBytes,
 	type FmtResult,
 	type Formatter,
@@ -324,22 +322,9 @@ export function bytesMutFreeze(b: BytesMut): Bytes {
 	return new ByteSlice(b.data, b.start, b.length);
 }
 
-/**
- * `From<BytesMut> for Vec<u8>`: of a vector's own, the vector, holding as many as it did
- * from its front, and else storage whose capacity is unsure.
- */
+/** `From<BytesMut> for Vec<u8>`. */
 export function bytesMutToByteVec(b: BytesMut): ByteVec {
-	const v = byteVecWithCapacity(b.exact ? b.start + b.cap : b.length);
-	byteVecExtendFromSlice(v, bytesMutView(b));
-	v.unsure = !b.exact;
-	return v;
-}
-
-/** `From<Bytes> for Vec<u8>`: its bytes, in storage whose capacity is unsure. */
-export function bytesToByteVec(b: Bytes): ByteVec {
-	const v = byteSliceToByteVec(b);
-	v.unsure = true;
-	return v;
+	return byteSliceToByteVec(bytesMutView(b));
 }
 
 /**
@@ -526,7 +511,7 @@ export function byteVecPutBuf<B>(
 	chunk: (src: B) => ByteSlice,
 	advance: (src: B, cnt: usize) => void,
 ): void {
-	byteVecReserve(v, remaining(src));
+	if (v.length + remaining(src) > ISIZE_MAX) panic("capacity overflow");
 	while (hasRemaining(src)) {
 		const s = chunk(src);
 		byteVecExtendFromSlice(v, s);
@@ -534,15 +519,13 @@ export function byteVecPutBuf<B>(
 	}
 }
 
-/** `BufMut::put_u8` and the other writes of a narrow integer to a `Vec<u8>`, as `bytesMutPutWord`, which reserves for them all first. */
+/** `BufMut::put_u8` and the other writes of a narrow integer to a `Vec<u8>`, as `bytesMutPutWord`. */
 export function byteVecPutWord(v: ByteVec, value: number, n: number, le: boolean): void {
-	byteVecReserve(v, n);
 	for (let i = 0; i < n; i++) byteVecPush(v, value >>> (8 * (le ? i : n - 1 - i)));
 }
 
-/** `BufMut::put_*` of big-endian bytes to a `Vec<u8>`, reversed if `le`, which reserves for them all first. */
+/** `BufMut::put_*` of big-endian bytes to a `Vec<u8>`, reversed if `le`. */
 export function byteVecPutBytes(v: ByteVec, be: Uint8Array, le: boolean): void {
-	byteVecReserve(v, be.length);
 	for (let i = 0; i < be.length; i++) byteVecPush(v, be[le ? be.length - 1 - i : i]);
 }
 
@@ -552,8 +535,8 @@ export function byteVecPutInt(v: ByteVec, be: Uint8Array, nbytes: usize, le: boo
 	byteVecPutBytes(v, be.subarray(be.length - nbytes), le);
 }
 
-/** `BufMut::put_bytes` to a `Vec<u8>`: its `resize`, which reserves for them all first. */
+/** `BufMut::put_bytes` to a `Vec<u8>`: its `resize`, which panics past what a vector holds. */
 export function byteVecPutFill(v: ByteVec, val: number, cnt: usize): void {
-	byteVecReserve(v, cnt);
+	if (v.length + cnt > ISIZE_MAX) panic("capacity overflow");
 	for (let i = 0; i < cnt; i++) byteVecPush(v, val);
 }

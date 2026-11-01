@@ -180,10 +180,6 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 			Std::Vec if places(b, args.type_at(0)) => {
 				Some(Expr::rt("iterSliceMut", vec![library::elements(value, ty)]))
 			}
-			// An owned one's bytes, of the vector whose capacity a `collect` in place of it keeps.
-			Std::Vec if owned && matches!(args.type_at(0).kind(), ty::Uint(ty::UintTy::U8)) => {
-				Some(Expr::rt("byteVecIntoIter", vec![value]))
-			}
 			Std::Vec => {
 				let values = each(b, args.type_at(0), vec![library::elements(value, ty)]);
 				Some(items(Expr::rt("iterSlice", values), args.type_at(0)))
@@ -1231,8 +1227,17 @@ fn collect<'tcx>(
 		_ => library::cow_slice(tcx, ty).or(boxed),
 	};
 	if let Some(elem) = elem {
-		let bytes = matches!(elem.kind(), ty::Uint(ty::UintTy::U8));
-		let v = collected(b, iter, from, elem, trusted, bytes, span);
+		let v = match elem.kind() {
+			ty::Uint(ty::UintTy::U8) => {
+				let (folds, by_index) = collect_folds(b, from, elem, span);
+				let take = iter_take(b, from, folds, span);
+				Expr::rt(
+					"iterToByteVec",
+					tail(vec![iter], vec![take, Expr::lit((trusted || by_index).to_string())]),
+				)
+			}
+			_ => to_array(b, iter, from, elem, trusted, span),
+		};
 		return Some(match boxed {
 			Some(elem) => library::vec_boxed(v, elem),
 			None => v,
@@ -1391,10 +1396,9 @@ fn drops_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> boo
 	true
 }
 
-/// `iter`, an iterator of type `from`, collected into a `Vec<elem>` as `collect_folds` says
-/// std's reads it, a JS array even of bytes. It reserves as std's does for a `TrustedLen`
-/// iterator if `trusted`, and keeps the capacity of the `Vec` it reads where std's collects
-/// in place of it.
+/// `rt.iterToArray` of `iter`, an iterator of type `from`, collected into a `Vec<elem>` as
+/// `collect_folds` says std's reads it. It reserves as std's does for a `TrustedLen`
+/// iterator if `trusted`.
 pub(super) fn to_array<'tcx>(
 	b: &mut Body<'_, '_, 'tcx>,
 	iter: Expr,
@@ -1403,61 +1407,16 @@ pub(super) fn to_array<'tcx>(
 	trusted: bool,
 	span: Span,
 ) -> Expr {
-	collected(b, iter, from, elem, trusted, false, span)
-}
-
-/// As `to_array`, an `rt.ByteVec` if `bytes`.
-fn collected<'tcx>(
-	b: &mut Body<'_, '_, 'tcx>,
-	iter: Expr,
-	from: Ty<'tcx>,
-	elem: Ty<'tcx>,
-	trusted: bool,
-	bytes: bool,
-	span: Span,
-) -> Expr {
 	let (folds, by_index) = collect_folds(b, from, elem, span);
 	let take = iter_take(b, from, folds, span);
-	let trusted = Expr::lit((trusted || by_index).to_string());
-	if let Some(src) = in_place_source(b.t, from, elem) {
-		let bare = Expr::lit(is_vec_into_iter(b.t.tcx, from).to_string());
-		let src_size = size_of(b, src, span);
-		return match bytes {
-			true => Expr::rt(
-				"iterToByteVecInPlace",
-				tail(vec![iter, src_size, bare], vec![take, trusted]),
-			),
-			false => {
-				let size = size_of(b, elem, span);
-				Expr::rt(
-					"iterToArrayInPlace",
-					tail(vec![iter, src_size, size, bare], vec![take, trusted]),
-				)
-			}
-		};
-	}
-	match bytes {
-		true => Expr::rt("iterToByteVec", tail(vec![iter], vec![take, trusted])),
-		false => {
-			let size = size_of(b, elem, span);
-			Expr::rt("iterToArray", tail(vec![iter], vec![take, size, trusted]))
-		}
-	}
-}
-
-/// Whether `ty` is a `vec::IntoIter`, whose `collect` into a `Vec` std's specializes.
-pub(super) fn is_vec_into_iter(tcx: ty::TyCtxt<'_>, ty: Ty<'_>) -> bool {
-	matches!(ty.kind(), ty::Adt(adt, _) if library::std_path(tcx, adt.did()) == ["vec", "into_iter", "IntoIter"])
-}
-
-/// The element type of the `Vec` std's `collect` of an iterator of type `iter` into a
-/// `Vec<elem>` writes in place of, if it does: a `vec::IntoIter`'s own, which std's keeps
-/// whatever its elements, or an adaptor's source where each item's layout leaves room.
-fn in_place_source<'tcx>(t: &Translator<'_, 'tcx>, iter: Ty<'tcx>, elem: Ty<'tcx>) -> Option<Ty<'tcx>> {
-	if is_vec_into_iter(t.tcx, iter) {
-		return Some(elem);
-	}
-	in_place(t, iter, elem)
+	let size = size_of(b, elem, span);
+	Expr::rt(
+		"iterToArray",
+		tail(
+			vec![iter],
+			vec![take, size, Expr::lit((trusted || by_index).to_string())],
+		),
+	)
 }
 
 /// Whether std's `collect` of an iterator of type `from` into a `Vec<elem>` folds it, and
@@ -1469,7 +1428,7 @@ fn in_place_source<'tcx>(t: &Translator<'_, 'tcx>, iter: Ty<'tcx>, elem: Ty<'tcx
 /// as each fold ends. Elsewhere, it folds a `TrustedLen` one by its own `fold`, which drops
 /// them first, and reads any other by `next`.
 fn collect_folds<'tcx>(b: &mut Body<'_, '_, 'tcx>, from: Ty<'tcx>, elem: Ty<'tcx>, span: Span) -> (bool, bool) {
-	if in_place(b.t, from, elem).is_none() {
+	if !in_place(b.t, from, elem) {
 		return (implements(b.t, from, "TrustedLen"), false);
 	}
 	let zips = from.walk().filter_map(|arg| arg.as_type()).any(|t| {
@@ -1487,17 +1446,17 @@ fn collect_folds<'tcx>(b: &mut Body<'_, '_, 'tcx>, from: Ty<'tcx>, elem: Ty<'tcx
 	(by_index, by_index)
 }
 
-/// The element type of the `Vec` std's `collect` of an iterator of type `iter` into a
-/// `Vec<elem>` writes in place of, as its adaptors let it where each item's layout leaves
-/// room, if it does.
-fn in_place<'tcx>(t: &Translator<'_, 'tcx>, iter: Ty<'tcx>, elem: Ty<'tcx>) -> Option<Ty<'tcx>> {
+/// Whether std's `collect` of an iterator of type `iter` into a `Vec<elem>` writes in place
+/// of the `Vec` its items come from, as its adaptors let it where each item's layout leaves
+/// room.
+fn in_place<'tcx>(t: &Translator<'_, 'tcx>, iter: Ty<'tcx>, elem: Ty<'tcx>) -> bool {
 	let tcx = t.tcx;
 	let env = t.typing_env_pub();
 	let (Some(steps), Some(source)) = (core_trait(tcx, "InPlaceIterable"), core_trait(tcx, "SourceIter")) else {
-		return None;
+		return false;
 	};
 	if !implements(t, iter, "InPlaceIterable") || !implements(t, iter, "SourceIter") {
-		return None;
+		return false;
 	}
 	let assoc = |tr: DefId, name: &str| {
 		tcx.associated_items(tr)
@@ -1506,16 +1465,18 @@ fn in_place<'tcx>(t: &Translator<'_, 'tcx>, iter: Ty<'tcx>, elem: Ty<'tcx>) -> O
 			.map(|item| item.def_id)
 	};
 	// `<I as SourceIter>::Source`, a `vec::IntoIter` of what it collects in place of.
-	let src = assoc(source, "Source").and_then(|item| {
+	let Some(src) = assoc(source, "Source").and_then(|item| {
 		let projection = Ty::new_projection(tcx, ty::IsRigid::No, item, [iter]);
 		tcx.try_normalize_erasing_regions(env, ty::Unnormalized::new_wip(projection))
 			.ok()
-	})?;
+	}) else {
+		return false;
+	};
 	let ty::Adt(adt, src_args) = src.kind() else {
-		return None;
+		return false;
 	};
 	if library::std_path(tcx, adt.did()) != ["vec", "into_iter", "IntoIter"] {
-		return None;
+		return false;
 	}
 	// `MERGE_BY` and `EXPAND_BY`: how many source items make how many it collects, if known.
 	let step = |name: &str| -> Option<u128> {
@@ -1525,20 +1486,19 @@ fn in_place<'tcx>(t: &Translator<'_, 'tcx>, iter: Ty<'tcx>, elem: Ty<'tcx>) -> O
 		Some(value.try_to_scalar_int()?.to_bits_unchecked())
 	};
 	let (Some(merge), Some(expand)) = (step("MERGE_BY"), step("EXPAND_BY")) else {
-		return None;
+		return false;
 	};
 	let layout = |ty: Ty<'tcx>| tcx.layout_of(env.as_query_input(ty)).ok();
 	let (Some(from), Some(to)) = (layout(src_args.type_at(0)), layout(elem)) else {
-		return None;
+		return false;
 	};
 	// As std's `in_place_collectible`, where `None`, an overflow, is 0.
-	let collectible = !from.is_zst()
+	!from.is_zst()
 		&& !to.is_zst()
 		&& from.align.abi == to.align.abi
 		&& merge > 0
 		&& expand > 0
-		&& u128::from(from.size.bytes()) * merge >= u128::from(to.size.bytes()) * expand;
-	collectible.then(|| src_args.type_at(0))
+		&& u128::from(from.size.bytes()) * merge >= u128::from(to.size.bytes()) * expand
 }
 
 /// Whether the crate's own `Ord` of `ty` has its own `max` or `min`, by `name`, which

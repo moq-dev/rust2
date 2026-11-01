@@ -61,7 +61,7 @@ export function methods(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _168: rt.u16[] = [];
 	const list: Wrap.Wrap<rt.u16[]> = new Wrap.Wrap(_168, 1);
 	const _171: rt.u16 = at(10) as rt.u16;
-	rt.vecPush(list.value, _171, 2);
+	list.value.push(_171);
 	Wrap.bump$Vec_u16(list);
 	const none: Wrap.Wrap<rt.u8 | undefined> = new Wrap.Wrap(undefined, 0);
 	const some: Wrap.Wrap<rt.u8 | undefined> = Wrap.new$Option_u8(rt.byteSliceGet(data, 11));
@@ -69,7 +69,7 @@ export function methods(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _193: rt.u8 = option_unwrapOr$0r2bmpr(Wrap.get$Option_u8(none), some.count);
 	const args10: rt.Fmt[] = [(f: rt.Formatter) => Wrap.fmt$fmt_Debug_Vec_u16(list, f), (f: rt.Formatter) => Wrap.fmt$fmt_Debug_Option_u8(none, f), (f: rt.Formatter) => Wrap.fmt$fmt_Debug_Option_u8(some, f), (f: rt.Formatter) => Wrap.fmt$fmt_Debug_Result_u8_shapes_Shape(err, f), (f: rt.Formatter) => rt.u8Debug(_193, f)];
 	fmt_put(out, rt.fmtFormat([args10[0], " ", args10[1], " ", args10[2], " ", args10[3], " ", args10[4]]));
-	const tagged: generics_Tagged.Tagged<Either.Either<rt.u8, rt.u16>, rt.i16> = new generics_Tagged.Tagged({ tag: "Right", value: 500 } as Either.Either<rt.u8, rt.u16>, Wrap.new$i16(rt.i16Sub(at(8) as rt.i16, 100)), [Wrap.new$i16(-1), Wrap.new$i16(at(9) as rt.i16)].slice());
+	const tagged: generics_Tagged.Tagged<Either.Either<rt.u8, rt.u16>, rt.i16> = new generics_Tagged.Tagged({ tag: "Right", value: 500 } as Either.Either<rt.u8, rt.u16>, Wrap.new$i16(rt.i16Sub(at(8) as rt.i16, 100)), rt.vecExact([Wrap.new$i16(-1), Wrap.new$i16(at(9) as rt.i16)].slice(), 4));
 	const _237: Wrap.Wrap<rt.i16> | undefined = generics_Tagged.first$generics_Either_u8_u16_i16(tagged);
 	const args12: rt.Fmt[] = [(f: rt.Formatter) => generics_Tagged.fmt$fmt_Debug_generics_Either_u8_u16_i16(tagged, f), (f: rt.Formatter) => rt.fmtOption(_237, f, (value: Wrap.Wrap<rt.i16>, f: rt.Formatter) => Wrap.fmt$fmt_Debug_i16(value, f))];
 	fmt_put(out, rt.fmtFormat([args12[0], " ", args12[1]]));

@@ -787,8 +787,8 @@ const gets = [0, 0x10].flatMap((text) => {
 /**
  * `capacity` cases of each element type: each step of a vector, a deque, and a heap, by a
  * few, past what it may hold, and within eight of `usize::MAX`, once it grew past its
- * least capacity, made by `new` and by `with_capacity`; a run of pushes and pops that
- * grows and shrinks it; and each way `collects` makes one, of each length it tries.
+ * least capacity, made by `new` and by `with_capacity`; a run of pushes that doubles it
+ * from each; and each way `collects` makes one, of each length it tries.
  */
 const capacityCases = [
 	...[["capacity::vecs", 25], ["capacity::deques", 21], ["capacity::heaps", 13]].flatMap(([name, steps]) =>
@@ -798,7 +798,7 @@ const capacityCases = [
 		}),
 	),
 	...["capacity::vecs", "capacity::deques", "capacity::heaps"].flatMap((name) =>
-		Array.from({ length: 5 }, (_, kind) => Uint8Array.of(op(name), kind, 0, ...Array.from({ length: 40 }, (_, p) => [p % 3 === 2 ? 2 : 0, p]).flat())),
+		Array.from({ length: 5 * 2 }, (_, i) => Uint8Array.of(op(name), i % 5, Math.floor(i / 5) * 0x11, ...Array.from({ length: 40 }, (_, p) => [0, p]).flat())),
 	),
 	...Array.from({ length: 8 * 6 }, (_, i) => Uint8Array.of(op("capacity::collects"), i % 8, [0, 1, 2, 5, 9, 23][Math.floor(i / 8)], 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
 ];

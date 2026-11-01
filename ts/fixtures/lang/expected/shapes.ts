@@ -372,13 +372,13 @@ export function shares(data: rt.ByteSlice, out: rt.ByteVec): void {
 	bump(copy5.slot);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(a, copy5.n)));
 	rt.byteVecPush(out, lensBumped(lens));
-	for (const _104 of Array.from({ length: 2 }, (): Lens.Lens => {
+	for (const _104 of rt.vecExact(Array.from({ length: 2 }, (): Lens.Lens => {
 		return copy$shapes_Lens(lens);
-	}).map(copy$shapes_Lens)) {
+	}).map(copy$shapes_Lens), 8)) {
 		bump(_104.slot);
 	}
 	const lenses: Lens.Lens[] = [];
-	rt.vecPush(lenses, copy$shapes_Lens(lens), 8);
+	lenses.push(copy$shapes_Lens(lens));
 	const _114: rt.Iter<Lens.Lens> = rt.iterSlice([lens]);
 	rt.iterExtend(lenses, rt.iterMap(_114, copy$shapes_Lens), undefined, 8, true);
 	const iter4: rt.Iter<Lens.Lens> = rt.iterCopied(rt.iterSlice(lenses), copy$shapes_Lens);
@@ -417,7 +417,7 @@ export function shares(data: rt.ByteSlice, out: rt.ByteVec): void {
 	});
 	rt.byteVecPush(out, writeAt(rt.byteSliceFrom(bytes), at, a));
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(bytes));
-	const points: Point.Point[] = rt.vecFromElem(copy$shapes_Point(Point.new(a as rt.i32, 0)), 2, copy$shapes_Point, 8);
+	const points: Point.Point[] = rt.vecFromElem(copy$shapes_Point(Point.new(a as rt.i32, 0)), 2, copy$shapes_Point);
 	movedAt(points, at);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(points[rt.idx(points, 0)].x & 0xff, points[rt.idx(points, 1)].x & 0xff, points[rt.idx(points, 1)].y & 0xff)));
 	arc[Symbol.dispose]();
@@ -2228,7 +2228,7 @@ export function closures(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const parsed: Array<shapes_Dir.Dir | undefined> = [];
 	for (const _53 of rt.byteSliceView(data)) {
 		const _59: shapes_Dir.Dir | undefined = dir(_53);
-		rt.vecPush(parsed, _59, 1);
+		parsed.push(_59);
 	}
 	const tags: rt.ByteVec = new rt.ByteVec();
 	for (const _64 of parsed) {
