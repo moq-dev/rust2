@@ -30,5 +30,4 @@ Public API: the translator's output for byte slices.
 
 ## Required
 
-- [Byte slices passed and returned as parts](/quest/m2/ts-byte-views/returns.md) - a function takes a slice's parts and returns a split's parts without an object
 - [Byte slices in fields](/quest/m2/ts-byte-views/fields.md) - a private slice field is three fields
