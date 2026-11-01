@@ -1,9 +1,10 @@
 //! `collect`, `unzip`, and `extend` of tuples of collections, through std's `FromIterator`
 //! and `Extend` of tuples: a 1-tuple's collection by its own `extend`, and a longer
 //! tuple's each by its `extend_reserve` and `extend_one`, in field order, of every
-//! collection the runtime extends, borrowed items copied, and items that drop.
+//! collection the runtime extends, borrowed items copied, items that drop, and the crate's
+//! own collections, which keep std's defaults of both.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap, HashMap, HashSet, VecDeque};
 use std::hash::{Hash, Hasher};
@@ -78,7 +79,7 @@ fn entries(map: &HashMap<u8, u8>, out: &mut Vec<u8>) {
 /// Collected, unzipped, or extended as `kind` picks, from at most 24 bytes of `data`.
 pub fn tuples(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 	let data = &data[..data.len().min(24)];
-	match kind % 10 {
+	match kind % 12 {
 		0 => ones(data, out),
 		1 => pairs(data, out),
 		2 => triples(data, out),
@@ -88,7 +89,9 @@ pub fn tuples(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 		6 => dropped(data, out),
 		7 => panicked(data, out),
 		8 => reserved(data, out),
-		_ => shunted(data, out),
+		9 => shunted(data, out),
+		10 => own(data, out),
+		_ => own_panicked(data, out),
 	}
 }
 
@@ -388,5 +391,214 @@ fn shunted(data: &[u8], out: &mut Vec<u8>) {
 			out.extend(tree);
 		}
 		None => out.push(0xf9),
+	}
+}
+
+thread_local! {
+	/// What the crate's own collections and the items they are given log.
+	static CALLS: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+	/// The id the next `Tally::default` takes.
+	static NEXT: Cell<u8> = const { Cell::new(0) };
+}
+
+fn call(entry: &[u8]) {
+	CALLS.with_borrow_mut(|calls| calls.extend_from_slice(entry));
+}
+
+/// Puts what was logged since the last, after a marker.
+fn calls(out: &mut Vec<u8>) {
+	out.push(0xfd);
+	CALLS.with_borrow_mut(|calls| out.extend(calls.drain(..)));
+}
+
+/// The crate's own collection: `default` logs the id it takes, and each `extend` the size
+/// hint of the iterator it is given and how many items that held. An item of 0xee panics.
+struct Tally {
+	id: u8,
+	sum: u8,
+}
+
+impl Default for Tally {
+	fn default() -> Self {
+		let id = NEXT.get();
+		NEXT.set(id.wrapping_add(1));
+		call(&[0xd0, id]);
+		Tally { id, sum: 0 }
+	}
+}
+
+impl Extend<u8> for Tally {
+	fn extend<I: IntoIterator<Item = u8>>(&mut self, iter: I) {
+		let iter = iter.into_iter();
+		let (lower, upper) = iter.size_hint();
+		let mut n = 0_u8;
+		for b in iter {
+			assert!(b != 0xee, "tally {} at its item {n}", self.id);
+			self.sum = self.sum.wrapping_add(b);
+			n += 1;
+		}
+		call(&[0xe0, self.id, lower as u8, upper.map_or(0xff, |u| u as u8), n]);
+	}
+}
+
+/// The crate's own enum, which JS keeps in a place: the last item and how many there were.
+#[derive(Default)]
+enum Last {
+	#[default]
+	Empty,
+	Seen(char, u8),
+}
+
+impl Extend<char> for Last {
+	fn extend<I: IntoIterator<Item = char>>(&mut self, iter: I) {
+		for c in iter {
+			*self = match *self {
+				Last::Empty => Last::Seen(c, 1),
+				Last::Seen(_, n) => Last::Seen(c, n + 1),
+			};
+		}
+	}
+}
+
+impl Last {
+	fn put(&self, out: &mut Vec<u8>) {
+		match *self {
+			Last::Empty => out.push(0xf8),
+			Last::Seen(c, n) => out.extend([c as u8, n]),
+		}
+	}
+}
+
+/// Logs each item as it is made, before the collections are given its fields.
+fn made(b: &u8) {
+	call(&[0xa0, *b]);
+}
+
+/// Tuples holding the crate's own collections beside std's, by `collect`, `extend`, and
+/// `unzip`: a 1-tuple's by its own `extend` of every item, and a longer one's by its
+/// `extend` of `Some` of each item, in field order, after each default in field order.
+fn own(data: &[u8], out: &mut Vec<u8>) {
+	let data: Vec<u8> = data.iter().map(|&b| if b == 0xee { 0xed } else { b }).collect();
+	NEXT.set(0);
+	CALLS.with_borrow_mut(Vec::clear);
+	let (t,): (Tally,) = data.iter().inspect(|b| made(b)).map(|&b| (b,)).collect();
+	out.push(t.sum);
+	calls(out);
+	let mut one = (Tally::default(),);
+	one.extend(data.iter().filter(|&&b| b & 1 == 0).map(|&b| (b,)));
+	out.push(one.0.sum);
+	calls(out);
+	let (v, t): (Vec<u8>, Tally) = data.iter().inspect(|b| made(b)).map(|&b| (b ^ 0x5a, b)).collect();
+	out.extend(v);
+	out.push(t.sum);
+	calls(out);
+	let (t, w): (Tally, Vec<u16>) = data.iter().map(|&b| (b, u16::from(b) << 3)).unzip();
+	out.push(t.sum);
+	out.extend(w.iter().flat_map(|n| n.to_le_bytes()));
+	calls(out);
+	let (a, s, b): (Tally, String, Tally) = data
+		.iter()
+		.inspect(|b| made(b))
+		.map(|&b| (b, char::from(b), !b))
+		.collect();
+	out.extend([a.sum, b.sum]);
+	out.extend(s.bytes());
+	calls(out);
+	let (s, last, t): (String, Last, Tally) = data
+		.iter()
+		.map(|&b| (char::from(b), char::from(b'a' + b % 26), b))
+		.collect();
+	out.extend(s.bytes());
+	last.put(out);
+	out.push(t.sum);
+	calls(out);
+	// A 1-tuple within a pair extends by its collection's `extend_one`.
+	let (v, (t,)): (Vec<u8>, (Tally,)) = data.iter().map(|&b| (b, (b,))).collect();
+	out.extend(v);
+	out.push(t.sum);
+	calls(out);
+	let (last,): (Last,) = data.iter().map(|&b| (char::from(b),)).collect();
+	last.put(out);
+	let mut t = (Tally::default(), vec![7_u8], Last::Seen('q', 9));
+	t.extend(data.chunks(2).map(|c| (c[0], c[0], char::from(c[0]))));
+	out.push(t.0.sum);
+	out.extend(t.1);
+	t.2.put(out);
+	calls(out);
+	// What std's collects in place of the items, up to the first `Err` or `None`.
+	let parsed: Result<(Tally, Vec<u8>), u8> = data.iter().map(|&b| if b == 0 { Err(b) } else { Ok((b, b)) }).collect();
+	match parsed {
+		Ok((t, v)) => {
+			out.push(t.sum);
+			out.extend(v);
+		}
+		Err(e) => out.extend([0xfa, e]),
+	}
+	calls(out);
+	let found: Option<(Vec<u8>, Tally)> = data.iter().map(|&b| b.checked_sub(4).map(|n| (n, b))).collect();
+	match found {
+		Some((v, t)) => {
+			out.extend(v);
+			out.push(t.sum);
+		}
+		None => out.push(0xf9),
+	}
+	calls(out);
+	// Items that drop, which the iterator still holds past an `Err`.
+	let log = Rc::new(RefCell::new(Vec::new()));
+	let source: Vec<Result<(Logged, u8), u8>> = (data.iter().enumerate())
+		.map(|(i, &b)| match b {
+			0x80.. => Err(b),
+			_ => Ok((
+				Logged {
+					id: i as u8,
+					key: b,
+					log: log.clone(),
+				},
+				b,
+			)),
+		})
+		.collect();
+	let held: Result<(Vec<Logged>, Tally), u8> = source.into_iter().collect();
+	flush(&log, out);
+	match held {
+		Ok((v, t)) => {
+			out.extend(v.iter().map(|l| l.id));
+			out.push(t.sum);
+		}
+		Err(e) => out.extend([0xfa, e]),
+	}
+	flush(&log, out);
+	calls(out);
+	let alone: Result<(Tally,), u8> = data
+		.iter()
+		.map(|&b| if b == 0xff { Err(b) } else { Ok((b,)) })
+		.collect();
+	match alone {
+		Ok((t,)) => out.push(t.sum),
+		Err(e) => out.extend([0xfa, e]),
+	}
+	calls(out);
+}
+
+/// A panic in the crate's own `extend` at an item partway, which the panic message names.
+fn own_panicked(data: &[u8], out: &mut Vec<u8>) {
+	let at = usize::from(data.first().copied().unwrap_or(0) % 8);
+	let items = data
+		.iter()
+		.enumerate()
+		.map(|(i, &b)| if i == at { 0xee } else { b & 0x7f });
+	NEXT.set(0);
+	match data.get(1).copied().unwrap_or(0) % 2 {
+		0 => {
+			let (v, t, s): (Vec<u8>, Tally, String) = items.map(|b| (b, b, char::from(b))).collect();
+			out.extend(v);
+			out.push(t.sum);
+			out.extend(s.bytes());
+		}
+		_ => {
+			let (t,): (Tally,) = items.map(|b| (b,)).collect();
+			out.push(t.sum);
+		}
 	}
 }

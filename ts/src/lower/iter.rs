@@ -1154,7 +1154,7 @@ pub(super) fn implements<'tcx>(t: &Translator<'_, 'tcx>, ty: Ty<'tcx>, name: &st
 }
 
 /// `core`'s trait `name`.
-fn core_trait(tcx: ty::TyCtxt<'_>, name: &str) -> Option<DefId> {
+pub(super) fn core_trait(tcx: ty::TyCtxt<'_>, name: &str) -> Option<DefId> {
 	let &core = tcx
 		.crates(())
 		.iter()
@@ -1229,7 +1229,21 @@ fn collect<'tcx>(
 			// What it collects from is what `from` yields up to the first `Err` or `None`, which
 			// std's collects in place of `from`'s source as it would `from`, but never trusts
 			// the length of.
-			let values = collect(b, args.type_at(0), value, Expr::ident("values"), from, false, span)?;
+			// A tuple's `Extend` is given the `GenericShunt` std's reads `from` through, which a
+			// 1-tuple's collection's own `extend` sees as it is.
+			let values_from = match args.type_at(0).kind() {
+				ty::Tuple(_) => shunt(b.t, ty, item, from)?,
+				_ => from,
+			};
+			let values = collect(
+				b,
+				args.type_at(0),
+				value,
+				Expr::ident("values"),
+				values_from,
+				false,
+				span,
+			)?;
 			let param = Param {
 				name: "values".into(),
 				ty: Some(Type::Rt("Iter", vec![value_ty])),
@@ -1262,6 +1276,21 @@ fn collect<'tcx>(
 		}
 		_ => super::collections::collect(b, ty, iter, from, trusted, span),
 	}
+}
+
+/// The `GenericShunt` std's `collect` into `ty`, a `Result` or an `Option`, of its `item`s
+/// from an iterator of type `from` reads them through, as the values it collects.
+fn shunt<'tcx>(t: &Translator<'_, 'tcx>, ty: Ty<'tcx>, item: Ty<'tcx>, from: Ty<'tcx>) -> Option<Ty<'tcx>> {
+	let tcx = t.tcx;
+	let from_iter = super::collections::trait_fn(tcx, "FromIterator", "from_iter");
+	let args = tcx.mk_args(&[ty.into(), item.into(), from.into()]);
+	// `try_process(iter, |shunt| shunt.collect())`.
+	let args = library::callee_args(t, from_iter, args, |f| tcx.item_name(f).as_str() == "try_process")?;
+	let ty::Closure(_, closure) = args.type_at(3).kind() else {
+		return None;
+	};
+	let sig = tcx.instantiate_bound_regions_with_erased(closure.as_closure().sig());
+	sig.inputs().first()?.tuple_fields().first().copied()
 }
 
 /// `s` extended by `items`, an iterator of type `iter` of `item`s, as `String`'s `Extend`

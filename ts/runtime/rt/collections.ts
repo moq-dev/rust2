@@ -3246,5 +3246,33 @@ export function btreeKeysPart<K>(k?: (key: K) => void): Part<BTreeSet<K>, K> {
 	};
 }
 
+/**
+ * `Extend::extend` of `c`, the crate's own collection, by `items`, through `extend`, which
+ * takes an `rt.Place` of it if `place`, giving it back.
+ */
+export function ownExtend<C, I>(c: C, items: I, extend: (c: C, items: I) => void): C;
+export function ownExtend<C, I>(c: C, items: I, extend: (c: Place<C>, items: I) => void, place: true): C;
+export function ownExtend<C, I>(c: C, items: I, extend: (c: never, items: I) => void, place?: boolean): C {
+	if (!place) {
+		(extend as (c: C, items: I) => void)(c, items);
+		return c;
+	}
+	const p = { v: c };
+	(extend as (c: Place<C>, items: I) => void)(p, items);
+	return p.v;
+}
+
+/**
+ * The crate's own collection, which keeps the defaults stable Rust can't override:
+ * `extend_reserve` does nothing, and `extend_one` is its `extend`, as `ownExtend`, of
+ * `Some(item)`, which is the item.
+ */
+export function ownPart<C, T>(extend: (c: C, items: T) => void): Part<C, T>;
+export function ownPart<C, T>(extend: (c: Place<C>, items: T) => void, place: true): Part<C, T>;
+export function ownPart<C, T>(extend: (c: never, items: T) => void, place?: true): Part<C, T> {
+	if (place) return { one: (c, item) => ownExtend(c, item, extend as (c: Place<C>, items: T) => void, place) };
+	return { one: (c, item) => ownExtend(c, item, extend as (c: C, items: T) => void) };
+}
+
 /** `()`, which extends by `()`s. */
 export const UNIT_PART: Part<undefined, undefined> = { one: () => undefined };

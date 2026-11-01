@@ -714,6 +714,29 @@ pub fn from_mir<'tcx>(t: &Translator<'_, 'tcx>, env: TypingEnv<'tcx>, instance: 
 	!lock && !refcell_set
 }
 
+/// The generic arguments of the first function `callee` picks that std's body of `def_id`,
+/// instantiated by `args`, calls: what that body passes on, such as an adaptor it wraps an
+/// iterator in.
+pub fn callee_args<'tcx>(
+	t: &Translator<'_, 'tcx>,
+	def_id: DefId,
+	args: GenericArgsRef<'tcx>,
+	callee: impl Fn(DefId) -> bool,
+) -> Option<GenericArgsRef<'tcx>> {
+	let tcx = t.tcx;
+	let env = t.typing_env_pub();
+	let instance = Instance::try_resolve(tcx, env, def_id, args).ok()??;
+	let called = tcx.instance_mir(instance.def).basic_blocks.iter().find_map(|block| {
+		let rustc_middle::mir::TerminatorKind::Call { func, .. } = &block.terminator().kind else {
+			return None;
+		};
+		func.const_fn_def().filter(|&(f, _)| callee(f)).map(|(_, args)| args)
+	})?;
+	instance
+		.try_instantiate_mir_and_normalize_erasing_regions(tcx, env, ty::EarlyBinder::bind(tcx, called))
+		.ok()
+}
+
 /// Whether some instance of std's `did` may lower from its MIR, as [`from_mir`] decides
 /// for each: what only the instance decides is left to it.
 pub fn may_from_mir(tcx: TyCtxt<'_>, did: DefId) -> bool {

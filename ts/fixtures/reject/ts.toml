@@ -126,8 +126,6 @@ roots = [
     "kept_across_iterations",
     "lent_kept",
     "pushed_part_kept",
-    "tallied",
-    "tallied_alone",
     "ascii_octal",
     "array_part_replaced",
     "tuple_part_replaced",
