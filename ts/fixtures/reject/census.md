@@ -1,14 +1,14 @@
 # Census of `reject-fixture`
 
-- Refusals: 217
-- Function instances: 270
+- Refusals: 221
+- Function instances: 282
 - Generic functions no instance reached, lowered over their type parameters: 13
 
 ## By construct
 
 | Count | Construct | First |
 | ---: | --- | --- |
-| 45 | a raw pointer to `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:603:10 |
+| 49 | a raw pointer to `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:603:10 |
 | 25 | unsupported call to `_` | fixtures/reject/src/lib.rs:160:8 |
 | 19 | a raw pointer to `_` in a variable assigned again while it may point there | fixtures/reject/src/lib.rs:611:10 |
 | 15 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:1332:33 |
@@ -92,6 +92,7 @@ The type or module each refused type or path belongs to.
 | 6 | `f16` | fixtures/reject/src/lib.rs:7:14 |
 | 6 | `std::borrow::Cow` | fixtures/reject/src/lib.rs:331:2 |
 | 6 | `u32` | fixtures/reject/src/lib.rs:550:27 |
+| 5 | `(u8, u8)` | fixtures/reject/src/lib.rs:1267:31 |
 | 5 | `Gap` | fixtures/reject/src/lib.rs:903:10 |
 | 5 | `Option` | fixtures/reject/src/lib.rs:16:15 |
 | 5 | `u8` | fixtures/reject/src/lib.rs:253:6 |
@@ -130,6 +131,10 @@ The type or module each refused type or path belongs to.
 | 2 | `std::sync::Arc` | fixtures/reject/src/lib.rs:291:2 |
 | 2 | `std::sync::MutexGuard` | fixtures/reject/src/lib.rs:83:2 |
 | 2 | `std::vec::IntoIter` | fixtures/reject/src/lib.rs:429:17 |
+| 1 | `(Dropped, (u8, u8))` | fixtures/reject/src/lib.rs:2193:2 |
+| 1 | `([Cloned; 2], (u8, u8))` | fixtures/reject/src/lib.rs:2177:2 |
+| 1 | `([Greatest; 2], (u8, u8))` | fixtures/reject/src/lib.rs:2211:13 |
+| 1 | `([Touched; 2], (u8, u8))` | fixtures/reject/src/lib.rs:2242:2 |
 | 1 | `(std::vec::Vec, Tens)` | fixtures/reject/src/lib.rs:1267:31 |
 | 1 | `(u16, ByKeyReplace)` | fixtures/reject/src/lib.rs:1616:55 |
 | 1 | `(u16, ByKeySet)` | fixtures/reject/src/lib.rs:1608:51 |
@@ -137,7 +142,6 @@ The type or module each refused type or path belongs to.
 | 1 | `(u16, ByRefReplace)` | fixtures/reject/src/lib.rs:1592:32 |
 | 1 | `(u16, ByRefTake)` | fixtures/reject/src/lib.rs:1600:32 |
 | 1 | `(u16, InTuple)` | fixtures/reject/src/lib.rs:1341:33 |
-| 1 | `(u8, u8)` | fixtures/reject/src/lib.rs:1267:31 |
 | 1 | `*const [u8]` | fixtures/reject/src/lib.rs:1709:28 |
 | 1 | `*const u8` | fixtures/reject/src/lib.rs:1708:33 |
 | 1 | `*mut [u8; 4]` | fixtures/reject/src/lib.rs:1707:41 |
@@ -311,6 +315,10 @@ The type or module each refused type or path belongs to.
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u32, u32)`, `Track` | fixtures/reject/src/lib.rs:847:19 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u32, u32)`, `Window` | fixtures/reject/src/lib.rs:664:2 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u32, u32)`, `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:682:15 |
+| 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u8, u8)`, `(Dropped, (u8, u8))` | fixtures/reject/src/lib.rs:2193:2 |
+| 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u8, u8)`, `([Cloned; 2], (u8, u8))` | fixtures/reject/src/lib.rs:2177:2 |
+| 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u8, u8)`, `([Greatest; 2], (u8, u8))` | fixtures/reject/src/lib.rs:2211:13 |
+| 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u8, u8)`, `([Touched; 2], (u8, u8))` | fixtures/reject/src/lib.rs:2242:2 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `ByKeyReplace`, `(u16, ByKeyReplace)` | fixtures/reject/src/lib.rs:1616:55 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `ByKeySet`, `(u16, ByKeySet)` | fixtures/reject/src/lib.rs:1608:51 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `ByKeyTake`, `(u16, ByKeyTake)` | fixtures/reject/src/lib.rs:1623:52 |
@@ -420,7 +428,7 @@ The type or module each refused type or path belongs to.
 
 ## Spans
 
-<details><summary>a raw pointer to `_` in `_`, which the crate may put another object in place of (45)</summary>
+<details><summary>a raw pointer to `_` in `_`, which the crate may put another object in place of (49)</summary>
 
 - fixtures/reject/src/lib.rs:603:10: a raw pointer to `(u32, u32)` in `Span2`, which the crate may put another object in place of
 - fixtures/reject/src/lib.rs:664:2: a raw pointer to `(u32, u32)` in `Window`, which the crate may put another object in place of
@@ -467,6 +475,10 @@ The type or module each refused type or path belongs to.
 - fixtures/reject/src/lib.rs:1608:51: a raw pointer to `ByKeySet` in `(u16, ByKeySet)`, which the crate may put another object in place of
 - fixtures/reject/src/lib.rs:1616:55: a raw pointer to `ByKeyReplace` in `(u16, ByKeyReplace)`, which the crate may put another object in place of
 - fixtures/reject/src/lib.rs:1623:52: a raw pointer to `ByKeyTake` in `(u16, ByKeyTake)`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2177:2: a raw pointer to `(u8, u8)` in `([Cloned; 2], (u8, u8))`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2193:2: a raw pointer to `(u8, u8)` in `(Dropped, (u8, u8))`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2211:13: a raw pointer to `(u8, u8)` in `([Greatest; 2], (u8, u8))`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2242:2: a raw pointer to `(u8, u8)` in `([Touched; 2], (u8, u8))`, which the crate may put another object in place of
 
 </details>
 

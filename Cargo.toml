@@ -30,6 +30,7 @@ members = [
     "uniffi/cpp/fixtures/type-flattening",
     "uniffi/dart",
     "uniffi/dart/fixtures/arithmetic",
+    "uniffi/dart/fixtures/input-scratch",
     "uniffi/dart/fixtures/benchmarks",
     "uniffi/dart/fixtures/bytes_types",
     "uniffi/dart/fixtures/callbacks",
