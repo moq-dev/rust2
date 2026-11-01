@@ -1541,6 +1541,12 @@ export function asDeref$0w8at8i(self: string | undefined): string | undefined {
 	});
 }
 
+export function asDeref$0avuzwv(self: rt.u32 | undefined): rt.u32 | undefined {
+	return map$0xz4pvf(self, (a0: rt.u32): rt.u32 => {
+		return a0;
+	});
+}
+
 export function and$06om98g(self: rt.u8 | undefined, optb: rt.u8 | undefined): rt.u8 | undefined {
 	if (self === undefined) {
 		return undefined;

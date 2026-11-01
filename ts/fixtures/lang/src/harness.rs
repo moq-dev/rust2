@@ -259,6 +259,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("lists::lists", lists::lists),
 		("pointers::reattached", |_, data, out| pointers::reattached(data, out)),
 		("ascii::parts", ascii::parts),
+		("boxes::places", boxes::places),
 	]
 }
 

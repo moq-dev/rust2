@@ -2,7 +2,8 @@
 //! by `collect`, `Vec::into_boxed_slice`, `Default`, `Clone`, and coercing a boxed
 //! array, read and written through `Deref`, compared, hashed, and printed as their
 //! slice is, and turned back by `into_vec` and `into_iter`, of bytes and of other values,
-//! empty or not, with what drops dropped in std's order.
+//! empty or not, with what drops dropped in std's order. Then writes reaching what a box
+//! of a value JS copies holds.
 
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -343,5 +344,158 @@ pub fn boxes(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 			put(out, &back);
 			put(out, &String::from(collected));
 		}
+	}
+}
+
+/// Boxes of values JS copies, held in a struct a `&mut` reaches.
+struct Owner {
+	n: Box<u32>,
+	s: Box<String>,
+	nested: Box<Box<u32>>,
+}
+
+/// Adds `by` to what `x` borrows.
+fn bump(x: &mut u32, by: u8) {
+	*x = x.wrapping_add(u32::from(by));
+}
+
+/// Writes through a `&mut` to what a `Box<str>` holds, and to a part of it.
+fn shout(s: &mut str, by: u8) {
+	let half = s.len() / 2;
+	match by % 2 {
+		0 => s.make_ascii_uppercase(),
+		_ => s[..half].make_ascii_lowercase(),
+	}
+}
+
+/// A box taken by value and written through before it is given back.
+fn took(mut b: Box<u32>, by: u8) -> Box<u32> {
+	bump(&mut *b, by);
+	b
+}
+
+/// What `&mut Owner` reaches of its boxes, each written by `by`.
+fn reach(b: &mut Owner, by: u8) {
+	match by % 4 {
+		0 => bump(&mut *b.n, by),
+		1 => *b.n ^= u32::from(by),
+		2 => bump(&mut **b.nested, by),
+		_ => b.s.push(char::from(b'a' + by % 26)),
+	}
+}
+
+/// Writes reaching what boxes hold, each step by a byte, kept in a local, reassigned,
+/// nested, in a field, a `Vec`, and an `Option`, captured, passed, and leaked: through
+/// `&mut *b`, `DerefMut`, `AsMut`, `BorrowMut`, `as_deref_mut`, and a write through the box
+/// itself.
+pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
+	use std::borrow::BorrowMut;
+	use std::ops::DerefMut;
+	let mut n = Box::new(7u32);
+	let mut pair = Box::new([1u8, 2]);
+	let mut s = Box::new(String::from("b"));
+	let mut t: Box<str> = Box::from("aBc/D");
+	let mut nested = Box::new(Box::new(3u32));
+	let mut maybe = Box::new(None::<u32>);
+	let mut held = Owner {
+		n: Box::new(5),
+		s: Box::new(String::new()),
+		nested: Box::new(Box::new(9)),
+	};
+	let mut v = vec![Box::new(1u32), Box::new(2)];
+	let mut o = Some(Box::new(4u32));
+	let mut words: Box<[u32]> = Box::from([6, 8]);
+	let mut some_words: Option<Box<[u32]>> = Some(Box::from([3, 5]));
+	let mut named: Option<Box<str>> = Some(Box::from("xY/z"));
+	let leaked = Box::leak(Box::new(11u32));
+	for (i, &by) in data.iter().enumerate() {
+		match by % 26 {
+			0 => {
+				let r = &mut *n;
+				*r = r.wrapping_mul(3);
+			}
+			1 => bump(&mut *n, by),
+			2 => bump(n.as_mut(), by),
+			3 => bump(n.deref_mut(), by),
+			4 => bump(n.borrow_mut(), by),
+			5 => *n ^= u32::from(by),
+			6 => n = Box::new(u32::from(by).wrapping_add(*n)),
+			7 => {
+				let r = &mut *pair;
+				r[usize::from(by) % 2] ^= by;
+			}
+			8 => s.push(char::from(b'a' + by % 26)),
+			9 => (&mut *s).push_str("!?"),
+			10 => s.as_mut().insert(0, '<'),
+			11 => shout(&mut *t, by),
+			12 => shout(t.as_mut(), by),
+			13 => BorrowMut::<str>::borrow_mut(&mut t).make_ascii_lowercase(),
+			14 => t = Box::from(&s[..]),
+			15 => bump(&mut **nested, by),
+			16 => **nested = nested.wrapping_add(u32::from(by)),
+			17 => {
+				*maybe.get_or_insert(u32::from(by)) += 1;
+				if let Some(x) = &mut *maybe {
+					bump(x, by);
+				}
+			}
+			18 => reach(&mut held, by),
+			19 => {
+				let at = usize::from(by) % v.len();
+				bump(&mut *v[at], by);
+				if let Some(last) = v.last_mut() {
+					**last ^= 0x10;
+				}
+			}
+			20 => {
+				for b in v.iter_mut() {
+					bump(b, by);
+				}
+				v.push(Box::new(u32::from(by)));
+			}
+			21 => {
+				if let Some(b) = &mut o {
+					**b = b.wrapping_add(u32::from(by));
+				}
+				if let Some(r) = o.as_deref_mut() {
+					bump(r, by);
+				}
+				if i % 3 == 0 {
+					o = o.is_none().then(|| Box::new(u32::from(by)));
+				}
+			}
+			22 => {
+				let r = &mut *words;
+				r[usize::from(by) % 2] += u32::from(by);
+				if let Some(w) = some_words.as_deref_mut() {
+					w[1] ^= u32::from(by);
+				}
+				if let Some(t) = named.as_deref_mut() {
+					shout(t, by);
+				}
+			}
+			23 => {
+				let mut f = |by| bump(&mut *n, by);
+				f(by);
+				f(1);
+			}
+			24 => n = took(n, by),
+			_ => bump(leaked, by),
+		}
+		out.extend(n.to_le_bytes());
+		out.extend_from_slice(&*pair);
+		put(out, &s);
+		put(out, &t);
+		out.extend(nested.to_le_bytes());
+		out.extend(maybe.unwrap_or(0xee).to_le_bytes());
+		out.extend(held.n.to_le_bytes());
+		put(out, &held.s);
+		out.extend(held.nested.to_le_bytes());
+		out.extend(v.iter().flat_map(|b| b.to_le_bytes()));
+		out.extend(o.as_deref().copied().unwrap_or(0xee).to_le_bytes());
+		out.extend(words.iter().flat_map(|w| w.to_le_bytes()));
+		out.extend(some_words.iter().flatten().flat_map(|w| w.to_le_bytes()));
+		put(out, named.as_deref().unwrap_or("-"));
+		out.extend(leaked.to_le_bytes());
 	}
 }

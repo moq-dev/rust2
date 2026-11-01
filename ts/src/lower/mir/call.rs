@@ -734,7 +734,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			// The place of the payload, if any: `as_mut`'s, or what `iter_mut` yields. A box's is
 			// what it holds, which `as_deref_mut` lends.
 			("Option", "as_mut" | "iter_mut" | "as_deref_mut")
-				if self.b.t.needs_place(targ(0)?) && (name != "as_deref_mut" || targ(0)?.is_box()) =>
+				if match name.as_str() {
+					"as_deref_mut" => targ(0)?.boxed_ty().is_some_and(|t| self.b.t.needs_place(t)),
+					_ => self.b.t.needs_place(targ(0)?),
+				} =>
 			{
 				let (target, payload) = self.payload_place(&args[0].node, targ(0)?, span, out)?;
 				let Some(payload) = payload else {

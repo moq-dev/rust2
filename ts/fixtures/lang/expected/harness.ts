@@ -6,7 +6,7 @@ import { bytes as ascii_bytes, chars as ascii_chars, slices as ascii_slices, par
 import { atomics } from "./atomics.ts";
 import { borrows as borrows_borrows } from "./borrows.ts";
 import { bounds as bounds_bounds } from "./bounds.ts";
-import { boxes } from "./boxes.ts";
+import { boxes, places as boxes_places } from "./boxes.ts";
 import { captures } from "./captures.ts";
 import { cells as cells_cells } from "./cells.ts";
 import { chars as chars_chars } from "./chars.ts";
@@ -236,7 +236,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		optionItems(data85, out86);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["lists::lists", lists_lists as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::reattached", (_2186: rt.u8, data86: rt.ByteSlice, out87: rt.ByteVec): undefined => {
 		reattached(data86, out87);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ascii::parts", ascii_parts as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ascii::parts", ascii_parts as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["boxes::places", boxes_places as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */
