@@ -696,7 +696,8 @@ they need.
   length, and an `rt.ByteVec`'s is its buffer's length. A `Vec<u8>` taken from a `Bytes`
   or a shared `BytesMut` holds what `bytes` gave it, which nothing here counts: reading
   its capacity, or keeping it in place, throws until a `shrink_to` at most its length
-  sets it. A `LinkedList` is nodes linked both ways, as std's are,
+  sets it. On `just ts bench`'s `push/` workloads a push takes 1.2-2x the time JS's own
+  `push` did, Bun the most, for reading the capacity it checks. A `LinkedList` is nodes linked both ways, as std's are,
   so `append` is O(1) and `split_off` walks from the nearer end; each node is the place
   `iter_mut` and `front_mut` lend of an item JS copies. Dropping a whole map or set drops its entries in the
   runtime's order, keys' for a B-tree, not std's node by node: std leaves that order

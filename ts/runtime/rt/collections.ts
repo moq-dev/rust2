@@ -2472,13 +2472,13 @@ function dequePut<T>(q: VecDeque<T>, item: T): void {
 
 /** `push_back` of `size`-byte items. */
 export function dequePushBack<T>(q: VecDeque<T>, item: T, size: number): void {
-	full(q, size);
+	if (q.n === q.c) full(q, size);
 	dequePut(q, item);
 }
 
 /** `push_front` of `size`-byte items. */
 export function dequePushFront<T>(q: VecDeque<T>, item: T, size: number): void {
-	full(q, size);
+	if (q.n === q.c) full(q, size);
 	grow(q);
 	q.h = (q.h - 1) & (q.b.length - 1);
 	q.b[q.h] = item;

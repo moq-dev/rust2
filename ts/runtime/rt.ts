@@ -735,6 +735,14 @@ export function vecWithCapacity<T>(n: number, size: number): Vec<T> {
 
 /** `Vec::push` of `size`-byte elements, growing as `RawVec::grow_one` does once full. */
 export function vecPush<T>(v: Vec<T>, item: T, size: number): void {
+	// Kept small for engines to inline, as most pushes find room: on `just ts bench`'s
+	// `push/vec`, Bun took twice as long with the growth in line.
+	if (v.cap !== undefined && v.length < v.cap) v.push(item);
+	else vecGrowPush(v, item, size);
+}
+
+/** `vecPush` where `v` may be full. */
+function vecGrowPush<T>(v: Vec<T>, item: T, size: number): void {
 	const cap = vecCapacity(v, size);
 	if (v.length === cap) v.cap = capGrow(cap, cap + 1, size);
 	v.push(item);
