@@ -99,14 +99,21 @@ export function copied(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 	let first: rt.Result<rt.u8, rt.u8> = option_unwrapOr$17ntxfo(rt.sliceFirst(results), rt.Err(0));
 	rt.iterExtendBytes(out, rt.iterChain(rt.iterChain(rt.iterSlice(rt.byteSliceView(data)), rt.iterResult(first)), rt.iterRev(rt.iterResult(first))), undefined, true);
-	const iter7: rt.Iter<[rt.u8, rt.Place<rt.u8>]> = rt.iterZip(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 1), rt.iterOption(rt.resultAsMut(rt.place(() => first, (value) => first = value))), "len");
+	const iter7: rt.Iter<[rt.u8, rt.u8]> = rt.iterZip(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 1), rt.iterResult(first), "len");
 	while (true) {
-		const _126: [rt.u8, rt.Place<rt.u8>] | rt.Done = iter7.next();
+		const _126: [rt.u8, rt.u8] | rt.Done = iter7.next();
 		if (_126 === rt.DONE) {
 			break;
 		}
-		const x: [rt.u8, rt.Place<rt.u8>] = _126;
-		x[1].v = rt.u8WrappingSub(x[1].v, x[0]);
+		rt.byteVecPush(out, rt.u8WrappingSub(_126[0], _126[1]));
+	}
+	const iter8: rt.Iter<rt.Place<rt.u8>> = rt.iterOption(rt.resultAsMut(rt.place(() => first, (value) => first = value)));
+	while (true) {
+		const _138: rt.Place<rt.u8> | rt.Done = iter8.next();
+		if (_138 === rt.DONE) {
+			break;
+		}
+		_138.v = rt.u8WrappingSub(_138.v, 1);
 	}
 	rt.iterExtendBytes(out, rt.iterChain(rt.iterResult(first), rt.iterResult(first)), undefined, true);
 	const it2: rt.Iter<rt.u8> = rt.iterResult(first);
@@ -116,8 +123,8 @@ export function copied(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, rt.iterCount(cloned) & 0xff);
 	const into: rt.Iter<rt.u8> = rt.iterResult(first);
 	const back: rt.Iter<rt.u8> = into.clone();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap([rt.iterToOption(into.next()), rt.iterToOption(back.nextBack()), rt.iterToOption(back.next())], (x2: rt.u8 | undefined): rt.u8 => {
-		return option_unwrapOr$0r2bmpr(x2, 221);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap([rt.iterToOption(into.next()), rt.iterToOption(back.nextBack()), rt.iterToOption(back.next())], (x: rt.u8 | undefined): rt.u8 => {
+		return option_unwrapOr$0r2bmpr(x, 221);
 	})), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(rt.iterToArray(rt.iterResult(first), undefined, 4, true)), undefined, true);
 }

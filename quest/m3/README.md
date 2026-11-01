@@ -28,6 +28,7 @@ generic std gap is planned here even when moq never calls it.
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are
+- [Places through an Option's iter_mut and an adaptor's argument](/quest/m3/ts-iter-mut-places.md) - `Option::iter_mut` of a copied payload and `iter.zip(&mut v)` lend places as `for x in &mut v` does
 - [== of an Option of NonNull](/quest/m3/ts-option-pointer-eq.md) - `==` of `Option<NonNull<T>>` translates
 - [ptr::replace whose result nothing reads](/quest/m3/ts-ptr-replace-unread.md) - `ptr::replace` with its result discarded type-checks
 - [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements

@@ -58,8 +58,11 @@ fn copied(data: &[u8], out: &mut Vec<u8>) {
 	// Beside another iterator, through `IntoIterator` of a reference to a `Result`.
 	let mut first = results.first().copied().unwrap_or(Err(0));
 	out.extend(data.iter().chain(&first).chain(first.iter().rev()));
-	for x in data.iter().take(1).zip(&mut first) {
-		*x.1 = x.1.wrapping_sub(*x.0);
+	for (a, b) in data.iter().take(1).zip(&first) {
+		out.push(a.wrapping_sub(*b));
+	}
+	for x in &mut first {
+		*x = x.wrapping_sub(1);
 	}
 	out.extend(first.into_iter().chain(first));
 	// One read item by item, and a clone, which reads on independently.
