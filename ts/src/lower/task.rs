@@ -260,6 +260,10 @@ pub fn call<'tcx>(
 		("RefCell", "borrow_mut") => Expr::rt("refCellBorrowMut", args),
 		("RefCell", "try_borrow") => Expr::rt("refCellTryBorrow", args),
 		("RefCell", "try_borrow_mut") => Expr::rt("refCellTryBorrowMut", args),
+		// A leaked guard lends what it holds and keeps its borrow until `undo_leak`.
+		("Ref", "leak") => first(args).member("value"),
+		("RefMut", "leak") => lend_value(b, call, first(args)),
+		("RefCell", "undo_leak") => lend_value(b, call, Expr::rt("refCellUndoLeak", args)),
 		("Ref" | "RwLockReadGuard" | "MappedRwLockReadGuard", "map" | "filter_map" | "try_map" | "map_split") => {
 			guard_map(b, call, name, "ref", args, out)
 		}
@@ -280,6 +284,7 @@ pub fn call<'tcx>(
 		("RwLock", "write") => Expr::result(true, Expr::rt("rwLockWrite", args)),
 		("RwLock", "try_read") => Expr::rt("rwLockTryRead", args),
 		("RwLock", "try_write") => Expr::rt("rwLockTryWrite", args),
+		("RwLockWriteGuard", "downgrade") => Expr::rt("rwLockDowngrade", args),
 		("Cell", _) => return cell(b, call, name, args, out),
 		// A thread-local's value, which is never destroyed.
 		("LocalKey", "with") => {
@@ -667,10 +672,10 @@ fn guard_map<'tcx>(
 	}
 }
 
-/// What `get_mut` of `holder`, a `Mutex`, a `RefCell`, or an `RwLock`, lends: its value,
-/// or where that is where JS copies it.
+/// What `get_mut` of `holder`, a `Mutex`, a `RefCell`, or an `RwLock`, or a leak of a
+/// `RefMut`, lends: its value, or where that is where JS copies it.
 fn lend_value<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>, holder: Expr) -> Expr {
-	match b.t.needs_place(call.args.type_at(0)) {
+	match b.t.needs_place(call.args.types().next().expect("a held type")) {
 		true => Expr::rt("valuePlace", vec![holder]),
 		false => holder.member("value"),
 	}

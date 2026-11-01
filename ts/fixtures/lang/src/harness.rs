@@ -282,6 +282,8 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("capacity::deques", capacity::deques),
 		("capacity::heaps", capacity::heaps),
 		("capacity::collects", capacity::collects),
+		("locks::downgraded", |_, data, out| locks::downgraded(data, out)),
+		("borrows::leaks", |_, data, out| borrows::leaks(data, out)),
 	]
 }
 
