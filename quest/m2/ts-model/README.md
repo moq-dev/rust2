@@ -46,4 +46,4 @@ Public API: the translator's output for moq-net's model.
 
 ## Required
 
-- [hashbrown as the runtime's map](/quest/m2/ts-model/hashbrown.md) - hashlink's `hashbrown` tables translate as `rt.HashMap`, with std's capacity
+- [A crate's own hasher](/quest/m2/ts-model/own-hasher.md) - hashlink's default hasher, a crate's own `Hasher`, hashes keys as native's does

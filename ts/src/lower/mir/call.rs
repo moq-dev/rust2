@@ -370,6 +370,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 										| Std::Option
 										| Std::Result
 										| Std::HashMap
+										| Std::HashTable
 										| Std::BTreeMap
 										| Std::VecDeque
 										| Std::LinkedList

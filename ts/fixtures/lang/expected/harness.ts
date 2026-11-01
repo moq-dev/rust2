@@ -5,10 +5,10 @@ import { args } from "./args.ts";
 import { fromFns, maps as arrays_maps, lent as arrays_lent, asSlices, given, flattened as arrays_flattened } from "./arrays.ts";
 import { bytes as ascii_bytes, chars as ascii_chars, slices as ascii_slices, parts as ascii_parts } from "./ascii.ts";
 import { atomics } from "./atomics.ts";
-import { borrows as borrows_borrows, guards, maps as borrows_maps, tries, leaks } from "./borrows.ts";
+import { borrows as borrows_borrows, guards, maps as borrows_maps, tries } from "./borrows.ts";
 import { bounds as bounds_bounds } from "./bounds.ts";
 import { boxes, places as boxes_places } from "./boxes.ts";
-import { vecs as capacity_vecs, deques as capacity_deques, heaps as capacity_heaps, collects } from "./capacity.ts";
+import { vecs as capacity_vecs, deques as capacity_deques, heaps as capacity_heaps, collects, maps as capacity_maps } from "./capacity.ts";
 import { captures } from "./captures.ts";
 import { cells as cells_cells } from "./cells.ts";
 import { chars as chars_chars } from "./chars.ts";
@@ -39,7 +39,7 @@ import { keys as keys_keys, overrides, bytes as keys_bytes, lentKeys, lentValues
 import { lengths } from "./lengths.ts";
 import { lists as lists_lists } from "./lists.ts";
 import { locals } from "./locals.ts";
-import { locks, relock, rwlocks, mapped, mutexMapped, printed as locks_printed, downgraded } from "./locks.ts";
+import { locks, relock, rwlocks, mapped, mutexMapped, printed as locks_printed } from "./locks.ts";
 import { u8s as methods_u8s, u16s as methods_u16s, u32s as methods_u32s, u64s as methods_u64s, u128s as methods_u128s, usizes as methods_usizes, i8s as methods_i8s, i16s as methods_i16s, i32s as methods_i32s, i64s as methods_i64s, i128s as methods_i128s, isizes as methods_isizes } from "./methods.ts";
 import { nested as nested_nested } from "./nested.ts";
 import { objects } from "./objects.ts";
@@ -273,11 +273,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		capacity_deques(a0153, a1153.data, a1153.start, a1153.length, a2153);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::heaps", (a0154: rt.u8, a1154: rt.ByteSlice, a2154: rt.ByteVec): undefined => {
 		capacity_heaps(a0154, a1154.data, a1154.start, a1154.length, a2154);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::downgraded", (_2196: rt.u8, data96: rt.ByteSlice, out97: rt.ByteVec): undefined => {
-		downgraded(data96, out97);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::leaks", (_2197: rt.u8, data97: rt.ByteSlice, out98: rt.ByteVec): undefined => {
-		leaks(data97, out98);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::maps", capacity_maps as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */
