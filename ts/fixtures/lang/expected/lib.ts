@@ -898,6 +898,14 @@ export function drop$Result_results_Logged_results_Logged(_1: rt.Result<results_
 	}
 }
 
+export function drop$Result_sync_MappedRwLockReadGuard_u8_sync_RwLockReadGuard_locks_Tally(_1: rt.Result<rt.RefCell<rt.u8>, rt.RefCell<locks_Tally.Tally>>): void {
+	if (_1.ok) {
+		rt.refRelease(_1.value);
+	} else {
+		rt.refRelease(_1.error);
+	}
+}
+
 export function drop$Result_sync_MappedRwLockWriteGuard_u64_sync_MappedRwLockWriteGuard_u64(_1: rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>): void {
 	if (_1.ok) {
 		rt.refMutRelease(_1.value);
@@ -919,6 +927,14 @@ export function drop$Result_sync_MutexGuard_u32_sync_TryLockError_sync_MutexGuar
 		rt.mutexUnlock(_1.value);
 	} else {
 		drop$sync_TryLockError_sync_MutexGuard_u32(_1.error);
+	}
+}
+
+export function drop$Result_sync_MutexGuard_u8_sync_TryLockError_sync_MutexGuard_u8(_1: rt.Result<rt.Mutex<rt.u8>, rt.TryLockError<rt.Mutex<rt.u8>>>): void {
+	if (_1.ok) {
+		rt.mutexUnlock(_1.value);
+	} else {
+		drop$sync_TryLockError_sync_MutexGuard_u8(_1.error);
 	}
 }
 
@@ -1015,6 +1031,12 @@ export function drop$sync_TryLockError_sync_MutexGuard_locks_Tally(_1: rt.TryLoc
 export function drop$sync_TryLockError_sync_MutexGuard_u32(_1: rt.TryLockError<rt.Mutex<rt.u32>>): void {
 	if (_1.tag === "Poisoned") {
 		rt.mutexUnlock((_1 as { tag: "Poisoned"; _0: rt.Mutex<rt.u32> })._0);
+	}
+}
+
+export function drop$sync_TryLockError_sync_MutexGuard_u8(_1: rt.TryLockError<rt.Mutex<rt.u8>>): void {
+	if (_1.tag === "Poisoned") {
+		rt.mutexUnlock((_1 as { tag: "Poisoned"; _0: rt.Mutex<rt.u8> })._0);
 	}
 }
 

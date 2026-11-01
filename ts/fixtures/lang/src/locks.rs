@@ -2,8 +2,9 @@
 //! `Default`, read and written through a guard, recovered from a `PoisonError` that never
 //! comes, read and written by `get_mut` without locking, taken apart, tried while held and free, and locked again
 //! while held, which panics as wasm32's does; and read-write locks, read and written,
-//! tried while read and while written, written through `get_mut`, taken apart, and read
-//! and written through guards mapped and filtered to parts of their values.
+//! tried while read and while written, written through `get_mut`, taken apart, read
+//! and written through guards mapped and filtered to parts of their values, and locked
+//! again while a guard holds them, which aborts as wasm32's does.
 
 use std::fmt;
 use std::sync::{
@@ -95,16 +96,74 @@ pub fn locks(data: &[u8], out: &mut Vec<u8>) {
 	out.push(slot.into_inner().unwrap().unwrap_or(0xfd));
 }
 
-/// Locks a mutex while a guard of it is held, if the first byte is odd, which panics.
+/// Locks a lock again while a guard of it is held, as the first byte picks, then once more
+/// after the guard drops: a mutex, locked or tried, which panics as wasm32's does, or a
+/// read-write lock read or written through a guard, mapped or not, then read if the low
+/// bit is clear and otherwise written, which aborts as wasm32's does unless both read.
 pub fn relock(data: &[u8], out: &mut Vec<u8>) {
-	let mutex = Mutex::new(data.len() as u8);
-	let guard = mutex.lock().unwrap();
-	out.push(*guard);
-	if data.first().is_some_and(|b| b % 2 == 1) {
-		out.push(*mutex.lock().unwrap());
+	let Some(&pick) = data.first() else {
+		return;
+	};
+	let mutex = Mutex::new(pick);
+	let lock = RwLock::new(Tally {
+		n: u64::from(pick),
+		seen: vec![pick],
+	});
+	let again = |out: &mut Vec<u8>| match pick & 1 {
+		0 => out.push(lock.read().unwrap().n as u8),
+		_ => out.push(lock.write().unwrap().seen.len() as u8),
+	};
+	match (pick >> 1) % 8 {
+		0 => {
+			let guard = mutex.lock().unwrap();
+			out.push(*guard);
+			out.push(*mutex.lock().unwrap());
+		}
+		1 => {
+			let Ok(guard) = mutex.try_lock() else {
+				unreachable!("nothing holds the mutex");
+			};
+			out.push(*guard);
+			out.push(*mutex.lock().unwrap());
+		}
+		2 => {
+			let read = lock.read().unwrap();
+			out.push(read.n as u8);
+			again(out);
+		}
+		3 => {
+			let write = lock.write().unwrap();
+			out.push(write.n as u8);
+			again(out);
+		}
+		4 => {
+			let seen = RwLockReadGuard::map(lock.read().unwrap(), |t| &t.seen);
+			out.push(seen.len() as u8);
+			again(out);
+		}
+		5 => {
+			let n = RwLockWriteGuard::map(lock.write().unwrap(), |t| &mut t.n);
+			out.push(*n as u8);
+			again(out);
+		}
+		// A mapped guard's own maps, which hold the lock as the guard they came from did.
+		6 => {
+			let Ok(first) = RwLockReadGuard::filter_map(lock.read().unwrap(), |t| t.seen.first()) else {
+				unreachable!("seen holds the pick");
+			};
+			let first = MappedRwLockReadGuard::map(first, |b| b);
+			out.push(*first);
+			again(out);
+		}
+		_ => {
+			let n = RwLockWriteGuard::map(lock.write().unwrap(), |t| &mut t.n);
+			let n = MappedRwLockWriteGuard::map(n, |n| n);
+			out.push(*n as u8);
+			again(out);
+		}
 	}
-	drop(guard);
 	out.push(*mutex.lock().unwrap());
+	again(out);
 }
 
 /// Each byte an operation on read-write locks, its value the operand; each puts what it
@@ -174,8 +233,7 @@ pub fn rwlocks(data: &[u8], out: &mut Vec<u8>) {
 
 /// Each byte an operation on a read-write lock through guards mapped and filtered to its
 /// parts, its value the operand; each puts what it read through them, what the lock holds
-/// after they drop, and whether it is still locked. Locking it again while one is held
-/// aborts on wasm32, with no panic message to compare.
+/// after they drop, and whether it is still locked.
 pub fn mapped(data: &[u8], out: &mut Vec<u8>) {
 	let lock = RwLock::new(Tally::default());
 	let locked = |out: &mut Vec<u8>| {

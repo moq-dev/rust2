@@ -9,15 +9,15 @@
 // Rust leaves the result to the platform, as libm's are.
 // The wasm build exports `input`, `run`, and `output` around the crate's entry, which
 // `wasm.ts` calls. A panic traps natively and throws `Panic` in
-// TypeScript, and the two agree only if their messages do.
+// TypeScript, and the two agree only if their messages do. An abort traps natively
+// without a panic message, as wasm32 has nowhere to print std's, and throws `Abort` in
+// TypeScript, so the two agree that it aborted but not on why.
 
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { Wasm } from "./wasm.ts";
-
-type Outcome = Uint8Array | { panic: string };
+import { type Outcome, Wasm } from "./wasm.ts";
 
 const [wasmPath, harnessPath, countArg] = process.argv.slice(2);
 if (!wasmPath || !harnessPath) throw new Error("usage: differential.ts <fixture.wasm> <harness.ts> [cases]");
@@ -33,6 +33,7 @@ function translated(input: Uint8Array): Outcome {
 		const out = harness.run(rt.byteSliceFrom(input));
 		return out.data.slice(0, out.length);
 	} catch (err) {
+		if (err instanceof Error && err.name === "Abort") return "abort";
 		if (err instanceof Error && err.name === "Panic") return { panic: err.message };
 		throw err;
 	}
@@ -66,6 +67,7 @@ function interesting(): number {
 }
 
 function show(outcome: Outcome): string {
+	if (outcome === "abort") return outcome;
 	return outcome instanceof Uint8Array ? Buffer.from(outcome).toString("hex") : `panic ${JSON.stringify(outcome.panic)}`;
 }
 
@@ -108,9 +110,9 @@ for (let i = 0; i < count; i++) {
 
 let failures = 0;
 let panics = 0;
+let aborts = 0;
 for (const input of cases) {
-	const called = wasm.call(input);
-	const want: Outcome = called === "panic" ? { panic: wasm.panicMessage } : called;
+	const want = wasm.call(input);
 	let got: Outcome;
 	try {
 		got = translated(input);
@@ -119,7 +121,8 @@ for (const input of cases) {
 		failures++;
 		continue;
 	}
-	if (called === "panic") panics++;
+	if (want === "abort") aborts++;
+	else if (!(want instanceof Uint8Array)) panics++;
 	const close = want instanceof Uint8Array && got instanceof Uint8Array && harness.within?.(input, want, got) === true;
 	if (show(want) !== show(got) && !close) {
 		failures++;
@@ -129,5 +132,5 @@ for (const input of cases) {
 	}
 }
 
-console.log(`${cases.length} cases, ${panics} panics, ${failures} differences`);
+console.log(`${cases.length} cases, ${panics} panics, ${aborts} aborts, ${failures} differences`);
 if (failures > 0) process.exit(1);

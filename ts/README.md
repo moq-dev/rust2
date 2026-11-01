@@ -156,7 +156,8 @@ a debug build checks it, so translated code panics where native code would: it n
 wraps silently. A panic throws `rt.Panic`, with the message native Rust panics with, and
 aborts as wasm32's does: it runs no cleanup, so what the translation held is undefined
 after one, as a wasm trap leaves it, and a caller that catches `rt.Panic` must not use it
-again.
+again. An abort without a panic, as std's for an `RwLock` locked again while held,
+throws `rt.Abort`, a `Panic` with std's abort message.
 
 Each integer type is its own type to `tsc`, named as Rust's: `rt.u8` is a `number` with a
 type-only brand, so a `u16` where a `u8` goes fails the type check, while a plain

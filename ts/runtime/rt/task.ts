@@ -4,7 +4,7 @@
 // A value whose drop JS can observe has `[Symbol.dispose]`, which runs its `Drop` impl
 // and drops its fields. `None` is `undefined`, which drops as nothing.
 
-import { type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, ptrWrite, type Result, vecAssign } from "../rt.ts";
+import { Abort, type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, ptrWrite, type Result, vecAssign } from "../rt.ts";
 
 // Drops
 
@@ -367,14 +367,14 @@ export function refCellReplace<T>(cell: RefCell<T>, value: T): T {
 
 /** `RwLock::read`: a shared guard, which aborts while a write is held, as wasm32's does. */
 export function rwLockRead<T>(lock: RefCell<T>): RefCell<T> {
-	if (lock.borrows < 0) panic("rwlock locked for writing");
+	if (lock.borrows < 0) throw new Abort("rwlock locked for writing");
 	lock.borrows++;
 	return lock;
 }
 
 /** `RwLock::write`: an exclusive guard, which aborts while any other is held, as wasm32's does. */
 export function rwLockWrite<T>(lock: RefCell<T>): RefCell<T> {
-	if (lock.borrows !== 0) panic("rwlock locked for reading");
+	if (lock.borrows !== 0) throw new Abort("rwlock locked for reading");
 	lock.borrows = -1;
 	return lock;
 }
