@@ -496,7 +496,10 @@ pub fn maps(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 				s.remove(&arg);
 			}
 			4 => {
-				let (a, b) = (amount(arg, lens[0], size_of::<(u16, (u64, u8))>()), amount(arg, lens[1], 1));
+				let (a, b) = (
+					amount(arg, lens[0], size_of::<(u16, (u64, u8))>()),
+					amount(arg, lens[1], 1),
+				);
 				m.reserve(a);
 				s.reserve(b);
 				floors = [lens[0] + a, lens[1] + b];

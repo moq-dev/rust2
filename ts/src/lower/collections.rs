@@ -715,13 +715,26 @@ fn table<'tcx>(
 }
 
 /// A method of a `HashTable`'s `Entry`, `OccupiedEntry`, `VacantEntry`, or `AbsentEntry`.
-fn table_entry<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, name: &str, args: Vec<Expr>, span: Span) -> Option<Expr> {
+fn table_entry<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	coll: Ty<'tcx>,
+	name: &str,
+	args: Vec<Expr>,
+	span: Span,
+) -> Option<Expr> {
 	let item = arg(coll, 0);
 	let mut values = args;
 	let e = match name {
 		"insert" | "or_insert" => {
 			values.extend(b.t.droppers([item], span)?);
-			Expr::rt(if name == "insert" { "tableEntryInsert" } else { "tableOrInsert" }, values)
+			Expr::rt(
+				if name == "insert" {
+					"tableEntryInsert"
+				} else {
+					"tableOrInsert"
+				},
+				values,
+			)
 		}
 		"or_insert_with" => Expr::rt("tableOrInsertWith", values),
 		"and_modify" if b.t.needs_place(item) => Expr::rt("tableAndModifyMut", values),
@@ -1956,7 +1969,11 @@ fn entry<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, name: &str, args: Vec
 /// Whether `entry`, an `Entry` of a map or, as `std` says, of a `HashTable`, is its variant
 /// `index`: `Occupied` while the map holds its key. Each variant's entry is the `Entry` itself.
 pub fn entry_test(std: Std, adt: ty::AdtDef<'_>, index: rustc_abi::VariantIdx, entry: Expr) -> Expr {
-	let f = if std == Std::TableEntry { "tableOccupied" } else { "entryOccupied" };
+	let f = if std == Std::TableEntry {
+		"tableOccupied"
+	} else {
+		"entryOccupied"
+	};
 	let occupied = Expr::rt(f, vec![entry]);
 	match adt.variant(index).name.as_str() {
 		"Occupied" => occupied,

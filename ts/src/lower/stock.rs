@@ -33,7 +33,7 @@ pub fn of(tcx: TyCtxt<'_>, did: DefId) -> Option<Std> {
 		("hashbrown", "DefaultHasher") => Some(Std::Hasher),
 		("hashbrown", "Entry" | "OccupiedEntry" | "VacantEntry" | "AbsentEntry") => {
 			match tcx.opt_item_name(tcx.parent(did))?.as_str() {
-				"map" => Some(Std::Entry).filter(|_| tcx.item_name(did).as_str() != "AbsentEntry"),
+				"map" => (tcx.item_name(did).as_str() != "AbsentEntry").then_some(Std::Entry),
 				"table" => Some(Std::TableEntry),
 				_ => None,
 			}

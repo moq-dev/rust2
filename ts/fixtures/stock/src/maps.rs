@@ -188,7 +188,10 @@ fn numbers(n: &mut HashTable<u32>, kind: u8, op: u8, key: u16, out: &mut Vec<u8>
 		}
 		1 => match n.find_mut(h, ours) {
 			Some(e) => *e += 2,
-			None => put(out, *n.insert_unique(h, u32::from(key) << 16, rehash).into_mut() as usize),
+			None => put(
+				out,
+				*n.insert_unique(h, u32::from(key) << 16, rehash).into_mut() as usize,
+			),
 		},
 		2 => {
 			if let Ok(mut e) = n.find_entry(h, ours) {
@@ -248,7 +251,11 @@ pub fn capacity(data: &[u8], out: &mut Vec<u8>) {
 		),
 	};
 	let floor = if first & 3 == 0 { 0 } else { made };
-	for (cap, len) in [(m.capacity(), m.len()), (s.capacity(), s.len()), (t.capacity(), t.len())] {
+	for (cap, len) in [
+		(m.capacity(), m.len()),
+		(s.capacity(), s.len()),
+		(t.capacity(), t.len()),
+	] {
 		holds(out, len, cap, floor);
 		out.push(u8::from(cap == 0 || first & 3 != 0));
 	}
@@ -308,7 +315,9 @@ pub fn capacity(data: &[u8], out: &mut Vec<u8>) {
 				m.clear();
 				s.clear();
 				t.clear();
-				out.push(u8::from(m.capacity() >= before[0] && s.capacity() >= before[1] && t.capacity() >= before[2]));
+				out.push(u8::from(
+					m.capacity() >= before[0] && s.capacity() >= before[1] && t.capacity() >= before[2],
+				));
 			}
 		}
 		let lens = [m.len(), s.len(), t.len()];
@@ -323,7 +332,9 @@ pub fn capacity(data: &[u8], out: &mut Vec<u8>) {
 			holds(out, lens[i], caps[i], floor);
 			// An insert that grows it doubles it, at least.
 			let grew = op % 7 <= 2 && caps[i] > before[i];
-			out.push(u8::from(!grew || !kept[i] || before[i] == 0 || caps[i] >= 2 * before[i]));
+			out.push(u8::from(
+				!grew || !kept[i] || before[i] == 0 || caps[i] >= 2 * before[i],
+			));
 			if grew {
 				kept[i] = true;
 			}
@@ -344,8 +355,16 @@ pub fn linked(data: &[u8], out: &mut Vec<u8>) {
 			2 => put(out, m.remove(&key).map_or(0x100, |v| v as usize)),
 			3 => put(out, m.to_back(&key).map_or(0x100, |v| *v as usize)),
 			4 => match arg & 1 {
-				0 => put(out, m.pop_front().map_or(0x100, |(k, v)| usize::from(k) * 0x1000 + v as usize)),
-				_ => put(out, m.pop_back().map_or(0x100, |(k, v)| usize::from(k) * 0x1000 + v as usize)),
+				0 => put(
+					out,
+					m.pop_front()
+						.map_or(0x100, |(k, v)| usize::from(k) * 0x1000 + v as usize),
+				),
+				_ => put(
+					out,
+					m.pop_back()
+						.map_or(0x100, |(k, v)| usize::from(k) * 0x1000 + v as usize),
+				),
 			},
 			5 => {
 				put(out, m.front().map_or(0x100, |(k, _)| usize::from(*k)));
@@ -365,4 +384,3 @@ pub fn linked(data: &[u8], out: &mut Vec<u8>) {
 		put(out, v as usize);
 	}
 }
-
