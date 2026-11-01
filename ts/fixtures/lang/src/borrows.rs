@@ -2,9 +2,10 @@
 //! tuples, and values that drop; borrowed shared and exclusive, held in bindings and
 //! dropped; and borrowed again while held, which panics as wasm32's does. `RefCell`s
 //! cloned, written through `get_mut`, taken apart, tried, and borrowed through mapped and
-//! cloned guards, each released as it drops.
+//! cloned guards, each released as it drops; and guards mapped, filtered, and split to
+//! parts JS copies and parts it doesn't, written through, released as the last drops.
 
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::sync::{Arc, Mutex};
 
 /// Logs its id when it drops.
@@ -268,6 +269,195 @@ pub fn guards(data: &[u8], out: &mut Vec<u8>) {
 	flush(&log, out);
 	drop(last);
 	flush(&log, out);
+}
+
+/// What mapped guards lend parts of: a number and a `String`, which JS copies, and a `Vec`
+/// and a value that logs as it drops, which it doesn't.
+struct Parts {
+	n: u32,
+	text: String,
+	bytes: Vec<u8>,
+	tagged: Tagged,
+	maybe: Option<u16>,
+}
+
+/// Each byte an operation on `RefCell`s through guards mapped, filtered, and split to their
+/// parts, its value the operand; each puts what it read through them, what the cell holds
+/// after they drop, whether it is still borrowed, and what dropped.
+pub fn maps(data: &[u8], out: &mut Vec<u8>) {
+	let log = Arc::new(Mutex::new(Vec::new()));
+	let tag = |id| Tagged {
+		id,
+		n: 0,
+		log: log.clone(),
+	};
+	let parts = RefCell::new(Parts {
+		n: 0,
+		text: String::new(),
+		bytes: Vec::new(),
+		tagged: tag(1),
+		maybe: None,
+	});
+	let number = RefCell::new(0u32);
+	let slot: RefCell<Option<Tagged>> = RefCell::new(None);
+	for &op in data {
+		match op % 8 {
+			// A number written through a guard mapped to it, and through that guard's own map.
+			0 => {
+				let mut n = RefMut::map(parts.borrow_mut(), |p| &mut p.n);
+				*n += u32::from(op);
+				out.push(borrowed(&parts));
+				let mut again = RefMut::map(n, |n| n);
+				*again += 1;
+				drop(again);
+				out.extend_from_slice(&[borrowed(&parts), parts.borrow().n as u8]);
+				let mut whole = RefMut::map(number.borrow_mut(), |n| n);
+				*whole = whole.wrapping_mul(3) + u32::from(op);
+				drop(whole);
+				out.push(*number.borrow() as u8);
+			}
+			// A `String` pushed to and written whole.
+			1 => {
+				let mut text = RefMut::map(parts.borrow_mut(), |p| &mut p.text);
+				text.push(char::from(b'a' + op % 26));
+				if op >> 4 == 0xf {
+					*text = String::from("z");
+				}
+				out.push(text.len() as u8);
+				drop(text);
+				out.extend_from_slice(parts.borrow().text.as_bytes());
+			}
+			// A `Vec` and a value that drops written whole, which drops the old one there.
+			2 => {
+				let mut bytes = RefMut::map(parts.borrow_mut(), |p| &mut p.bytes);
+				bytes.push(op);
+				if op >> 4 == 0xf {
+					*bytes = vec![op, op];
+				}
+				drop(bytes);
+				out.extend_from_slice(&parts.borrow().bytes);
+				let mut tagged = RefMut::map(parts.borrow_mut(), |p| &mut p.tagged);
+				tagged.n += 1;
+				*tagged = Tagged {
+					id: op,
+					n: tagged.n,
+					log: log.clone(),
+				};
+				flush(&log, out);
+				drop(tagged);
+				out.extend_from_slice(&[parts.borrow().tagged.id, parts.borrow().tagged.n as u8]);
+			}
+			// Filtered, which gives the guard back on `None`.
+			3 => {
+				match RefMut::filter_map(parts.borrow_mut(), |p| p.maybe.as_mut()) {
+					Ok(mut m) => {
+						*m += 1;
+						out.push(*m as u8);
+					}
+					Err(mut whole) => {
+						whole.maybe = Some(u16::from(op));
+						out.push(borrowed(&parts));
+					}
+				}
+				out.push(borrowed(&parts));
+				match Ref::filter_map(parts.borrow(), |p| p.bytes.last()) {
+					Ok(last) => out.extend_from_slice(&[*last, borrowed(&parts)]),
+					Err(whole) => out.push(0xf0 | whole.bytes.len() as u8),
+				}
+				out.push(borrowed(&parts));
+				match RefMut::filter_map(slot.borrow_mut(), |s| s.as_mut()) {
+					Ok(mut t) => *t = tag(op),
+					Err(mut s) => *s = Some(tag(op)),
+				}
+				flush(&log, out);
+				out.push(slot.borrow().as_ref().map_or(0xfd, |t| t.id));
+			}
+			// Split shared, released as the last part drops.
+			4 => {
+				let (n, bytes) = Ref::map_split(parts.borrow(), |p| (&p.n, &p.bytes));
+				out.extend_from_slice(&[*n as u8, bytes.len() as u8, borrowed(&parts)]);
+				drop(n);
+				out.push(borrowed(&parts));
+				drop(bytes);
+				out.push(borrowed(&parts));
+			}
+			// Split exclusive, released as the last part drops in either order.
+			5 => {
+				let (mut n, mut text) = RefMut::map_split(parts.borrow_mut(), |p| (&mut p.n, &mut p.text));
+				*n += 1;
+				text.push('s');
+				out.push(borrowed(&parts));
+				if op & 0x10 == 0 {
+					drop(n);
+					out.push(borrowed(&parts));
+					drop(text);
+				} else {
+					drop(text);
+					out.push(borrowed(&parts));
+					drop(n);
+				}
+				out.extend_from_slice(&[borrowed(&parts), parts.borrow().n as u8]);
+				let (mut low, mut high) = RefMut::map_split(parts.borrow_mut(), |p| {
+					let half = p.bytes.len() / 2;
+					p.bytes.split_at_mut(half)
+				});
+				if let Some(b) = low.first_mut() {
+					*b = b.wrapping_add(op);
+				}
+				if let Some(b) = high.last_mut() {
+					*b ^= 0xff;
+				}
+				drop((low, high));
+				out.extend_from_slice(&parts.borrow().bytes);
+			}
+			// Borrowed again while a mapped, filtered, or split guard holds it, which panics.
+			6 => match op >> 4 {
+				0xc => {
+					let _n = RefMut::map(parts.borrow_mut(), |p| &mut p.n);
+					let _r = parts.borrow();
+				}
+				0xd => {
+					let (a, _b) = RefMut::map_split(parts.borrow_mut(), |p| (&mut p.n, &mut p.bytes));
+					drop(a);
+					let _w = parts.borrow_mut();
+				}
+				0xe => {
+					let _f = Ref::filter_map(parts.borrow(), |p| Some(&p.n));
+					let _w = parts.borrow_mut();
+				}
+				0xf => {
+					let (_a, b) = Ref::map_split(parts.borrow(), |p| (&p.n, &p.text));
+					drop(b);
+					let _w = parts.borrow_mut();
+				}
+				_ => out.push(borrowed(&parts)),
+			},
+			// Read through mapped guards as what they lend, shared and exclusive.
+			_ => {
+				let text = Ref::map(parts.borrow(), |p| p.text.as_str());
+				let n = RefMut::map(number.borrow_mut(), |n| n);
+				out.extend_from_slice(format!("{} {}", &*text, *n + 1).as_bytes());
+				out.extend_from_slice(&[borrowed(&parts), borrowed(&number)]);
+			}
+		}
+		flush(&log, out);
+	}
+	let last = parts.into_inner();
+	out.extend_from_slice(&[last.n as u8, last.tagged.id, last.maybe.map_or(0xfd, |m| m as u8)]);
+	out.extend_from_slice(last.text.as_bytes());
+	out.extend_from_slice(&last.bytes);
+	drop(last);
+	drop(slot);
+	flush(&log, out);
+}
+
+/// Whether `cell` is borrowed exclusively, as 2, shared, as 1, or not at all.
+fn borrowed<T>(cell: &RefCell<T>) -> u8 {
+	match (cell.try_borrow().is_err(), cell.try_borrow_mut().is_err()) {
+		(true, _) => 2,
+		(false, true) => 1,
+		(false, false) => 0,
+	}
 }
 
 /// A clone of `t`, which for a reference is that reference.

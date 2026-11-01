@@ -2,10 +2,10 @@
 
 import * as rt from "./rt.ts";
 import { args } from "./args.ts";
-import { fromFns, maps, lent as arrays_lent, asSlices, given, flattened as arrays_flattened } from "./arrays.ts";
+import { fromFns, maps as arrays_maps, lent as arrays_lent, asSlices, given, flattened as arrays_flattened } from "./arrays.ts";
 import { bytes as ascii_bytes, chars as ascii_chars, slices as ascii_slices, parts as ascii_parts } from "./ascii.ts";
 import { atomics } from "./atomics.ts";
-import { borrows as borrows_borrows, guards } from "./borrows.ts";
+import { borrows as borrows_borrows, guards, maps as borrows_maps } from "./borrows.ts";
 import { bounds as bounds_bounds } from "./bounds.ts";
 import { boxes, places as boxes_places } from "./boxes.ts";
 import { captures } from "./captures.ts";
@@ -37,7 +37,7 @@ import { keys as keys_keys, overrides, bytes as keys_bytes, lentKeys, lentValues
 import { lengths } from "./lengths.ts";
 import { lists as lists_lists } from "./lists.ts";
 import { locals } from "./locals.ts";
-import { locks, relock, rwlocks } from "./locks.ts";
+import { locks, relock, rwlocks, mapped } from "./locks.ts";
 import { u8s as methods_u8s, u16s as methods_u16s, u32s as methods_u32s, u64s as methods_u64s, u128s as methods_u128s, usizes as methods_usizes, i8s as methods_i8s, i16s as methods_i16s, i32s as methods_i32s, i64s as methods_i64s, i128s as methods_i128s, isizes as methods_isizes } from "./methods.ts";
 import { nested as nested_nested } from "./nested.ts";
 import { objects } from "./objects.ts";
@@ -209,7 +209,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["keys::lent_keys", lentKeys as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["keys::lent_values", lentValues as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["singles::singles", singles as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["singles::formats", singles_formats as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["singles::parses", singles_parses as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["iters::peeked_others", (_2168: rt.u8, data68: rt.ByteSlice, out69: rt.ByteVec): undefined => {
 		peekedOthers(data68, out69);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["hints::hints", hints as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["hints::reserves", reserves as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["collections::set_ops", setOps as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["folds::folds", folds as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["zeros::zeros", zeros as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::maps", (_2169: rt.u8, data69: rt.ByteSlice, out70: rt.ByteVec): undefined => {
-		maps(data69, out70);
+		arrays_maps(data69, out70);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::lent", (_2170: rt.u8, data70: rt.ByteSlice, out71: rt.ByteVec): undefined => {
 		arrays_lent(data70, out71);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["floats::mul_adds", floats_mulAdds as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["singles::mul_adds", singles_mulAdds as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["fmt::collections", (_2171: rt.u8, data71: rt.ByteSlice, out72: rt.ByteVec): undefined => {
@@ -252,6 +252,10 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		aimed(data88, out89);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ascii::parts", ascii_parts as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["boxes::places", boxes_places as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::flattened", arrays_flattened as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["args::args", args as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["returns::returns", returns as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::guards", (_2189: rt.u8, data89: rt.ByteSlice, out90: rt.ByteVec): undefined => {
 		guards(data89, out90);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::maps", (_2190: rt.u8, data90: rt.ByteSlice, out91: rt.ByteVec): undefined => {
+		borrows_maps(data90, out91);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::mapped", (_2191: rt.u8, data91: rt.ByteSlice, out92: rt.ByteVec): undefined => {
+		mapped(data91, out92);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 

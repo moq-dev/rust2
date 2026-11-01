@@ -316,6 +316,9 @@ impl Std {
 			["cell", "BorrowError"] => Some(Self::BorrowError),
 			["cell", "BorrowMutError"] => Some(Self::BorrowMutError),
 			["sync", "once_lock", "OnceLock"] => Some(Self::OnceLock),
+			// What a read-write lock's guards map to, which guard as they do.
+			["sync", "poison", "rwlock", "MappedRwLockReadGuard"] => Some(Self::Ref),
+			["sync", "poison", "rwlock", "MappedRwLockWriteGuard"] => Some(Self::RefMut),
 			["sync", "once", "Once"] => Some(Self::Once),
 			["sync", "once", "OnceState"] => Some(Self::OnceState),
 			["cell", "lazy", "LazyCell"] => Some(Self::LazyCell),
@@ -902,7 +905,11 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		("slice", "fill" | "fill_with" | "clone_from_slice") => &[0],
 		// `get_or_init::<T, F>` drops its function uncalled if the cell is set.
 		("OnceCell" | "OnceLock", "get_or_init" | "get_or_try_init") => &[1],
-		("Ref", "map") => &[],
+		// A guard's map calls its function, filtered or not.
+		(
+			"Ref" | "RefMut" | "RwLockReadGuard" | "RwLockWriteGuard" | "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
+			"map" | "filter_map" | "map_split",
+		) => &[],
 		("Once", "call_once" | "call_once_force") => &[0],
 		("Arc" | "Rc", "new_cyclic") => &[1],
 		// `pop_if::<F>` drops its test uncalled if there is no element.

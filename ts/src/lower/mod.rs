@@ -1242,13 +1242,53 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		if self.object_kind(ty).is_none() {
 			return true;
 		}
+		matches!(self.std_of(self.erased(ty)), Some(Std::Arc | Std::Waker))
+	}
+
+	/// What JS keeps of a `ty`: what it holds through any number of `Pin`s and `Box`es.
+	pub fn erased(&self, ty: Ty<'tcx>) -> Ty<'tcx> {
+		use library::Std;
 		let mut erased = ty;
 		while let ty::Adt(adt, args) = erased.kind()
 			&& matches!(Std::of(self.tcx, adt.did()), Some(Std::Pin | Std::Box))
 		{
 			erased = args.type_at(0);
 		}
-		matches!(self.std_of(erased), Some(Std::Arc | Std::Waker))
+		erased
+	}
+
+	/// The kind of a `pointee`'s object, through the `Pin`s and `Box`es JS erases, where a
+	/// whole value of it can be written into the object in place: one only its owner
+	/// holds, unlike an `Arc`'s, which its clones share, and whose parts `Object.assign`
+	/// copies, unlike a binding's, an `rt.PollFn`'s or a future's private fields, or a
+	/// trait object's, whatever class it is.
+	pub fn write_in(&self, pointee: Ty<'tcx>) -> Option<ObjectKind> {
+		use library::Std;
+		let erased = self.erased(pointee);
+		let hidden = match erased.kind() {
+			ty::Adt(adt, _) => {
+				self.bound_drops(adt.did()).is_some() || Std::of(self.tcx, adt.did()) == Some(Std::PollFn)
+			}
+			ty::Dynamic(..) | ty::Closure(..) => true,
+			// A `Uint8Array`'s length never changes, as a boxed slice's may.
+			ty::Slice(elem) => matches!(elem.kind(), ty::Uint(ty::UintTy::U8)),
+			_ => false,
+		};
+		// Copying fields into an object others share would change their handles too.
+		let shared = match erased.kind() {
+			ty::Adt(adt, _) => matches!(
+				Std::of(self.tcx, adt.did()),
+				Some(Std::Arc | Std::Waker | Std::Context | Std::MutexGuard | Std::Ref | Std::RefMut)
+			),
+			ty::Ref(..) | ty::Coroutine(..) => true,
+			_ => false,
+		};
+		self.object_kind(pointee)?;
+		match self.object_kind(erased)? {
+			_ if hidden || shared => None,
+			ObjectKind::Closure => None,
+			kind => Some(kind),
+		}
 	}
 
 	/// What `ty` points at, if it is a `&mut` that is an `rt.Place`.

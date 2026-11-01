@@ -4,7 +4,7 @@
 // A value whose drop JS can observe has `[Symbol.dispose]`, which runs its `Drop` impl
 // and drops its fields. `None` is `undefined`, which drops as nothing.
 
-import { type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, type Result } from "../rt.ts";
+import { type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, ptrWrite, type Result, vecAssign } from "../rt.ts";
 
 // Drops
 
@@ -327,7 +327,8 @@ export function mutexUnlock<T>(mutex: Mutex<T>): void {
 /**
  * `RefCell<T>` and `RwLock<T>`, which one thread can't tell apart but by how a borrow
  * that conflicts fails, and their guards: a borrow is the cell itself, `borrows` counting
- * the shared ones held, or -1 while an exclusive one is.
+ * the shared ones held, or the negated count of exclusive ones, which only a split makes
+ * more than one of.
  */
 export class RefCell<T> implements Disposable {
 	value: T;
@@ -393,19 +394,33 @@ export function rwLockTryWrite<T>(lock: RefCell<T>): Result<RefCell<T>, TryLockE
 }
 
 /**
- * A `Ref` that `Ref::map` made: the part of a cell's value it lends, whose borrow that
- * cell counts.
+ * A guard a map made: where the part of a cell's value it lends is, which it reads and
+ * writes as `value`, as a cell does its own, and whose borrow that cell counts.
  */
-export class RefMap<T> extends RefCell<T> {
+export class RefMap<T> implements RefCell<T> {
+	/** A cell's count, which a guard's cell keeps instead. */
+	borrows = 0;
+	readonly at: Place<T>;
 	readonly cell: RefCell<unknown>;
 
-	constructor(value: T, cell: RefCell<unknown>) {
-		super(value);
+	constructor(at: Place<T>, cell: RefCell<unknown>) {
+		this.at = at;
 		this.cell = cell;
 	}
+
+	get value(): T {
+		return this.at.v;
+	}
+
+	set value(value: T) {
+		this.at.v = value;
+	}
+
+	/** A guard drops nothing of what it lends. */
+	[Symbol.dispose](): void {}
 }
 
-/** The cell whose borrow `r`, a `Ref`, holds. */
+/** The cell whose borrow `r`, a guard, holds. */
 function refCellOf(r: RefCell<unknown>): RefCell<unknown> {
 	return r instanceof RefMap ? r.cell : r;
 }
@@ -417,13 +432,58 @@ export function refRelease<T>(r: RefCell<T>): void {
 
 /** `Ref::map`: a `Ref` of the part of `r`'s value `f` lends, which takes over `r`'s borrow. */
 export function refMap<T, U>(r: RefCell<T>, f: (value: T) => U): RefCell<U> {
-	return new RefMap(f(r.value), refCellOf(r));
+	return new RefMap({ v: f(r.value) }, refCellOf(r));
+}
+
+/** `Ref::filter_map`: `refMap` of the part `f` lends, or `r` back if it lends none. */
+export function refFilterMap<T, U>(r: RefCell<T>, f: (value: T) => U | undefined): Result<RefCell<U>, RefCell<T>> {
+	const part = f(r.value);
+	return part === undefined ? Err(r) : Ok(new RefMap({ v: part }, refCellOf(r)));
+}
+
+/** `Ref::map_split`: `Ref`s of the two parts of `r`'s value `f` lends, which share `r`'s borrow. */
+export function refMapSplit<T, U, V>(r: RefCell<T>, f: (value: T) => [U, V]): [RefCell<U>, RefCell<V>] {
+	const [u, v] = f(r.value);
+	const cell = refCellOf(r);
+	cell.borrows++;
+	return [new RefMap({ v: u }, cell), new RefMap({ v: v }, cell)];
 }
 
 /** `Ref::clone`: `r` again, a shared borrow of its own, which never conflicts. */
 export function refClone<T>(r: RefCell<T>): RefCell<T> {
 	refCellOf(r).borrows++;
 	return r;
+}
+
+/**
+ * Where `part`, an object a `&mut` lends, is: the object itself, which a whole value is
+ * written into in place, as a write through that `&mut` would.
+ */
+export function partPlace<T extends object>(part: T): Place<T> {
+	return place(
+		() => part,
+		(value) => {
+			if (Array.isArray(part)) vecAssign(part, value as unknown[]);
+			else ptrWrite(part, value);
+		},
+	);
+}
+
+/** `RefMut::map`: a `RefMut` of the part of `r`'s value at `at`, which takes over `r`'s borrow. */
+export function refMutMap<U>(r: RefCell<unknown>, at: Place<U>): RefCell<U> {
+	return new RefMap(at, refCellOf(r));
+}
+
+/** `RefMut::filter_map`: `refMutMap` of the part at `at`, or `r` back if there is none. */
+export function refMutFilterMap<T, U>(r: RefCell<T>, at: Place<U> | undefined): Result<RefCell<U>, RefCell<T>> {
+	return at === undefined ? Err(r) : Ok(new RefMap(at, refCellOf(r)));
+}
+
+/** `RefMut::map_split`: `RefMut`s of the parts of `r`'s value at `a` and `b`, which share `r`'s borrow. */
+export function refMutMapSplit<U, V>(r: RefCell<unknown>, a: Place<U>, b: Place<V>): [RefCell<U>, RefCell<V>] {
+	const cell = refCellOf(r);
+	cell.borrows--;
+	return [new RefMap(a, cell), new RefMap(b, cell)];
 }
 
 /** `RefCell::try_borrow`'s error: the cell is mutably borrowed. */
@@ -481,8 +541,8 @@ export function refCellClone<T>(cell: RefCell<T>, clone?: (value: T) => T): RefC
 }
 
 /** A `RefMut`'s or an `RwLockWriteGuard`'s drop. */
-export function refMutRelease<T>(cell: RefCell<T>): void {
-	cell.borrows = 0;
+export function refMutRelease<T>(r: RefCell<T>): void {
+	refCellOf(r).borrows++;
 }
 
 /**

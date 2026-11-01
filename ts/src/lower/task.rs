@@ -260,7 +260,12 @@ pub fn call<'tcx>(
 		("RefCell", "borrow_mut") => Expr::rt("refCellBorrowMut", args),
 		("RefCell", "try_borrow") => Expr::rt("refCellTryBorrow", args),
 		("RefCell", "try_borrow_mut") => Expr::rt("refCellTryBorrowMut", args),
-		("Ref", "map") => Expr::rt("refMap", args),
+		("Ref" | "RwLockReadGuard" | "MappedRwLockReadGuard", "map") => Expr::rt("refMap", args),
+		("Ref" | "RwLockReadGuard" | "MappedRwLockReadGuard", "filter_map") => Expr::rt("refFilterMap", args),
+		("Ref", "map_split") => Expr::rt("refMapSplit", args),
+		("RefMut" | "RwLockWriteGuard" | "MappedRwLockWriteGuard", "map" | "filter_map" | "map_split") => {
+			ref_mut_map(b, call, name, args, out)
+		}
 		("Ref", "clone") => Expr::rt("refClone", args),
 		("RefCell", "replace") => Expr::rt("refCellReplace", args),
 		("RefCell", "take") => {
@@ -568,6 +573,71 @@ fn held(ty: Option<Ty<'_>>) -> Ty<'_> {
 	match ty.map(|ty| ty.kind()) {
 		Some(ty::Adt(_, args)) => args.type_at(0),
 		_ => unreachable!("a cell or lock is a struct"),
+	}
+}
+
+/// `map`, `filter_map`, or `map_split` of a `RefMut` or a write guard: its function called
+/// on what the guard lends, and a guard of where each part that lends is, which a write
+/// through it reaches.
+fn ref_mut_map<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	call: &Call<'tcx>,
+	name: &str,
+	args: Vec<Expr>,
+	out: &mut Vec<Stmt>,
+) -> Expr {
+	let tcx = b.t.tcx;
+	let [guard, f] = two(args);
+	let guard = match guard.is_path() {
+		true => guard,
+		false => b.spill(guard, "guard", out),
+	};
+	// The guarded value, then each part's type.
+	let mut tys = call.args.types();
+	let held = tys.next().expect("a guarded type");
+	let lent = match b.t.needs_place(held) {
+		true => Expr::rt("valuePlace", vec![guard.clone()]),
+		false => guard.clone().member("value"),
+	};
+	let lent = f.call(vec![lent]);
+	// A `&mut` to a part JS copies is its place, and one to an object is that object, which
+	// a whole value is written into in place.
+	let at = |b: &mut Body<'_, '_, 'tcx>, part: Ty<'tcx>, value: Expr| {
+		if b.t.needs_place(part) {
+			value
+		} else if b.t.write_in(part).is_none() && part.is_sized(tcx, b.t.typing_env_pub()) {
+			b.err(
+				call.span,
+				format!("a mapped guard of `{part}`, which JS can't write in place"),
+			)
+		} else {
+			Expr::rt("partPlace", vec![value])
+		}
+	};
+	let part = tys.next().expect("a part's type");
+	match name {
+		"map" => {
+			let at = at(b, part, lent);
+			Expr::rt("refMutMap", vec![guard, at])
+		}
+		"filter_map" if b.t.needs_place(part) => Expr::rt("refMutFilterMap", vec![guard, lent]),
+		"filter_map" => {
+			let lent = b.spill(lent, "part", out);
+			let some = at(b, part, lent.clone());
+			let at = Expr::Cond(
+				Box::new(lent.binary("===", Expr::undefined())),
+				Box::new(Expr::undefined()),
+				Box::new(some),
+			);
+			Expr::rt("refMutFilterMap", vec![guard, at])
+		}
+		_ => {
+			let pair = b.spill(lent, "parts", out);
+			let other = tys.next().expect("the other part's type");
+			let a = at(b, part, pair.clone().index(Expr::lit("0")));
+			let other = at(b, other, pair.index(Expr::lit("1")));
+			Expr::rt("refMutMapSplit", vec![guard, a, other])
+		}
 	}
 }
 

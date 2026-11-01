@@ -2164,3 +2164,11 @@ pub fn optional_places_compared(n: &mut u32) -> bool {
 	let p = std::ptr::NonNull::from(&mut *n);
 	Some(p) == std::ptr::NonNull::new(&raw mut *n)
 }
+
+/// A `RefMut` mapped to a closure, which a write through the guard would put in place of
+/// the cell's, though JS can't write one closure's captures into another.
+pub fn mapped_closure(add: u8) -> u8 {
+	let cell = std::cell::RefCell::new((move |x: u8| x + add, 0u8));
+	let f = std::cell::RefMut::map(cell.borrow_mut(), |pair| &mut pair.0);
+	f(1)
+}

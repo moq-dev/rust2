@@ -403,6 +403,24 @@ const guards = [
 	[0xf6],
 ].map((bytes) => Uint8Array.of(op("borrows::guards"), 0, ...bytes));
 
+/**
+ * `borrows::maps` scripts: each operation through mapped, filtered, and split guards, with
+ * parts written whole and split parts dropped in either order, and each borrow again
+ * while one holds the cell, which panics.
+ */
+const maps = [
+	[0x00, 0x01, 0x02, 0x03, 0x03, 0x04, 0x05, 0x15, 0x07, 0xf1, 0xf2, 0x0b, 0x06, 0x13, 0x0c],
+	[0x02, 0x22, 0x0d, 0xc6],
+	[0x0a, 0xd6],
+	[0xe6],
+	[0x02, 0xf6],
+].map((bytes) => Uint8Array.of(op("borrows::maps"), 0, ...bytes));
+
+/** `locks::mapped` scripts: writes and reads through mapped and filtered guards. */
+const mappedLocks = [[0x04, 0x01, 0x02, 0x86, 0x05, 0x0a, 0x03, 0x02, 0x80, 0x01, 0x03]].map((bytes) =>
+	Uint8Array.of(op("locks::mapped"), 0, ...bytes),
+);
+
 /** `locks::rwlocks` scripts: `get_mut` and `into_inner` among writes and reads. */
 const rwlocks = [[6, 7, 0, 6, 2, 14, 15, 1]].map((bytes) => Uint8Array.of(op("locks::rwlocks"), 0, ...bytes));
 
@@ -753,4 +771,4 @@ const asciiCases = [
 	...Array.from({ length: 8 * 3 * 3 }, (_, i) => Uint8Array.of(op("ascii::parts"), 0x10 | (i % 8), Math.floor(i / 8) % 3, Math.floor(i / 24))),
 ];
 
-export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases];
+export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...maps, ...mappedLocks, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases];

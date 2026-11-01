@@ -198,6 +198,7 @@ const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:210
 `std::collections::LinkedList::<T, A>::retain` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2119:4
 `clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:2120:4
 `std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2121:2
+a mapped guard of `{closure@fixtures/reject/src/lib.rs:2171:38: 2171:50}`, which JS can't write in place at fixtures/reject/src/lib.rs:2172:10
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:132:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:152:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:180:2

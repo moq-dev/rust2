@@ -726,14 +726,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				matches!(self.mir.local_decls[place.local].ty.kind(), ty::RawPtr(..)) && !self.box_pointer(place.local);
 			let e = match raw {
 				true => Expr::rt("ptrWrite", vec![target, value]),
-				false => match self.write_in(pointee) {
+				false => match self.b.t.write_in(pointee) {
 					Some(ObjectKind::Bytes) => target.member("set").call(vec![value]),
 					// A `Vec<u8>` is an `rt.ByteVec`, and any other a JS array, as a boxed slice
 					// is, whose length a write changes, unlike a tuple's or an array's.
-					Some(ObjectKind::Vec) if !byte_vec(self.erased(pointee)) => {
+					Some(ObjectKind::Vec) if !byte_vec(self.b.t.erased(pointee)) => {
 						Expr::rt("vecAssign", vec![target, value])
 					}
-					Some(ObjectKind::Array) if self.erased(pointee).is_slice() => {
+					Some(ObjectKind::Array) if self.b.t.erased(pointee).is_slice() => {
 						Expr::rt("vecAssign", vec![target, value])
 					}
 					Some(_) => Expr::ident("Object").member("assign").call(vec![target, value]),
@@ -773,43 +773,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	pub(super) fn in_object(&self, place: Place<'tcx>) -> bool {
 		let raw = matches!(self.mir.local_decls[place.local].ty.kind(), ty::RawPtr(..));
 		self.pointee_object(place)
-			.and_then(|pointee| self.write_in(pointee))
+			.and_then(|pointee| self.b.t.write_in(pointee))
 			.is_some_and(|kind| kind != ObjectKind::Bytes && !raw)
-	}
-
-	/// The kind of a `pointee`'s object, through the `Pin`s and `Box`es JS erases, where a
-	/// whole value of it can be written into the object in place: one only its owner
-	/// holds, unlike an `Arc`'s, which its clones share, and whose parts `Object.assign`
-	/// copies, unlike a binding's, an `rt.PollFn`'s or a future's private fields, or a
-	/// trait object's, whatever class it is.
-	pub(super) fn write_in(&self, pointee: Ty<'tcx>) -> Option<ObjectKind> {
-		let erased = self.erased(pointee);
-		let hidden = match erased.kind() {
-			ty::Adt(adt, _) => {
-				self.b.t.bound_drops(adt.did()).is_some() || Std::of(self.tcx, adt.did()) == Some(Std::PollFn)
-			}
-			ty::Dynamic(..) | ty::Closure(..) => true,
-			// A `Uint8Array`'s length never changes, as a boxed slice's may.
-			ty::Slice(elem) => matches!(elem.kind(), ty::Uint(ty::UintTy::U8)),
-			_ => false,
-		};
-		self.b.t.object_kind(pointee)?;
-		match self.b.t.object_kind(erased)? {
-			_ if hidden || shared(self, pointee) => None,
-			ObjectKind::Closure => None,
-			kind => Some(kind),
-		}
-	}
-
-	/// What JS keeps of a `ty`: what it holds through any number of `Pin`s and `Box`es.
-	fn erased(&self, ty: Ty<'tcx>) -> Ty<'tcx> {
-		let mut erased = ty;
-		while let ty::Adt(adt, args) = erased.kind()
-			&& matches!(Std::of(self.tcx, adt.did()), Some(Std::Pin | Std::Box))
-		{
-			erased = args.type_at(0);
-		}
-		erased
 	}
 
 	/// A store of `value` to `place` as a store of the whole value to what holds it, where
@@ -1863,26 +1828,6 @@ fn written_captures(mir: &mir::Body<'_>) -> FxHashSet<FieldIdx> {
 	let mut written = Written(FxHashSet::default());
 	written.visit_body(mir);
 	written.0
-}
-
-/// Whether the JS object of a `ty` is shared or private, so that copying fields into it
-/// would change other handles, or nothing.
-fn shared<'tcx>(fx: &Fx<'_, '_, '_, 'tcx>, ty: Ty<'tcx>) -> bool {
-	let tcx = fx.tcx;
-	let mut erased = ty;
-	while let ty::Adt(adt, args) = erased.kind()
-		&& matches!(Std::of(tcx, adt.did()), Some(Std::Pin | Std::Box))
-	{
-		erased = args.type_at(0);
-	}
-	match erased.kind() {
-		ty::Adt(adt, _) => matches!(
-			Std::of(tcx, adt.did()),
-			Some(Std::Arc | Std::Waker | Std::Context | Std::MutexGuard | Std::Ref | Std::RefMut)
-		),
-		ty::Ref(..) | ty::Coroutine(..) => true,
-		_ => false,
-	}
 }
 
 /// Whether `ty` is a `Vec<u8>`, an `rt.ByteVec`.
