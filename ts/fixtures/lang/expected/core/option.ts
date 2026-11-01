@@ -1496,6 +1496,13 @@ export function okOr$07zal2e(self: rt.u32[] | undefined, err: rt.u8): rt.Result<
 	return rt.Ok(self);
 }
 
+export function okOr$1b6nkwr(self: rt.char | undefined, err: rt.u8): rt.Result<rt.char, rt.u8> {
+	if (self === undefined) {
+		return rt.Err(err);
+	}
+	return rt.Ok(self);
+}
+
 export function okOr$0gtm15y(self: rt.ByteSlice | undefined, err: rt.u8 | undefined): rt.Result<rt.ByteSlice, rt.u8 | undefined> {
 	if (self === undefined) {
 		return rt.Err(err);
