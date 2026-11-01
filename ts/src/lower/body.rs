@@ -338,7 +338,7 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 		// std's mappings take a `&mut` they declare that is an `rt.Place` as what it points
 		// at, as a call's operands pass it.
 		let pointees = match self.t.mapped(def_id, gargs) {
-			true => super::pointer::pointees(tcx, def_id),
+			true => super::pointer::pointees(self.t, def_id, gargs),
 			false => Vec::new(),
 		};
 		let values: Vec<Expr> = std::iter::zip(&names, sig.inputs())

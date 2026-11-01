@@ -3,6 +3,7 @@
 import * as rt from "../rt.ts";
 import { opaque as args_opaque, len as args_len } from "../args.ts";
 import type * as borrows_Noisy from "../borrows.Noisy.ts";
+import type * as borrows_Tagged from "../borrows.Tagged.ts";
 import type * as bounds_Item from "../bounds.Item.ts";
 import * as clones_Logged from "../clones.Logged.ts";
 import type * as ByRef from "../collections.ByRef.ts";
@@ -75,6 +76,13 @@ export function isNoneOr$1s1o3ss(self: rt.u8 | undefined, f: (a0: rt.u8) => bool
 
 export function unwrapOr$1kxjsqb(self: rt.u8 | undefined | rt.None, default_: rt.u8 | undefined): rt.u8 | undefined {
 	if (self === rt.None) {
+		return default_;
+	}
+	return self;
+}
+
+export function unwrapOr$17ntxfo(self: rt.Result<rt.u8, rt.u8> | undefined, default_: rt.Result<rt.u8, rt.u8>): rt.Result<rt.u8, rt.u8> {
+	if (self === undefined) {
 		return default_;
 	}
 	return self;
@@ -1126,6 +1134,13 @@ export function mapOr$0qqbaqw(self: borrows_Noisy.Noisy | undefined, default_: r
 	return f(self);
 }
 
+export function mapOr$1dvn0au(self: borrows_Tagged.Tagged | undefined, default_: rt.u8, f: (a0: borrows_Tagged.Tagged) => rt.u8): rt.u8 {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
 export function mapOr$1yabfom(self: clones_Logged.Logged | undefined, default_: rt.u8, _: (a0: clones_Logged.Logged) => rt.u8): rt.u8 {
 	if (self === undefined) {
 		return default_;
@@ -1528,6 +1543,13 @@ export function okOr$12p77jh(self: rt.ByteSlice | undefined, err: returns_Error.
 export function okOr$0tezn0w(self: rt.ByteSlice | undefined, _: undefined): rt.Result<rt.ByteSlice, undefined> {
 	if (self === undefined) {
 		return rt.ERR;
+	}
+	return rt.Ok(self);
+}
+
+export function okOr$1w08zpl(self: rt.ByteSlice | undefined, err: rt.usize): rt.Result<rt.ByteSlice, rt.usize> {
+	if (self === undefined) {
+		return rt.Err(err);
 	}
 	return rt.Ok(self);
 }

@@ -518,13 +518,6 @@ pub fn rebound_reference(a: &u32, b: &u32) -> (u32, u32) {
 	(x(), y())
 }
 
-/// `get_mut` of a mutex of a number, whose `&mut` the mapping would copy.
-pub fn mutex_number(m: &mut std::sync::Mutex<u8>) -> u8 {
-	let n = m.get_mut().unwrap();
-	*n += 1;
-	*n
-}
-
 pub trait Keyed: std::any::Any {
 	fn key(&self) -> u8;
 }
@@ -1723,8 +1716,7 @@ pub fn byte_pointer_ops(mut a: [u8; 4], b: [u8; 4]) -> u64 {
 		let slice: *const [u8] = q;
 		let mut h = std::collections::hash_map::DefaultHasher::new();
 		q.hash(&mut h);
-		let some = Some(std::ptr::NonNull::from(&a)) == Some(std::ptr::NonNull::from(&b));
-		h.finish() + u64::from(same) + u64::from(some) + u64::from(byte) + slice.len() as u64
+		h.finish() + u64::from(same) + u64::from(byte) + slice.len() as u64
 	}
 }
 
@@ -2147,4 +2139,18 @@ pub fn generic_park_rebound<T>(mut w: Parking<T>, next: Parking<T>) -> i16 {
 	let p = parked_of(&w.park);
 	w = next;
 	unsafe { (*p).0.get() + w.park.0.get() }
+}
+
+/// An `Option` of pointers to a number, each an `rt.Place` JS makes of its own.
+pub fn optional_places_compared(n: &mut u32) -> bool {
+	let p = std::ptr::NonNull::from(&mut *n);
+	Some(p) == std::ptr::NonNull::new(&raw mut *n)
+}
+
+/// A `RefMut` mapped to a closure, which a write through the guard would put in place of
+/// the cell's, though JS can't write one closure's captures into another.
+pub fn mapped_closure(add: u8) -> u8 {
+	let cell = std::cell::RefCell::new((move |x: u8| x + add, 0u8));
+	let f = std::cell::RefMut::map(cell.borrow_mut(), |pair| &mut pair.0);
+	f(1)
 }

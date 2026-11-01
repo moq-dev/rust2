@@ -369,26 +369,37 @@ pub fn keeps<'tcx>(tcx: ty::TyCtxt<'tcx>, def_id: rustc_hir::def_id::DefId, args
 	keeps || from_reference(tcx, def_id, args)
 }
 
-/// Whether std's `def_id` is one a mapping takes the `rt.Place` a `&mut` is for, rather
-/// than what it points at: a `MaybeUninit`'s, which it points into, an `Arc`'s that
-/// `make_mut` replaces, a `String`'s that a drain edits as it drops, and a well-known
-/// crate's, such as a `Bytes` that `Buf::advance` moves past its front.
-pub fn takes_place(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> bool {
+/// Whether std's `def_id` of `args` is one a mapping takes the `rt.Place` a `&mut` is for,
+/// rather than what it points at: a `MaybeUninit`'s, which it points into, an `Arc`'s that
+/// `make_mut` replaces, a `String`'s that a drain edits as it drops, a `Result`'s whose
+/// payload JS copies, which `iter_mut` lends as a place that writes the whole `Result`,
+/// and a well-known crate's, such as a `Bytes` that `Buf::advance` moves past its front.
+fn takes_place<'tcx>(
+	t: &Translator<'_, 'tcx>,
+	def_id: rustc_hir::def_id::DefId,
+	args: ty::GenericArgsRef<'tcx>,
+) -> bool {
 	matches!(
-		super::library::key(tcx, def_id),
+		super::library::key(t.tcx, def_id),
 		Some((owner, name)) if owner == "MaybeUninit"
 			|| matches!(owner.as_str(), "Arc" | "Rc") && name == "make_mut"
 			|| (owner.as_str(), name.as_str()) == ("String", "drain")
-	) || super::stock::is_stock(tcx, def_id)
+			|| (owner.as_str(), name.as_str()) == ("Result", "iter_mut") && t.needs_place(args.type_at(0))
+	) || super::stock::is_stock(t.tcx, def_id)
 }
 
-/// Which of std's `def_id`'s parameters its mapping takes as what the `&mut` it declares
-/// points at, rather than the `rt.Place` that `&mut` may be: not a type parameter that
-/// one instantiates, as `Pin::new`'s pointer.
-pub fn pointees(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> Vec<bool> {
-	let takes_place = takes_place(tcx, def_id);
-	let sig = tcx.fn_sig(def_id).instantiate_identity().skip_norm_wip();
-	tcx.instantiate_bound_regions_with_erased(sig)
+/// Which of std's `def_id`'s parameters its mapping of `args` takes as what the `&mut` it
+/// declares points at, rather than the `rt.Place` that `&mut` may be: not a type parameter
+/// that one instantiates, as `Pin::new`'s pointer.
+pub fn pointees<'tcx>(
+	t: &Translator<'_, 'tcx>,
+	def_id: rustc_hir::def_id::DefId,
+	args: ty::GenericArgsRef<'tcx>,
+) -> Vec<bool> {
+	let takes_place = takes_place(t, def_id, args);
+	let sig = t.tcx.fn_sig(def_id).instantiate_identity().skip_norm_wip();
+	t.tcx
+		.instantiate_bound_regions_with_erased(sig)
 		.inputs()
 		.iter()
 		.map(|t| !takes_place && matches!(t.kind(), ty::Ref(_, _, rustc_ast::Mutability::Mut)))
@@ -625,10 +636,14 @@ pub fn call<'tcx>(
 /// What a `PartialEq` or `Clone` call's `Self` points at, if it is a raw pointer or a
 /// `NonNull`.
 fn pointer_self<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>) -> Option<Ty<'tcx>> {
-	let this = call.args.types().next()?;
-	match this.kind() {
+	raw_pointee(b.t.tcx, call.args.types().next()?)
+}
+
+/// What `ty` points at if it is a raw pointer or a `NonNull`, which compare by address.
+pub fn raw_pointee<'tcx>(tcx: ty::TyCtxt<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
+	match ty.kind() {
 		ty::RawPtr(pointee, _) => Some(*pointee),
-		ty::Adt(adt, args) if Std::of(b.t.tcx, adt.did()) == Some(Std::NonNull) => Some(args.type_at(0)),
+		ty::Adt(adt, args) if Std::of(tcx, adt.did()) == Some(Std::NonNull) => Some(args.type_at(0)),
 		_ => None,
 	}
 }

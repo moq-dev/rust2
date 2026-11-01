@@ -74,6 +74,9 @@ pub enum Std {
 	RefCell,
 	Ref,
 	RefMut,
+	/// `rt.BorrowError` and `rt.BorrowMutError`: why `try_borrow` and `try_borrow_mut` failed.
+	BorrowError,
+	BorrowMutError,
 	/// `rt.Cell<T>`, a place holding its value: a `Cell`'s or an `UnsafeCell`'s.
 	Cell,
 	/// `rt.LocalKey<T>`: a thread-local, a module's value.
@@ -310,7 +313,12 @@ impl Std {
 			["cmp", "Ordering"] => Some(Self::Ordering),
 			["sync", "atomic", "Ordering"] => Some(Self::AtomicOrdering),
 			["cell", "once", "OnceCell"] => Some(Self::OnceCell),
+			["cell", "BorrowError"] => Some(Self::BorrowError),
+			["cell", "BorrowMutError"] => Some(Self::BorrowMutError),
 			["sync", "once_lock", "OnceLock"] => Some(Self::OnceLock),
+			// What a read-write lock's guards map to, which guard as they do.
+			["sync", "poison", "rwlock", "MappedRwLockReadGuard"] => Some(Self::Ref),
+			["sync", "poison", "rwlock", "MappedRwLockWriteGuard"] => Some(Self::RefMut),
 			["sync", "once", "Once"] => Some(Self::Once),
 			["sync", "once", "OnceState"] => Some(Self::OnceState),
 			["cell", "lazy", "LazyCell"] => Some(Self::LazyCell),
@@ -829,7 +837,7 @@ pub fn may_from_mir(tcx: TyCtxt<'_>, did: DefId) -> bool {
 			"unwrap" | "expect" | "is_some" | "is_none" | "as_ref" | "copied" | "cloned" | "iter"
 		) | (
 			Some(Std::Result),
-			"unwrap" | "expect" | "unwrap_err" | "is_ok" | "is_err"
+			"unwrap" | "expect" | "unwrap_err" | "is_ok" | "is_err" | "iter"
 		) | (
 			Some(Std::LocalKey),
 			"with" | "try_with" | "initialize_with" | "with_borrow_mut"
@@ -896,7 +904,12 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		// over, and `fill` its value if there is no slot for it.
 		("slice", "fill" | "fill_with" | "clone_from_slice") => &[0],
 		// `get_or_init::<T, F>` drops its function uncalled if the cell is set.
-		("OnceCell" | "OnceLock", "get_or_init") => &[1],
+		("OnceCell" | "OnceLock", "get_or_init" | "get_or_try_init") => &[1],
+		// A guard's map calls its function, filtered or not.
+		(
+			"Ref" | "RefMut" | "RwLockReadGuard" | "RwLockWriteGuard" | "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
+			"map" | "filter_map" | "map_split",
+		) => &[],
 		("Once", "call_once" | "call_once_force") => &[0],
 		("Arc" | "Rc", "new_cyclic") => &[1],
 		// `pop_if::<F>` drops its test uncalled if there is no element.
@@ -927,7 +940,7 @@ fn takes_none(owner: &str, name: &str) -> bool {
 			) | ("Peekable", "peek" | "next_if" | "next_if_eq")
 				| (
 					"OnceCell" | "OnceLock",
-					"get" | "set" | "get_or_init" | "take" | "into_inner"
+					"get" | "get_mut" | "set" | "get_or_init" | "get_or_try_init" | "take" | "into_inner"
 				)
 				| ("Arc" | "Rc", "into_inner")
 				| ("DoubleEndedIterator", "next_back" | "nth_back" | "rfind")

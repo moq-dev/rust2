@@ -14,6 +14,9 @@
   that, or `undefined` for an error, and leaves the rest, or the error as `err`, in the
   slot, such as `readOut`. A root still takes an `rt.ByteSlice` and returns
   the `Result`.
+- A struct's private `&[u8]` or `&[u8; N]` field is three fields, its bytes, start, and
+  length, named for it: `buf` is `bufData`, `bufStart`, and `bufLen`, and a class's
+  constructor takes the three in its place. A `pub` field is still an `rt.ByteSlice`.
 - `rt.btreeCollect` takes whether it sorts and the keys' `!ne` after the entries, and
   `rt.btreeCollectKeys` the keys' `PartialOrd::lt` and `!ne`, as in
   `rt.btreeCollect(m, entries, true, Key.eq$cmp_PartialEq)`; neither takes a test for keys
