@@ -340,7 +340,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let t = &*self.b.t;
 		// Mappings that lend an element JS copies as its place, as a map's `get_mut` does, the
 		// item a `Peekable` peeked, the place a `&mut dyn Any` wraps, a `RefCell` key's value,
-		// or an `Arc`'s.
+		// or the value of an `Arc`, a lock, or a cell.
 		let lends = match library::key(tcx, def_id) {
 			Some((owner, name)) => match (owner.as_str(), name.as_str()) {
 				("slice", "get_mut" | "first_mut" | "last_mut" | "iter_mut" | "split_first_mut" | "split_last_mut")
@@ -348,7 +348,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				| ("dyn Any", "downcast_mut")
 				| ("Peekable", "peek_mut")
 				| ("LocalKey", "with_borrow_mut")
-				| ("Arc" | "Rc", "get_mut" | "make_mut") => true,
+				| ("Arc" | "Rc", "get_mut" | "make_mut")
+				| ("Mutex" | "RwLock" | "RefCell" | "OnceCell" | "OnceLock", "get_mut") => true,
 				("IntoIterator", "into_iter") => gargs.types().next().is_some_and(|ty| {
 					let ty = crate::lower::iter::unbox_ref(tcx, ty);
 					ty.ref_mutability() == Some(ty::Mutability::Mut)

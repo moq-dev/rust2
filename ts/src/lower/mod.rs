@@ -6,7 +6,7 @@
 //! a type is a module-level one taking `self` first, so a bundler drops what goes unused.
 
 mod bind;
-pub use bind::typecheck;
+pub use bind::check_module;
 mod body;
 mod collections;
 mod consts;
@@ -870,6 +870,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				self.program.sources.push(Source {
 					path,
 					text: text.to_string(),
+					start: file.start_pos,
 				});
 				Some(self.program.sources.len() as u32 - 1)
 			}
@@ -1499,6 +1500,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					_ => Type::Rt("TryFromFloatSecsErrorKind", vec![]),
 				},
 				library::Std::ParseBoolError => Type::Rt("ParseBoolError", vec![]),
+				library::Std::BorrowError => Type::Rt("BorrowError", vec![]),
+				library::Std::BorrowMutError => Type::Rt("BorrowMutError", vec![]),
 				library::Std::ParseCharError => Type::Rt("ParseCharError", vec![]),
 				library::Std::ParseFloatError => Type::Rt("ParseFloatError", vec![]),
 				library::Std::TryFromFloatSecsError => Type::Rt("TryFromFloatSecsError", vec![]),

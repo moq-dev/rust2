@@ -511,13 +511,6 @@ pub fn rebound_reference(a: &u32, b: &u32) -> (u32, u32) {
 	(x(), y())
 }
 
-/// `get_mut` of a mutex of a number, whose `&mut` the mapping would copy.
-pub fn mutex_number(m: &mut std::sync::Mutex<u8>) -> u8 {
-	let n = m.get_mut().unwrap();
-	*n += 1;
-	*n
-}
-
 pub trait Keyed: std::any::Any {
 	fn key(&self) -> u8;
 }
@@ -2140,4 +2133,22 @@ pub fn generic_park_rebound<T>(mut w: Parking<T>, next: Parking<T>) -> i16 {
 	let p = parked_of(&w.park);
 	w = next;
 	unsafe { (*p).0.get() + w.park.0.get() }
+}
+
+/// A generic type's `Vec<T>`, typed `T[]` though its `u8` instance holds an `rt.ByteVec`:
+/// translation writes output `tsc` rejects, and fails at the Rust it maps to.
+pub struct Rows<T> {
+	pub items: Vec<T>,
+}
+
+impl<T: Copy> Rows<T> {
+	pub fn first(&self) -> T {
+		self.items[0]
+	}
+}
+
+pub fn mistyped(bytes: Vec<u8>, words: Vec<u16>) -> u32 {
+	let a = Rows { items: bytes };
+	let b = Rows { items: words };
+	a.first() as u32 + b.first() as u32
 }

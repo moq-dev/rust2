@@ -1,8 +1,8 @@
 //! Mutexes on one thread, where a panic aborts and so never poisons one: made by
 //! `Default`, read and written through a guard, recovered from a `PoisonError` that never
-//! comes, read by `get_mut` without locking, tried while held and free, and locked again
+//! comes, read and written by `get_mut` without locking, taken apart, tried while held and free, and locked again
 //! while held, which panics as wasm32's does; and read-write locks, read and written,
-//! tried while read and while written.
+//! tried while read and while written, written through `get_mut`, and taken apart.
 
 use std::fmt;
 use std::sync::{Arc, Mutex, PoisonError, RwLock, TryLockError};
@@ -31,7 +31,8 @@ pub fn locks(data: &[u8], out: &mut Vec<u8>) {
 	let shared: Arc<Mutex<Tally>> = Arc::default();
 	let other = shared.clone();
 	let mut own: Mutex<Vec<u8>> = Mutex::default();
-	let number: Mutex<u32> = Mutex::default();
+	let mut number: Mutex<u32> = Mutex::default();
+	let mut slot: Mutex<Option<u8>> = Mutex::default();
 	let lock = Lock(Mutex::new(7));
 	for &op in data {
 		match op % 8 {
@@ -45,7 +46,14 @@ pub fn locks(data: &[u8], out: &mut Vec<u8>) {
 				out.push(tally.n as u8);
 				out.push(tally.seen.len() as u8);
 			}
-			2 => own.get_mut().unwrap().push(op),
+			// A value JS copies, written in place, as moq's `Content` takes its own.
+			2 => {
+				own.get_mut().unwrap().push(op);
+				*number.get_mut().unwrap() += u32::from(op);
+				let held = slot.get_mut().unwrap_or_else(PoisonError::into_inner);
+				out.push(held.take().unwrap_or(0xfd));
+				*held = Some(op);
+			}
 			3 => {
 				*number.lock().unwrap() += u32::from(op);
 				out.push(*number.lock().unwrap() as u8);
@@ -79,6 +87,8 @@ pub fn locks(data: &[u8], out: &mut Vec<u8>) {
 	}
 	out.extend_from_slice(own.get_mut().unwrap_or_else(PoisonError::into_inner));
 	out.push(Arc::strong_count(&shared) as u8);
+	out.push(number.into_inner().unwrap() as u8);
+	out.push(slot.into_inner().unwrap().unwrap_or(0xfd));
 }
 
 /// Locks a mutex while a guard of it is held, if the first byte is odd, which panics.
@@ -97,9 +107,10 @@ pub fn relock(data: &[u8], out: &mut Vec<u8>) {
 /// read.
 pub fn rwlocks(data: &[u8], out: &mut Vec<u8>) {
 	let lock: Arc<RwLock<Tally>> = Arc::default();
-	let number = RwLock::new(0u32);
+	let mut number = RwLock::new(0u32);
+	let mut owned: RwLock<Vec<u8>> = RwLock::default();
 	for &op in data {
-		match op % 6 {
+		match op % 8 {
 			0 => {
 				let mut tally = lock.write().unwrap();
 				tally.n += u64::from(op);
@@ -131,12 +142,28 @@ pub fn rwlocks(data: &[u8], out: &mut Vec<u8>) {
 				Err(TryLockError::WouldBlock) => out.push(0xfe),
 				Err(TryLockError::Poisoned(err)) => out.push(err.into_inner().n as u8),
 			},
-			_ => {
+			5 => {
 				let made: RwLock<Vec<u8>> = RwLock::default();
 				made.write().unwrap().push(op);
 				out.extend_from_slice(&made.read().unwrap());
 			}
+			6 => {
+				*number.get_mut().unwrap() += u32::from(op);
+				owned.get_mut().unwrap_or_else(PoisonError::into_inner).push(op);
+				out.push(*number.read().unwrap() as u8);
+			}
+			_ => {
+				let made = RwLock::new(Tally {
+					n: u64::from(op),
+					seen: vec![op],
+				});
+				let tally = made.into_inner().unwrap();
+				out.push(tally.n as u8);
+				out.extend_from_slice(&tally.seen);
+			}
 		}
 	}
 	out.push(lock.read().unwrap().n as u8);
+	out.push(number.into_inner().unwrap() as u8);
+	out.extend_from_slice(&owned.into_inner().unwrap_or_else(PoisonError::into_inner));
 }

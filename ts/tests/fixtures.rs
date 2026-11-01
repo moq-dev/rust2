@@ -440,6 +440,10 @@ export const run = (input: rt.ByteSlice) => script(rt.byteSliceView(input));
 fn reject() {
 	let (out, output) = translate("reject");
 	rejected(&out, &output, &fixture("reject").join("expected.txt"));
+	let out = scratch().join("reject").join("mistyped");
+	let config = fixture("reject").join("mistyped.toml");
+	let output = driver("reject", &config, &["--out".as_ref(), out.as_ref()], "build");
+	rejected(&out, &output, &fixture("reject").join("mistyped.txt"));
 }
 
 /// Bindings stand in for what translation refuses, `bytes::Bytes` and the crate's own

@@ -268,6 +268,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("arrays::flattened", arrays::flattened),
 		("args::args", args::args),
 		("returns::returns", returns::returns),
+		("borrows::guards", |_, data, out| borrows::guards(data, out)),
 	]
 }
 

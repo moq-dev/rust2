@@ -26,6 +26,7 @@ extern crate rustc_target;
 extern crate rustc_trait_selection;
 
 mod census;
+mod check;
 mod cli;
 mod config;
 mod driver;

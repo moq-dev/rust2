@@ -24,7 +24,13 @@
 //! `harness::run` is the entry point both sides of the differential test run, and
 //! `fmt::Fault` an error only `caller.ts` prints.
 
-#![feature(iter_order_by, split_as_slice, wrapping_int_impl, wrapping_next_power_of_two)]
+#![feature(
+	iter_order_by,
+	once_cell_try,
+	split_as_slice,
+	wrapping_int_impl,
+	wrapping_next_power_of_two
+)]
 
 mod args;
 mod arrays;
