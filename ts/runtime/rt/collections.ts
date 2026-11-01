@@ -14,7 +14,32 @@
 // A function that may drop a key, value, or item std's would, rather than return or keep
 // it, takes what drops each that does, as `k`, `v`, or `f`, and drops it where std's does.
 
-import { ByteSlice, ByteVec, byteVecPush, type None, type Place, panic, type RangeBound, rangeCheck, sliceSort } from "../rt.ts";
+import {
+	ByteSlice,
+	ByteVec,
+	byteVecPush,
+	byteVecReserve,
+	capGrow,
+	capReserve,
+	capReserveExact,
+	capShrink,
+	type None,
+	type Place,
+	panic,
+	type RangeBound,
+	rangeCheck,
+	sliceSort,
+	type Vec,
+	vecCapacity,
+	vecExtendFromSlice,
+	vecHold,
+	vecMax,
+	vecPop,
+	vecPush,
+	vecReserve,
+	vecTruncate,
+	vecWithCapacity,
+} from "../rt.ts";
 import type { Hashing } from "./hash.ts";
 import { type Limbs, lt } from "./int.ts";
 import {
@@ -34,12 +59,12 @@ import {
 	rangeInclusiveStartBound,
 	type SizeHint,
 	type Take,
-	dequeReserve,
-	vecCapacity,
-	vecGrow,
-	vecPush,
-	vecReserve,
-	vecReserveExact,
+	capNext,
+	iterExtend,
+	iterToArray,
+	satAdd,
+	sourceCapacity,
+	trustedUpper,
 } from "./iter.ts";
 import { type Arc, drop as dispose, dropAll, dropRange } from "./task.ts";
 
@@ -908,20 +933,19 @@ function extending<C, T>(c: C, items: Iter<T>, add: (item: T) => void, take?: Ta
 }
 
 /**
- * `extending` a `Vec` or `VecDeque` holding `len`, which with elements `size` bytes each
- * reserves as `iterExtend` does: a `trusted` iterator up front, and any other by `next`,
- * a `deque`'s at its first item too.
+ * `extending` a collection that std's collects into a `Vec` of `size`-byte elements first,
+ * which panics as that `Vec` does past what it may hold: for a `trusted` iterator up
+ * front, and for any other by `next` as it fills.
  */
-function vecExtending<C, T>(c: C, len: number, items: Iter<T>, add: (item: T) => void, take?: Take, size?: number, trusted = false, deque = false): C {
+function vecCollecting<C, T>(c: C, items: Iter<T>, add: (item: T) => void, take?: Take, size?: number, trusted = false): C {
 	if (size === undefined || trusted) {
-		if (size !== undefined) vecReserveExact(items, len, size);
+		if (size !== undefined) vecWithCapacity(trustedUpper(items), size);
 		return extending(c, items, add, take);
 	}
-	let cap = vecCapacity(len, size);
+	let cap = vecCapacity([], size);
+	let len = 0;
 	for (let item = items.next(); item !== DONE; item = items.next()) {
-		if (deque) dequeReserve(items, len);
-		deque = false;
-		if (len === cap) cap = vecGrow(items, cap, size);
+		if (len === cap) cap = capNext(items, cap, size);
 		add(item);
 		len++;
 	}
@@ -1806,7 +1830,7 @@ export function btreeExtend<K, V>(
 			l.v[i] = item[1];
 		}
 	};
-	return vecExtending(m, 0, items, add, take, size, trusted);
+	return vecCollecting(m, items, add, take, size, trusted);
 }
 
 /** `extend` of a set with keys, and with `last`, `collect` and `from`, as `btreeExtend`. */
@@ -1821,7 +1845,7 @@ export function btreeExtendKeys<K>(m: BTreeSet<K>, keys: Iter<K>, last = false, 
 		if (i < 0) insertAt(m, l, ~i, key, undefined);
 		else l.k[i] = key;
 	};
-	return vecExtending(m, 0, keys, add, take, size, trusted);
+	return vecCollecting(m, keys, add, take, size, trusted);
 }
 
 /**
@@ -2359,17 +2383,71 @@ export function btreeFirstEntry<K, V>(m: BTreeMap<K, V>, last = false): Entry<K,
 
 /**
  * `VecDeque<T>`: a ring buffer of `b.length` slots, a power of two, holding `n` items
- * from `h` on, wrapping past the end.
+ * from `h` on, wrapping past the end, and `c`, std's capacity, which holds `usize::MAX`
+ * of zero-sized items.
  */
 export interface VecDeque<T> {
 	b: (T | undefined)[];
 	h: number;
 	n: number;
+	c: number;
 }
 
-/** `VecDeque::new` and `with_capacity`. */
+/** `VecDeque::new`. */
 export function dequeNew<T>(): VecDeque<T> {
-	return { b: [], h: 0, n: 0 };
+	return { b: [], h: 0, n: 0, c: 0 };
+}
+
+/** `VecDeque::with_capacity` of `size`-byte items, which panics past what it may hold. */
+export function dequeWithCapacity<T>(n: number, size: number): VecDeque<T> {
+	if (n > vecMax(size)) panic("capacity overflow");
+	return { b: [], h: 0, n: 0, c: n };
+}
+
+/** A deque of `v`'s items, in place of the `Vec`, whose capacity it keeps: `From<Vec<T>>`. */
+export function dequeFromVec<T>(v: Vec<T>, size: number): VecDeque<T> {
+	const q = dequeNew<T>();
+	for (const item of v) dequePut(q, item);
+	q.c = vecCapacity(v, size);
+	return q;
+}
+
+/**
+ * `collect` into a deque of `size`-byte items from `it`, a `vec::IntoIter` or a deque's
+ * `IntoIter`, taken as `take` says, which std's makes a deque of in place of what `it`
+ * reads, keeping its capacity.
+ */
+export function dequeFromIntoIter<T>(it: Iter<T>, size: number, take?: Take): VecDeque<T> {
+	const cap = it instanceof DequeIter ? dequeCapacity(it.q, size) : sourceCapacity(it, size)[0];
+	const q = dequeFromVec(iterToArray(it, take, undefined, true), size);
+	q.c = cap;
+	return q;
+}
+
+/** `VecDeque::capacity` of `size`-byte items. */
+export function dequeCapacity<T>(q: VecDeque<T>, size: number): number {
+	return size === 0 ? vecMax(0) : q.c;
+}
+
+/** `VecDeque::reserve` of `size`-byte items. */
+export function dequeReserve<T>(q: VecDeque<T>, additional: number, size: number): void {
+	q.c = capReserve(q.n, dequeCapacity(q, size), additional, size);
+}
+
+/** `VecDeque::reserve_exact` of `size`-byte items. */
+export function dequeReserveExact<T>(q: VecDeque<T>, additional: number, size: number): void {
+	q.c = capReserveExact(q.n, dequeCapacity(q, size), additional, size);
+}
+
+/** `VecDeque::shrink_to` of `size`-byte items, and `shrink_to_fit` to 0. */
+export function dequeShrinkTo<T>(q: VecDeque<T>, min: number, size: number): void {
+	q.c = capShrink(q.n, dequeCapacity(q, size), min, size);
+}
+
+/** Room for one more of `size`-byte items, as std's `grow` makes once it is full. */
+function full<T>(q: VecDeque<T>, size: number): void {
+	const cap = dequeCapacity(q, size);
+	if (q.n === cap) q.c = capGrow(cap, cap + 1, size);
 }
 
 /** The slot of item `i`. */
@@ -2377,7 +2455,7 @@ function at<T>(q: VecDeque<T>, i: number): number {
 	return (q.h + i) & (q.b.length - 1);
 }
 
-/** Room for one more item. */
+/** Room in the buffer for one more item. */
 function grow<T>(q: VecDeque<T>): void {
 	if (q.n < q.b.length) return;
 	const b = new Array(Math.max(4, q.b.length * 2));
@@ -2386,12 +2464,21 @@ function grow<T>(q: VecDeque<T>): void {
 	q.h = 0;
 }
 
-export function dequePushBack<T>(q: VecDeque<T>, item: T): void {
+/** `item` added at the back, past what std's capacity says. */
+function dequePut<T>(q: VecDeque<T>, item: T): void {
 	grow(q);
 	q.b[at(q, q.n++)] = item;
 }
 
-export function dequePushFront<T>(q: VecDeque<T>, item: T): void {
+/** `push_back` of `size`-byte items. */
+export function dequePushBack<T>(q: VecDeque<T>, item: T, size: number): void {
+	full(q, size);
+	dequePut(q, item);
+}
+
+/** `push_front` of `size`-byte items. */
+export function dequePushFront<T>(q: VecDeque<T>, item: T, size: number): void {
+	full(q, size);
 	grow(q);
 	q.h = (q.h - 1) & (q.b.length - 1);
 	q.b[q.h] = item;
@@ -2466,7 +2553,7 @@ export function dequeDrop<T>(q: VecDeque<T>, f: (item: T) => void): void {
 
 /** `clear`, which leaves the deque empty and then drops each item, front to back. */
 export function dequeClear<T>(q: VecDeque<T>, f?: (item: T) => void): void {
-	const old: VecDeque<T> = { b: q.b, h: q.h, n: q.n };
+	const old: VecDeque<T> = { b: q.b, h: q.h, n: q.n, c: q.c };
 	q.b = [];
 	q.h = 0;
 	q.n = 0;
@@ -2541,10 +2628,10 @@ export function dequeRemove<T>(q: VecDeque<T>, i: number, none?: None): T | None
 	return item;
 }
 
-/** `insert`: `item` at `i`, with those from `i` on moved down. */
-export function dequeInsert<T>(q: VecDeque<T>, i: number, item: T): void {
+/** `insert` of `size`-byte items: `item` at `i`, with those from `i` on moved down. */
+export function dequeInsert<T>(q: VecDeque<T>, i: number, item: T, size: number): void {
 	if (i > q.n) panic("index out of bounds");
-	dequePushBack(q, item);
+	dequePushBack(q, item, size);
 	for (let j = q.n - 1; j > i; j--) q.b[at(q, j)] = q.b[at(q, j - 1)];
 	q.b[at(q, i)] = item;
 }
@@ -2553,8 +2640,8 @@ export function dequeInsert<T>(q: VecDeque<T>, i: number, item: T): void {
  * An iterator of a deque's items from index `front` up to `back`, which drops those it
  * still holds by `drop` as it drops, if it owns them, as a `drain` does.
  */
-class DequeIter<T> extends Iter<T> implements Disposable {
-	private readonly q: VecDeque<T>;
+export class DequeIter<T> extends Iter<T> implements Disposable {
+	readonly q: VecDeque<T>;
 	private front: number;
 	private back: number;
 	private readonly drop: ((item: T) => void) | undefined;
@@ -2610,8 +2697,10 @@ class DequeIter<T> extends Iter<T> implements Disposable {
  */
 export function dequeIter<T>(q: VecDeque<T>, drop?: (item: T) => void): Iter<T> {
 	if (drop === undefined) return new DequeIter(q, 0, q.n);
-	const items: T[] = [];
+	// Of the deque's capacity, which a `collect` into another keeps.
+	const items: Vec<T> = [];
 	for (let i = 0; i < q.n; i++) items.push(q.b[at(q, i)] as T);
+	items.cap = q.c;
 	return iterSlice(items, drop);
 }
 
@@ -2652,8 +2741,8 @@ class DequePlaces<T> extends Iter<Place<T>> {
 /** `drain`: the items within `r`, taken out at once, which drop by `drop` as `dequeIter`'s. */
 export function dequeDrain<T>(q: VecDeque<T>, r: Bounds<number>, drop?: (item: T) => void): Iter<T> {
 	const [start, end] = boundsRange(r, q.n);
-	const taken: VecDeque<T> = { b: [], h: 0, n: 0 };
-	for (let i = start; i < end; i++) dequePushBack(taken, q.b[at(q, i)] as T);
+	const taken = dequeNew<T>();
+	for (let i = start; i < end; i++) dequePut(taken, q.b[at(q, i)] as T);
 	for (let i = end; i < q.n; i++) q.b[at(q, i - (end - start))] = q.b[at(q, i)];
 	dequeTruncate(q, q.n - (end - start));
 	return new DequeIter(taken, 0, taken.n, drop);
@@ -2728,8 +2817,9 @@ function sliceIndexFail(start: number, end: number, n: number): never {
  * `Vec::drain`: the elements within `r`. Those it still holds as it drops each drop by
  * `drop`, front to back, before the tail moves back.
  */
-export function vecDrain<T>(v: T[], r: Bounds<number>, drop?: (item: T) => void): Iter<T> {
+export function vecDrain<T>(v: Vec<T>, r: Bounds<number>, drop?: (item: T) => void): Iter<T> {
 	const [start, end] = boundsRange(r, v.length);
+	vecHold(v);
 	return new VecDrain(v, v.splice(start), end - start, drop);
 }
 
@@ -2838,17 +2928,30 @@ class ByteVecDrain extends Iter<number> implements Disposable {
 }
 
 /**
- * `extend`, and `collect` into a deque through `dequeNew`, which takes `items` as `take`
- * says and reserves as `iterExtend` does.
+ * `extend` of `size`-byte items, which takes `items` as `take` says and reserves as std's
+ * does: a `trusted` iterator's upper bound, and any other's lower bound and one more at
+ * its first item and each that finds it full.
  */
 export function dequeExtend<T>(q: VecDeque<T>, items: Iter<T>, take?: Take, size?: number, trusted = false): VecDeque<T> {
-	return vecExtending(q, q.n, items, (item) => dequePushBack(q, item), take, size, trusted, true);
+	if (size === undefined || trusted) {
+		if (size !== undefined) dequeReserve(q, trustedUpper(items), size);
+		return extending(q, items, (item) => dequePut(q, item), take);
+	}
+	let first = true;
+	for (let item = items.next(); item !== DONE; item = items.next()) {
+		if (first || q.n === dequeCapacity(q, size)) dequeReserve(q, satAdd(items.sizeHint()[0], 1), size);
+		first = false;
+		dequePut(q, item);
+	}
+	if (take !== undefined) dispose(items);
+	return q;
 }
 
-/** `clone`, with each item through its `Clone`, or as itself without one. */
+/** `clone`, with each item through its `Clone`, or as itself without one, made for exactly as many. */
 export function dequeClone<T>(q: VecDeque<T>, item: (value: T) => T = itself): VecDeque<T> {
 	const out = dequeNew<T>();
-	for (let i = 0; i < q.n; i++) dequePushBack(out, item(q.b[at(q, i)] as T));
+	for (let i = 0; i < q.n; i++) dequePut(out, item(q.b[at(q, i)] as T));
+	out.c = q.n;
 	return out;
 }
 
@@ -3170,25 +3273,30 @@ export function listCloneFrom<T>(l: LinkedList<T>, source: LinkedList<T>, item: 
 /** A `PartialOrd` test. */
 type Test<T> = (a: T, b: T) => boolean;
 
-/** `BinaryHeap<T>`: its elements in `d`, in std's order. */
+/** `BinaryHeap<T>`: its elements in `d`, in std's order, a `Vec` with std's capacity. */
 export interface BinaryHeap<T> {
-	d: T[];
+	d: Vec<T>;
 }
 
-/** `BinaryHeap::new`, `with_capacity`, and `default`. */
+/** `BinaryHeap::new` and `default`. */
 export function heapNew<T>(): BinaryHeap<T> {
 	return { d: [] };
 }
 
+/** `BinaryHeap::with_capacity` of `size`-byte elements. */
+export function heapWithCapacity<T>(n: number, size: number): BinaryHeap<T> {
+	return { d: vecWithCapacity(n, size) };
+}
+
 /** `From<Vec<T>>`: the vector's elements, rebuilt into a heap in place, as std's are. */
-export function heapFrom<T>(d: T[], le: Test<T>, ge: Test<T>, lt: Test<T>): BinaryHeap<T> {
+export function heapFrom<T>(d: Vec<T>, le: Test<T>, ge: Test<T>, lt: Test<T>): BinaryHeap<T> {
 	rebuild(d, le, ge, lt);
 	return { d };
 }
 
-/** `push`: `item` sifted up from the end. */
-export function heapPush<T>(h: BinaryHeap<T>, item: T, le: Test<T>): void {
-	h.d.push(item);
+/** `push` of `size`-byte elements: `item` sifted up from the end. */
+export function heapPush<T>(h: BinaryHeap<T>, item: T, le: Test<T>, size: number): void {
+	vecPush(h.d, item, size);
 	siftUp(h.d, 0, h.d.length - 1, le);
 }
 
@@ -3203,7 +3311,7 @@ export function heapPop<T>(h: BinaryHeap<T>, le: Test<T>, none: None): T | None;
 export function heapPop<T>(h: BinaryHeap<T>, le: Test<T>, none?: None): T | None | undefined {
 	const d = h.d;
 	if (d.length === 0) return none;
-	let item = d.pop() as T;
+	let item = vecPop(d) as T;
 	if (d.length > 0) {
 		[item, d[0]] = [d[0], item];
 		siftDownToBottom(d, 0, le);
@@ -3212,7 +3320,7 @@ export function heapPop<T>(h: BinaryHeap<T>, le: Test<T>, none?: None): T | None
 }
 
 /** `into_sorted_vec`: the elements in ascending order, each greatest swapped to the end and the rest sifted. */
-export function heapIntoSortedVec<T>(h: BinaryHeap<T>, le: Test<T>, ge: Test<T>, lt: Test<T>): T[] {
+export function heapIntoSortedVec<T>(h: BinaryHeap<T>, le: Test<T>, ge: Test<T>, lt: Test<T>): Vec<T> {
 	const d = h.d;
 	for (let end = d.length - 1; end > 0; end--) {
 		[d[0], d[end]] = [d[end], d[0]];
@@ -3221,12 +3329,15 @@ export function heapIntoSortedVec<T>(h: BinaryHeap<T>, le: Test<T>, ge: Test<T>,
 	return d;
 }
 
-/** `append`: `other`'s elements added to the larger of the two, which `h` then holds, and `other` left empty. */
-export function heapAppend<T>(h: BinaryHeap<T>, other: BinaryHeap<T>, le: Test<T>, ge: Test<T>, lt: Test<T>): void {
+/**
+ * `append` of `size`-byte elements: `other`'s elements added to the larger of the two,
+ * which `h` then holds, reserving for them all, and `other` left empty, keeping its capacity.
+ */
+export function heapAppend<T>(h: BinaryHeap<T>, other: BinaryHeap<T>, le: Test<T>, ge: Test<T>, lt: Test<T>, size: number): void {
 	if (h.d.length < other.d.length) [h.d, other.d] = [other.d, h.d];
 	const start = h.d.length;
-	for (const item of other.d) h.d.push(item);
-	other.d = [];
+	vecExtendFromSlice(h.d, other.d, undefined, size);
+	vecTruncate(other.d, 0);
 	rebuildTail(h.d, start, le, ge, lt);
 }
 
@@ -3236,7 +3347,7 @@ export function heapAppend<T>(h: BinaryHeap<T>, other: BinaryHeap<T>, le: Test<T
  */
 export function heapExtend<T>(h: BinaryHeap<T>, items: Iter<T>, le: Test<T>, ge: Test<T>, lt: Test<T>, take?: Take, size?: number, trusted = false): BinaryHeap<T> {
 	const start = h.d.length;
-	vecExtending(h, start, items, (item) => h.d.push(item), take, size, trusted);
+	iterExtend(h.d, items, take, size, trusted);
 	rebuildTail(h.d, start, le, ge, lt);
 	return h;
 }
@@ -3250,6 +3361,7 @@ export function heapRetain<T>(h: BinaryHeap<T>, f: (item: T) => boolean, le: Tes
 	const n = d.length;
 	let from = n;
 	let kept = 0;
+	vecHold(d);
 	for (let i = 0; i < n; i++) {
 		const item = d[i];
 		if (f(item)) d[kept++] = item;
@@ -3262,17 +3374,15 @@ export function heapRetain<T>(h: BinaryHeap<T>, f: (item: T) => boolean, le: Tes
 	rebuildTail(d, from, le, ge, lt);
 }
 
-/** `clear`, which leaves the heap empty and then drops each element in order. */
+/** `clear`, which leaves the heap empty, keeping its capacity, and then drops each element in order. */
 export function heapClear<T>(h: BinaryHeap<T>, drop?: (item: T) => void): void {
-	const d = h.d;
-	h.d = [];
-	dropAll(d, drop);
+	vecTruncate(h.d, 0, drop);
 }
 
-/** `drain`: an iterator of the elements in order, which leaves the heap empty and drops those it still holds by `drop`. */
+/** `drain`: an iterator of the elements in order, which leaves the heap empty, keeping its capacity, and drops those it still holds by `drop`. */
 export function heapDrain<T>(h: BinaryHeap<T>, drop?: (item: T) => void): Iter<T> {
-	const d = h.d;
-	h.d = [];
+	const d = h.d.slice();
+	vecTruncate(h.d, 0);
 	return iterSlice(d, drop);
 }
 
@@ -3483,45 +3593,37 @@ export function copiedPart<C, T>(part: Part<C, T>, copy: (item: T) => T): Part<C
 	return { reserve: part.reserve, one: (c, item) => part.one(c, copy(item)) };
 }
 
-/**
- * A collection kept in a vector, which holds `length(c)` of `size`-byte elements and
- * `push` adds to: it reserves as `vecReserve`, and from what it reserved, grows by one as
- * `vecPush` does, panicking past what it may hold.
- */
-function vectorPart<C, T>(length: (c: C) => number, push: (c: C, item: T) => void, size?: number): Part<C, T> {
-	let cap: number | undefined;
+/** A `Vec` of `size`-byte elements, which reserves and pushes each as its own `extend_reserve` and `extend_one` do. */
+export function vecPart<T>(size: number): Part<T[], T> {
 	return {
-		reserve:
-			size === undefined
-				? undefined
-				: (c, additional) => {
-						cap = vecReserve(length(c), additional, size, cap);
-					},
-		one: (c, item) => {
-			if (size !== undefined) cap = vecPush(length(c), size, cap);
-			push(c, item);
-			return c;
+		reserve: (v, additional) => vecReserve(v, additional, size),
+		one: (v, item) => {
+			vecPush(v, item, size);
+			return v;
 		},
 	};
 }
 
-/** A `Vec` of `size`-byte elements, which pushes each. */
-export function vecPart<T>(size?: number): Part<T[], T> {
-	return vectorPart(
-		(v) => v.length,
-		(v, item) => v.push(item),
-		size,
-	);
-}
-
 /** A `Vec<u8>`, as `vecPart`. */
 export function byteVecPart(): Part<ByteVec, number> {
-	return vectorPart((v) => v.length, byteVecPush, 1);
+	return {
+		reserve: byteVecReserve,
+		one: (v, item) => {
+			byteVecPush(v, item);
+			return v;
+		},
+	};
 }
 
-/** A `VecDeque` of `size`-byte elements, which pushes each at the back. */
-export function dequePart<T>(size?: number): Part<VecDeque<T>, T> {
-	return vectorPart((q) => q.n, dequePushBack, size);
+/** A `VecDeque` of `size`-byte elements, which pushes each at the back, as `vecPart`. */
+export function dequePart<T>(size: number): Part<VecDeque<T>, T> {
+	return {
+		reserve: (q, additional) => dequeReserve(q, additional, size),
+		one: (q, item) => {
+			dequePushBack(q, item, size);
+			return q;
+		},
+	};
 }
 
 /** A `LinkedList`, which pushes each at the back, and never reserves. */
@@ -3534,13 +3636,15 @@ export function listPart<T>(): Part<LinkedList<T>, T> {
 	};
 }
 
-/** A `BinaryHeap` of `size`-byte elements, which pushes each, sifting it up by `le`. */
-export function heapPart<T>(le: Test<T>, size?: number): Part<BinaryHeap<T>, T> {
-	return vectorPart(
-		(h) => h.d.length,
-		(h, item) => heapPush(h, item, le),
-		size,
-	);
+/** A `BinaryHeap` of `size`-byte elements, which pushes each, sifting it up by `le`, as `vecPart`. */
+export function heapPart<T>(le: Test<T>, size: number): Part<BinaryHeap<T>, T> {
+	return {
+		reserve: (h, additional) => vecReserve(h.d, additional, size),
+		one: (h, item) => {
+			heapPush(h, item, le, size);
+			return h;
+		},
+	};
 }
 
 /** A `HashMap`, which inserts each entry as `hashExtend` does, and reserves as `hashReserve`. */

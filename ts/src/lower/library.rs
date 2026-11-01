@@ -1956,6 +1956,7 @@ fn mapping<'tcx>(
 				true => Expr::rt("byteVecOf", values),
 				false => {
 					values.push(super::collections::clone_fn(b, elem, span));
+					values.push(super::iter::size_of(b, elem, span));
 					Expr::rt("vecFromElem", values)
 				}
 			}
@@ -1966,24 +1967,32 @@ fn mapping<'tcx>(
 			true => Expr::New(Box::new(Expr::Rt("ByteVec".into())), Vec::new()),
 			false => Expr::Array(Vec::new()),
 		},
-		("Vec", "with_capacity") => match is_u8(targ(gargs, 0)) {
-			true => Expr::New(Box::new(Expr::Rt("ByteVec".into())), args),
-			false => Expr::Array(Vec::new()),
-		},
-		("Vec", "push") => {
+		("Vec", "with_capacity") if is_u8(targ(gargs, 0)) => Expr::rt("byteVecWithCapacity", args),
+		("Vec", "capacity") if is_u8(targ(gargs, 0)) => Expr::rt("byteVecCapacity", args),
+		("Vec", "push" | "reserve" | "reserve_exact" | "shrink_to") if is_u8(targ(gargs, 0)) => {
+			rt2(args, "byteVec", &super::camel(&name))
+		}
+		("Vec", "shrink_to_fit") if is_u8(targ(gargs, 0)) => {
+			Expr::rt("byteVecShrinkTo", vec![args.pop()?, Expr::lit("0")])
+		}
+		// What changes or reads a capacity is given the size of its elements, by which
+		// std's grows it.
+		("Vec", "with_capacity" | "capacity" | "push" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit") => {
 			let mut values = args;
-			match is_u8(targ(gargs, 0)) {
-				true => Expr::rt("byteVecPush", values),
-				false => {
-					let v = values.remove(0);
-					v.method("push", values)
-				}
+			if name == "shrink_to_fit" {
+				values.push(Expr::lit("0"));
 			}
+			values.push(super::iter::size_of(b, targ(gargs, 0), span));
+			let f = match name.as_str() {
+				"shrink_to_fit" => "shrinkTo".to_string(),
+				_ => super::camel(&name),
+			};
+			rt2(values, "vec", &f)
 		}
 		("Vec", "pop") if is_u8(targ(gargs, 0)) => Expr::rt("byteVecPop", args),
-		// JS's `pop` returns `undefined` for no element, where an `rt.None` must follow.
-		("Vec", "pop") if sentinel_option(b.t, call).is_some() => Expr::rt("vecPop", args),
-		("Vec", "pop") => args.pop()?.method("pop", vec![]),
+		// Its capacity is kept as its length drops, and an `rt.None` follows where an
+		// element can be `undefined`.
+		("Vec", "pop") => Expr::rt("vecPop", args),
 		// The last element is lent to the test as its place where JS copies it.
 		("Vec", "pop_if") if is_u8(targ(gargs, 0)) => Expr::rt("byteVecPopIf", args),
 		("Vec", "pop_if") if b.t.needs_place(targ(gargs, 0)) => Expr::rt("vecPopIfMut", args),
@@ -1995,16 +2004,19 @@ fn mapping<'tcx>(
 		("Vec", "extend_from_slice") if is_u8(targ(gargs, 0)) => Expr::rt("byteVecExtendFromSlice", args),
 		("Vec", "extend_from_slice") => {
 			let mut values = args;
-			let clone = super::collections::clone_fn(b, targ(gargs, 0), span);
-			if !matches!(&clone, Expr::Lit(l) if l == "undefined") {
-				values.push(clone);
-			}
+			values.push(super::collections::clone_fn(b, targ(gargs, 0), span));
+			values.push(super::iter::size_of(b, targ(gargs, 0), span));
 			Expr::rt("vecExtendFromSlice", values)
 		}
 		("Vec", "insert" | "remove" | "swap_remove") if is_u8(targ(gargs, 0)) => {
 			rt2(args, "byteVec", &super::camel(&name))
 		}
-		("Vec", "insert" | "remove" | "swap_remove" | "truncate") => rt2(args, "vec", &super::camel(&name)),
+		("Vec", "insert") => {
+			let mut values = args;
+			values.push(super::iter::size_of(b, targ(gargs, 0), span));
+			Expr::rt("vecInsert", values)
+		}
+		("Vec", "remove" | "swap_remove" | "truncate") => rt2(args, "vec", &super::camel(&name)),
 		("Vec", "clear") => {
 			let mut values = args;
 			values.push(Expr::lit("0"));
@@ -2420,7 +2432,8 @@ fn clone_into<'tcx>(b: &mut Body<'_, '_, 'tcx>, elem: Ty<'tcx>, name: &str, span
 
 /// Whether `clone_from` of `ty` clones, and drops what it writes over, as
 /// `*self = source.clone()` would: `Clone`'s own, and std's own over such types, where it
-/// only reuses memory, if nothing drops or it is an `Option`'s.
+/// only reuses memory, if nothing drops or it is an `Option`'s, but for a vector's, which
+/// keeps its capacity where that holds the clones.
 pub(super) fn clone_from_clones<'tcx>(t: &mut Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
 	let tcx = t.tcx;
 	let clone_from = super::collections::trait_fn(tcx, "Clone", "clone_from");
@@ -2430,6 +2443,9 @@ pub(super) fn clone_from_clones<'tcx>(t: &mut Translator<'_, 'tcx>, ty: Ty<'tcx>
 	};
 	if instance.def_id() == clone_from {
 		return true;
+	}
+	if matches!(t.std_of(ty), Some(Std::Vec | Std::VecDeque | Std::BinaryHeap)) {
+		return false;
 	}
 	let inner: Vec<Ty<'tcx>> = match ty.kind() {
 		ty::Adt(adt, args) if is_std(tcx, adt.did()) => args.types().collect(),
@@ -2535,12 +2551,12 @@ fn slice_boxed<'tcx>(b: &mut Body<'_, '_, 'tcx>, slice: Expr, elem: Ty<'tcx>, sp
 	}
 }
 
-/// The `Box<[elem]>` that a `Vec<elem>`, `v`, becomes: its elements, as many as it holds.
-/// std's shrinks its capacity to them, which no translated `Vec` reports.
+/// The `Box<[elem]>` that a `Vec<elem>`, `v`, becomes: its elements, as many as it holds,
+/// to which std's shrinks its capacity.
 pub(super) fn vec_boxed(v: Expr, elem: Ty<'_>) -> Expr {
 	match elem.kind() {
 		ty::Uint(ty::UintTy::U8) => Expr::rt("byteVecSlice", vec![v]),
-		_ => v,
+		_ => Expr::rt("vecIntoBoxed", vec![v]),
 	}
 }
 

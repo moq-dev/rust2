@@ -975,7 +975,7 @@ export function cycles(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			return _22[0] ^ _22[1];
 		}), "next");
 		rt.iterExtendBytes(out, rt.iterTake(rt.iterStepBy(rt.iterSkip(rt.iterCycle(new rt.RangeInclusive(1, 3, rt.u8Step)), n), 2), m), "next");
-		rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.iterToByteVec(rt.iterTake(rt.iterCycle(rt.iterSlice(rt.byteSliceView(data))), m), "next"))), undefined, true);
+		rt.iterExtendBytes(out, rt.byteVecIntoIter(rt.iterToByteVec(rt.iterTake(rt.iterCycle(rt.iterSlice(rt.byteSliceView(data))), m), "next")), undefined, true);
 		rt.byteVecPush(out, rt.iterAny(rt.iterTake(rt.iterCycle(rt.iterSlice(rt.byteSliceView(data))), m), (_23: rt.u8): boolean => {
 			return _23 === 7;
 		}) ? 1 : 0);

@@ -16,12 +16,8 @@ being what JS has no counterpart of.
 - Map it as std's map is: std's `HashMap` is hashbrown's, so the same runtime functions
   stand in for both, with no config.
 - `capacity` follows hashbrown's `capacity_to_buckets` and `allocation_size` exactly, as
-  [the rest of std](/quest/m2/ts-model/std-rest.md) decided for `Vec`'s capacity.
+  `Vec`'s capacity follows `RawVec`'s.
 - `HashTable`'s methods take the hash and the equality from the caller, so it needs a
   table keyed by the caller's hash, not the runtime's own.
 
 Public API: the translator's output.
-
-## Required
-
-- [The rest of std the model reaches](/quest/m2/ts-model/std-rest.md) - std's exact capacity, which hashbrown's growth reuses

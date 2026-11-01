@@ -61,9 +61,9 @@ export function locals(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, ((a0: rt.Cell<rt.u32>): rt.u32 => {
 		return a0.v;
 	})(COUNT.get()) & 0xff);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(withBorrow$1k8k9m1(LOG, (log2: rt.ByteVec): rt.ByteVec => {
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(withBorrow$1k8k9m1(LOG, (log2: rt.ByteVec): rt.ByteVec => {
 		return rt.byteVecFrom(rt.byteVecView(log2));
-	}))), undefined, true);
+	})), undefined, true);
 	rt.byteVecPush(out, ((p: locals_Polling.Polling): rt.u8 => {
 		return option_mapOr$0ucbp7g(copy$Option_tuple2_u64_u64(p.current.v), 253, (_2: [rt.u64, rt.u64]): rt.u8 => {
 			return rt.u64Low(_2[0]) & 0xff;
@@ -165,9 +165,9 @@ export function locals(data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecPush(out, withBorrow$0r4ucls(LOG, (log4: rt.ByteVec): rt.u8 => {
 				return log4.length & 0xff;
 			}));
-			rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(replace$1xk72wn(LOG, rt.byteVecFrom(Uint8Array.of(op))))), undefined, true);
+			rt.iterExtendBytes(out, rt.byteVecIntoIter(replace$1xk72wn(LOG, rt.byteVecFrom(Uint8Array.of(op)))), undefined, true);
 			rt.localKeyRefCellSet(LOG, rt.byteVecFrom(Uint8Array.of(op, op)));
-			rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(local_take$122f15k(LOG))), undefined, true);
+			rt.iterExtendBytes(out, rt.byteVecIntoIter(local_take$122f15k(LOG)), undefined, true);
 			rt.localKeyRefCellSet(LOG, rt.byteVecFrom(Uint8Array.of(1, 2, 3)));
 			const _141: rt.LocalKey<rt.RefCell<locals_Noisy.Noisy | undefined>> = HELD;
 			const _144: rt.Arc<rt.Mutex<rt.ByteVec>> = rt.arcClone(log);

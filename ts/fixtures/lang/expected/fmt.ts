@@ -727,15 +727,15 @@ export function collections(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const at: (a0: rt.usize) => rt.u8 = (i: rt.usize): rt.u8 => {
 		return option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, i), 0);
 	};
-	const q: rt.VecDeque<rt.u8 | undefined> = rt.dequeNew() as rt.VecDeque<rt.u8 | undefined>;
+	const q: rt.VecDeque<rt.u8 | undefined> = rt.dequeWithCapacity(4, 2) as rt.VecDeque<rt.u8 | undefined>;
 	for (const b of rt.byteSliceView(data)) {
 		const _12: rt.u8 = rt.u8Rem(b, 4);
 		if (_12 === 0) {
 			const _15: rt.u8 | undefined = thenSome$0d5am30(rt.u8Rem(b, 3) !== 0, b);
-			rt.dequePushBack(q, _15);
+			rt.dequePushBack(q, _15, 2);
 		} else if (_12 === 1) {
 			const _20: rt.u8 | undefined = thenSome$0d5am30(rt.u8Rem(b, 3) !== 0, b);
-			rt.dequePushFront(q, _20);
+			rt.dequePushFront(q, _20, 2);
 		} else if (_12 === 2) {
 			rt.dequePopBack(q, rt.None);
 		} else {
@@ -744,12 +744,12 @@ export function collections(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 	const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.dequeIter(q), f, (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug))];
 	put(out, rt.fmtFormat([args2[0], "|", rt.fmtSpec({ alternate: true }, args2[0]), "|", rt.fmtSpec({ debugHex: "x" }, args2[0]), "|", rt.fmtSpec({ align: ">", width: 4 }, args2[0])]));
-	const wrapped: rt.VecDeque<Hex.Hex> = rt.dequeNew() as rt.VecDeque<Hex.Hex>;
+	const wrapped: rt.VecDeque<Hex.Hex> = rt.dequeWithCapacity(4, 4) as rt.VecDeque<Hex.Hex>;
 	rt.dequeExtend(wrapped, rt.iterSlice([{ _0: 1 }, { _0: 2 }]), undefined, 4, true);
 	const _48: Hex.Hex = { _0: rt.u32Mul(at(0) as rt.u32, 4097) };
-	rt.dequePushFront(wrapped, _48);
+	rt.dequePushFront(wrapped, _48, 4);
 	const _57: Hex.Hex = { _0: at(1) as rt.u32 };
-	rt.dequePushFront(wrapped, _57);
+	rt.dequePushFront(wrapped, _57, 4);
 	rt.dequePopBack(wrapped);
 	const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.dequeIter(wrapped), f, (value: Hex.Hex, f: rt.Formatter) => Hex.fmt$fmt_Debug(value, f))];
 	const mid: string = rt.fmtFormat([args4[0]]);
@@ -757,14 +757,10 @@ export function collections(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, mid), (f: rt.Formatter) => rt.fmtList(rt.dequeIter(wrapped), f, (value: Hex.Hex, f: rt.Formatter) => Hex.fmt$fmt_Debug(value, f))];
 	put(out, rt.fmtFormat([args6[0], "|", args6[1], "|", rt.fmtSpec({ alternate: true }, args6[1]), "|", rt.fmtSpec({ width: 6 }, args6[1])]));
 	const empty: rt.VecDeque<rt.u8> = rt.dequeNew() as rt.VecDeque<rt.u8>;
-	const _91: rt.Iter<undefined> = rt.iterMap(new rt.Range(0, rt.u8Rem(at(2), 3)), (_2: rt.u8): undefined => {});
-	const units: rt.VecDeque<undefined> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<undefined>, _91, undefined, 0, true);
+	const units: rt.VecDeque<undefined> = rt.dequeFromVec(rt.iterToArray(rt.iterMap(new rt.Range(0, rt.u8Rem(at(2), 3)), (_2: rt.u8): undefined => {}), undefined, 0, true), 0) as rt.VecDeque<undefined>;
 	const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.dequeIter(empty), f, rt.u8Debug), (f: rt.Formatter) => rt.fmtList(rt.dequeIter(units), f, rt.fmtUnit)];
 	put(out, rt.fmtFormat([args8[0], "|", rt.fmtSpec({ alternate: true }, args8[0]), "|", args8[1]]));
-	const _114: rt.VecDeque<fmt_Pair.Pair> = rt.dequeNew() as rt.VecDeque<fmt_Pair.Pair>;
-	const _116: fmt_Pair.Pair[] = [{ _0: at(3), _1: -1 }, { _0: 2, _1: 3 }];
-	const _113: rt.VecDeque<fmt_Pair.Pair>[] = [_114, rt.dequeExtend(rt.dequeNew() as rt.VecDeque<fmt_Pair.Pair>, rt.iterSlice(_116), undefined, 16, true)];
-	const part = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.VecDeque<fmt_Pair.Pair>>, rt.iterSlice(_113), undefined, 16, true);
+	const part = rt.dequeFromVec([rt.dequeNew() as rt.VecDeque<fmt_Pair.Pair>, rt.dequeFromVec([{ _0: at(3), _1: -1 }, { _0: 2, _1: 3 }], 16) as rt.VecDeque<fmt_Pair.Pair>], 16) as rt.VecDeque<rt.VecDeque<fmt_Pair.Pair>>;
 	const args10: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.dequeIter(part), f, (value: rt.VecDeque<fmt_Pair.Pair>, f: rt.Formatter) => rt.fmtList(rt.dequeIter(value), f, (value: fmt_Pair.Pair, f: rt.Formatter) => fmt_Pair.fmt$fmt_Debug(value, f)))];
 	put(out, rt.fmtFormat([args10[0], "|", rt.fmtSpec({ alternate: true }, args10[0])]));
 	const _135: rt.Iter<rt.u8 | undefined> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_25: rt.u8): rt.u8 | undefined => {
@@ -784,7 +780,7 @@ export function collections(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const b2: rt.u8 = _154;
 		rt.dequePushFront(rt.entryOrInsertWith(rt.entry(map, rt.u8Rem(b2, 4)), (): rt.VecDeque<fmt_Pair.Pair> => {
 			return rt.dequeNew() as rt.VecDeque<fmt_Pair.Pair>;
-		}), { _0: b2, _1: rt.i64Neg(b2 as rt.i64) });
+		}), { _0: b2, _1: rt.i64Neg(b2 as rt.i64) }, 16);
 	}
 	const _176: rt.BTreeMap<rt.u8, rt.u8> = rt.btreeNew(rt.cmp) as rt.BTreeMap<rt.u8, rt.u8>;
 	const _178: rt.BTreeSet<rt.u8> = rt.btreeNew(rt.cmp) as rt.BTreeSet<rt.u8>;
@@ -1008,7 +1004,7 @@ export function iters(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}), undefined, 16, true)), front, back);
 	const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtIter(part3, f, (value: fmt_Pair.Pair, f: rt.Formatter) => fmt_Pair.fmt$fmt_Debug(value, f), ["IntoIter"])];
 	put(out, rt.fmtFormat([args6[0], "|", rt.fmtSpec({ alternate: true }, args6[0])]));
-	const part4 = ends$iters_vec_IntoIter_u8(rt.iterSlice(rt.byteVecView(rt.byteSliceToByteVec(data))), front, back);
+	const part4 = ends$iters_vec_IntoIter_u8(rt.byteVecIntoIter(rt.byteSliceToByteVec(data)), front, back);
 	const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtIter(part4, f, rt.u8Debug, ["IntoIter"])];
 	put(out, rt.fmtFormat([rt.fmtSpec({ debugHex: "x" }, args8[0])]));
 	const it4: rt.Iter<Hex.Hex> = ends$iters_vec_Drain_fmt_Hex(rt.vecDrain(rt.iterToArray(rt.iterMap(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 5), (_23: rt.u8): Hex.Hex => {
@@ -1037,7 +1033,7 @@ export function iters(data: rt.ByteSlice, out: rt.ByteVec): void {
 	put(out, rt.fmtFormat([args16[0]]));
 	const _165: Array<rt.u8 | undefined> = [];
 	const _174: rt.Iter<rt.u8 | undefined> = rt.iterSlice(_165);
-	const _176: rt.Iter<rt.u8> = rt.iterSlice(rt.byteVecView(new rt.ByteVec()));
+	const _176: rt.Iter<rt.u8> = rt.byteVecIntoIter(new rt.ByteVec());
 	const args18: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtIter(_174, f, (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), ["Iter"]), (f: rt.Formatter) => rt.fmtIter(_176, f, rt.u8Debug, ["IntoIter"])];
 	put(out, rt.fmtFormat([args18[0], "|", rt.fmtSpec({ alternate: true }, args18[1])]));
 	const heap: rt.BinaryHeap<rt.u8> = rt.heapFrom(rt.iterToArray(rt.iterSlice(rt.byteSliceView(data)), undefined, 1, true), rt.le, rt.ge, rt.lt);
@@ -1051,11 +1047,10 @@ export function iters(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const args24: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtIter(it8, f, rt.u8Debug, [["Drain", "iter"], "Drain"])];
 	put(out, rt.fmtFormat([args24[0], "|", rt.fmtSpec({ alternate: true }, args24[0])]));
 	rt.drop(it8);
-	const _236: rt.Iter<rt.u8 | undefined> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_27: rt.u8): rt.u8 | undefined => {
+	const part9 = ends$iters_collections_vec_deque_IntoIter_Option_u8(rt.dequeIter(rt.dequeFromVec(rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_27: rt.u8): rt.u8 | undefined => {
 		const b4: rt.u8 = _27;
 		return thenSome$0d5am30(rt.u8Rem(b4, 3) !== 0, b4);
-	});
-	const part9 = ends$iters_collections_vec_deque_IntoIter_Option_u8(rt.dequeIter(rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.u8 | undefined>, _236, undefined, 2, true)), front, back);
+	}), undefined, 2, true), 2) as rt.VecDeque<rt.u8 | undefined>), front, back);
 	const args26: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtIter(part9, f, (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), ["IntoIter"])];
 	put(out, rt.fmtFormat([args26[0], "|", rt.fmtSpec({ alternate: true }, args26[0])]));
 	const text: string = rt.stringExtendChars("", rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_28: rt.u8): rt.char => {

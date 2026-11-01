@@ -9,7 +9,7 @@ import type * as EncodeError from "./coding/encode.EncodeError.ts";
 import * as Encoder from "./coding/encode.Encoder.ts";
 import { zigzag as varint_zigzag, unzigzag } from "./coding/varint.ts";
 import * as Form from "./coding/varint.Form.ts";
-import { unwrapOr$11c0we2 as option_unwrapOr$11c0we2, map$1cf8u0y as option_map$1cf8u0y } from "./core/option.ts";
+import { unwrapOr$11c0we2 as option_unwrapOr$11c0we2, map$1cf8u0y as option_map$1cf8u0y, mapOr$1jt76jv as option_mapOr$1jt76jv } from "./core/option.ts";
 import { form, liteVersion, putU64 as harness_putU64, putUsize, takeU64, decodeError, encodeError } from "./harness.ts";
 import * as Group from "./lite/group.Group.ts";
 import type * as lite_version_Version from "./lite/version.Version.ts";
@@ -45,6 +45,8 @@ export function run(input: rt.ByteSlice): rt.ByteVec {
 				interleave(new rt.ByteSlice(input.data, input.start + 2, input.length - 2), out);
 			} else if (op === 12) {
 				order(selector, new rt.ByteSlice(input.data, input.start + 2, input.length - 2), out);
+			} else if (op === 13) {
+				push(selector, new rt.ByteSlice(input.data, input.start + 2, input.length - 2), out);
 			} else {
 				decoded(decodeGroup(new rt.ByteSlice(input.data, input.start + 2, input.length - 2), liteVersion(selector), out), out);
 			}
@@ -346,12 +348,12 @@ export function order(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
 	} else {
 		const heap: rt.BinaryHeap<rt.u32> = rt.heapNew() as rt.BinaryHeap<rt.u32>;
 		for (const _87 of rt.replaceIn(v, [])) {
-			rt.heapPush(heap, _87, rt.le);
+			rt.heapPush(heap, _87, rt.le, 4);
 		}
 		while (true) {
 			const _93: rt.u32 | undefined = rt.heapPop(heap, rt.le);
 			if (_93 !== undefined) {
-				v.push(_93);
+				rt.vecPush(v, _93, 4);
 			} else {
 				break;
 			}
@@ -370,6 +372,40 @@ export function order(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
 		}
 		harness_putU64(out, _119 as rt.u64);
 	}
+}
+
+/**
+ * `count` integers pushed onto a `Vec`, or a `VecDeque` if `selector` is 1: its length
+ * and middle item.
+ */
+export function push(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	let _13!: [rt.usize, rt.u32 | undefined];
+	let _18!: rt.u32;
+	let _37!: rt.u32;
+	const count2: rt.u32 = rt.u64Low(rt.u64Min(takeU64(data)[0], 65536));
+	if (selector === 1) {
+		const q: rt.VecDeque<rt.u32> = rt.dequeNew() as rt.VecDeque<rt.u32>;
+		let iterStart: rt.u32 = 0;
+		const iterEnd: rt.u32 = count2;
+		while ((_18 = iterStart++) < iterEnd) {
+			rt.dequePushBack(q, _18, 4);
+		}
+		_13 = [q.n, rt.dequeGet(q, rt.usizeDiv(q.n, 2))] as [rt.usize, rt.u32 | undefined];
+	} else {
+		const v: rt.u32[] = [];
+		let iterStart2: rt.u32 = 0;
+		const iterEnd2: rt.u32 = count2;
+		while ((_37 = iterStart2++) < iterEnd2) {
+			rt.vecPush(v, _37, 4);
+		}
+		_13 = [v.length, rt.sliceGet(v, rt.usizeDiv(v.length, 2))] as [rt.usize, rt.u32 | undefined];
+	}
+	const len: rt.usize = _13[0];
+	const middle: rt.u32 | undefined = _13[1];
+	putUsize(out, len);
+	harness_putU64(out, option_mapOr$1jt76jv(middle, 0, (a0: rt.u32): rt.u64 => {
+		return a0 as rt.u64;
+	}));
 }
 
 /**

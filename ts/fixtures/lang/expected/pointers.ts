@@ -641,7 +641,7 @@ export function lapsed(data: rt.ByteSlice, out: rt.ByteVec): void {
 			const _33: Log.Log = { bytes: rt.byteVecFrom(Uint8Array.of(n, ~n & 0xff)) };
 			const old3 = log;
 			log = _33;
-			rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(old3.bytes)), undefined, true);
+			rt.iterExtendBytes(out, rt.byteVecIntoIter(old3.bytes), undefined, true);
 			const old2: Duo.Duo = rt.replaceIn(pair, { _0: n, _1: n ^ 15 });
 			rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(old2._0, old2._1)), undefined, true);
 		} else if (_24 === 2) {
@@ -671,7 +671,7 @@ export function lapsed(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 	}
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(pair._0, pair._1)), undefined, true);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(log.bytes)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(log.bytes), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(window), undefined, true);
 }
 
@@ -773,11 +773,11 @@ export function segments(data: rt.ByteSlice, out: rt.ByteVec): void {
 			if (!(rt.usizeRem(len, 8) === 0)) {
 				if (rt.usizeRem(len, 4) === 0) {
 					const _27: Segment.Segment = Segment.iterated();
-					log.push(_27);
+					rt.vecPush(log, _27, 8);
 				}
 			} else {
 				const _20: Segment.Segment = Segment.new();
-				log.push(_20);
+				rt.vecPush(log, _20, 8);
 			}
 			const at5 = rt.idx(log, rt.usizeDiv(len, 4));
 			Lent.withMut$mem_MaybeUninit_tuple2_u8_u8_mut_tuple2_u8_u8_pointers_segments_closure0(Segment.slot(log[at5], log[at5].filled), (p3: [rt.u8, rt.u8]): [rt.u8, rt.u8] => {
@@ -1065,7 +1065,7 @@ export function readBefore(n: rt.u8): Uint8Array {
 }
 
 export function keep(d: Duo.Duo, kept: Duo.Duo[]): void {
-	kept.push(d);
+	rt.vecPush(kept, d, 4);
 }
 
 export function perIteration(n: rt.u8, out: rt.ByteVec): void {

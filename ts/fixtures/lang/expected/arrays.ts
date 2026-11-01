@@ -16,7 +16,7 @@ export function fromFns(data: rt.ByteSlice, out: rt.ByteVec): void {
 		if (_10 === 0) {
 			const seen: rt.usize[] = [];
 			const bytes: Uint8Array = rt.bytesFromFn(4, (i6: rt.usize): rt.u8 => {
-				seen.push(i6);
+				rt.vecPush(seen, i6, 4);
 				return rt.u8WrappingMul(op, rt.u8Add(i6 & 0xff, 1));
 			});
 			const wide: rt.u64[] = rt.arrayFromFn(3, (i7: rt.usize): rt.u64 => {

@@ -2869,7 +2869,7 @@ export function edges(max: rt.u128, min: rt.u128, bits: rt.usize, radix: rt.u32)
 		if (_193 === rt.DONE) {
 			break;
 		}
-		all.push(_193);
+		rt.vecPush(all, _193, 12);
 	}
 	const args22: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtCharDisplay(stray, f)];
 	const _203: string = rt.fmtFormat(["1", args22[0]]);

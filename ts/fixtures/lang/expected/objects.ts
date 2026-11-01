@@ -134,7 +134,7 @@ export function swapWindows(a: objects_Window.Window, b: objects_Window.Window):
 export function swapIn(v: rt.Arc<rt.u8>[], with_: rt.Arc<rt.u8>): rt.Arc<rt.u8>[] {
 	const mine: rt.Arc<rt.u8>[] = [rt.arcClone(with_)];
 	const swapped = rt.replaceIn(v, mine);
-	v.push(rt.arcClone(with_));
+	rt.vecPush(v, rt.arcClone(with_), 4);
 	return swapped;
 }
 
@@ -187,8 +187,7 @@ export function refill(v: rt.Arc<rt.u8>[], bytes: rt.ByteVec, with_: rt.Arc<rt.u
 }
 
 export function requeue(q: rt.VecDeque<rt.u8>, map: rt.HashMap<rt.u8, rt.u8>, n: rt.u8): rt.usize {
-	const _6: rt.Range<rt.u8> = new rt.Range(0, rt.u8Rem(n, 5));
-	const old: rt.VecDeque<rt.u8> = rt.replaceIn(q, rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.u8>, _6, undefined, 1, true));
+	const old: rt.VecDeque<rt.u8> = rt.replaceIn(q, rt.dequeFromVec(rt.iterToArray(new rt.Range(0, rt.u8Rem(n, 5)), undefined, 1, true), 1) as rt.VecDeque<rt.u8>);
 	Object.assign(map, rt.hashExtend(rt.hashNew() as rt.HashMap<rt.u8, rt.u8>, rt.iterSlice([[n, n] as [rt.u8, rt.u8]]), undefined, undefined, undefined, 469762048));
 	return old.n;
 }
@@ -443,8 +442,7 @@ export function objects(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecExtendFromSlice(out, rt.byteVecSlice(bytes));
 	counts(out, [one, two], w.held);
 	counts(out, [one, two], other);
-	const _515: Uint8Array = Uint8Array.of(by);
-	const q: rt.VecDeque<rt.u8> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.u8>, rt.iterSlice(_515), undefined, 1, true);
+	const q: rt.VecDeque<rt.u8> = rt.dequeFromVec(Array.from(Uint8Array.of(by)), 1) as rt.VecDeque<rt.u8>;
 	const map: rt.HashMap<rt.u8, rt.u8> = rt.hashNew() as rt.HashMap<rt.u8, rt.u8>;
 	for (const _519 of rt.byteSliceView(data)) {
 		rt.byteVecPush(out, requeue(q, map, _519) & 0xff);

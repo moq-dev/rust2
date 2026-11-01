@@ -22,7 +22,32 @@
 // `owned` functions follow it, dispatching on the kind, so a bundle that never drops an
 // item carries none of it.
 
-import { ByteSlice, ByteVec, byteVecExtendFromSlice, byteVecPush, Err, type None, Ok, type Place, panic, place, type RangeBound, type Result, sliceView, vecExtendFromSlice } from "../rt.ts";
+import {
+	ByteSlice,
+	ByteVec,
+	byteVecExtendFromSlice,
+	byteVecPush,
+	byteVecReserve,
+	byteVecView,
+	byteVecWithCapacity,
+	capReserve,
+	Err,
+	type None,
+	Ok,
+	type Place,
+	panic,
+	place,
+	type RangeBound,
+	type Result,
+	sliceView,
+	type Vec,
+	vecCapacity,
+	vecExtendFromSlice,
+	vecMax,
+	vecReserve,
+	vecSetCapacity,
+	vecWithCapacity,
+} from "../rt.ts";
 import { AtIndex, BTreeIter, HashIter, type Ordering } from "./collections.ts";
 import { type Hasher, hash8 } from "./hash.ts";
 import { charStep, intToBig, type Limbs, lt as wideLt, type Step } from "./int.ts";
@@ -41,7 +66,7 @@ const USIZE_MAX = 0xffffffff;
 type Drop<T> = (value: T) => void;
 
 /** `a + b`, saturating at `usize::MAX` as std's size hints do. */
-function satAdd(a: number, b: number): number {
+export function satAdd(a: number, b: number): number {
 	return Math.min(a + b, USIZE_MAX);
 }
 
@@ -298,6 +323,11 @@ export function iterSlice<T>(s: ArrayLike<T>, drop?: Drop<T>): Iter<T> {
 	return new SliceIter(s, drop);
 }
 
+/** `IntoIterator::into_iter` of a `Vec<u8>`: its bytes, of the vector whose capacity a `collect` in place of it keeps. */
+export function byteVecIntoIter(v: ByteVec): Iter<number> {
+	return new SliceIter(byteVecView(v), undefined, v);
+}
+
 /** `slice::IterMut` of elements JS copies: the place of each. */
 export function iterSliceMut<T>(s: { [i: number]: T; length: number }): Iter<Place<T>> {
 	return new SliceMutIter(s);
@@ -525,31 +555,19 @@ export function iterBorrow<T>(it: Iter<T>): Iter<T> {
 // How std's `Vec` and `VecDeque` reserve for an iterator they collect or extend by, of
 // elements `size` bytes each, which panics past what they may hold: a `TrustedLen` one's
 // upper bound first, and else, after each item that finds them full, the lower bound and
-// one more; as a tuple's part, the lower bound first. Their capacity is not modeled, so
-// one they extend is taken as full, as one holding nothing is, and grows as std's would
-// from there.
+// one more; as a tuple's part, the lower bound first. A `Vec` that collects a `TrustedLen`
+// one is made for exactly its upper bound.
 
-/** wasm32's `isize::MAX`, the most bytes std's `Layout` describes. */
-const ISIZE_MAX = 0x7fffffff;
-
-/** How many `size`-byte elements a `Vec` holds at most: `usize::MAX` of zero-sized ones. */
-function vecMax(size: number): number {
-	return size === 0 ? USIZE_MAX : Math.floor(ISIZE_MAX / size);
-}
-
-/**
- * std's reserve for a `TrustedLen` iterator `it`, in a `Vec` or `VecDeque` holding `len`
- * of `size`-byte elements: its upper bound, which panics without one or past what it may
- * hold.
- */
-export function vecReserveExact(it: Iter<unknown>, len: number, size: number): void {
+/** The upper bound of a `TrustedLen` iterator `it`, which std's reserves, panicking without one. */
+export function trustedUpper(it: Iter<unknown>): number {
 	const upper = it.sizeHint()[1];
-	if (upper === undefined || len + upper > vecMax(size)) panic("capacity overflow");
+	if (upper === undefined) panic("capacity overflow");
+	return upper;
 }
 
-/** The capacity of a `Vec` or `VecDeque` holding `len` of `size`-byte elements: full, but for zero-sized ones. */
-export function vecCapacity(len: number, size: number): number {
-	return size === 0 ? USIZE_MAX : len;
+/** The capacity `cap`, full of `size`-byte elements, grows to as std's reserves for the next item of `it` and those it holds past it. */
+export function capNext(it: Iter<unknown>, cap: number, size: number): number {
+	return capReserve(cap, cap, satAdd(it.sizeHint()[0], 1), size);
 }
 
 /**
@@ -600,59 +618,22 @@ function joinedLength(parts: readonly { length: number }[], sep: { length: numbe
 }
 
 /**
- * The capacity a full `Vec` or `VecDeque` of `cap` `size`-byte elements grows to as it
- * reserves for the next item of `it`, as std's `RawVec` amortizes it, or a panic past what
- * it may hold.
- */
-export function vecGrow(it: Iter<unknown>, cap: number, size: number): number {
-	return grow(cap, cap + satAdd(it.sizeHint()[0], 1), size);
-}
-
-/** The capacity `cap` of `size`-byte elements grows to as std's `RawVec` amortizes it to hold `required`, or a panic past what it may hold. */
-function grow(cap: number, required: number, size: number): number {
-	const grown = Math.max(cap * 2, required, size === 1 ? 8 : size <= 1024 ? 4 : 1);
-	if (grown > vecMax(size)) panic("capacity overflow");
-	return grown;
-}
-
-/**
- * The capacity of a `Vec` or `VecDeque` of capacity `cap`, or else full, holding `len` of
- * `size`-byte elements, once it reserved `additional` more, growing as `vecGrow` does.
- */
-export function vecReserve(len: number, additional: number, size: number, cap = vecCapacity(len, size)): number {
-	return additional > cap - len ? grow(cap, len + additional, size) : cap;
-}
-
-/** The capacity of one as `vecReserve` takes it once it pushed an item, growing by one as std's `grow_one` does once full. */
-export function vecPush(len: number, size: number, cap = vecCapacity(len, size)): number {
-	return len === cap ? grow(cap, len + 1, size) : cap;
-}
-
-/**
- * The reserve std's `VecDeque` makes at the first item it extends by, holding `len`, for
- * what `it` holds past it, which panics past `usize::MAX` even where its zero-sized
- * elements never fill it.
- */
-export function dequeReserve(it: Iter<unknown>, len: number): void {
-	if (len + satAdd(it.sizeHint()[0], 1) > USIZE_MAX) panic("capacity overflow");
-}
-
-/**
  * `Extend::extend` of a `Vec`, which takes `items` as `take` says, and with elements
  * `size` bytes each, reserves as std's does for a `trusted`, `TrustedLen`, iterator or any
  * other.
  */
-export function iterExtend<T>(v: T[], items: Iter<T>, take?: Take, size?: number, trusted = false): T[] {
+export function iterExtend<T>(v: Vec<T>, items: Iter<T>, take?: Take, size?: number, trusted = false): T[] {
 	if (size !== undefined && !trusted) {
-		let cap = vecCapacity(v.length, size);
+		let cap = vecCapacity(v, size);
 		for (let item = items.next(); item !== DONE; item = items.next()) {
-			if (v.length === cap) cap = vecGrow(items, cap, size);
+			if (v.length === cap) cap = capNext(items, cap, size);
 			v.push(item);
 		}
+		vecSetCapacity(v, cap);
 		if (take !== undefined) dispose(items);
 		return v;
 	}
-	if (size !== undefined) vecReserveExact(items, v.length, size);
+	if (size !== undefined) vecReserve(v, trustedUpper(items), size);
 	if (take === undefined) {
 		const folded = items.folded(trusted);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) v.push(item);
@@ -665,15 +646,14 @@ export function iterExtend<T>(v: T[], items: Iter<T>, take?: Take, size?: number
 /** `Extend::extend` of a `Vec<u8>`, reserving as `iterExtend` does. */
 export function iterExtendBytes(v: ByteVec, items: Iter<number>, take?: Take, trusted = false): ByteVec {
 	if (!trusted) {
-		let cap = v.length;
 		for (let item = items.next(); item !== DONE; item = items.next()) {
-			if (v.length === cap) cap = vecGrow(items, cap, 1);
+			if (v.length === v.data.length) byteVecReserve(v, satAdd(items.sizeHint()[0], 1));
 			byteVecPush(v, item);
 		}
 		if (take !== undefined) dispose(items);
 		return v;
 	}
-	vecReserveExact(items, v.length, 1);
+	byteVecReserve(v, trustedUpper(items));
 	if (take === undefined) {
 		const folded = items.folded(true);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) byteVecPush(v, item);
@@ -1247,42 +1227,85 @@ export function iterGe<T, U>(a: Iter<T>, b: Iter<U>, cmp: (x: T, y: U) => Orderi
 	return order !== undefined && order >= 0;
 }
 
-/** `collect` into a `Vec`, as `iterExtend` of an empty one. */
+/**
+ * `collect` into a `Vec`: as `iterExtend` of an empty one, but for a `trusted` iterator,
+ * whose upper bound it is made for exactly.
+ */
 export function iterToArray<T>(it: Iter<T>, take?: Take, size?: number, trusted = false): T[] {
-	const out: T[] = [];
-	if (size !== undefined && !trusted) {
-		let cap = vecCapacity(0, size);
-		for (let item = it.next(); item !== DONE; item = it.next()) {
-			if (out.length === cap) cap = vecGrow(it, cap, size);
-			out.push(item);
-		}
-		if (take !== undefined) dispose(it);
-		return out;
+	if (size !== undefined && trusted) {
+		const out = vecWithCapacity<T>(trustedUpper(it), size);
+		return iterExtend(out, it, take, undefined, true);
 	}
-	if (size !== undefined) vecReserveExact(it, 0, size);
-	if (take === undefined) {
-		const folded = it.folded(trusted);
-		for (let item = folded.next(); item !== DONE; item = folded.next()) out.push(item);
-		return out;
+	return iterExtend([], it, take, size, trusted);
+}
+
+/**
+ * The capacity of the `Vec` std's `SourceIter::as_inner` reaches from `it`, of `size`-byte
+ * elements, which a `collect` in place of it keeps, and whether that is unsure, as a
+ * `Vec<u8>`'s taken from `bytes`' storage is.
+ */
+export function sourceCapacity(it: Iter<unknown>, size: number): [number, boolean] {
+	let at: Iter<unknown> | undefined = it;
+	while (!(at instanceof SliceIter)) {
+		if (at instanceof Adaptor || at instanceof FuseIter) at = at.inner;
+		else if (at instanceof ZipIter) at = at.a;
+		else if (at instanceof FlattenIter) at = at.outer;
+		else at = undefined;
+		if (at === undefined) throw new Error("rust2-ts: a `collect` in place of an iterator whose `Vec` it can't find");
 	}
-	each(it, (item) => out.push(item), take);
+	if (at.bytes !== undefined) return [at.bytes.data.length, at.bytes.unsure === true];
+	return [vecCapacity(at.s as Vec<unknown>, size), false];
+}
+
+/**
+ * How many of `size`-byte elements a `collect` keeps room for in place of the `Vec` of
+ * `srcSize`-byte ones `it` reads, as std's does where its adaptors let it: as many as fit
+ * in that one's bytes. Of a `vec::IntoIter` itself, if `bare`, it keeps that one unless it
+ * read from the front and less than half of it is left, and else reserves for what is.
+ */
+function inPlace(it: Iter<unknown>, srcSize: number, size: number, bare: boolean): [number, boolean] {
+	const [cap, unsure] = sourceCapacity(it, srcSize);
+	if (!bare) return [Math.floor((cap * srcSize) / size), unsure];
+	const src = it as SliceIter<unknown>;
+	const len = src.back - src.front;
+	if (src.front === 0 || len >= Math.floor(cap / 2)) return [cap, unsure];
+	return [capReserve(0, 0, len, size), false];
+}
+
+/** `collect` into a `Vec` of `size`-byte elements in place of the one `it` reads, as `inPlace` says. */
+export function iterToArrayInPlace<T>(it: Iter<T>, srcSize: number, size: number, bare: boolean, take?: Take, trusted = false): T[] {
+	const [cap, unsure] = inPlace(it, srcSize, size, bare);
+	if (unsure) throw new Error("rust2-ts: a `collect` in place of a `Vec<u8>` taken from `bytes`' storage, whose capacity depends on whether other handles of it dropped");
+	const out = iterToArray(it, take, undefined, trusted);
+	vecSetCapacity(out, cap);
 	return out;
 }
 
-/** `collect` into a `Vec<u8>`, as `iterExtendBytes` of an empty one. */
+/** `collect` into a `Vec<u8>` in place of the one `it` reads, as `inPlace` says. */
+export function iterToByteVecInPlace(it: Iter<number>, srcSize: number, bare: boolean, take?: Take, trusted = false): ByteVec {
+	const [cap, unsure] = inPlace(it, srcSize, 1, bare);
+	const out = byteVecWithCapacity(cap);
+	out.unsure = unsure;
+	if (take !== undefined) each(it, (item) => byteVecPush(out, item), take);
+	else {
+		const folded = it.folded(trusted);
+		for (let item = folded.next(); item !== DONE; item = folded.next()) byteVecPush(out, item);
+	}
+	return out;
+}
+
+/** `collect` into a `Vec<u8>`, as `iterToArray`. */
 export function iterToByteVec(it: Iter<number>, take?: Take, trusted = false): ByteVec {
-	const out = new ByteVec();
+	const out = trusted ? byteVecWithCapacity(trustedUpper(it)) : new ByteVec();
 	// Its own loops: through `iterExtendBytes`, JavaScriptCore took 1.9x as long.
 	if (!trusted) {
-		let cap = 0;
 		for (let item = it.next(); item !== DONE; item = it.next()) {
-			if (out.length === cap) cap = vecGrow(it, cap, 1);
+			if (out.length === out.data.length) byteVecReserve(out, satAdd(it.sizeHint()[0], 1));
 			byteVecPush(out, item);
 		}
 		if (take !== undefined) dispose(it);
 		return out;
 	}
-	vecReserveExact(it, 0, 1);
 	if (take === undefined) {
 		const folded = it.folded(true);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) byteVecPush(out, item);
@@ -1508,12 +1531,15 @@ class SliceIter<T> extends Iter<T> implements Disposable {
 	back: number;
 	/** What drops each item it still holds, if it owns them. */
 	private readonly drop: Drop<T> | undefined;
+	/** The `Vec<u8>` whose bytes `s` views, which its `into_iter` owns. */
+	readonly bytes: ByteVec | undefined;
 
-	constructor(s: ArrayLike<T>, drop?: Drop<T>) {
+	constructor(s: ArrayLike<T>, drop?: Drop<T>, bytes?: ByteVec) {
 		super();
 		this.s = s;
 		this.back = s.length;
 		this.drop = drop;
+		this.bytes = bytes;
 	}
 
 	next(): T | Done {

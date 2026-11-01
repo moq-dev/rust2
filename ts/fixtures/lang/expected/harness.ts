@@ -7,12 +7,13 @@ import { atomics } from "./atomics.ts";
 import { borrows as borrows_borrows } from "./borrows.ts";
 import { bounds as bounds_bounds } from "./bounds.ts";
 import { boxes } from "./boxes.ts";
+import { vecs as capacity_vecs, deques as capacity_deques, heaps as capacity_heaps, collects } from "./capacity.ts";
 import { captures } from "./captures.ts";
 import { cells as cells_cells } from "./cells.ts";
 import { chars as chars_chars } from "./chars.ts";
 import { chunks } from "./chunks.ts";
 import { iters as clones_iters } from "./clones.ts";
-import { hashMaps, sets, btreeMaps, deques, vecs, stores, optionals, setOps, unlikeEqs, ownNes, cellEqs, unlikeCompares, refOrders } from "./collections.ts";
+import { hashMaps, sets, btreeMaps, deques as collections_deques, vecs as collections_vecs, stores, optionals, setOps, unlikeEqs, ownNes, cellEqs, unlikeCompares, refOrders } from "./collections.ts";
 import { combinators } from "./combinators.ts";
 import { arcs as counts_arcs, clonedArcs, cyclicArcs, uniqueArcs, clonedRcs, cyclicRcs, rcs, uniqueRcs, copies as counts_copies } from "./counts.ts";
 import { cows, slices as cows_slices, bytes as cows_bytes } from "./cows.ts";
@@ -95,11 +96,11 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["shapes::order", (_2115: rt.u8, data16: rt.ByteSlice, out16: rt.ByteVec): undefined => {
 		shapes_order(data16, out16);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["collections::hash_maps", hashMaps as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["collections::sets", sets as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["collections::btree_maps", btreeMaps as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["collections::deques", (_2116: rt.u8, data17: rt.ByteSlice, out17: rt.ByteVec): undefined => {
-		deques(data17, out17);
+		collections_deques(data17, out17);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["shapes::flows", (_2117: rt.u8, data18: rt.ByteSlice, out18: rt.ByteVec): undefined => {
 		flows(data18, out18);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["keys::keys", keys_keys as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["chars::chars", chars_chars as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["strs::strs", strs as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["collections::vecs", (_2118: rt.u8, data19: rt.ByteSlice, out19: rt.ByteVec): undefined => {
-		vecs(data19, out19);
+		collections_vecs(data19, out19);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["strs::slices", strs_slices as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["collections::stores", (_2119: rt.u8, data20: rt.ByteSlice, out20: rt.ByteVec): undefined => {
 		stores(data20, out20);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["chunks::chunks", chunks as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["cows::cows", cows as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["durations::durations", durations as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["combinators::combinators", combinators as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["splits::splits", splits as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["nested::nested", nested_nested as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["refs::refs", (_2120: rt.u8, data21: rt.ByteSlice, out21: rt.ByteVec): undefined => {
@@ -238,7 +239,7 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		reattached(data86, out87);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["pointers::part_written", (_2187: rt.u8, data87: rt.ByteSlice, out88: rt.ByteVec): undefined => {
 		partWritten(data87, out88);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::flattened", arrays_flattened as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["arrays::flattened", arrays_flattened as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::vecs", capacity_vecs as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::deques", capacity_deques as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::heaps", capacity_heaps as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */

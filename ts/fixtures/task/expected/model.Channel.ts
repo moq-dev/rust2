@@ -24,7 +24,7 @@ export function open(): Channel {
 	const producer: Producer.Producer = Producer.new();
 	const consumer: Consumer.Consumer = Producer.consume(producer);
 	const producers: Producer.Producer[] = [];
-	producers.push(producer);
+	rt.vecPush(producers, producer, 4);
 	return new Channel(producers, consumer);
 }
 
@@ -45,7 +45,7 @@ export function send(self: Channel, value: rt.u64): boolean {
 
 /** Drop the last producer, if one is open: the last closes the channel. */
 export function close(self: Channel): boolean {
-	const _2: Producer.Producer | undefined = self.producers.pop();
+	const _2: Producer.Producer | undefined = rt.vecPop(self.producers);
 	if (_2 === undefined) {
 		return false;
 	}
@@ -60,7 +60,7 @@ export function cloneProducer(self: Channel): boolean {
 		return false;
 	}
 	const clone: Producer.Producer = Producer.clone$Clone(_3);
-	self.producers.push(clone);
+	rt.vecPush(self.producers, clone, 4);
 	return true;
 }
 

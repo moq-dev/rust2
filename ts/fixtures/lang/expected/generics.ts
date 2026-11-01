@@ -61,7 +61,7 @@ export function methods(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _168: rt.u16[] = [];
 	const list: Wrap.Wrap<rt.u16[]> = new Wrap.Wrap(_168, 1);
 	const _171: rt.u16 = at(10) as rt.u16;
-	list.value.push(_171);
+	rt.vecPush(list.value, _171, 2);
 	Wrap.bump$Vec_u16(list);
 	const none: Wrap.Wrap<rt.u8 | undefined> = new Wrap.Wrap(undefined, 0);
 	const some: Wrap.Wrap<rt.u8 | undefined> = Wrap.new$Option_u8(rt.byteSliceGet(data, 11));

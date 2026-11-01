@@ -6614,7 +6614,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}, plan, (x68: rt.u8): rt.u8 => {
 			return x68;
 		}, out);
-		turns$vec_IntoIter_u8_clones_iters_closure18_clones_iters_closure19(rt.iterSlice(rt.byteVecView(rt.byteSliceToByteVec(data))), (it76: rt.Iter<rt.u8>): rt.u8 | undefined => {
+		turns$vec_IntoIter_u8_clones_iters_closure18_clones_iters_closure19(rt.byteVecIntoIter(rt.byteSliceToByteVec(data)), (it76: rt.Iter<rt.u8>): rt.u8 | undefined => {
 			return rt.iterToOption(it76.nextBack());
 		}, plan, (x69: rt.u8): rt.u8 => {
 			return x69;
@@ -6861,7 +6861,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}, out);
 		turns$iter_Flatten_iter_Map_slice_Chunks_u8_clones_iters_closure89_clones_iters_closure90_clones_iters_closure91(rt.iterFlatten(rt.iterMap(rt.byteSliceChunks(data, n), (c3: rt.ByteSlice): rt.ByteVec => {
 			return rt.byteSliceToByteVec(c3);
-		}), (value: rt.ByteVec) => rt.iterSlice(rt.byteVecView(value))), (it43: rt.Iter<rt.u8>): rt.u8 | undefined => {
+		}), (value: rt.ByteVec) => rt.byteVecIntoIter(value)), (it43: rt.Iter<rt.u8>): rt.u8 | undefined => {
 			return rt.iterToOption(it43.nextBack());
 		}, plan, (x47: rt.u8): rt.u8 => {
 			return x47;
@@ -7005,7 +7005,7 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.iterExtendBytes(out, rt.iterMap(rt.iterChain(zip3.clone(), zip3), (x29: rt.u8): rt.u8 => {
 			return x29 ^ 64;
 		}), undefined, true);
-		rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.refCellReplace(log, new rt.ByteVec()))), undefined, true);
+		rt.iterExtendBytes(out, rt.byteVecIntoIter(rt.refCellReplace(log, new rt.ByteVec())), undefined, true);
 	} else if (_9 === 8) {
 		it = rt.iterPeekable(rt.iterSlice(rt.byteSliceView(data)));
 		let iterStart5: rt.usize = 0;
@@ -7148,9 +7148,9 @@ export function iters(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const q: rt.VecDeque<rt.u8> = rt.dequeNew() as rt.VecDeque<rt.u8>;
 		for (const b6 of rt.byteSliceView(data)) {
 			if (rt.u8Rem(b6, 2) === 0) {
-				rt.dequePushFront(q, b6);
+				rt.dequePushFront(q, b6, 1);
 			} else {
-				rt.dequePushBack(q, b6);
+				rt.dequePushBack(q, b6, 1);
 			}
 		}
 		turns$collections_vec_deque_Iter_u8_clones_iters_closure138_clones_iters_closure0(rt.dequeIter(q), (it7: rt.Iter<rt.u8>): rt.u8 | undefined => {
@@ -7252,9 +7252,9 @@ export function unordered$iter_Copied_collections_hash_map_Keys_u8_u8(it: rt.Ite
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7270,9 +7270,9 @@ export function unordered$iter_Copied_collections_hash_map_Values_u8_u8(it: rt.I
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7288,9 +7288,9 @@ export function unordered$iter_Copied_collections_hash_set_Difference_u8_hash_Ra
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7306,9 +7306,9 @@ export function unordered$iter_Copied_collections_hash_set_Intersection_u8_hash_
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7324,9 +7324,9 @@ export function unordered$iter_Copied_collections_hash_set_Iter_u8(it: rt.Iter<r
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7342,9 +7342,9 @@ export function unordered$iter_Copied_collections_hash_set_SymmetricDifference_u
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7360,9 +7360,9 @@ export function unordered$iter_Copied_collections_hash_set_Union_u8_hash_RandomS
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7378,9 +7378,9 @@ export function unordered$iter_Map_collections_hash_map_Iter_u8_u8_clones_iters_
 	const _16: [rt.ByteVec, rt.ByteVec] = [_17, rt.iterToByteVec(other, "next")];
 	const rest: rt.ByteVec = _17;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.eqBytes(rest, _16[1]) ? 1 : 0, rest.length & 0xff)), undefined, true);
-	rt.iterExtendBytes(all, rt.iterSlice(rt.byteVecView(rest)), undefined, true);
+	rt.iterExtendBytes(all, rt.byteVecIntoIter(rest), undefined, true);
 	rt.byteSliceView(rt.byteVecSlice(all)).sort();
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(all)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(all), undefined, true);
 }
 
 /**
@@ -7409,10 +7409,9 @@ export function owned(data: rt.ByteSlice, plan: Plan.Plan, out: rt.ByteVec): voi
 		return _04;
 	}, out);
 	flush(log.value, out);
-	const _35: rt.Iter<clones_Logged.Logged> = rt.iterMap(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 4), (_22: rt.u8): clones_Logged.Logged => {
+	turns$collections_vec_deque_IntoIter_clones_Logged_clones_owned_closure5_clones_owned_closure6(rt.dequeIter(rt.dequeFromVec(rt.iterToArray(rt.iterMap(rt.iterTake(rt.iterSlice(rt.byteSliceView(data)), 4), (_22: rt.u8): clones_Logged.Logged => {
 		return logged(_22 & 112);
-	});
-	turns$collections_vec_deque_IntoIter_clones_Logged_clones_owned_closure5_clones_owned_closure6(rt.dequeIter(rt.dequeExtend(rt.dequeNew() as rt.VecDeque<clones_Logged.Logged>, rt.iterSlice(rt.iterToArray(_35, undefined, 8, true))), rt.drop), (it7: rt.Iter<clones_Logged.Logged>): clones_Logged.Logged | undefined => {
+	}), undefined, 8, true), 8) as rt.VecDeque<clones_Logged.Logged>, rt.drop), (it7: rt.Iter<clones_Logged.Logged>): clones_Logged.Logged | undefined => {
 		return rt.iterToOption(it7.nextBack());
 	}, plan, (x2: clones_Logged.Logged): rt.u8 => {
 		const _07: rt.u8 = clones_Logged.id(x2);

@@ -28,13 +28,13 @@ export function boxed(log: Log.Log, id: rt.u32): void {
 	const first: Part.Part = new Part.of$model_Guard(guard(1));
 	const parts: Part.Part[] = [];
 	const _13: Part.Part = new Part.of$drops_Held({ tag: "Two", _0: guard(2), _1: guard(3) } as Held.Held);
-	parts.push(_13);
+	rt.vecPush(parts, _13, 8);
 	const _24: Part.Part = new Part.of$u32(7);
-	parts.push(_24);
+	rt.vecPush(parts, _24, 8);
 	const _28: Part.Part = new Part.of$drops_Wrap_u32(new Wrap.Wrap(rt.u32Add(id, 4), Log.clone$Clone(log), 0));
-	parts.push(_28);
+	rt.vecPush(parts, _28, 8);
 	const _36: Part.Part = new Part.of$drops_Held({ tag: "One", _0: guard(5) } as Held.Held);
-	parts.push(_36);
+	rt.vecPush(parts, _36, 8);
 	rt.sliceSwap(parts, 2, 3);
 	const part = rt.iterFold(rt.iterMap(rt.iterSlice(parts), (p: Part.Part): rt.u32 => {
 		return p.id$Part();
@@ -59,7 +59,7 @@ export function boxed(log: Log.Log, id: rt.u32): void {
 	const part4 = first.take$Part();
 	const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(part4, f)];
 	Log.note(log, rt.fmtFormat(["took ", args8[0]]));
-	const part5 = option_map$0s8hob8(parts.pop(), (a02: Part.Part): rt.u32 => {
+	const part5 = option_map$0s8hob8(rt.vecPop(parts), (a02: Part.Part): rt.u32 => {
 		return a02.take$Part();
 	});
 	const args10: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtOption(part5, f, rt.u32Debug)];
@@ -102,13 +102,13 @@ export function shared(log: Log.Log, id: rt.u32): void {
 	const wrap: rt.Arc<Wrap.Wrap<rt.u32>> = new rt.Arc(new Wrap.Wrap(rt.u32Add(id, 4), Log.clone$Clone(log), 0));
 	const parts: rt.Arc<Part.Part>[] = [];
 	const _63: rt.Arc<Wrap.Wrap<rt.u32>> = rt.arcClone(wrap);
-	parts.push(new rt.ArcDyn(_63, new Part.of$drops_Wrap_u32(_63.value)));
+	rt.vecPush(parts, new rt.ArcDyn(_63, new Part.of$drops_Wrap_u32(_63.value)), 8);
 	const _68: rt.Arc<Guard.Guard> = rt.arcClone(kept);
-	parts.push(new rt.ArcDyn(_68, new Part.of$model_Guard(_68.value)));
+	rt.vecPush(parts, new rt.ArcDyn(_68, new Part.of$model_Guard(_68.value)), 8);
 	const _72: rt.Arc<Part.Part> = rt.arcClone(second);
-	parts.push(_72);
+	rt.vecPush(parts, _72, 8);
 	const _77: rt.Arc<rt.u32> = new rt.Arc(7);
-	parts.push(new rt.ArcDyn(_77, new Part.of$u32(_77.value)));
+	rt.vecPush(parts, new rt.ArcDyn(_77, new Part.of$u32(_77.value)), 8);
 	const weak: rt.Weak<Part.Part> = new rt.Weak(parts[rt.idx(parts, 1)]);
 	second[Symbol.dispose]();
 	const part2 = rt.iterFold(rt.iterMap(rt.iterSlice(parts), (p: rt.Arc<Part.Part>): rt.u32 => {
@@ -180,14 +180,14 @@ export function anys(log: Log.Log, id: rt.u32): void {
 	};
 	const boxes: Any.Any[] = [];
 	const _8: Any.Any = new Any.of$model_Guard(guard(1));
-	boxes.push(_8);
+	rt.vecPush(boxes, _8, 8);
 	const _15: Any.Any = new Any.of$drops_Held({ tag: "Two", _0: guard(2), _1: guard(3) } as Held.Held);
-	boxes.push(_15);
+	rt.vecPush(boxes, _15, 8);
 	const _26: Any.Any = new Any.of$u32(7);
-	boxes.push(_26);
+	rt.vecPush(boxes, _26, 8);
 	const _30: Any.Any = new Any.of$model_Guard(guard(4));
-	boxes.push(_30);
-	const last: rt.Result<Guard.Guard, Any.Any> | undefined = option_map$09vq4lk(boxes.pop(), (b2: Any.Any): rt.Result<Guard.Guard, Any.Any> => {
+	rt.vecPush(boxes, _30, 8);
+	const last: rt.Result<Guard.Guard, Any.Any> | undefined = option_map$09vq4lk(rt.vecPop(boxes), (b2: Any.Any): rt.Result<Guard.Guard, Any.Any> => {
 		return b2 instanceof Any.of$model_Guard ? rt.Ok(b2.v) : rt.Err(b2);
 	});
 	const part = option_map$19e1ji3(last, (g: rt.Result<Guard.Guard, Any.Any>): boolean => {

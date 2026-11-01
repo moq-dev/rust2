@@ -309,7 +309,7 @@ fn from<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, args: Vec<Expr>) ->
 			};
 			return Ok(Some(bytes));
 		}
-		(_, Some(Std::Bytes)) if byte_vec(to) => "byteSliceToByteVec",
+		(_, Some(Std::Bytes)) if byte_vec(to) => "bytesToByteVec",
 		(_, Some(Std::BytesMut)) if byte_vec(to) => "bytesMutToByteVec",
 		(_, Some(Std::Bytes | Std::BytesMut)) => return Ok(None),
 		_ => return Err(args.collect()),

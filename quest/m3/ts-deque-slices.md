@@ -24,7 +24,3 @@ the rest of std's iterators' `Debug`.
   runtime's drain does not keep.
 
 Public API: the translator's output.
-
-## Required
-
-- [The rest of std the model reaches](/quest/m2/ts-model/std-rest.md) - `VecDeque` carries std's capacity, which the split depends on

@@ -239,7 +239,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		let c2: rt.Cow<rt.u16> = cowOf(v, owned);
 		const owned4 = rt.cowIntoOwned(c2);
 		c2 = owned4;
-		owned4.push(7);
+		rt.vecPush(owned4, 7, 2);
 		const owned5 = rt.cowIntoOwned(c2);
 		c2 = owned5;
 		const m: rt.u16[] = owned5;
@@ -247,7 +247,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		if (_119 !== undefined) {
 			_119.v = _119.v ^ 65535;
 		}
-		m.push(9);
+		rt.vecPush(m, 9, 2);
 		putWords(out, rt.cowSlice(c2));
 		putWords(out, v);
 		const cs: rt.Cow<rt.u16>[] = [cowOf(half, owned), cowOf(v, !owned)];
@@ -314,7 +314,7 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			putWords(out, c3 as rt.u16[]);
 		}
 		if (!(c3 instanceof rt.Borrowed)) {
-			(c3 as rt.u16[]).push(5);
+			rt.vecPush(c3 as rt.u16[], 5, 2);
 		}
 		putWords(out, rt.cowSlice(c3));
 		const kept: rt.Cow<rt.u16> = rt.cowClone(c3);
@@ -424,12 +424,12 @@ export function slices(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const _506: rt.Place<rt.Cow<cows_Tally.Tally>> = rt.place(() => c4, (value2) => c4 = value2);
 		const owned2 = rt.cowIntoOwned(_506.v, cows_Tally.clone$Clone);
 		_506.v = owned2;
-		rt.drop(owned2.pop());
+		rt.drop(rt.vecPop(owned2));
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(rt.cellReplace(log, 0))));
 		const _515: rt.Place<rt.Cow<cows_Tally.Tally>> = rt.place(() => c4, (value3) => c4 = value3);
 		const owned3 = rt.cowIntoOwned(_515.v, cows_Tally.clone$Clone);
 		_515.v = owned3;
-		owned3.push(new cows_Tally.Tally(9, log));
+		rt.vecPush(owned3, new cows_Tally.Tally(9, log), 8);
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(rt.cellReplace(log, 0))));
 		const _524: rt.Place<rt.Cow<cows_Tally.Tally>> = rt.place(() => c4, (value4) => c4 = value4);
 		if (!(_524.v instanceof rt.Borrowed)) {

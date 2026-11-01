@@ -115,10 +115,10 @@ export function lists(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			if (_13 === 11) {
 				l = rt.replaceIn(m, l);
 			} else {
-				rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.iterToByteVec(rt.listExtractIfMut(l, (x5: rt.Place<rt.u8>): boolean => {
+				rt.iterExtendBytes(out, rt.byteVecIntoIter(rt.iterToByteVec(rt.listExtractIfMut(l, (x5: rt.Place<rt.u8>): boolean => {
 					x5.v = rt.u8WrappingAdd(x5.v, 1);
 					return rt.u8Rem(x5.v, 3) === 0;
-				}), "next"))), undefined, true);
+				}), "next")), undefined, true);
 			}
 		}
 	}
@@ -193,7 +193,7 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _64: rt.LinkedList<rt.u8> = rt.listClone(whole, undefined);
 	rt.listAppend(from, _64);
 	const _68: rt.ByteVec = rt.byteVecFrom(Uint8Array.of(7, 8));
-	rt.listExtend(from, rt.iterSlice(rt.byteVecView(_68)));
+	rt.listExtend(from, rt.byteVecIntoIter(_68));
 	items(from, out);
 	const _75: rt.Iter<[rt.u8, rt.u8]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): [rt.u8, rt.u8] => {
 		const b: rt.u8 = _2;

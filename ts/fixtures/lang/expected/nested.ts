@@ -431,7 +431,7 @@ export function closures(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}, undefined, rt.None), "next", 2)), (_222: rt.u8 | undefined): rt.u8 => {
 		return code(_222);
 	}), undefined, true);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(seen)), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(seen), undefined, true);
 	let steps: rt.u8 = 0;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.iterCount(rt.iterSuccessors(undefined, (_223: undefined): undefined | rt.None => {
 		steps = rt.u8Add(steps, 1);
@@ -526,7 +526,7 @@ export function elements(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(code(rt.vecPop(v, rt.None)), code(rt.vecPopIfMut(v, (_213: rt.Place<rt.u8 | undefined>): boolean => {
 		return true;
 	}, undefined, rt.None)))), undefined, true);
-	const units: undefined[] = rt.vecFromElem(undefined, data.length, undefined);
+	const units: undefined[] = rt.vecFromElem(undefined, data.length, undefined, 0);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.sliceFirst(units, rt.None) !== rt.None ? 1 : 0, rt.sliceLast(units, rt.None) !== rt.None ? 1 : 0, rt.sliceGet(units, at, rt.None) !== rt.None ? 1 : 0)), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.sliceFirstMut(units) !== undefined ? 1 : 0, rt.sliceLastMut(units) !== undefined ? 1 : 0, rt.sliceGetMut(units, at) !== undefined ? 1 : 0)), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.vecPopIfMut(units, (_217: rt.Place<undefined>): boolean => {
@@ -547,9 +547,9 @@ export function elements(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const i: rt.usize = _167[0];
 		const o2: rt.u8 | undefined = _167[1];
 		if (rt.usizeRem(i, 2) === 0) {
-			rt.dequePushBack(q, o2);
+			rt.dequePushBack(q, o2, 2);
 		} else {
-			rt.dequePushFront(q, o2);
+			rt.dequePushFront(q, o2, 2);
 		}
 	}
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(code(rt.dequeEnd(q, false, rt.None)), code(rt.dequeEnd(q, true, rt.None)), code(rt.dequeGet(q, at, rt.None)))), undefined, true);
@@ -583,8 +583,7 @@ export function elements(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 	}
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(code(rt.dequePopFront(q, rt.None)), code(rt.dequePopBack(q, rt.None)), code(rt.dequeEnd(q, false, rt.None)), code(rt.dequeRemove(q, 0, rt.None)), code(rt.dequeSwapRemove(q, 0, true, rt.None)), code(rt.dequeSwapRemove(q, 0, false, rt.None)))), undefined, true);
-	const _260: undefined[] = rt.vecFromElem(undefined, rt.usizeMul(data.length, 2), undefined);
-	const unitQ: rt.VecDeque<undefined> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<undefined>, rt.iterSlice(_260), undefined, 0, true);
+	const unitQ: rt.VecDeque<undefined> = rt.dequeFromVec(rt.vecFromElem(undefined, rt.usizeMul(data.length, 2), undefined, 0), 0) as rt.VecDeque<undefined>;
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.dequeEnd(unitQ, false, rt.None) !== rt.None ? 1 : 0, rt.dequeEnd(unitQ, true, rt.None) !== rt.None ? 1 : 0, rt.dequeGet(unitQ, at, rt.None) !== rt.None ? 1 : 0)), undefined, true);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(rt.dequePopBack(unitQ, rt.None) !== rt.None ? 1 : 0, rt.dequeRemove(unitQ, at, rt.None) !== rt.None ? 1 : 0, rt.dequeSwapRemove(unitQ, at, true, rt.None) !== rt.None ? 1 : 0, rt.dequeSwapRemove(unitQ, at, false, rt.None) !== rt.None ? 1 : 0, rt.dequePopFront(unitQ, rt.None) !== rt.None ? 1 : 0, unitQ.n & 0xff)), undefined, true);
 	const heap: rt.BinaryHeap<rt.u8 | undefined> = rt.heapFrom(rt.iterToArray(rt.iterSlice(items), undefined, 2, true), rt.cmpLe(rt.cmpOption(rt.cmp)), rt.cmpGe(rt.cmpOption(rt.cmp)), rt.cmpLt(rt.cmpOption(rt.cmp)));
@@ -737,8 +736,7 @@ export function madeAll$nested_Unit(m: nested_Unit.Unit, data: rt.ByteSlice): un
 export function units(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let f!: (a0: rt.u8) => undefined;
 	const units: undefined[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): undefined => {}), undefined, 0, true);
-	const _7: rt.Iter<undefined> = rt.iterMap(rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), (_22: rt.u8): undefined => {});
-	const q: rt.VecDeque<undefined> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<undefined>, _7, undefined, 0, true);
+	const q: rt.VecDeque<undefined> = rt.dequeFromVec(rt.iterToArray(rt.iterMap(rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), (_22: rt.u8): undefined => {}), undefined, 0, true), 0) as rt.VecDeque<undefined>;
 	const named: undefined[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), ignore as (a0: rt.u8) => undefined), undefined, 0, true);
 	const _15: rt.u8 | undefined = rt.byteSliceFirst(data);
 	b0: {
@@ -753,7 +751,7 @@ export function units(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const byPointer: undefined[] = pointed(data, f);
 	const generic: undefined[] = each$unit_nested_units_closure3(data, (_25: rt.u8): undefined => {});
 	const byName: undefined[] = each$unit_nested_ignore(data, ignore as (a0: rt.u8) => undefined);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(each$u8_nested_half(data, half))), undefined, true);
+	rt.iterExtendBytes(out, rt.byteVecIntoIter(each$u8_nested_half(data, half)), undefined, true);
 	const methods: undefined[] = madeAll$nested_Unit({}, data);
 	const dynamic: undefined[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), rt.lent(ignore as (a0: rt.u8) => undefined)), undefined, 0, true);
 	const iter: rt.Iter<undefined[]> = rt.iterSlice([units, named, byPointer, generic, byName, methods, dynamic]);

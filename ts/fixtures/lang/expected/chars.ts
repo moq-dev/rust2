@@ -13,7 +13,7 @@ export function scalars(data: rt.ByteSlice): rt.u32[] {
 			const buf: Uint8Array = rt.bytes(4);
 			const n: rt.usize = rt.min(rest.length, 4);
 			rt.byteSliceCopyFromSlice(rt.byteSliceRange(rt.byteSliceFrom(buf), 0, n), rt.byteSliceRange(rest, 0, n));
-			all.push(rt.u32FromBeBytes(buf));
+			rt.vecPush(all, rt.u32FromBeBytes(buf), 4);
 			rest = rt.byteSliceRange(rest, n);
 		} else {
 			return all;
@@ -92,9 +92,9 @@ export function chars(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(((c2 as rt.u32) & 0xff) as rt.u16)));
 		}
 	} else if (_4 === 2) {
-		const cs: rt.char[] = rt.iterToArray(rt.iterFilterMap(rt.iterSlice(scalars(data)), (a0: rt.u32): rt.char | undefined => {
+		const cs: rt.char[] = rt.iterToArrayInPlace(rt.iterFilterMap(rt.iterSlice(scalars(data)), (a0: rt.u32): rt.char | undefined => {
 			return rt.charFromU32(a0);
-		}), "next", 4);
+		}), 4, 4, false, "next");
 		const sorted: rt.BTreeSet<rt.char> = rt.btreeNew(rt.cmp) as rt.BTreeSet<rt.char>;
 		const seen: rt.HashSet<rt.char> = rt.hashNew() as rt.HashSet<rt.char>;
 		const iter3: rt.Iter<[rt.usize, rt.char]> = rt.iterEnumerate(rt.iterSlice(cs));

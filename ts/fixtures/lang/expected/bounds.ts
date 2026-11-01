@@ -189,9 +189,9 @@ export function bounds(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				const n: rt.usize = _104[0];
 				const tag: rt.u8 = _104[1];
 				if (rt.usizeRem(n, 2) === 0) {
-					rt.dequePushBack(queue, new bounds_Item.Item(tag));
+					rt.dequePushBack(queue, new bounds_Item.Item(tag), 1);
 				} else {
-					rt.dequePushFront(queue, new bounds_Item.Item(tag));
+					rt.dequePushFront(queue, new bounds_Item.Item(tag), 1);
 				}
 			}
 			const _117: [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>] = [bound$usize(s, i), bound$usize(e, j)];

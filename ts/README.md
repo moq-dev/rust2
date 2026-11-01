@@ -259,8 +259,7 @@ std's adaptors through `rt.iterFrom`. A caller calls `next()` for one item, or i
 an `rt.Iter` with `for ... of`. Each `rt.Iter`'s `sizeHint` is std's `size_hint`, its upper
 bound `undefined` for `None`, and a `collect` or `extend` into a `Vec`, `VecDeque`,
 `BinaryHeap`, B-tree, or hash collection reserves by it where std's does, panicking with
-std's capacity overflow past the most it holds. Capacity isn't modeled, so a collection
-an `extend` starts from is taken as full. A tuple of these, of `String`s, `()`, or such
+std's capacity overflow past the most it holds. A tuple of these, of `String`s, `()`, or such
 tuples, collects, unzips, and extends as std's tuple impls do: a 1-tuple's collection by
 its own `extend`, and a longer one's each reserving the lower bound, in field order, before
 each item's fields go into them in order, as `rt.tupleExtend(t, it, [rt.vecPart(2),
@@ -688,7 +687,16 @@ they need.
   and Chrome; 64 keys a node measured best of 16 to 128. A hash map's JS primitive keys
   are a JS `Map`'s, the engine's own hash table; its other keys go into a second `Map`
   by their translated hash, chained by `Eq`. `VecDeque` is a ring buffer over an array
-  whose length is a power of two. A `LinkedList` is nodes linked both ways, as std's are,
+  whose length is a power of two. A `Vec`, `VecDeque`, and `BinaryHeap` hold std's
+  capacity, apart from the array's length: `RawVec`'s amortized growth and its least
+  allocation by element size, `with_capacity`, `reserve`, `reserve_exact`, `shrink_to`,
+  and what `collect`, `extend`, `clone`, and `From` allocate, a `collect` in place of a
+  `Vec`'s `into_iter` included, so `capacity` reads std's and each grows and panics where
+  std's does. An array's `cap` property is its capacity where that differs from its
+  length, and an `rt.ByteVec`'s is its buffer's length. A `Vec<u8>` taken from a `Bytes`
+  or a shared `BytesMut` holds what `bytes` gave it, which nothing here counts: reading
+  its capacity, or keeping it in place, throws until a `shrink_to` at most its length
+  sets it. A `LinkedList` is nodes linked both ways, as std's are,
   so `append` is O(1) and `split_off` walks from the nearer end; each node is the place
   `iter_mut` and `front_mut` lend of an item JS copies. Dropping a whole map or set drops its entries in the
   runtime's order, keys' for a B-tree, not std's node by node: std leaves that order
@@ -748,7 +756,7 @@ an iterator adaptor, and values that drop in some iterators ([drop order](/quest
 function without a mapping of its own that makes or reads an `Option` whose `None` is
 `rt.None`, as `Iterator::scan` of `Option`s does, an `Option` of an `Option` of `()` or another
 `Option`, an instance of a generic type whose field is an `Option` of a type parameter
-that can be `undefined`, a collection's `capacity`, looking up a key by
+that can be `undefined`, a `String`'s or hash collection's `capacity`, looking up a key by
 another type it borrows as through the crate's own `Borrow`, a `&mut` to a value JS
 copies that std makes, other than a map's, or hands a closure, as `iter_mut` and
 `and_modify` do, one into a `Result`'s payload passed on or kept, `Hasher::write` of bytes, the adaptors

@@ -1341,6 +1341,13 @@ export function mapOr$1hjjwvv(self: [rt.Mutex<rt.u8>, rt.u8] | undefined, defaul
 	return f(self);
 }
 
+export function mapOr$1ttssgs(self: [rt.u8, rt.ByteSlice] | undefined, default_: [rt.u8, rt.ByteSlice], f: (a0: [rt.u8, rt.ByteSlice]) => [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
 export function mapOr$0mmpeqx(self: [rt.u8, rt.u8] | undefined, default_: rt.u8, f: (a0: [rt.u8, rt.u8]) => rt.u8): rt.u8 {
 	if (self === undefined) {
 		return default_;

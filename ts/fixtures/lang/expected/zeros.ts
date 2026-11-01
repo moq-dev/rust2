@@ -140,10 +140,10 @@ export function zeros(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.dropAll([new Quiet.Quiet(), new Quiet.Quiet()]);
 		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(rt.atomicLoad(LOG, 0))), undefined, true);
 	} else if (_8 === 5) {
-		const v2: undefined[] = [];
+		const v2: undefined[] = rt.vecWithCapacity(n, 0);
 		const _154: rt.Iter<undefined> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_28: rt.u8): undefined => {});
 		rt.iterExtend(v2, _154, undefined, 0, true);
-		rt.byteVecPush(out, rt.vecFromElem({}, n, undefined).length & 0xff);
+		rt.byteVecPush(out, rt.vecFromElem({}, n, undefined, 0).length & 0xff);
 		rt.byteVecPush(out, v2.length & 0xff);
 	} else {
 		rt.iterFromFn((): rt.u8 | undefined => {
@@ -541,7 +541,7 @@ export function writes(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.cellReplace(_113, undefined);
 		rt.cellSet(_113, undefined);
 		rt.sliceSwap([undefined, undefined, undefined], 0, n as rt.usize);
-		const v: zeros_Unit.Unit[] = rt.vecFromElem({}, 2, undefined);
+		const v: zeros_Unit.Unit[] = rt.vecFromElem({}, 2, undefined, 0);
 		rt.sliceSwap(v, 0, 1);
 		rt.byteVecPush(out, ([undefined, undefined, undefined].length & 0xff) | (((v.length & 0xff) << 4) & 0xff));
 		const _141: rt.Cell<undefined> = new rt.Cell(undefined);

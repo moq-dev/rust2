@@ -208,9 +208,9 @@ pub fn call<'tcx>(
 	let e = match std {
 		Std::HashMap | Std::HashSet => hash(b, coll, call, owner, name, args, out),
 		Std::BTreeMap | Std::BTreeSet => btree(b, coll, call, owner, name, args),
-		Std::VecDeque => deque(b, coll, call, owner, name, args, out),
+		Std::VecDeque => deque(b, coll, call, owner, name, args),
 		Std::LinkedList => list(b, coll, call, owner, name, args),
-		Std::BinaryHeap => heap(b, coll, call, owner, name, args, out),
+		Std::BinaryHeap => heap(b, coll, call, owner, name, args),
 		Std::PeekMut if name == "pop" => Some(Expr::rt("peekMutPop", args)),
 		Std::Entry => entry(b, coll, name, args, span),
 		Std::Ordering => ordering(name, args),
@@ -1144,7 +1144,6 @@ fn deque<'tcx>(
 	owner: &str,
 	name: &str,
 	args: Vec<Expr>,
-	out: &mut Vec<Stmt>,
 ) -> Option<Expr> {
 	let span = call.span;
 	let item = arg(coll, 0);
@@ -1152,15 +1151,32 @@ fn deque<'tcx>(
 	let none = library::sentinel_option(b.t, call).is_some();
 	let back = |values: Vec<Expr>| flagged(values, true, none);
 	let e = match (owner, name) {
-		(_, "new" | "with_capacity") | ("Default", "default") => {
-			discard(values, out);
-			deque_new(b, coll, span)
+		(_, "new") | ("Default", "default") => deque_new(b, coll, span),
+		// What changes or reads a capacity is given the size of its items, by which std's
+		// grows it.
+		(_, "with_capacity") => {
+			values.push(super::iter::size_of(b, item, span));
+			empty(b, Expr::rt("dequeWithCapacity", values), coll, span)
+		}
+		(_, "capacity" | "push_back" | "push_front" | "insert" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit") => {
+			let f = match name {
+				"capacity" => "dequeCapacity",
+				"push_back" => "dequePushBack",
+				"push_front" => "dequePushFront",
+				"insert" => "dequeInsert",
+				"reserve" => "dequeReserve",
+				"reserve_exact" => "dequeReserveExact",
+				_ => "dequeShrinkTo",
+			};
+			if name == "shrink_to_fit" {
+				values.push(Expr::lit("0"));
+			}
+			values.push(super::iter::size_of(b, item, span));
+			Expr::rt(f, values)
 		}
 		(_, "len") => values.pop()?.member("n"),
 		(_, "is_empty") => values.pop()?.member("n").binary("===", Expr::lit("0")),
 		(_, "clear") => Expr::rt("dequeClear", values),
-		(_, "push_back") => Expr::rt("dequePushBack", values),
-		(_, "push_front") => Expr::rt("dequePushFront", values),
 		(_, "pop_back") => Expr::rt("dequePopBack", values),
 		(_, "pop_front") => Expr::rt("dequePopFront", values),
 		(_, "front_mut") if b.t.needs_place(item) => Expr::rt("dequeEndMut", values),
@@ -1175,7 +1191,6 @@ fn deque<'tcx>(
 		(_, "retain_mut") if b.t.needs_place(item) => Expr::rt("dequeRetainMut", values),
 		(_, "retain" | "retain_mut") => Expr::rt("dequeRetain", values),
 		(_, "remove") => Expr::rt("dequeRemove", values),
-		(_, "insert") => Expr::rt("dequeInsert", values),
 		(_, "contains") => {
 			values.push(eq_fn(b, item, span));
 			Expr::rt("dequeContains", values)
@@ -1188,14 +1203,23 @@ fn deque<'tcx>(
 			let droppers = entry_droppers(b, coll, span);
 			ranged.after(Expr::rt("dequeDrain", super::iter::tail(values, droppers)))
 		}
-		(_, "reserve" | "reserve_exact" | "shrink_to_fit") => {
-			discard(values, out);
-			Expr::undefined()
-		}
 		("Index" | "IndexMut", "index" | "index_mut") => Expr::rt("dequeIndex", values),
 		("Clone", "clone") => {
 			values.push(clone_fn(b, item, span));
 			Expr::rt("dequeClone", values)
+		}
+		// `From<Vec<T>>` keeps the vector's capacity, and `From<[T; N]>` has room for `N`.
+		("From", "from") if matches!(library::targ(call.args, 1).kind(), ty::Array(..)) || b.t.std_of(library::targ(call.args, 1)) == Some(Std::Vec) => {
+			let from = library::targ(call.args, 1);
+			let bytes = matches!(item.kind(), ty::Uint(ty::UintTy::U8));
+			let v = match (bytes, from.is_array(), b.t.copy_fn(item, span)) {
+				(true, true, _) => Expr::ident("Array").member("from").call(vec![values.pop()?]),
+				(true, false, _) => Expr::rt("byteVecToVec", vec![values.pop()?]),
+				(false, true, Some(copy)) => values.pop()?.member("map").call(vec![copy]),
+				_ => values.pop()?,
+			};
+			let size = super::iter::size_of(b, item, span);
+			empty(b, Expr::rt("dequeFromVec", vec![v, size]), coll, span)
 		}
 		("Extend", "extend") | ("From", "from") => {
 			let (source, iter) = extend_source(b, coll, call, owner, values.pop()?)?;
@@ -1307,16 +1331,32 @@ fn heap<'tcx>(
 	owner: &str,
 	name: &str,
 	args: Vec<Expr>,
-	out: &mut Vec<Stmt>,
 ) -> Option<Expr> {
 	let span = call.span;
 	let item = arg(coll, 0);
 	let bytes = matches!(item.kind(), ty::Uint(ty::UintTy::U8));
 	let mut values = args;
 	let e = match (owner, name) {
-		(_, "new" | "with_capacity") | ("Default", "default") => {
-			discard(values, out);
-			empty(b, Expr::rt("heapNew", vec![]), coll, span)
+		(_, "new") | ("Default", "default") => empty(b, Expr::rt("heapNew", vec![]), coll, span),
+		// Its vector's, given the size of its elements, by which std's grows it.
+		(_, "with_capacity") => {
+			values.push(super::iter::size_of(b, item, span));
+			empty(b, Expr::rt("heapWithCapacity", values), coll, span)
+		}
+		(_, "capacity" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit") => {
+			let h = values.remove(0).member("d");
+			let mut values = [vec![h], values].concat();
+			if name == "shrink_to_fit" {
+				values.push(Expr::lit("0"));
+			}
+			values.push(super::iter::size_of(b, item, span));
+			let f = match name {
+				"capacity" => "vecCapacity",
+				"reserve" => "vecReserve",
+				"reserve_exact" => "vecReserveExact",
+				_ => "vecShrinkTo",
+			};
+			Expr::rt(f, values)
 		}
 		(_, "len") => values.pop()?.member("d").member("length"),
 		(_, "is_empty") => values.pop()?.member("d").member("length").binary("===", Expr::lit("0")),
@@ -1325,6 +1365,9 @@ fn heap<'tcx>(
 		(_, "peek") => values.pop()?.member("d").index(Expr::lit("0")),
 		(_, "push" | "pop" | "peek_mut" | "append" | "retain" | "into_sorted_vec") => {
 			values.extend(heap_tests(b, item, !matches!(name, "push" | "pop"), span));
+			if matches!(name, "push" | "append") {
+				values.push(super::iter::size_of(b, item, span));
+			}
 			let f = match name {
 				"push" => "heapPush",
 				"pop" => "heapPop",
@@ -1351,10 +1394,6 @@ fn heap<'tcx>(
 			Expr::rt("heapDrain", super::iter::tail(values, droppers))
 		}
 		(_, "iter") => Expr::rt("heapIter", values),
-		(_, "reserve" | "reserve_exact" | "shrink_to_fit" | "shrink_to") => {
-			discard(values, out);
-			Expr::undefined()
-		}
 		("Clone", "clone") => {
 			let clone = clone_fn(b, item, span);
 			Expr::rt("heapClone", super::iter::tail(values, vec![clone]))
@@ -1364,9 +1403,7 @@ fn heap<'tcx>(
 		("From", "from") if b.t.std_of(library::targ(call.args, 1)) == Some(Std::Vec) => {
 			let v = values.pop()?;
 			let d = match bytes {
-				true => Expr::ident("Array")
-					.member("from")
-					.call(vec![Expr::rt("byteVecView", vec![v])]),
+				true => Expr::rt("byteVecToVec", vec![v]),
 				false => v,
 			};
 			Expr::rt("heapFrom", [vec![d], heap_tests(b, item, true, span)].concat())
@@ -1388,13 +1425,10 @@ fn heap<'tcx>(
 	Some(e)
 }
 
-/// A `Vec` of a heap's elements `d`, an `rt.ByteVec` of bytes.
+/// A `Vec` of a heap's elements `d`, an `rt.ByteVec` of bytes, with its capacity.
 pub fn heap_vec(d: Expr, bytes: bool) -> Expr {
 	match bytes {
-		true => Expr::rt(
-			"byteVecFrom",
-			vec![Expr::ident("Uint8Array").member("from").call(vec![d])],
-		),
+		true => Expr::rt("byteVecFromVec", vec![d]),
 		false => d,
 	}
 }
@@ -2633,23 +2667,24 @@ pub fn collect<'tcx>(
 			let target = list_new(b, ty, span);
 			extend(b, ty, arg(ty, 0), target, iter, from, span)?
 		}
-		// std's collects into a `Vec` first.
+		// std's makes one in place of a `vec::IntoIter`'s `Vec` or an `IntoIter`'s deque,
+		// whose capacity it keeps, and else collects into a `Vec` first.
 		Std::VecDeque => {
-			let target = deque_new(b, ty, span);
 			let item = arg(ty, 0);
-			if !b.t.drops(item) {
-				let folds = super::iter::implements(b.t, from, "TrustedLen");
-				let take = super::iter::iter_take(b, from, folds, span);
-				let reserve = vec![
-					take,
-					super::iter::size_of(b, item, span),
-					Expr::lit(trusted.to_string()),
-				];
-				Expr::rt("dequeExtend", super::iter::tail(vec![target, iter], reserve))
-			} else {
-				let items = super::iter::to_array(b, iter, from, item, trusted, span);
-				Expr::rt("dequeExtend", vec![target, Expr::rt("iterSlice", vec![items])])
-			}
+			let size = super::iter::size_of(b, item, span);
+			let into_iter = super::iter::is_vec_into_iter(b.t.tcx, from)
+				|| matches!(from.kind(), ty::Adt(adt, _) if library::std_path(b.t.tcx, adt.did()) == ["collections", "vec_deque", "into_iter", "IntoIter"]);
+			let q = match into_iter {
+				true => {
+					let take = super::iter::iter_take(b, from, true, span);
+					Expr::rt("dequeFromIntoIter", super::iter::tail(vec![iter, size], vec![take]))
+				}
+				false => {
+					let items = super::iter::to_array(b, iter, from, item, trusted, span);
+					Expr::rt("dequeFromVec", vec![items, size])
+				}
+			};
+			empty(b, q, ty, span)
 		}
 		_ => return None,
 	})

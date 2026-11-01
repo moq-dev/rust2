@@ -376,8 +376,8 @@ export class frontFuture {
 									this.#listing = Listing.default$Default();
 								}
 								(this.#listing as Listing.Listing).last = value;
-								(this.#listing as Listing.Listing).listed.push(value);
-								this.#inFlight.push(value);
+								rt.vecPush((this.#listing as Listing.Listing).listed, value, 8);
+								rt.vecPush(this.#inFlight, value, 8);
 								if (!(rt.u64Rem(value, 3) === 2)) {
 									bb0 = 1;
 									continue;
@@ -407,7 +407,7 @@ export class frontFuture {
 								if (next === undefined) {
 									return this.#inFlight.length;
 								}
-								this.#inFlight.push(next);
+								rt.vecPush(this.#inFlight, next, 8);
 							} else {
 								break;
 							}
@@ -419,7 +419,7 @@ export class frontFuture {
 							if (half === 0) {
 								Guard.note(this.#guard, "released");
 							} else {
-								this.#inFlight.push(half);
+								rt.vecPush(this.#inFlight, half, 8);
 							}
 						}
 						return rt.Pending;

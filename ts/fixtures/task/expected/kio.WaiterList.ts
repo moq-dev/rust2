@@ -58,7 +58,7 @@ export function register(self: WaiterList, waiter: Waiter.Waiter): void {
 					const entry: rt.Weak<rt.Waker> = _43;
 					if (entry.arc.strong > 0) {
 						_57 = false;
-						live.push(entry);
+						rt.vecPush(live, entry, 4);
 					}
 					if (_57) {
 						entry[Symbol.dispose]();
@@ -71,7 +71,7 @@ export function register(self: WaiterList, waiter: Waiter.Waiter): void {
 				self.cursor = 0;
 			}
 			_58 = false;
-			self.entries.push(weak);
+			rt.vecPush(self.entries, weak, 4);
 			_58 = false;
 			break b0;
 		}

@@ -129,7 +129,7 @@ export function strs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		if (_13 === 2) {
 			const seen: rt.char[] = [];
 			const parts2: rt.Iter<string> = rt.strSplit(s, (c9: rt.char): boolean => {
-				seen.push(c9);
+				rt.vecPush(seen, c9, 4);
 				if (!(c9 === sep)) {
 					return rt.isAsciiDigit(c9);
 				}
@@ -160,12 +160,12 @@ export function strs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		} else if (_13 === 4) {
 			const seen2: rt.char[] = [];
 			fmt_put(out, rt.strTrimStartMatches(s, (c5: rt.char): boolean => {
-				seen2.push(c5);
+				rt.vecPush(seen2, c5, 4);
 				return c5 === sep;
 			}));
 			putSeen(out, seen2);
 			fmt_put(out, rt.strTrimEndMatches(s, (c6: rt.char): boolean => {
-				seen2.push(c6);
+				rt.vecPush(seen2, c6, 4);
 				return c6 !== sep;
 			}));
 			putSeen(out, seen2);
@@ -174,7 +174,7 @@ export function strs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			}) ? 1 : 0);
 			fmt_put(out, rt.strTrimStartMatches(s, digit));
 			putOffset(out, rt.strRfind(s, (c8: rt.char): boolean => {
-				seen2.push(c8);
+				rt.vecPush(seen2, c8, 4);
 				return c8 === sep;
 			}));
 			putSeen(out, seen2);
@@ -411,7 +411,7 @@ export function unescape(path: string): string[] {
 				if (ch === 47) {
 					const taken = part;
 					part = "";
-					parts.push(taken);
+					rt.vecPush(parts, taken, 12);
 				} else if (ch === 92) {
 					const _14: rt.char | rt.Done = chars.next();
 					if (_14 === rt.DONE) {
@@ -430,7 +430,7 @@ export function unescape(path: string): string[] {
 				break;
 			}
 		}
-		parts.push(part);
+		rt.vecPush(parts, part, 12);
 		return parts;
 	}
 	return [];
@@ -556,7 +556,7 @@ export function edit(s: rt.Place<string>, op: rt.u8, a: rt.u8, b: rt.u8, out: rt
 		if (!(rt.u8Rem(b, 2) === 1)) {
 			const seen: rt.char[] = [];
 			s.v = rt.stringRetain(s.v, (c: rt.char): boolean => {
-				seen.push(c);
+				rt.vecPush(seen, c, 4);
 				return rt.u32Rem(c as rt.u32, 3) !== rt.u8Rem(a, 3) as rt.u32;
 			});
 			putSeen(out, seen);

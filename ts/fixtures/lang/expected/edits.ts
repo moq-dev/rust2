@@ -51,7 +51,7 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const seen: rt.u16[] = [];
 		rt.vecRetain(v, (_227: rt.u16): boolean => {
 			const x4: rt.u16 = _227;
-			seen.push(x4);
+			rt.vecPush(seen, x4, 2);
 			return rt.u16Rem(x4, 4) !== 0;
 		});
 		putU16s(out, seen);
@@ -132,8 +132,8 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}), undefined, 16, true);
 		const seen2: rt.u16[] = [];
 		rt.vecDedupBy(tested, (a3: edits_Named.Named, b10: edits_Named.Named): boolean => {
-			seen2.push(a3.id);
-			seen2.push(b10.id);
+			rt.vecPush(seen2, a3.id, 2);
+			rt.vecPush(seen2, b10.id, 2);
 			return a3.name === b10.name;
 		});
 		putU16s(out, seen2);
@@ -250,7 +250,7 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecPush(out, !rt.eqSlice(edits_Named.eq$cmp_PartialEq)(changed, named2) ? 1 : 0);
 		rt.byteVecPush(out, rt.cmpSlice(edits_Named.partialCmp$cmp_PartialOrd)(changed, named2) === -1 ? 1 : 0);
 		const _435: edits_Named.Named[] = rt.sliceRange(named2, 0, rt.usizeDiv(named2.length, 2));
-		rt.vecExtendFromSlice(changed, _435, edits_Named.clone$Clone);
+		rt.vecExtendFromSlice(changed, _435, edits_Named.clone$Clone, 16);
 		rt.byteVecPush(out, changed.length & 0xff);
 		const nested: rt.u16[][] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_29: rt.u8): rt.u16[] => {
 			const b5: rt.u8 = _29;
@@ -272,7 +272,7 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const _491: [rt.u8, rt.u8] = [at(1), at(0)];
 		rt.byteVecPush(out, rt.cmpTuple<[rt.u8, rt.u8], rt.Ordering | undefined>([rt.cmp, rt.cmp])(_483, _491) === -1 ? 1 : 0);
 		const grown: rt.u16[] = words.slice();
-		rt.vecExtendFromSlice(grown, words);
+		rt.vecExtendFromSlice(grown, words, undefined, 2);
 		putU16s(out, grown);
 	} else if (_8 === 5) {
 		let tally: edits_Tally.Tally = { n: at(0), names: [text(data)] };
@@ -282,8 +282,7 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecPush(out, taken3.n);
 		rt.byteVecPush(out, tally.n);
 		fmt_put(out, tally.names[rt.idx(tally.names, 0)]);
-		const _525: rt.Iter<rt.u16> = rt.iterSlice(words);
-		let queue: rt.VecDeque<rt.u16> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.u16>, _525, undefined, 2, true);
+		let queue: rt.VecDeque<rt.u16> = rt.dequeFromVec(rt.iterToArray(rt.iterSlice(words), undefined, 2, true), 2) as rt.VecDeque<rt.u16>;
 		const default_2 = rt.dequeNew() as rt.VecDeque<rt.u16>;
 		const taken4 = queue;
 		queue = default_2;
@@ -316,7 +315,7 @@ export function edits(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}), undefined, 16, true);
 		const _615: rt.usize = rt.usizeRem(at(0) as rt.usize, 8);
 		const _621: edits_Named.Named = _604(511);
-		rt.vecInsert(v7, _615, _621);
+		rt.vecInsert(v7, _615, _621, 16);
 		putU16s(out, _605(v7));
 		const _634: rt.usize = rt.usizeRem(at(1) as rt.usize, 8);
 		const removed: edits_Named.Named = rt.vecRemove(v7, _634);

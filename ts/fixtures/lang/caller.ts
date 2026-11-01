@@ -723,4 +723,23 @@ const asciiCases = [
 	Uint8Array.of(op("ascii::chars"), 0, ...[0xd7ff, 0xd800, 0xdfff, 0xe000, 0x1f600, 0x10ffff, 0x110000].flatMap((n) => [n >>> 24, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff])),
 ];
 
-export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases];
+/**
+ * `capacity` cases of each element type: each step of a vector, a deque, and a heap, by a
+ * few, past what it may hold, and within eight of `usize::MAX`, once it grew past its
+ * least capacity, made by `new` and by `with_capacity`; a run of pushes and pops that
+ * grows and shrinks it; and each way `collects` makes one, of each length it tries.
+ */
+const capacityCases = [
+	...[["capacity::vecs", 24], ["capacity::deques", 20], ["capacity::heaps", 12]].flatMap(([name, steps]) =>
+		Array.from({ length: 5 * 2 * (steps as number) * 4 }, (_, i) => {
+			const [kind, first, step, arg] = [i % 5, (Math.floor(i / 5) % 2) * 0x11, Math.floor(i / 10) % (steps as number), [3, 0xc1, 0xe3, 0x16][Math.floor(i / (10 * (steps as number)))]];
+			return Uint8Array.of(op(name as string), kind, first, ...[0, 1, 0, 2, 0, 3, 0, 4, 0, 5].map((b, j) => (j % 2 === 0 ? b : b * 41)), step, arg, step, arg ^ 1);
+		}),
+	),
+	...["capacity::vecs", "capacity::deques", "capacity::heaps"].flatMap((name) =>
+		Array.from({ length: 5 }, (_, kind) => Uint8Array.of(op(name), kind, 0, ...Array.from({ length: 40 }, (_, p) => [p % 3 === 2 ? 2 : 0, p]).flat())),
+	),
+	...Array.from({ length: 8 * 6 }, (_, i) => Uint8Array.of(op("capacity::collects"), i % 8, [0, 1, 2, 5, 9, 23][Math.floor(i / 8)], 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
+];
+
+export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases, ...capacityCases];

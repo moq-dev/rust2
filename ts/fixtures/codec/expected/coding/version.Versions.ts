@@ -34,7 +34,7 @@ export function decode$coding_decode_Decode_coding_varint_Form(r: Decoder.Decode
 		while (iter.next() !== rt.DONE) {
 			const _15: rt.Result<coding_version_Version.Version, DecodeError.DecodeError> = coding_version_Version.decode$coding_decode_Decode_coding_varint_Form(r, version);
 			if (_15.ok) {
-				vs.push(_15.value);
+				rt.vecPush(vs, _15.value, 8);
 			} else {
 				return _15;
 			}

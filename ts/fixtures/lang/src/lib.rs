@@ -16,7 +16,8 @@
 //! slices, the order, equality, and
 //! hashes of bytes, ranges of `Bound`s and of the crate's own `RangeBounds`, the equality
 //! of `Result`s and std's errors, inclusive ranges read through each adaptor, iterators'
-//! size hints, the capacity overflows collections reserving by them panic with, tuples of
+//! size hints, the capacity overflows collections reserving by them panic with, the
+//! capacity of a `Vec`, `VecDeque`, and `BinaryHeap` as each grows and shrinks, tuples of
 //! collections collected and extended by their items, zero-sized values, which MIR
 //! never assigns, with std's impls of them, and functions generic over an array's length.
 //!
@@ -31,6 +32,7 @@ mod atomics;
 mod borrows;
 mod bounds;
 mod boxes;
+mod capacity;
 mod captures;
 mod cells;
 mod chars;
