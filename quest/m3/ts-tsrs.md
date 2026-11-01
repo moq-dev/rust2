@@ -4,8 +4,8 @@
 
 Condition: [tsrs](https://blog.cloudflare.com/typescript-rust-port/), the Rust port of
 TypeScript, publishes a stable release usable as a Rust library. Then rust2-ts
-type-checks bindings in process through it, with no `tsc` on `PATH`, failing at the
-Rust item's span as today, and measures the translation's time against running `tsc`.
+type-checks its output and bindings in process through it, with no `tsc` on `PATH`,
+failing at the Rust span as today, and measures the translation's time against running `tsc`.
 Check: tsrs's releases, and whether it ships a crate (it is moving into Oxc).
 
 ## Plan

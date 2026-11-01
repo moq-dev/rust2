@@ -9,7 +9,7 @@ use rustc_interface::interface::Compiler;
 use rustc_middle::ty::TyCtxt;
 
 use crate::config::{self, Config};
-use crate::{cli, lower, program};
+use crate::{check, cli, lower, program};
 
 /// Run as rustc, with `args` as cargo passed them: the wrapped rustc's path first.
 pub fn run(args: Vec<String>) -> ExitCode {
@@ -84,9 +84,9 @@ impl Callbacks for Translate {
 		// Only a program rustc accepts is translated.
 		let written = match &self.output {
 			Output::Dir(out) => match lower::translate(tcx, &self.config) {
-				Some(program) if tcx.dcx().has_errors().is_none() => {
-					program.write(out).map(|()| lower::typecheck(tcx, &program, out))
-				}
+				Some(program) if tcx.dcx().has_errors().is_none() => program
+					.write(out)
+					.map(|written| check::typecheck(tcx, &program, out, &written)),
 				_ => Ok(()),
 			},
 			Output::Census(path) => match lower::census(tcx, &self.config) {
