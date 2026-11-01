@@ -394,14 +394,14 @@ export function read$ref_slice_u8(buf: rt.Place<rt.ByteSlice>, n: rt.usize): rt.
  * it, and shared storage grows up to it. Only the inputs `caller.ts` names reach these,
  * as each allocates that much.
  */
-export function reserves(data: rt.ByteSlice, out: rt.ByteVec): void {
-	if (data.length === 6) {
-		if (data.data[data.start] === 101) {
-			if (data.data[data.start + 1] === 100) {
-				if (data.data[data.start + 2] === 103) {
-					if (data.data[data.start + 3] === 101) {
-						const kind: rt.u8 = data.data[data.start + 4];
-						const read: rt.u8 = data.data[data.start + 5];
+export function reserves(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	if (dataLen === 6) {
+		if (dataData[dataStart] === 101) {
+			if (dataData[dataStart + 1] === 100) {
+				if (dataData[dataStart + 2] === 103) {
+					if (dataData[dataStart + 3] === 101) {
+						const kind: rt.u8 = dataData[dataStart + 4];
+						const read: rt.u8 = dataData[dataStart + 5];
 						const buf: rt.BytesMut = rt.bytesMutFrom(rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of(101, 100, 103, 101, 115)), 0));
 						const read2: rt.usize = rt.usizeRem(read as rt.usize, 5);
 						rt.bytesMutAdvance(buf, read2);
@@ -423,44 +423,44 @@ export function reserves(data: rt.ByteSlice, out: rt.ByteVec): void {
  * The same reads off a `Bytes`, a `BytesMut`, a `&[u8]`, buffers in pieces, and each
  * through the impl forwarding through a `&mut`: each scalar, and what remains.
  */
-export function reads(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function reads(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let rest!: rt.ByteVec;
-	if (data.length >= 2) {
-		const mid: number = rt.usizeDiv(data.length - 2, 2);
-		if (mid > data.length - 2) {
+	if (dataLen >= 2) {
+		const mid: number = rt.usizeDiv(dataLen - 2, 2);
+		if (mid > dataLen - 2) {
 			rt.panic("mid > len");
 		}
-		const input: rt.ByteSlice = new rt.ByteSlice(data.data, data.start + 2 + mid, data.length - 2 - mid);
-		const cut: rt.usize = rt.usizeRem(data.data[data.start + 1] as rt.usize, rt.usizeAdd(input.length, 1));
-		const _22: rt.u8 = rt.u8Rem(data.data[data.start], 8);
+		const input: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart + 2 + mid, dataLen - 2 - mid);
+		const cut: rt.usize = rt.usizeRem(dataData[dataStart + 1] as rt.usize, rt.usizeAdd(input.length, 1));
+		const _22: rt.u8 = rt.u8Rem(dataData[dataStart], 8);
 		if (_22 === 0) {
 			let _24: rt.ByteSlice = rt.bytesCopyFromSlice(input);
-			rest = readAll$bytes_Bytes(rt.place(() => _24, (value7) => _24 = value7), new rt.ByteSlice(data.data, data.start + 2, mid), read$bytes_Bytes, out);
+			rest = readAll$bytes_Bytes(rt.place(() => _24, (value7) => _24 = value7), new rt.ByteSlice(dataData, dataStart + 2, mid), read$bytes_Bytes, out);
 		} else if (_22 === 1) {
-			rest = readAll$bytes_BytesMut(rt.bytesMutFrom(input), new rt.ByteSlice(data.data, data.start + 2, mid), read$bytes_BytesMut, out);
+			rest = readAll$bytes_BytesMut(rt.bytesMutFrom(input), new rt.ByteSlice(dataData, dataStart + 2, mid), read$bytes_BytesMut, out);
 		} else if (_22 === 2) {
-			rest = readAll$buf_Pieces(Pieces.new(input, cut), new rt.ByteSlice(data.data, data.start + 2, mid), readPieces$buf_Pieces, out);
+			rest = readAll$buf_Pieces(Pieces.new(input.data, input.start, input.length, cut), new rt.ByteSlice(dataData, dataStart + 2, mid), readPieces$buf_Pieces, out);
 		} else if (_22 === 3) {
 			let _33: rt.ByteSlice = rt.byteSliceRange(input, 0);
-			rest = readAll$ref_slice_u8(rt.place(() => _33, (value6) => _33 = value6), new rt.ByteSlice(data.data, data.start + 2, mid), read$ref_slice_u8, out);
+			rest = readAll$ref_slice_u8(rt.place(() => _33, (value6) => _33 = value6), new rt.ByteSlice(dataData, dataStart + 2, mid), read$ref_slice_u8, out);
 		} else if (_22 === 4) {
-			const _37: Provided.Provided = { _0: Pieces.new(input, cut) };
-			rest = readAll$buf_Provided(_37, new rt.ByteSlice(data.data, data.start + 2, mid), readPieces$buf_Provided, out);
+			const _37: Provided.Provided = { _0: Pieces.new(input.data, input.start, input.length, cut) };
+			rest = readAll$buf_Provided(_37, new rt.ByteSlice(dataData, dataStart + 2, mid), readPieces$buf_Provided, out);
 		} else if (_22 === 5) {
 			let _42: rt.ByteSlice = rt.bytesCopyFromSlice(input);
 			let _41: rt.Place<rt.ByteSlice> = rt.place(() => _42, (value4) => _42 = value4);
-			rest = readAll$mut_bytes_Bytes(rt.place(() => _41, (value5) => _41 = value5), new rt.ByteSlice(data.data, data.start + 2, mid), read$mut_bytes_Bytes, out);
+			rest = readAll$mut_bytes_Bytes(rt.place(() => _41, (value5) => _41 = value5), new rt.ByteSlice(dataData, dataStart + 2, mid), read$mut_bytes_Bytes, out);
 		} else if (_22 === 6) {
 			let _46: rt.ByteSlice = rt.byteSliceRange(input, 0);
 			let _45: rt.Place<rt.ByteSlice> = rt.place(() => _46, (value2) => _46 = value2);
-			rest = readAll$mut_ref_slice_u8(rt.place(() => _45, (value3) => _45 = value3), new rt.ByteSlice(data.data, data.start + 2, mid), read$mut_ref_slice_u8, out);
+			rest = readAll$mut_ref_slice_u8(rt.place(() => _45, (value3) => _45 = value3), new rt.ByteSlice(dataData, dataStart + 2, mid), read$mut_ref_slice_u8, out);
 		} else {
-			let _50: Pieces.Pieces = Pieces.new(input, cut);
-			rest = readAll$mut_buf_Pieces(rt.place(() => _50, (value) => _50 = value), new rt.ByteSlice(data.data, data.start + 2, mid), readPieces$mut_buf_Pieces, out);
+			let _50: Pieces.Pieces = Pieces.new(input.data, input.start, input.length, cut);
+			rest = readAll$mut_buf_Pieces(rt.place(() => _50, (value) => _50 = value), new rt.ByteSlice(dataData, dataStart + 2, mid), readPieces$mut_buf_Pieces, out);
 		}
 		rt.byteVecExtendFromSlice(out, rt.byteVecSlice(rest));
 		const vec: rt.ByteVec = new rt.ByteVec();
-		const _59: Pieces.Pieces = Pieces.new(input, cut);
+		const _59: Pieces.Pieces = Pieces.new(input.data, input.start, input.length, cut);
 		rt.byteVecPutBuf(vec, _59, Pieces.hasRemaining$bytes_Buf, Pieces.remaining$bytes_Buf, Pieces.chunk$bytes_Buf, Pieces.advance$bytes_Buf as (a0: Pieces.Pieces, a1: rt.usize) => undefined);
 		rt.byteVecExtendFromSlice(out, rt.byteVecSlice(vec));
 		const slice: rt.ByteSlice = input;
@@ -628,18 +628,18 @@ export function readAll$ref_slice_u8(buf: rt.Place<rt.ByteSlice>, ops: rt.ByteSl
  * The same writes into a `Vec<u8>` and a `BytesMut`, which must match, and through the
  * impl forwarding through a `&mut`.
  */
-export function writes(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function writes(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const vec: rt.ByteVec = new rt.ByteVec();
 	const buf: rt.BytesMut = rt.bytesMutWithCapacity(0);
-	writeAll$Vec_u8(vec, data);
-	writeAll$bytes_BytesMut(buf, data);
+	writeAll$Vec_u8(vec, dataData, dataStart, dataLen);
+	writeAll$bytes_BytesMut(buf, dataData, dataStart, dataLen);
 	const _11: [rt.ByteVec, rt.BytesMut] = [new rt.ByteVec(), rt.bytesMutWithCapacity(0)];
 	const throughVec: rt.ByteVec = _11[0];
 	const throughBuf: rt.BytesMut = _11[1];
 	let _16: rt.ByteVec = throughVec;
-	writeThrough$mut_Vec_u8(rt.place(() => _16, (value) => _16 = value), data);
+	writeThrough$mut_Vec_u8(rt.place(() => _16, (value) => _16 = value), dataData, dataStart, dataLen);
 	let _19: rt.BytesMut = throughBuf;
-	writeThrough$mut_bytes_BytesMut(rt.place(() => _19, (value2) => _19 = value2), data);
+	writeThrough$mut_bytes_BytesMut(rt.place(() => _19, (value2) => _19 = value2), dataData, dataStart, dataLen);
 	rt.byteVecExtendFromSlice(out, rt.byteVecSlice(throughVec));
 	rt.byteVecExtendFromSlice(out, rt.bytesMutView(throughBuf));
 	rt.byteVecPush(out, rt.byteSliceEq(rt.byteVecSlice(vec), rt.bytesMutView(buf)) ? 1 : 0);
@@ -649,19 +649,19 @@ export function writes(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** A write by each pair of `data`'s bytes. */
-export function writeAll$Vec_u8(buf: rt.ByteVec, data: rt.ByteSlice): void {
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const n: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+export function writeAll$Vec_u8(buf: rt.ByteVec, dataData: Uint8Array, dataStart: number, dataLen: number): void {
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const n: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const n2: rt.u8 = n;
 		const v: rt.u64 = rt.u64Mul(n2 as rt.u64, { hi: 0x1010101, lo: 0x1010101 } as rt.u64);
@@ -706,19 +706,19 @@ export function writeAll$Vec_u8(buf: rt.ByteVec, data: rt.ByteSlice): void {
 }
 
 /** A write by each pair of `data`'s bytes. */
-export function writeAll$bytes_BytesMut(buf: rt.BytesMut, data: rt.ByteSlice): void {
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const n: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+export function writeAll$bytes_BytesMut(buf: rt.BytesMut, dataData: Uint8Array, dataStart: number, dataLen: number): void {
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const n: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const n2: rt.u8 = n;
 		const v: rt.u64 = rt.u64Mul(n2 as rt.u64, { hi: 0x1010101, lo: 0x1010101 } as rt.u64);
@@ -766,19 +766,19 @@ export function writeAll$bytes_BytesMut(buf: rt.BytesMut, data: rt.ByteSlice): v
  * A write by each pair of `data`'s bytes, of those that `&mut T` forwards, and of those
  * whose provided body calls only those.
  */
-export function writeThrough$mut_Vec_u8(buf: rt.Place<rt.ByteVec>, data: rt.ByteSlice): void {
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const n: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+export function writeThrough$mut_Vec_u8(buf: rt.Place<rt.ByteVec>, dataData: Uint8Array, dataStart: number, dataLen: number): void {
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const n: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const n2: rt.u8 = n;
 		const v: rt.u64 = rt.u64Mul(n2 as rt.u64, { hi: 0x1010101, lo: 0x1010101 } as rt.u64);
@@ -810,19 +810,19 @@ export function writeThrough$mut_Vec_u8(buf: rt.Place<rt.ByteVec>, data: rt.Byte
  * A write by each pair of `data`'s bytes, of those that `&mut T` forwards, and of those
  * whose provided body calls only those.
  */
-export function writeThrough$mut_bytes_BytesMut(buf: rt.Place<rt.BytesMut>, data: rt.ByteSlice): void {
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const n: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+export function writeThrough$mut_bytes_BytesMut(buf: rt.Place<rt.BytesMut>, dataData: Uint8Array, dataStart: number, dataLen: number): void {
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const n: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const n2: rt.u8 = n;
 		const v: rt.u64 = rt.u64Mul(n2 as rt.u64, { hi: 0x1010101, lo: 0x1010101 } as rt.u64);
@@ -851,12 +851,12 @@ export function writeThrough$mut_bytes_BytesMut(buf: rt.Place<rt.BytesMut>, data
 }
 
 /** `Bytes`' own edits, through a `&mut`, and `slice_ref` of a part of it. */
-export function edits(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function edits(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let part!: rt.ByteSlice;
-	if (data.length >= 2) {
-		let bytes: rt.ByteSlice = rt.bytesCopyFromSlice(new rt.ByteSlice(data.data, data.start + 2, data.length - 2));
-		const a: rt.usize = rt.usizeRem(data.data[data.start + 1] as rt.usize, rt.usizeAdd(data.length - 2, 2));
-		const _17: rt.u8 = rt.u8Rem(data.data[data.start], 6);
+	if (dataLen >= 2) {
+		let bytes: rt.ByteSlice = rt.bytesCopyFromSlice(new rt.ByteSlice(dataData, dataStart + 2, dataLen - 2));
+		const a: rt.usize = rt.usizeRem(dataData[dataStart + 1] as rt.usize, rt.usizeAdd(dataLen - 2, 2));
+		const _17: rt.u8 = rt.u8Rem(dataData[dataStart], 6);
 		if (_17 === 0) {
 			part = rt.bytesSplitTo(rt.place(() => bytes, (value6) => bytes = value6), a);
 		} else if (_17 === 1) {
@@ -868,7 +868,7 @@ export function edits(data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.bytesTruncate(rt.place(() => bytes, (value3) => bytes = value3), 0);
 			part = rt.bytesNew();
 		} else if (_17 === 4) {
-			const sub: rt.ByteSlice = rt.byteSliceRange(bytes, rt.min(a, data.length - 2));
+			const sub: rt.ByteSlice = rt.byteSliceRange(bytes, rt.min(a, dataLen - 2));
 			part = rt.bytesSliceRef(bytes, sub);
 		} else {
 			rt.bytesAdvance(rt.place(() => bytes, (value) => bytes = value), a);

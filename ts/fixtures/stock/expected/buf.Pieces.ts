@@ -14,11 +14,11 @@ export interface Pieces {
 }
 
 /** `input` in two parts, cut at `cut`. */
-function new_(input: rt.ByteSlice, cut: rt.usize): Pieces {
-	if (cut > input.length) {
+function new_(inputData: Uint8Array, inputStart: number, inputLen: number, cut: rt.usize): Pieces {
+	if (cut > inputLen) {
 		rt.panic("mid > len");
 	}
-	const parts: rt.ByteVec[] = [rt.byteSliceToByteVec(new rt.ByteSlice(input.data, input.start, cut)), rt.byteSliceToByteVec(new rt.ByteSlice(input.data, input.start + cut, input.length - cut))];
+	const parts: rt.ByteVec[] = [rt.byteSliceToByteVec(new rt.ByteSlice(inputData, inputStart, cut)), rt.byteSliceToByteVec(new rt.ByteSlice(inputData, inputStart + cut, inputLen - cut))];
 	rt.vecRetain(parts, (part: rt.ByteVec): boolean => {
 		return !((part.length === 0));
 	});
