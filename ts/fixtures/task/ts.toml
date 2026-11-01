@@ -23,4 +23,5 @@ roots = [
     "futures::helpers",
     "futures::boxed",
     "futures::wakers",
+    "closures::closures",
 ]

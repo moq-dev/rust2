@@ -130,6 +130,7 @@ crate translation reaches is refused, and so are two versions of one crate it re
 | `LazyCell<T>`, `LazyLock<T>` in a `static` or `const` | `rt.LazyCell` and `rt.LazyLock`, which run their function on the first `force` or `Deref`, once; forced from within it, either panics as std's does |
 | `AtomicU32` and the others of `bool` and integers, `AtomicPtr<T>` | `rt.Atomic<T>`, the `rt.Place` of its value; an `atomic::Ordering` is its discriminant, and one an operation can't take panics as std's does. An `AtomicPtr` compares pointers only to what JS keeps as an object or bytes, as raw pointers do |
 | `async fn` | a function returning `rt.Future<T>`: a class of its own, its coroutine's state machine |
+| async closure | a closure returning the future of each call, with what makes the future of a call that consumes it if it owns a value that drops and `Fn` or `FnMut` call it |
 | `Poll<T>`, `Waker`, `Context` | `T \| typeof rt.Pending`; `T \| rt.OuterPending` where `T` can already be pending, as `Poll<Poll<u8>>` can, so `Ready(Pending)` keeps apart from `Pending`; `rt.Waker`, which is also the context, and whose `data` and `vtable` are its identity, which `Waker::data`, `Waker::vtable`, and `will_wake` read |
 | `pin!(x)`, `poll_fn(f)`, `future::pending()` | `x`; `rt.PollFn`, which drops `f` with itself; `rt.NEVER` |
 | `Box::pin(x)`, `dyn Future<Output = T>` | `x`; `rt.Future<T>`: an `async` body or std's future as it is, and another future as an `rt.DynFuture` over its `poll`, which drops it with itself unless borrowed |
@@ -465,8 +466,15 @@ An `async fn` returns a future without running anything: an instance of a class 
 own (`sumFuture`), the state machine MIR's coroutine transform makes. Its fields are the
 arguments and the locals held across an `.await`, and its `poll` resumes at the state it
 stopped in. A poll after the future returned panics, and dropping it cancels it,
-dropping what its state holds. `rt.spawn(future)` runs one as a promise, polling woken tasks in a batch from a
-microtask and yielding to a macrotask after 128 polls. `Waker::from(arc)`, of an `Arc` of
+dropping what its state holds. An async closure's future borrows what the closure
+captured, and that of a call that consumes it owns it, as rustc's by-move body does: a
+class of its own (`closuresFuture$closure2_closure0_once`), which a closure that `Fn` or
+`FnMut` call and that owns what drops makes through `rt.callOnce`, as std's functions and
+a `dyn FnOnce` call it.
+`rt.spawn(future, signal?)` runs one as a promise, polling woken tasks in a batch from a
+microtask and yielding to a macrotask after 128 polls. Aborting `signal` drops the future
+at once, or as the poll it aborts in returns pending, and rejects the promise with the
+signal's reason; a future ready in that poll resolves it. `Waker::from(arc)`, of an `Arc` of
 the crate's `Wake` impl, is an `rt.ArcWaker`, which holds a count of the `Arc` and wakes
 through the impl, and `Waker::noop()` is `rt.NOOP_WAKER`. A waker's identity is its `data`
 and `vtable`, as std's is: an `rt.ArcWaker`'s are its `Arc` and the impl's `wake`, so
@@ -794,7 +802,7 @@ fields overlap in different types ([unsafe](/quest/m3/ts-unsafe.md)), and trait 
 behind `&`, `&mut`, `Box`, or `Arc` ([trait objects](/quest/m3/ts-dyn.md)), fail translation. Until they translate, an item that needs one, such as a `dyn Error`, binds to
 hand-written TS ([bindings](#bindings)).
 
-These fail translation: `f16` and `f128`, async closures, a `Poll` of a `Poll` of a `Poll`, a future whose output can be pending, an instance of a generic type whose field is a `Poll` of a type parameter that can be pending, a closure that owns a value
+These fail translation: `f16` and `f128`, a `Poll` of a `Poll` of a `Poll`, a future whose output can be pending, an instance of a generic type whose field is a `Poll` of a type parameter that can be pending, a closure that owns a value
 that drops given to a std function that drops it beside another value that drops, other
 than `for_each` and `fold`, as `reduce` of items that drop does, or keeps it other than in
 an iterator adaptor, and values that drop in some iterators ([drop order](/quest/m3/ts-drop-order.md)), a `Cow` of other than `str` or a slice, a std
@@ -874,8 +882,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
 - `task` trims moq's kio to a dependency of its own, `kio`, reached across crates as moq-net
   reaches kio: a channel of `Arc`ed state, waiters, and wakers, kio's `Task`, `Pending`, and
   `Waiter::poll_future`, and a `Consumer::poll` whose closure is itself pending, a
-  `Poll<Poll<_>>`. Async functions and std's future helpers run over it, with wakers of
-  the crate's `Wake` impls, beside values that drop inside std's types. Its caller is hand-written TS (`tests/task.ts`): a FIFO executor that runs a
+  `Poll<Poll<_>>`. Async functions, async closures called directly and through each
+  function trait, and std's future helpers run over it, with wakers of the crate's `Wake`
+  impls, beside values that drop inside std's types. Its caller is hand-written TS (`tests/task.ts`): a FIFO executor that runs a
   script of spawns, sends, polls, and drops, and logs every poll, wake, and drop, as the
   fixture's native executor does. The logs must match byte for byte.
 - `stock` calls `bytes`, `rand`, and `tracing` with no config, against native Rust, whose
@@ -904,8 +913,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
 - `reject` holds constructs outside the subset; its expected errors are `expected.txt`,
   and its expected census is `census.md`.
 
-`tests/spawn.ts` checks that `rt.spawn` yields to a timer after its 128-poll budget, and
-rejects when a future panics as it drops. `tests/retain.ts` runs a collection's `retain`
+`tests/spawn.ts` checks that `rt.spawn` yields to a timer after its 128-poll budget,
+rejects when a future panics as it drops, and drops a future when its signal aborts:
+before its first poll, while pending, and from within its own poll. `tests/retain.ts` runs a collection's `retain`
 and `Vec::dedup_by` over every keep mask of up to 6 items, and `retain` checks that each
 leaves and drops what std's does.
 

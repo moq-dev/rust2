@@ -36,3 +36,8 @@ generic std gap is planned here even when moq never calls it.
 - [The rest of a guard's methods](/quest/m3/ts-guard-rest.md) - `Debug` of `RefCell` and `RwLock` guards, `MutexGuard::map`, and the guards' `try_map` translate
 - [Aborts in the differential](/quest/m3/ts-abort-differential.md) - the lang differential compares wasm32's aborts, so an `RwLock` locked again while held is tested
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained
+- [Whole writes into a lazy cell or thread-local key](/quest/m3/ts-lazy-writes.md) - a whole write through a `&mut` to a `LazyCell`, `LazyLock`, or `LocalKey` keeps its state
+- [A guard's downgrade, leak, and whole byte-array map](/quest/m3/ts-guard-leftovers.md) - `downgrade`, `Ref::leak`, `RefMut::leak`, and a guard's map over a whole `[u8; N]` translate
+- [Type errors at the Rust that made them](/quest/m3/ts-span-precision.md) - a `tsc` error on output names the tail expression or call argument that made it
+- [An empty iterator of mutable references](/quest/m3/ts-empty-places.md) - `iter::empty::<&mut T>()` given to `zip` or `chain` translates
+- [An Option of numbers in the result slot](/quest/m3/ts-option-slot.md) - `varint_opt`'s `Option` comes back through the slot with no object per call
