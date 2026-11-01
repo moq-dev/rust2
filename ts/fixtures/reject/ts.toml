@@ -66,6 +66,7 @@ roots = [
     "vec_pointer",
     "bits",
     "places_compared",
+    "optional_places_compared",
     "part_replaced",
     "variable_reassigned",
     "variable_replaced",

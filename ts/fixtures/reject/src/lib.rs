@@ -1716,8 +1716,7 @@ pub fn byte_pointer_ops(mut a: [u8; 4], b: [u8; 4]) -> u64 {
 		let slice: *const [u8] = q;
 		let mut h = std::collections::hash_map::DefaultHasher::new();
 		q.hash(&mut h);
-		let some = Some(std::ptr::NonNull::from(&a)) == Some(std::ptr::NonNull::from(&b));
-		h.finish() + u64::from(same) + u64::from(some) + u64::from(byte) + slice.len() as u64
+		h.finish() + u64::from(same) + u64::from(byte) + slice.len() as u64
 	}
 }
 
@@ -2158,4 +2157,10 @@ pub fn mistyped(bytes: Vec<u8>, words: Vec<u16>) -> u32 {
 	let a = Rows { items: bytes };
 	let b = Rows { items: words };
 	a.first() as u32 + b.first() as u32
+}
+
+/// An `Option` of pointers to a number, each an `rt.Place` JS makes of its own.
+pub fn optional_places_compared(n: &mut u32) -> bool {
+	let p = std::ptr::NonNull::from(&mut *n);
+	Some(p) == std::ptr::NonNull::new(&raw mut *n)
 }
