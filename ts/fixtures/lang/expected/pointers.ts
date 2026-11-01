@@ -1317,14 +1317,14 @@ export function nextRead$pointers_Loaded(items: rt.Iter<Loaded.Loaded>): Loaded.
  * read, as zlib's stream takes its window each round, by a callee over a type parameter:
  * one into an array and one into a struct.
  */
-export function reattached(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function reattached(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const window: pointers_Window.Window = { at: rt.NULL };
 	let buf: rt.u16[] = Array.from({ length: 4 }, (): rt.u16 => {
 		return 0;
 	});
 	const slot: pointers_Slot.Slot = { at: rt.NULL };
 	let pair: Reattached.Reattached = { _0: 0, _1: 0 };
-	for (const n of rt.byteSliceView(data)) {
+	for (const n of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
 		const _17: rt.u16[] = buf;
 		attach$array4_u16(rt.place(() => window.at, (value) => window.at = value), _17);
 		const _18: rt.u16 = (((n as rt.u16)) << 7) & 0xffff;

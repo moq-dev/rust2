@@ -27,13 +27,13 @@ export function items(l: rt.LinkedList<rt.u8>, out: rt.ByteVec): void {
  * bytes, then how they compare, hash, iterate, and print. `kind` picks whether a split
  * past the end ends it, which panics.
  */
-export function lists(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function lists(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let _93!: rt.i32;
 	let x2!: rt.u8 | undefined;
 	let x3!: rt.Place<rt.u8> | undefined;
 	let l: rt.LinkedList<rt.u8> = rt.listNew() as rt.LinkedList<rt.u8>;
 	let m: rt.LinkedList<rt.u8> = rt.listNew() as rt.LinkedList<rt.u8>;
-	l1: for (const b of rt.byteSliceView(data)) {
+	l1: for (const b of rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))) {
 		const _13: rt.u8 = rt.u8Rem(b, 13);
 		if (_13 === 0) {
 			rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.listPopFront(l), 238));
@@ -150,9 +150,9 @@ export function lists(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterRev(it3), undefined, true);
 	rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.iterLast(rt.listIter(l)), 231));
 	rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.iterNth(rt.listIter(l), rt.usizeRem(kind as rt.usize, 4)), 230));
-	edges(data, out);
+	edges(dataData, dataStart, dataLen, out);
 	printed(l, m, out);
-	tallies(data, out);
+	tallies(dataData, dataStart, dataLen, out);
 	if (rt.u8Rem(kind, 4) === 0) {
 		rt.iterExtendBytes(out, rt.listIter(rt.listSplitOff(m, rt.usizeAdd(rt.usizeAdd(m.n, 1), rt.u8Rem(rt.u8Div(kind, 4), 2) as rt.usize))), undefined, true);
 	}
@@ -162,7 +162,8 @@ export function lists(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
  * `split_off` and `append` at 0, either side of the middle, and the end, and the list
  * `collect`, `From`, and `extend` make, empty ones included.
  */
-export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function edges(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const data: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart, dataLen);
 	const _4: rt.Iter<rt.u8> = rt.iterSlice(rt.byteSliceView(data));
 	const whole: rt.LinkedList<rt.u8> = rt.listExtend(rt.listNew() as rt.LinkedList<rt.u8>, _4);
 	const len: rt.usize = whole.n;
@@ -247,8 +248,8 @@ export function printed(l: rt.LinkedList<rt.u8>, m: rt.LinkedList<rt.u8>, out: r
 }
 
 /** A list of `Tally`s, which JS changes in place rather than through places. */
-export function tallies(data: rt.ByteSlice, out: rt.ByteVec): void {
-	const _4: rt.Iter<lists_Tally.Tally> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): lists_Tally.Tally => {
+export function tallies(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	const _4: rt.Iter<lists_Tally.Tally> = rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart, dataLen))), (_2: rt.u8): lists_Tally.Tally => {
 		return { n: _2 as rt.u16 };
 	});
 	const l: rt.LinkedList<lists_Tally.Tally> = rt.listExtend(rt.listNew() as rt.LinkedList<lists_Tally.Tally>, _4);

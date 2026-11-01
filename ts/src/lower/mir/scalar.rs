@@ -196,7 +196,7 @@ impl<'tcx> crate::lower::Translator<'_, 'tcx> {
 			rustc_hir::def::DefKind::Fn | rustc_hir::def::DefKind::AssocFn
 		) || self.census
 			|| self.roots.contains(&instance)
-			|| !self.lowers(instance)
+			|| !self.lowers(self.typing_env(), instance)
 			|| tcx.asyncness(did).is_async()
 			|| crate::lower::iter::is_next(tcx, did);
 		(!outside).then_some(did)
