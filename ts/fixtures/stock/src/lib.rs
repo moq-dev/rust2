@@ -1,10 +1,12 @@
-//! Calls into `bytes`, `rand`, and `tracing`, which translation maps itself, so this
-//! config binds and leaves out nothing.
+//! Calls into `bytes`, `hashbrown`, `rand`, and `tracing`, which translation maps itself,
+//! and into `hashlink`, which translates over `hashbrown`, so this config binds and leaves
+//! out nothing.
 //!
 //! `harness::run` is the entry point both sides of the differential test run.
 
 mod buf;
 pub mod harness;
+mod maps;
 #[cfg(target_arch = "wasm32")]
 #[path = "../../wasm.rs"]
 mod wasm;

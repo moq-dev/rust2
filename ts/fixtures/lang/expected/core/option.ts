@@ -242,6 +242,13 @@ export function unwrapOrDefault$0wx44sw(self: rt.ByteVec | undefined): rt.ByteVe
 	return self;
 }
 
+export function unwrapOrDefault$0301ewp(self: rt.ByteSlice | undefined): rt.ByteSlice {
+	if (self === undefined) {
+		return rt.byteSliceFrom(new Uint8Array(0));
+	}
+	return self;
+}
+
 export function unwrapOrDefault$0k1p6nh(self: [rt.u64 | undefined, defaults_Made.Made] | undefined): [rt.u64 | undefined, defaults_Made.Made] {
 	if (self === undefined) {
 		return [undefined, defaults_Made.default$Default()];

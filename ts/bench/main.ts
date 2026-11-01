@@ -369,7 +369,7 @@ function render(): string {
 		"Rust at moq-wasm's size-optimized profile, run with its input already in memory;",
 		"copying the input in and the output out are timed apart. `hand-written` is moq's",
 		"`js/net`, called as its own benchmarks call it, for `iter/` the same chain with ES",
-		"iterator helpers (`bench/iter.ts`), for `btree/` a sorted array (`bench/sorted.ts`), and",
+		"iterator helpers (`bench/iter.ts`), for `btree/` a sorted array (`bench/sorted.ts`), for `hash/` a `Map` (`bench/hashed.ts`), and",
 		"for `time/` conversions `bigint`, as moq's `js/hang` converts timescales (`bench/rescale.ts`),",
 		"and for `time/checked-add` and `time/ord` moq's own `Timestamp` (`bench/timestamp.ts`).",
 		"Each JS route and `wasm` runs alone in a worker of its own, a fresh one each round. `A/A` is the translation again: its",

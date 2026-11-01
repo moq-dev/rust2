@@ -1,5 +1,6 @@
 //! Collections, as `rt/collections.ts` gives them: `HashMap`, `HashSet`, `BTreeMap`,
-//! `BTreeSet`, `VecDeque`, `LinkedList`, and `BinaryHeap`, with `Ordering` and `DefaultHasher`, which their keys need.
+//! `BTreeSet`, `VecDeque`, `LinkedList`, and `BinaryHeap`, std's or hashbrown's, and
+//! hashbrown's `HashTable`, with `Ordering` and `DefaultHasher`, which their keys need.
 //!
 //! A hash collection holds a key that is a JS primitive as its own JS map key, which JS
 //! compares as Rust's `Eq` does for numbers, strings, and booleans, and finds any other
@@ -208,6 +209,8 @@ pub fn call<'tcx>(
 	}
 	let e = match std {
 		Std::HashMap | Std::HashSet => hash(b, coll, call, owner, name, args, out),
+		Std::HashTable => table(b, coll, call, owner, name, args, out),
+		Std::TableEntry => table_entry(b, coll, name, args, call.span),
 		Std::BTreeMap | Std::BTreeSet => btree(b, coll, call, owner, name, args),
 		Std::VecDeque => deque(b, coll, call, owner, name, args),
 		Std::LinkedList => list(b, coll, call, owner, name, args),
@@ -387,6 +390,8 @@ pub fn place_call<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>) -> bool {
 			0,
 		),
 		Std::HashMap => (&["get_mut", "iter_mut", "values_mut", "retain"], 1),
+		Std::HashTable => (&["find_mut", "iter_mut", "retain"], 0),
+		Std::TableEntry => (&["get_mut", "into_mut", "and_modify"], 0),
 		Std::BTreeMap => (&["get_mut", "iter_mut", "values_mut", "range_mut", "retain"], 1),
 		Std::Entry if is_vacant(b, coll) => (&["insert"], 1),
 		Std::Entry => (
@@ -532,9 +537,16 @@ fn hash<'tcx>(
 	let none = library::sentinel_option(b.t, call).is_some();
 	let mut values = args;
 	let e = match (owner, name) {
-		(_, "new" | "with_capacity") | ("Default", "default") => {
+		(_, "new" | "with_hasher") | ("Default", "default") => {
 			discard(values, out);
 			hash_new(b, coll, span)?
+		}
+		(_, "with_capacity" | "with_capacity_and_hasher") => {
+			let n = values.remove(0);
+			discard(values, out);
+			let mut values = vec![n, hash_max(b, coll, span)];
+			values.extend(hashing(b, coll, key, span)?);
+			empty(b, Expr::rt("hashWithCapacity", values), coll, span)
 		}
 		(_, "len") => Expr::rt("hashLen", values),
 		(_, "is_empty") => Expr::rt("hashLen", values).binary("===", Expr::lit("0")),
@@ -586,9 +598,8 @@ fn hash<'tcx>(
 				vec![target, keys, Expr::undefined(), Expr::undefined(), max],
 			)
 		}
-		(_, "reserve" | "shrink_to_fit") => {
-			discard(values, out);
-			Expr::undefined()
+		(_, "capacity" | "reserve" | "shrink_to" | "shrink_to_fit" | "allocation_size") => {
+			sized(b, coll, name, values, span)
 		}
 		("Index", "index") => Expr::rt("hashIndex", values),
 		("Clone", "clone") => {
@@ -608,6 +619,131 @@ fn hash<'tcx>(
 			};
 			hash_extend(b, coll, target, source, iter, span)
 		}
+		_ => return None,
+	};
+	Some(e)
+}
+
+/// What `name` of a hash collection or table of type `coll`, given `values`, reads or sets
+/// of its capacity, as std guarantees it.
+fn sized<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, name: &str, mut values: Vec<Expr>, span: Span) -> Expr {
+	match name {
+		"capacity" => Expr::rt("hashCapacity", values),
+		"reserve" => {
+			values.push(hash_max(b, coll, span));
+			Expr::rt("hashReserve", values)
+		}
+		"shrink_to_fit" => {
+			values.push(Expr::lit("0"));
+			Expr::rt("hashShrinkTo", values)
+		}
+		"shrink_to" => Expr::rt("hashShrinkTo", values),
+		_ => {
+			values.push(super::iter::size_of(b, stored(b, coll), span));
+			Expr::rt("hashAllocationSize", values)
+		}
+	}
+}
+
+/// A method of hashbrown's `HashTable`, or of a trait it implements: the runtime's map's of
+/// its items, under the hash each is given. The runtime takes the `hasher` a method does,
+/// and never calls it, as it never moves an item.
+fn table<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	coll: Ty<'tcx>,
+	call: &Call<'tcx>,
+	owner: &str,
+	name: &str,
+	args: Vec<Expr>,
+	out: &mut Vec<Stmt>,
+) -> Option<Expr> {
+	let span = call.span;
+	let item = arg(coll, 0);
+	// What a `&mut` to an item is: its place where JS would copy it.
+	let place = b.t.needs_place(item);
+	let mut values = args;
+	let e = match (owner, name) {
+		(_, "new") | ("Default", "default") => {
+			discard(values, out);
+			empty(b, Expr::rt("hashNew", vec![]), coll, span)
+		}
+		(_, "with_capacity") => {
+			values.push(hash_max(b, coll, span));
+			empty(b, Expr::rt("hashWithCapacity", values), coll, span)
+		}
+		(_, "len") => Expr::rt("hashLen", values),
+		(_, "is_empty") => Expr::rt("hashLen", values).binary("===", Expr::lit("0")),
+		(_, "capacity" | "allocation_size") => sized(b, coll, name, values, span),
+		// The hasher last.
+		(_, "reserve" | "shrink_to" | "shrink_to_fit") => {
+			let hasher = values.pop()?;
+			match sized(b, coll, name, values, span) {
+				Expr::Call(f, mut values) => {
+					values.push(hasher);
+					Expr::Call(f, values)
+				}
+				e => e,
+			}
+		}
+		(_, "find_mut") if place => Expr::rt("tableFindMut", values),
+		(_, "find" | "find_mut") => Expr::rt("tableFind", values),
+		(_, "find_entry") => Expr::rt("tableFindEntry", values),
+		(_, "entry") => Expr::rt("tableEntry", values),
+		(_, "insert_unique") => Expr::rt("tableInsertUnique", values),
+		(_, "clear") => {
+			values.push(Expr::undefined());
+			values.extend(b.t.droppers([item], span)?);
+			Expr::rt("hashClear", values)
+		}
+		(_, "retain") => {
+			values.extend(b.t.droppers([item], span)?);
+			Expr::rt(if place { "tableRetainMut" } else { "tableRetain" }, values)
+		}
+		(_, "iter_mut") if place => Expr::rt("hashValuesMut", values),
+		(_, "iter" | "iter_mut") => Expr::rt("hashValues", values),
+		(_, "drain") => {
+			values.extend(b.t.droppers([item], span)?);
+			Expr::rt("tableDrain", values)
+		}
+		("Clone", "clone") => {
+			values.extend([Expr::undefined(), clone_fn(b, item, span)]);
+			Expr::rt("hashClone", values)
+		}
+		_ => return None,
+	};
+	Some(e)
+}
+
+/// A method of a `HashTable`'s `Entry`, `OccupiedEntry`, `VacantEntry`, or `AbsentEntry`.
+fn table_entry<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	coll: Ty<'tcx>,
+	name: &str,
+	args: Vec<Expr>,
+	span: Span,
+) -> Option<Expr> {
+	let item = arg(coll, 0);
+	let mut values = args;
+	let e = match name {
+		"insert" | "or_insert" => {
+			values.extend(b.t.droppers([item], span)?);
+			Expr::rt(
+				if name == "insert" {
+					"tableEntryInsert"
+				} else {
+					"tableOrInsert"
+				},
+				values,
+			)
+		}
+		"or_insert_with" => Expr::rt("tableOrInsertWith", values),
+		"and_modify" if b.t.needs_place(item) => Expr::rt("tableAndModifyMut", values),
+		"and_modify" => Expr::rt("tableAndModify", values),
+		// The entry is its item's place.
+		"get_mut" | "into_mut" if b.t.needs_place(item) => values.pop()?,
+		"get" | "get_mut" | "into_mut" => values.pop()?.member("v"),
+		"remove" => Expr::rt("tableRemove", values),
+		"into_table" => values.pop()?.member("t"),
 		_ => return None,
 	};
 	Some(e)
@@ -1830,10 +1966,15 @@ fn entry<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, name: &str, args: Vec
 	Some(e)
 }
 
-/// Whether `entry`, an `Entry`, is its variant `index`: `Occupied` while the map holds
-/// its key. Each variant's entry is the `Entry` itself.
-pub fn entry_test(adt: ty::AdtDef<'_>, index: rustc_abi::VariantIdx, entry: Expr) -> Expr {
-	let occupied = Expr::rt("entryOccupied", vec![entry]);
+/// Whether `entry`, an `Entry` of a map or, as `std` says, of a `HashTable`, is its variant
+/// `index`: `Occupied` while the map holds its key. Each variant's entry is the `Entry` itself.
+pub fn entry_test(std: Std, adt: ty::AdtDef<'_>, index: rustc_abi::VariantIdx, entry: Expr) -> Expr {
+	let f = if std == Std::TableEntry {
+		"tableOccupied"
+	} else {
+		"entryOccupied"
+	};
+	let occupied = Expr::rt(f, vec![entry]);
 	match adt.variant(index).name.as_str() {
 		"Occupied" => occupied,
 		_ => occupied.not(),
@@ -2618,6 +2759,8 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 		Std::BinaryHeap => "heapIter",
 		Std::HashMap => "hashIter",
 		Std::HashSet => "hashKeys",
+		Std::HashTable if places(0) => "hashValuesMut",
+		Std::HashTable => "hashValues",
 		Std::BTreeMap => "btreeIter",
 		Std::BTreeSet => "btreeKeys",
 		Std::VecDeque => "dequeIter",

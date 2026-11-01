@@ -282,6 +282,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("capacity::deques", capacity::deques),
 		("capacity::heaps", capacity::heaps),
 		("capacity::collects", capacity::collects),
+		("capacity::maps", capacity::maps),
 		("elements::vecs", |_, data, out| elements::vecs(data, out)),
 		("elements::arrays", |_, data, out| elements::arrays(data, out)),
 		("elements::segments", |_, data, out| elements::segments(data, out)),

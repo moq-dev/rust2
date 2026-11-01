@@ -155,6 +155,20 @@ pub struct InMemoryEventPersister {
     events: Mutex<Vec<String>>,
 }
 
+static PERSISTER_DROP_COUNT: std::sync::atomic::AtomicUsize =
+    std::sync::atomic::AtomicUsize::new(0);
+
+impl Drop for InMemoryEventPersister {
+    fn drop(&mut self) {
+        PERSISTER_DROP_COUNT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+#[uniffi::export]
+pub fn persister_drop_count() -> u64 {
+    PERSISTER_DROP_COUNT.load(std::sync::atomic::Ordering::SeqCst) as u64
+}
+
 #[uniffi::export]
 impl InMemoryEventPersister {
     #[uniffi::constructor]

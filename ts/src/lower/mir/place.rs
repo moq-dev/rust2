@@ -469,8 +469,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		variant: VariantIdx,
 		span: Span,
 	) -> Expr {
-		// `rt.Entry` is one class for either variant, which TypeScript narrows nothing by.
-		if matches!(ty.kind(), ty::Adt(adt, _) if matches!(Std::of(self.tcx, adt.did()), Some(Std::Entry))) {
+		// `rt.Entry` is one class for either variant, which TypeScript narrows nothing by, as is
+		// `rt.TableEntry`.
+		let entry = |adt: &ty::AdtDef<'_>| matches!(Std::of(self.tcx, adt.did()), Some(Std::Entry | Std::TableEntry));
+		if matches!(ty.kind(), ty::Adt(adt, _) if entry(adt)) {
 			return base;
 		}
 		let Some(variant) = self.variant_ty(ty, variant, span) else {
@@ -593,7 +595,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				Some(Std::Range | Std::RangeInclusive | Std::RangeTo | Std::RangeFrom | Std::RangeToInclusive) => {
 					base.member(adt.non_enum_variant().fields[field].name.as_str())
 				}
-				Some(Std::Context | Std::NonNull | Std::Entry) => base,
+				Some(Std::Context | Std::NonNull | Std::Entry | Std::TableEntry) => base,
 				// `TryFromIntError`'s `IntErrorKind`.
 				Some(Std::TryFromIntError) => base.member("kind"),
 				// The runtime's field of each of std's errors has its name.
@@ -1201,7 +1203,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						}
 					}
 					Some(Std::ControlFlow) => super::call::control_flow_test(self, scrut, ty, index, next),
-					Some(Std::Entry) => crate::lower::collections::entry_test(*adt, index, scrut.clone()),
+					Some(std @ (Std::Entry | Std::TableEntry)) => {
+						crate::lower::collections::entry_test(std, *adt, index, scrut.clone())
+					}
 					Some(Std::Cow) if let Some(elem) = crate::lower::library::cow_slice(tcx, ty) => {
 						let borrows = crate::lower::library::cow_borrows(scrut.clone(), elem);
 						match index.index() {

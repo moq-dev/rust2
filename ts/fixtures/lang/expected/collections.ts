@@ -124,7 +124,7 @@ export function hashMaps(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 		rt.hashClear(map);
 		rt.byteVecPush(out, rt.hashLen(map) & 0xff);
 	} else if (_4 === 1) {
-		const map2: rt.HashMap<rt.u64, rt.u8> = rt.hashNew(rt.hashing(rt.hash64, rt.u64Eq)) as rt.HashMap<rt.u64, rt.u8>;
+		const map2: rt.HashMap<rt.u64, rt.u8> = rt.hashWithCapacity(4, 58720256, rt.hashing(rt.hash64, rt.u64Eq)) as rt.HashMap<rt.u64, rt.u8>;
 		const iter3: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(data)));
 		while (true) {
 			const _110: [rt.usize, rt.u8] | rt.Done = iter3.next();
@@ -306,8 +306,8 @@ export function hashMaps(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 			rt.byteVecPush(out, claim(copy2, rt.u8Rem(b5, 8), b5 as rt.u16));
 		}
 		const stamped: rt.HashMap<rt.u8, collections_Tally.Tally> = rt.hashNew() as rt.HashMap<rt.u8, collections_Tally.Tally>;
-		stamp(stamped);
-		stamp(stamped);
+		rt.hashShrinkTo(stamp(stamped), 0);
+		rt.hashReserve(stamp(stamped), 2, 234881024);
 		rt.byteVecPush(out, rt.hashLen(stamped) & 0xff);
 		const extended: rt.HashMap<rt.u8, collections_Tally.Tally> = rt.hashNew() as rt.HashMap<rt.u8, collections_Tally.Tally>;
 		rt.hashExtend(extended, rt.iterMap(rt.hashIter(bytes), copy$tuple2_u8_collections_Tally), undefined, undefined, undefined, 234881024);

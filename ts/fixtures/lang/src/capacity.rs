@@ -2,9 +2,10 @@
 //! grows, shrinks, remakes, or reads one, of elements of each size its growth tells apart:
 //! a byte, at most 1 KiB, past it, and none. std fixes it exactly only through steps its
 //! doubling decides, such as pushes, `with_capacity`, `reserve`, and `shrink_to`; past
-//! any other step, a case checks only what std guarantees.
+//! any other step, a case checks only what std guarantees. A `HashMap`'s and a
+//! `HashSet`'s it checks only by std's guarantees.
 
-use std::collections::{BinaryHeap, VecDeque};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 use std::mem;
 
 /// A length or capacity, as four bytes.
@@ -458,5 +459,84 @@ pub fn collects(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 			grown.shrink_to(n / 2);
 			exact.put(out, grown.len(), grown.capacity());
 		}
+	}
+}
+
+/// std's `HashMap` and `HashSet`, made by `with_capacity` if `kind` is odd, as each pair of
+/// `data`'s bytes changes them: their lengths, and whether each holds at least its length,
+/// what `with_capacity` and `reserve` asked for, and no less past `shrink_to`, `clear`, or
+/// `drain` than it asked for of what there was. A `reserve` or `with_capacity` past what
+/// one may hold panics.
+pub fn maps(kind: u8, data: &[u8], out: &mut Vec<u8>) {
+	let made = data.first().map_or(0, |&b| usize::from(b % 24));
+	let (mut m, mut s): (HashMap<u16, (u64, u8)>, HashSet<u8>) = match kind & 1 {
+		1 => (HashMap::with_capacity(made), HashSet::with_capacity(made)),
+		_ => (HashMap::new(), HashSet::new()),
+	};
+	let floor = made * usize::from(kind & 1);
+	let checks = |out: &mut Vec<u8>, lens: [usize; 2], caps: [usize; 2], floors: [usize; 2]| {
+		for i in 0..2 {
+			put(out, lens[i]);
+			out.push(u8::from(caps[i] >= lens[i].max(floors[i])));
+		}
+	};
+	checks(out, [m.len(), s.len()], [m.capacity(), s.capacity()], [floor; 2]);
+	for step in data.get(1..).unwrap_or_default().chunks(2) {
+		let (op, arg) = (step[0], step.get(1).copied().unwrap_or(0));
+		let before = [m.capacity(), s.capacity()];
+		let lens = [m.len(), s.len()];
+		let mut floors = [0; 2];
+		match op % 10 {
+			0..=2 => {
+				m.insert(u16::from(arg), (u64::from(op), arg));
+				s.insert(arg);
+			}
+			3 => {
+				m.remove(&u16::from(arg));
+				s.remove(&arg);
+			}
+			4 => {
+				let (a, b) = (
+					amount(arg, lens[0], size_of::<(u16, (u64, u8))>()),
+					amount(arg, lens[1], 1),
+				);
+				m.reserve(a);
+				s.reserve(b);
+				floors = [lens[0] + a, lens[1] + b];
+			}
+			5 => {
+				let min = usize::from(arg % 20);
+				m.shrink_to(min);
+				s.shrink_to(min);
+				floors = [before[0].min(lens[0].max(min)), before[1].min(lens[1].max(min))];
+			}
+			6 => {
+				m.shrink_to_fit();
+				s.shrink_to_fit();
+			}
+			7 => {
+				m.clear();
+				s.clear();
+				floors = before;
+			}
+			8 => {
+				// By key, as which keys every other one would keep follows iteration order.
+				m.retain(|k, _| k % 3 != u16::from(arg % 3));
+				s.retain(|k| k % 3 != arg % 3);
+				// std promises nothing of a clone's capacity.
+				m = m.clone();
+				s = s.clone();
+			}
+			_ => {
+				drop(m.drain());
+				drop(s.drain());
+				floors = before;
+			}
+		}
+		checks(out, [m.len(), s.len()], [m.capacity(), s.capacity()], floors);
+	}
+	if kind & 0x80 != 0 {
+		let huge: HashSet<u64> = HashSet::with_capacity(usize::MAX >> (kind & 3));
+		put(out, huge.len());
 	}
 }

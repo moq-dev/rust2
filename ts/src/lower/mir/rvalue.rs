@@ -424,7 +424,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					.map(|(i, d)| (i, int.fold(d as i128) as u128))
 					.collect();
 				match Std::of(tcx, adt.did()) {
-					Some(Std::Option | Std::Poll | Std::Result | Std::Entry) => {
+					Some(Std::Option | Std::Poll | Std::Result | Std::Entry | Std::TableEntry) => {
 						let scrut = self.path(scrut, "scrutinee", out);
 						let first = self.variant_test(&scrut, ty, discrs[0].1, next, span);
 						Expr::Cond(
