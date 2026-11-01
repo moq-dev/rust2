@@ -14,6 +14,7 @@ import * as Varint from "moq/js/net/src/varint.ts";
 
 import { iterate } from "./iter.ts";
 import { order } from "./order.ts";
+import { hashed } from "./hashed.ts";
 import { push } from "./push.ts";
 import { rescale } from "./rescale.ts";
 import { ordered } from "./sorted.ts";
@@ -65,6 +66,8 @@ export function run(input: Uint8Array): Uint8Array | Promise<Uint8Array> {
 			return order(selector, data);
 		case 13:
 			return push(data);
+		case 14:
+			return hashed(selector, data);
 		default:
 			throw new Error(`unknown workload ${op}`);
 	}

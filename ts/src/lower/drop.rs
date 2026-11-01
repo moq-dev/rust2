@@ -55,6 +55,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					| Std::PollFn
 					| Std::HashMap
 					| Std::HashSet
+					| Std::HashTable
 					| Std::BTreeMap
 					| Std::BTreeSet
 					| Std::VecDeque
@@ -332,6 +333,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				Std::HashMap => ("hashDrop", vec![value, each(self, 0)?, each(self, 1)?]),
 				Std::BTreeMap => ("btreeDrop", vec![value, each(self, 0)?, each(self, 1)?]),
 				Std::HashSet => ("hashDrop", vec![value, each(self, 0)?]),
+				// Its items are the values of a map whose keys are nothing.
+				Std::HashTable => ("hashDrop", vec![value, Expr::undefined(), each(self, 0)?]),
 				Std::BTreeSet => ("btreeDrop", vec![value, each(self, 0)?]),
 				Std::VecDeque => ("dequeDrop", vec![value, each(self, 0)?]),
 				Std::LinkedList => ("listDrop", vec![value, each(self, 0)?]),
