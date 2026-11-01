@@ -26,7 +26,6 @@ The fork's feature quests folded into the [exporter](/quest/m1/ffi-export/README
 
 ## Required
 
-- [Borrows refused for a pointer no callee keeps there](/quest/m2/ts-taken-precision.md) - moq-net and kio drop the 13 borrows of a `OnceLock` or an atomic refused for a pointer that no callee they reach keeps, or into a part nothing replaces
 - [Byte slices without objects](/quest/m2/ts-byte-views/README.md) - reading through a translated cursor allocates no object per read
 - [Async in the TypeScript translator](/quest/m2/ts-async.md) - moq-net's and kio's async code translates with Rust's lazy futures
 - [Shared ownership](/quest/m2/ts-shared.md) - `Arc`/`Rc`/`Weak` keep exact counts, and locks and atomics become plain values
