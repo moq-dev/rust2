@@ -70,7 +70,7 @@ export function inside(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		const _139: rt.usize = v.length;
 		const args10: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(_136, f), (f: rt.Formatter) => rt.usizeDisplay(_139, f)];
 		Log.note(log, rt.fmtFormat(["drained ", args10[0], " ", args10[1]]));
-		const q: rt.VecDeque<Guard.Guard> = rt.dequeFromVec(rt.iterToArray(rt.iterMap(new rt.Range(6, 9), guard), undefined, 8, true), 8) as rt.VecDeque<Guard.Guard>;
+		const q: rt.VecDeque<Guard.Guard> = rt.dequeFromVec(rt.iterToArray(rt.iterMap(new rt.Range(6, 9), guard), undefined, 8, true)) as rt.VecDeque<Guard.Guard>;
 		const it: rt.Iter<Guard.Guard> = rt.dropAfter(new Spent.Spent(guard(11), 0, 2), (range13) => rt.dequeDrain(q, rt.boundsOf(range13, Spent.startBound$ops_RangeBounds_usize, Spent.endBound$ops_RangeBounds_usize), rt.drop), rt.drop);
 		const part17 = option_map$1raha9y(rt.iterToOption(it.next()), (g12: Guard.Guard): rt.u32 => {
 			const _012: rt.u32 = Guard.id(g12);

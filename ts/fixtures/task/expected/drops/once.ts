@@ -154,11 +154,11 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		other2[Symbol.dispose]();
 		const v: rt.OnceCell<Guard.Guard>[] = [];
 		const _274: rt.OnceCell<Guard.Guard> = new rt.OnceCell(guard(63));
-		rt.vecPush(v, _274, 8);
+		v.push(_274);
 		const _280: rt.OnceCell<Guard.Guard> = new rt.OnceCell(undefined);
-		rt.vecPush(v, _280, 8);
+		v.push(_280);
 		const _283: rt.OnceCell<Guard.Guard> = new rt.OnceCell(guard(64));
-		rt.vecPush(v, _283, 8);
+		v.push(_283);
 		const cells: rt.OnceCell<Guard.Guard>[] = v;
 		const part7 = cells.length;
 		const args24: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(part7, f)];

@@ -348,12 +348,12 @@ export function order(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): voi
 	} else {
 		const heap: rt.BinaryHeap<rt.u32> = rt.heapNew() as rt.BinaryHeap<rt.u32>;
 		for (const _87 of rt.replaceIn(v, [])) {
-			rt.heapPush(heap, _87, rt.le, 4);
+			rt.heapPush(heap, _87, rt.le);
 		}
 		while (true) {
 			const _93: rt.u32 | undefined = rt.heapPop(heap, rt.le);
 			if (_93 !== undefined) {
-				rt.vecPush(v, _93, 4);
+				v.push(_93);
 			} else {
 				break;
 			}
@@ -388,7 +388,7 @@ export function push(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 		let iterStart: rt.u32 = 0;
 		const iterEnd: rt.u32 = count2;
 		while ((_18 = iterStart++) < iterEnd) {
-			rt.dequePushBack(q, _18, 4);
+			rt.dequePushBack(q, _18);
 		}
 		_13 = [q.n, rt.dequeGet(q, rt.usizeDiv(q.n, 2))] as [rt.usize, rt.u32 | undefined];
 	} else {
@@ -396,7 +396,7 @@ export function push(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 		let iterStart2: rt.u32 = 0;
 		const iterEnd2: rt.u32 = count2;
 		while ((_37 = iterStart2++) < iterEnd2) {
-			rt.vecPush(v, _37, 4);
+			v.push(_37);
 		}
 		_13 = [v.length, rt.sliceGet(v, rt.usizeDiv(v.length, 2))] as [rt.usize, rt.u32 | undefined];
 	}

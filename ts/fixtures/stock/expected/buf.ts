@@ -33,12 +33,12 @@ export function bytesMut(data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.bytesMutPutWord(buf, rt.u16Mul(n & 0xffff, 257), 2, false);
 			} else if (_20 === 3) {
 				const _34: rt.BytesMut = rt.bytesMutSplitTo(buf, rt.usizeRem(n, rt.usizeAdd(buf.length, 2)));
-				rt.vecPush(pieces, _34, 16);
+				pieces.push(_34);
 			} else if (_20 === 4) {
-				const _42: rt.BytesMut | undefined = rt.vecPop(pieces);
+				const _42: rt.BytesMut | undefined = pieces.pop();
 				if (_42 !== undefined) {
 					const _48: rt.ByteSlice = rt.bytesMutFreeze(_42);
-					rt.vecPush(frozen, _48, 16);
+					frozen.push(_48);
 				}
 			} else if (_20 === 5) {
 				rt.bytesMutTruncate(buf, rt.usizeRem(n, rt.usizeAdd(buf.length, 2)));
@@ -63,7 +63,7 @@ export function bytesMut(data: rt.ByteSlice, out: rt.ByteVec): void {
 					rt.bytesMutReserve(fresh, _80);
 				}
 			} else if (_20 === 8) {
-				const _95: rt.BytesMut | undefined = rt.vecPop(pieces);
+				const _95: rt.BytesMut | undefined = pieces.pop();
 				if (_95 !== undefined) {
 					rt.bytesMutUnsplit(buf, _95);
 				}
@@ -76,10 +76,10 @@ export function bytesMut(data: rt.ByteSlice, out: rt.ByteVec): void {
 			} else if (_20 === 12) {
 				const buf2 = buf;
 				const _115: rt.BytesMut = rt.bytesMutSplitTo(buf2, buf2.length);
-				rt.vecPush(pieces, _115, 16);
+				pieces.push(_115);
 			} else if (_20 === 13) {
 				const _118: rt.ByteSlice = rt.bytesMutFreeze(rt.bytesMutSplitTo(buf, rt.usizeRem(n, rt.usizeAdd(buf.length, 2))));
-				rt.vecPush(frozen, _118, 16);
+				frozen.push(_118);
 			} else if (_20 === 14) {
 				rt.bytesMutPutFill(buf, n & 0xff, rt.usizeRem(n, 9));
 			} else if (_20 === 15) {

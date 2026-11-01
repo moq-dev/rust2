@@ -34,7 +34,7 @@ export function decode$coding_decode_Decode_coding_varint_Form(r: Decoder.Decode
 		while (iter.next() !== rt.DONE) {
 			const _15: rt.Result<coding_version_Version.Version, DecodeError.DecodeError> = coding_version_Version.decode$coding_decode_Decode_coding_varint_Form(r, version);
 			if (_15.ok) {
-				rt.vecPush(vs, _15.value, 8);
+				vs.push(_15.value);
 			} else {
 				return _15;
 			}
@@ -75,7 +75,7 @@ export function encode$coding_encode_Encode_lite_version_Version(self: Versions,
 }
 
 export function from$convert_From_array2_coding_version_Version(vs: coding_version_Version.Version[]): Versions {
-	return { _0: vs.slice() };
+	return { _0: rt.vecExact(vs.slice(), 8) };
 }
 
 //# sourceMappingURL=version.Versions.ts.map

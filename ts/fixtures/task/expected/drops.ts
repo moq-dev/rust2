@@ -78,10 +78,10 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	} else if (_6 === 0) {
 		const v: Held.Held[] = [];
 		const _12 = { tag: "One", _0: guard(1) } as Held.Held;
-		rt.vecPush(v, _12, 20);
-		rt.vecPush(v, { tag: "Empty" } as Held.Held, 20);
+		v.push(_12);
+		v.push({ tag: "Empty" } as Held.Held);
 		const _21 = { tag: "Two", _0: guard(2), _1: guard(3) } as Held.Held;
-		rt.vecPush(v, _21, 20);
+		v.push(_21);
 		const held: Held.Held[] = v;
 		const arc: rt.Arc<Held.Held> = new rt.Arc({ tag: "One", _0: guard(4) } as Held.Held);
 		const shared: rt.Arc<Held.Held> = rt.arcClone(arc);
@@ -96,7 +96,7 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		rt.arcDrop(cloned, lib_drop$drops_Held);
 		const v2: Held.Held[] = [];
 		const _70 = { tag: "One", _0: guard(5) } as Held.Held;
-		rt.vecPush(v2, _70, 20);
+		v2.push(_70);
 		const mutex: rt.Mutex<Held.Held[]> = new rt.Mutex(v2);
 		const boxed: Held.Held = { tag: "Two", _0: guard(6), _1: guard(7) };
 		const maybe = (({ tag: "One", _0: guard(8) } as Held.Held)) as Held.Held | undefined;
@@ -115,9 +115,9 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		const pair: Pair.Pair<Held.Held> = new Pair.Pair({ tag: "Two", _0: guard(31), _1: guard(32) } as Held.Held, guard(33));
 		const v3: Pair.Pair<Guard.Guard>[] = [];
 		const _136: Pair.Pair<Guard.Guard> = new Pair.Pair(guard(41), guard(42));
-		rt.vecPush(v3, _136, 16);
+		v3.push(_136);
 		const _145: Pair.Pair<Guard.Guard> = new Pair.Pair(guard(43), guard(44));
-		rt.vecPush(v3, _145, 16);
+		v3.push(_145);
 		const pairs: Pair.Pair<Guard.Guard>[] = v3;
 		const _owned: Named.Named = new Named.Named({ tag: "Owned", _0: guard(45) } as Text.Text);
 		const _161: rt.u32 = rt.u32Add(id, 50);
@@ -125,7 +125,7 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		const v4: Wrap.Wrap<Held.Held>[] = [];
 		const _borrowed: Named.Named = new Named.Named({ tag: "Borrowed", _0: "text" } as Text.Text);
 		const _168: Wrap.Wrap<Held.Held> = new Wrap.Wrap(rt.u32Add(id, 60), Log.clone$Clone(log), { tag: "One", _0: guard(61) } as Held.Held);
-		rt.vecPush(v4, _168, 28);
+		v4.push(_168);
 		const nested: Wrap.Wrap<Wrap.Wrap<Held.Held>[]> = new Wrap.Wrap(_161, _163, v4);
 		lib_drop$drops_Pair_drops_Held(pair);
 		const _183: boolean = Held.isSome(wrapped.inner);
@@ -143,9 +143,9 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		const shared2: rt.Arc<Wrap.Wrap<Pair.Pair<Held.Held>>> = new rt.Arc(new Wrap.Wrap(rt.u32Add(id, 70), Log.clone$Clone(log), new Pair.Pair({ tag: "One", _0: guard(71) } as Held.Held, guard(72))));
 		const v5: rt.Arc<Wrap.Wrap<Pair.Pair<Held.Held>>>[] = [];
 		const _227: rt.Arc<Wrap.Wrap<Pair.Pair<Held.Held>>> = rt.arcClone(shared2);
-		rt.vecPush(v5, _227, 4);
+		v5.push(_227);
 		const _231: rt.Arc<Wrap.Wrap<Pair.Pair<Held.Held>>> = rt.arcClone(shared2);
-		rt.vecPush(v5, _231, 4);
+		v5.push(_231);
 		const clones: rt.Arc<Wrap.Wrap<Pair.Pair<Held.Held>>>[] = v5;
 		rt.arcDrop(shared2, lib_drop$drops_Wrap_drops_Pair_drops_Held);
 		const part2 = clones.length;
@@ -187,7 +187,7 @@ export function run(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 export function bail(log: Log.Log, id: rt.u32, fails: boolean): rt.Result<rt.u32, rt.u32> {
 	const v: Held.Held[] = [];
 	const _8 = { tag: "One", _0: Guard.new(rt.u32Add(id, 90), Log.clone$Clone(log)) } as Held.Held;
-	rt.vecPush(v, _8, 20);
+	v.push(_8);
 	const held: Held.Held[] = v;
 	const wrap: Wrap.Wrap<Held.Held> = new Wrap.Wrap(rt.u32Add(id, 91), Log.clone$Clone(log), { tag: "Empty" } as Held.Held);
 	const _18: rt.Result<rt.u32, rt.u32> = failed(fails);
@@ -257,8 +257,8 @@ export class heldFuture {
 			this.#id = Guard.id(this.#guard);
 			const v: Held.Held[] = [];
 			const _9 = { tag: "One", _0: Guard.new(rt.u32Add(this.#id, 500), Log.clone$Clone(this.#log)) } as Held.Held;
-			rt.vecPush(v, _9, 20);
-			rt.vecPush(v, { tag: "Empty" } as Held.Held, 20);
+			v.push(_9);
+			v.push({ tag: "Empty" } as Held.Held);
 			this.#held = v;
 			this.#wrap = new Wrap.Wrap(rt.u32Add(this.#id, 510), Log.clone$Clone(this.#log), new rt.Arc({ tag: "One", _0: Guard.new(rt.u32Add(this.#id, 520), Log.clone$Clone(this.#log)) } as Held.Held));
 			this.#awaitee = new recvFuture$kio_Consumer(this.#rx);
@@ -384,10 +384,10 @@ export function ordered(log: Log.Log, id: rt.u32): void {
 	const iterEnd: rt.u32 = 26;
 	while ((_208 = iterStart++) < iterEnd) {
 		const _214: Guard.Guard = guard(_208);
-		rt.dequePushBack(queue, _214, 8);
+		rt.dequePushBack(queue, _214);
 	}
 	const _219: Guard.Guard = guard(19);
-	rt.dequePushFront(queue, _219, 8);
+	rt.dequePushFront(queue, _219);
 	rt.dequeRetain(queue, (g: Guard.Guard): boolean => {
 		return rt.u32Rem(Guard.id(g), 3) !== 0;
 	}, rt.drop);
@@ -811,11 +811,11 @@ export function elements(log: Log.Log, id: rt.u32): void {
 	};
 	const v2: Array<Guard.Guard | undefined> = [];
 	const _12: Guard.Guard | undefined = guard(1);
-	rt.vecPush(v2, _12, 8);
-	rt.vecPush(v2, undefined as Guard.Guard | undefined, 8);
+	v2.push(_12);
+	v2.push(undefined as Guard.Guard | undefined);
 	const _21: Guard.Guard | undefined = guard(2);
-	rt.vecPush(v2, _21, 8);
-	rt.vecPush(v2, undefined as Guard.Guard | undefined, 8);
+	v2.push(_21);
+	v2.push(undefined as Guard.Guard | undefined);
 	const v: Array<Guard.Guard | undefined> = v2;
 	const _34: rt.u32 | undefined | rt.None = option_map$0ccnsmq(rt.sliceFirst(v, rt.None), (o5: Guard.Guard | undefined): rt.u32 | undefined => {
 		return option_map$0lq7mno(o5, Guard.id);
@@ -894,7 +894,7 @@ export function elements(log: Log.Log, id: rt.u32): void {
 	const _145: string = rt.fmtFormat(["uncalled ", args12[0]]);
 	rt.drop(_151);
 	Log.note(log, _145);
-	rt.vecPush(v, undefined as Guard.Guard | undefined, 8);
+	v.push(undefined as Guard.Guard | undefined);
 	const captured2 = guard(15);
 	const part8 = option_map$0ccnsmq(rt.vecPopIfMut(v, rt.closure((o13: rt.Place<Guard.Guard | undefined>): boolean => {
 		const part6 = Guard.id(captured2);
@@ -913,12 +913,12 @@ export function elements(log: Log.Log, id: rt.u32): void {
 	const args14: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtOption(part8, f, (value: rt.u32 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u32Debug), rt.None)];
 	Log.note(log, rt.fmtFormat(["called ", args14[0]]));
 	const q: rt.VecDeque<Guard.Guard | undefined> = rt.dequeNew() as rt.VecDeque<Guard.Guard | undefined>;
-	rt.dequePushBack(q, undefined as Guard.Guard | undefined, 8);
+	rt.dequePushBack(q, undefined as Guard.Guard | undefined);
 	const _186: Guard.Guard | undefined = guard(4);
-	rt.dequePushBack(q, _186, 8);
+	rt.dequePushBack(q, _186);
 	const _192: Guard.Guard | undefined = guard(5);
-	rt.dequePushFront(q, _192, 8);
-	rt.dequePushBack(q, undefined as Guard.Guard | undefined, 8);
+	rt.dequePushFront(q, _192);
+	rt.dequePushBack(q, undefined as Guard.Guard | undefined);
 	const _205: rt.u32 | undefined | rt.None = option_map$0ccnsmq(rt.dequeEnd(q, false, rt.None), (o15: Guard.Guard | undefined): rt.u32 | undefined => {
 		return option_map$0lq7mno(o15, Guard.id);
 	});
@@ -948,10 +948,10 @@ export function elements(log: Log.Log, id: rt.u32): void {
 	Log.note(log, rt.fmtFormat(["remove ", args18[0], " ", args18[1]]));
 	rt.drop(removed);
 	const _252: Guard.Guard | undefined = guard(6);
-	rt.dequePushBack(q, _252, 8);
+	rt.dequePushBack(q, _252);
 	const _258: Guard.Guard | undefined = guard(13);
-	rt.dequePushBack(q, _258, 8);
-	rt.dequePushFront(q, undefined as Guard.Guard | undefined, 8);
+	rt.dequePushBack(q, _258);
+	rt.dequePushFront(q, undefined as Guard.Guard | undefined);
 	const back: Guard.Guard | undefined | rt.None = rt.dequeSwapRemove(q, 0, true, rt.None);
 	const _273: rt.u32 | undefined | rt.None = option_map$0ccnsmq(back, (o20: Guard.Guard | undefined): rt.u32 | undefined => {
 		return option_map$0lq7mno(o20, Guard.id);
@@ -1001,10 +1001,10 @@ export function elements(log: Log.Log, id: rt.u32): void {
 	Log.note(log, rt.fmtFormat(["emptied ", args26[0], " ", args26[1]]));
 	const heap: rt.BinaryHeap<Key.Key | undefined> = rt.heapNew() as rt.BinaryHeap<Key.Key | undefined>;
 	const _352: Key.Key | undefined = key(7);
-	rt.heapPush(heap, _352, rt.cmpLe(rt.cmpOption(Key.partialCmp$cmp_PartialOrd)), 12);
-	rt.heapPush(heap, undefined as Key.Key | undefined, rt.cmpLe(rt.cmpOption(Key.partialCmp$cmp_PartialOrd)), 12);
+	rt.heapPush(heap, _352, rt.cmpLe(rt.cmpOption(Key.partialCmp$cmp_PartialOrd)));
+	rt.heapPush(heap, undefined as Key.Key | undefined, rt.cmpLe(rt.cmpOption(Key.partialCmp$cmp_PartialOrd)));
 	const _361: Key.Key | undefined = key(8);
-	rt.heapPush(heap, _361, rt.cmpLe(rt.cmpOption(Key.partialCmp$cmp_PartialOrd)), 12);
+	rt.heapPush(heap, _361, rt.cmpLe(rt.cmpOption(Key.partialCmp$cmp_PartialOrd)));
 	const part17 = option_map$0hegtde(rt.heapPeek(heap, rt.None), (o26: Key.Key | undefined): rt.u32 | undefined => {
 		return option_map$0782hf5(o26, (k2: Key.Key): rt.u32 => {
 			return k2.id;
@@ -1302,13 +1302,13 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	if (_8 === 0) {
 		const v2: Key.Key[] = [];
 		const _14: Key.Key = key(1);
-		rt.vecPush(v2, _14, 12);
+		v2.push(_14);
 		const _19: Key.Key = key(2);
-		rt.vecPush(v2, _19, 12);
+		v2.push(_19);
 		const _24: Key.Key = key(3);
-		rt.vecPush(v2, _24, 12);
+		v2.push(_24);
 		const _29: Key.Key = key(4);
-		rt.vecPush(v2, _29, 12);
+		v2.push(_29);
 		const v: Key.Key[] = v2;
 		rt.vecRetain(v, (k6: Key.Key): boolean => {
 			return rt.u32Rem(rt.u32Sub(k6.id, id), 2) === 1;
@@ -1326,15 +1326,15 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	} else if (_8 === 1) {
 		const v4: Key.Key[] = [];
 		const _74: Key.Key = key(1);
-		rt.vecPush(v4, _74, 12);
+		v4.push(_74);
 		const _79: Key.Key = key(1);
-		rt.vecPush(v4, _79, 12);
+		v4.push(_79);
 		const _84: Key.Key = key(2);
-		rt.vecPush(v4, _84, 12);
+		v4.push(_84);
 		const _89: Key.Key = key(2);
-		rt.vecPush(v4, _89, 12);
+		v4.push(_89);
 		const _94: Key.Key = key(3);
-		rt.vecPush(v4, _94, 12);
+		v4.push(_94);
 		const v3: Key.Key[] = v4;
 		rt.vecDedupBy(v3, Key.eq$cmp_PartialEq, rt.drop);
 		const part19 = ids(v3);
@@ -1356,11 +1356,11 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	} else if (_8 === 2) {
 		const v6: Key.Key[] = [];
 		const _152: Key.Key = key(1);
-		rt.vecPush(v6, _152, 12);
+		v6.push(_152);
 		const _157: Key.Key = key(2);
-		rt.vecPush(v6, _157, 12);
+		v6.push(_157);
 		const _162: Key.Key = key(3);
-		rt.vecPush(v6, _162, 12);
+		v6.push(_162);
 		const v5: Key.Key[] = v6;
 		rt.vecSwapRemove(v5, 0)[Symbol.dispose]();
 		const part17 = ids(v5);
@@ -1371,11 +1371,11 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	} else if (_8 === 3) {
 		const v8: Key.Key[] = [];
 		const _190: Key.Key = key(1);
-		rt.vecPush(v8, _190, 12);
+		v8.push(_190);
 		const _195: Key.Key = key(2);
-		rt.vecPush(v8, _195, 12);
+		v8.push(_195);
 		const v7: Key.Key[] = v8;
-		const _209: Key.Key[] = v7.map(Key.clone$Clone);
+		const _209: Key.Key[] = rt.vecExact(v7.map(Key.clone$Clone), 12);
 		const part15 = ids(_209);
 		const args14: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, part15)];
 		const _200: string = rt.fmtFormat(["cloned ", args14[0]]);
@@ -1389,14 +1389,14 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	} else if (_8 === 5) {
 		const v10: Key.Key[] = [];
 		const _229: Key.Key = key(1);
-		rt.vecPush(v10, _229, 12);
+		v10.push(_229);
 		const _234: Key.Key = key(2);
-		rt.vecPush(v10, _234, 12);
+		v10.push(_234);
 		const _239: Key.Key = key(3);
-		rt.vecPush(v10, _239, 12);
+		v10.push(_239);
 		const v9: Key.Key[] = v10;
 		const _244: Key.Key = key(4);
-		rt.vecInsert(v9, 1, _244, 12);
+		rt.vecInsert(v9, 1, _244);
 		const part9 = ids(v9);
 		const args16: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, part9)];
 		Log.note(log, rt.fmtFormat(["inserted ", args16[0]]));
@@ -1413,11 +1413,11 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 	} else if (_8 === 6) {
 		const v11: Key.Key[] = [];
 		const _305: Key.Key = key(1);
-		rt.vecPush(v11, _305, 12);
+		v11.push(_305);
 		const _310: Key.Key = key(3);
-		rt.vecPush(v11, _310, 12);
+		v11.push(_310);
 		const _315: Key.Key = key(5);
-		rt.vecPush(v11, _315, 12);
+		v11.push(_315);
 		const part6 = option_mapOr$1w10sgd(rt.iterMaxByKey(rt.iterSlice(v11, rt.drop), (k2: Key.Key): rt.u32 => {
 			return rt.u32Rem(rt.u32Sub(k2.id, id), 3);
 		}, rt.lt, true, rt.drop), 0, (k3: Key.Key): rt.u32 => {
@@ -1429,11 +1429,11 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		Log.note(log, rt.fmtFormat(["max ", args22[0]]));
 		const v12: Key.Key[] = [];
 		const _339: Key.Key = key(3);
-		rt.vecPush(v12, _339, 12);
+		v12.push(_339);
 		const _344: Key.Key = key(1);
-		rt.vecPush(v12, _344, 12);
+		v12.push(_344);
 		const _349: Key.Key = key(2);
-		rt.vecPush(v12, _349, 12);
+		v12.push(_349);
 		const part7 = option_mapOr$1w10sgd(rt.iterMin(rt.iterSlice(v12, rt.drop), rt.cmpLt(Key.partialCmp$cmp_PartialOrd), true, rt.drop), 0, (k4: Key.Key): rt.u32 => {
 			const _06: rt.u32 = rt.u32Sub(k4.id, id);
 			k4[Symbol.dispose]();

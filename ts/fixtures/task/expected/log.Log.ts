@@ -27,7 +27,7 @@ function new_(): Log {
 /** Append one event. */
 export function note(self: Log, event: string): void {
 	const _6: rt.Mutex<string[]> = rt.mutexLock(self._0.value);
-	rt.vecPush(_6.value, event, 12);
+	_6.value.push(event);
 	rt.mutexUnlock(_6);
 }
 

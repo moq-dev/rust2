@@ -125,7 +125,7 @@ export function scoped(log: Log.Log, id: rt.u32): void {
 	const held: Guard.Guard[] = [];
 	let captured11 = held;
 	const push: (a0: Guard.Guard) => rt.usize = rt.closure((g2: Guard.Guard): rt.usize => {
-		rt.vecPush(captured11, g2, 8);
+		captured11.push(g2);
 		return captured11.length;
 	}, (): void => {
 		rt.dropAll(captured11);
@@ -362,11 +362,11 @@ export function iterated(log: Log.Log, id: rt.u32): void {
 	const a: Guard.Guard = guard(1);
 	const v: Guard.Guard[] = [];
 	const _14: Guard.Guard = guard(2);
-	rt.vecPush(v, _14, 8);
+	v.push(_14);
 	const _19: Guard.Guard = guard(3);
-	rt.vecPush(v, _19, 8);
+	v.push(_19);
 	const _24: Guard.Guard = guard(4);
-	rt.vecPush(v, _24, 8);
+	v.push(_24);
 	const _9: rt.Iter<Guard.Guard> = rt.iterSlice(v, rt.drop);
 	const captured = a;
 	const mapped: rt.Iter<rt.u32> = rt.iterMap(_9, rt.closure((g3: Guard.Guard): rt.u32 => {
@@ -384,11 +384,11 @@ export function iterated(log: Log.Log, id: rt.u32): void {
 	const b: Guard.Guard = guard(5);
 	const v2: Guard.Guard[] = [];
 	const _56: Guard.Guard = guard(6);
-	rt.vecPush(v2, _56, 8);
+	v2.push(_56);
 	const _61: Guard.Guard = guard(7);
-	rt.vecPush(v2, _61, 8);
+	v2.push(_61);
 	const _66: Guard.Guard = guard(8);
-	rt.vecPush(v2, _66, 8);
+	v2.push(_66);
 	const _51: rt.Iter<Guard.Guard> = rt.iterSlice(v2, rt.drop);
 	const captured2 = b;
 	const iter: rt.Iter<Guard.Guard> = rt.iterFilter(_51, rt.closure((g4: Guard.Guard): boolean => {
@@ -419,13 +419,13 @@ export function iterated(log: Log.Log, id: rt.u32): void {
 	const e: Guard.Guard = _95[2];
 	const v3: Guard.Guard[] = [];
 	const _113: Guard.Guard = guard(12);
-	rt.vecPush(v3, _113, 8);
+	v3.push(_113);
 	const _118: Guard.Guard = guard(13);
-	rt.vecPush(v3, _118, 8);
+	v3.push(_118);
 	const _123: Guard.Guard = guard(14);
-	rt.vecPush(v3, _123, 8);
+	v3.push(_123);
 	const _128: Guard.Guard = guard(15);
-	rt.vecPush(v3, _128, 8);
+	v3.push(_128);
 	const _108: rt.Iter<Guard.Guard> = rt.iterSlice(v3, rt.drop);
 	const captured3 = c;
 	const _107: rt.Iter<Guard.Guard> = rt.iterSkipWhile(_108, rt.closure((g5: Guard.Guard): boolean => {
@@ -467,9 +467,9 @@ export function iterated(log: Log.Log, id: rt.u32): void {
 	f = _164[0];
 	const g2: Guard.Guard = _164[1];
 	const v4: rt.u32[] = [];
-	rt.vecPush(v4, 1, 4);
-	rt.vecPush(v4, 2, 4);
-	rt.vecPush(v4, 3, 4);
+	v4.push(1);
+	v4.push(2);
+	v4.push(3);
 	const _173: rt.Iter<rt.u32> = rt.iterSlice(v4);
 	const captured6 = f;
 	const _172: rt.Iter<rt.u32> = rt.iterFilterMap(_173, rt.closure((n4: rt.u32): rt.u32 | undefined => {
@@ -480,9 +480,9 @@ export function iterated(log: Log.Log, id: rt.u32): void {
 	const captured7 = g2;
 	const flat: rt.Iter<rt.u32> = rt.iterFlatMap(_172, rt.closure((n5: rt.u32): rt.u32[] => {
 		const v7: rt.u32[] = [];
-		rt.vecPush(v7, n5, 4);
+		v7.push(n5);
 		const _8: rt.u32 = rt.u32Add(n5, Guard.id(captured7));
-		rt.vecPush(v7, _8, 4);
+		v7.push(_8);
 		return v7;
 	}, (): void => {
 		captured7[Symbol.dispose]();
@@ -557,11 +557,11 @@ export function iterated(log: Log.Log, id: rt.u32): void {
 	rt.drop(chain);
 	const v5: Guard.Guard[] = [];
 	const _297: Guard.Guard = guard(21);
-	rt.vecPush(v5, _297, 8);
+	v5.push(_297);
 	const _302: Guard.Guard = guard(22);
-	rt.vecPush(v5, _302, 8);
+	v5.push(_302);
 	const _307: Guard.Guard = guard(23);
-	rt.vecPush(v5, _307, 8);
+	v5.push(_307);
 	const items: Guard.Guard[] = v5;
 	const _313: [Guard.Guard, Guard.Guard, Guard.Guard] = [guard(24), guard(25), guard(26)];
 	const k: Guard.Guard = _313[0];
@@ -680,9 +680,9 @@ export function iterated(log: Log.Log, id: rt.u32): void {
 	rt.dropAfter(_475, () => rt.btreeRetain(map, _475, undefined, rt.drop));
 	const queue: rt.VecDeque<Guard.Guard> = rt.dequeNew() as rt.VecDeque<Guard.Guard>;
 	const _479: Guard.Guard = guard(33);
-	rt.dequePushBack(queue, _479, 8);
+	rt.dequePushBack(queue, _479);
 	const _484: Guard.Guard = guard(34);
-	rt.dequePushBack(queue, _484, 8);
+	rt.dequePushBack(queue, _484);
 	const captured24 = guard(35);
 	const _492: (a0: Guard.Guard) => boolean = rt.closure((g19: Guard.Guard): boolean => {
 		return rt.u32Add(Guard.id(g19), 2) !== Guard.id(captured24);

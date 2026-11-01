@@ -372,10 +372,10 @@ export function encodeScript(dataData: Uint8Array, dataStart: number, dataLen: n
 					} else {
 						_74 = Encoder.prefixU16(w);
 					}
-					rt.vecPush(prefixes, _74, 8);
+					prefixes.push(_74);
 					result = rt.OK as rt.Result<undefined, EncodeError.EncodeError>;
 				} else if (_33 === 8) {
-					const _79: Prefix.Prefix | undefined = rt.vecPop(prefixes);
+					const _79: Prefix.Prefix | undefined = prefixes.pop();
 					if (_79 === undefined) {
 						result = rt.OK as rt.Result<undefined, EncodeError.EncodeError>;
 					} else {
@@ -384,7 +384,7 @@ export function encodeScript(dataData: Uint8Array, dataStart: number, dataLen: n
 						result = Encoder.fill(w, prefix);
 					}
 				} else {
-					const _88: Prefix.Prefix | undefined = rt.vecPop(prefixes);
+					const _88: Prefix.Prefix | undefined = prefixes.pop();
 					if (_88 !== undefined) {
 						Encoder.discard(w, _88);
 					}
@@ -395,7 +395,7 @@ export function encodeScript(dataData: Uint8Array, dataStart: number, dataLen: n
 				}
 			}
 			while (true) {
-				const _98: Prefix.Prefix | undefined = rt.vecPop(prefixes);
+				const _98: Prefix.Prefix | undefined = prefixes.pop();
 				if (_98 !== undefined) {
 					const _102: rt.Result<undefined, EncodeError.EncodeError> = Encoder.fill(w, _98);
 					if (!_102.ok) {
