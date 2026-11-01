@@ -33,10 +33,27 @@ void print(const char *before, const api::buf &buf, const char *after) {
 void print_escaped(const char *before, const api::buf &buf, const char *after) {
 	std::printf("%s", before);
 	for (std::uint8_t b : buf) {
-		if (b >= 0x20 && b < 0x7f && b != '\\' && b != '\'' && b != '"') {
-			std::putchar(b);
-		} else {
-			std::printf("\\x%02x", b);
+		switch (b) {
+		case '\t':
+			std::printf("\\t");
+			break;
+		case '\r':
+			std::printf("\\r");
+			break;
+		case '\n':
+			std::printf("\\n");
+			break;
+		case '\\':
+		case '\'':
+		case '"':
+			std::printf("\\%c", b);
+			break;
+		default:
+			if (b >= 0x20 && b < 0x7f) {
+				std::putchar(b);
+			} else {
+				std::printf("\\x%02x", b);
+			}
 		}
 	}
 	std::printf("%s", after);
@@ -573,7 +590,7 @@ int script() {
 	std::printf("\n");
 
 	// A path's bytes as the OS holds them, which need not be UTF-8.
-	api::buf file = api::file("dir", "f");
+	api::buf file = api::file("dir", "f\\'\"\t");
 	auto parents = api::parents({file, "/"});
 	print_escaped("file ", file, "\n");
 	std::printf("parents");

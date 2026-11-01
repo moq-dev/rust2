@@ -7,7 +7,6 @@ roots = [
     "scanned",
     "generic_unit",
     "Noisy",
-    "async_closure",
     "pointer",
     "written",
     "statics",

@@ -419,7 +419,7 @@ fn main() {
 	}
 	.next("c");
 	println!("peer {peer:?} {:?}", peer.aliases());
-	let file = api_lib::file(std::path::Path::new("dir"), "f");
+	let file = api_lib::file(std::path::Path::new("dir"), "f\\'\"\t");
 	println!("file {}", file.as_os_str().as_encoded_bytes().escape_ascii());
 	let parents = api_lib::parents(vec![file, std::path::PathBuf::from("/")]);
 	let parents: Vec<String> = (parents.iter())

@@ -373,9 +373,9 @@ export function shares(data: rt.ByteSlice, out: rt.ByteVec): void {
 	bump(copy5.slot);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(a, copy5.n)));
 	rt.byteVecPush(out, lensBumped(lens));
-	for (const _104 of Array.from({ length: 2 }, (): Lens.Lens => {
+	for (const _104 of rt.vecExact(Array.from({ length: 2 }, (): Lens.Lens => {
 		return copy$shapes_Lens(lens);
-	}).map(copy$shapes_Lens)) {
+	}).map(copy$shapes_Lens), 8)) {
 		bump(_104.slot);
 	}
 	const lenses: Lens.Lens[] = [];

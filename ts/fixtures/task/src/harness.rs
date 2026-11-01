@@ -6,6 +6,7 @@
 //! how many there are; a step with nothing to pick does nothing. Once the script ends,
 //! every task drops in order, then every channel.
 
+use crate::closures;
 use crate::drops;
 use crate::exec::Executor;
 use crate::futures;
@@ -157,6 +158,12 @@ fn steps() -> Vec<(&'static str, Step)> {
 		}),
 		("lists", |log, exec, _, arg| {
 			drops::lists(log, 1000 * exec.len() as u32, arg)
+		}),
+		("closures", |log, exec, channels, arg| {
+			if let Some(c) = pick(channels.len(), arg) {
+				let guard = Guard::new(exec.len() as u32, log.clone());
+				exec.spawn(closures::closures(channels[c].consumer(), guard));
+			}
 		}),
 	]
 }

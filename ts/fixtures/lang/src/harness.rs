@@ -2,11 +2,11 @@
 //! case and the rest is its input.
 
 use crate::{
-	args, arrays, ascii, atomics, borrows, bounds, boxes, captures, cells, chars, chunks, clones, collections,
-	combinators, conversions, counts, cows, cycles, defaults, durations, dyns, edits, errors, fields, floats, fmt,
-	folds, generics, hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods, nested,
-	objects, orders, pointers, refs, results, returns, saturates, separated, shapes, singles, slices, splits, statics,
-	strs, tuples, utf8, wrappers, wraps, zeros,
+	args, arrays, ascii, atomics, borrows, bounds, boxes, capacity, captures, cells, chars, chunks, clones,
+	collections, combinators, conversions, counts, cows, cycles, defaults, durations, dyns, edits, errors, fields,
+	floats, fmt, folds, generics, hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks,
+	methods, nested, objects, orders, pointers, refs, results, returns, saturates, separated, shapes, singles, slices,
+	splits, statics, strs, tuples, utf8, wrappers, wraps, zeros,
 };
 
 /// The native side's entry: [`run`], except that a case starting with 0xff prints a
@@ -276,6 +276,10 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("borrows::maps", |_, data, out| borrows::maps(data, out)),
 		("locks::mapped", |_, data, out| locks::mapped(data, out)),
 		("conversions::conversions", conversions::conversions),
+		("capacity::vecs", capacity::vecs),
+		("capacity::deques", capacity::deques),
+		("capacity::heaps", capacity::heaps),
+		("capacity::collects", capacity::collects),
 	]
 }
 

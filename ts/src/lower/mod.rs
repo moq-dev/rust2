@@ -1309,7 +1309,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				None => None,
 			},
 			// Its captures change through it, as a JS function's do.
-			ty::Closure(..) => Some(ObjectKind::Closure),
+			ty::Closure(..) | ty::CoroutineClosure(..) => Some(ObjectKind::Closure),
 			ty::Coroutine(..) | ty::Dynamic(..) => Some(ObjectKind::Class),
 			_ if self.deferred(ty) => Some(ObjectKind::Class),
 			_ => None,
@@ -1457,6 +1457,18 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					other => other.to_vec(),
 				};
 				self.fn_ty(&inputs, sig.output(), span)
+			}
+			// A function returning the future of each call.
+			ty::CoroutineClosure(_, args) => {
+				let sig =
+					tcx.instantiate_bound_regions_with_erased(args.as_coroutine_closure().coroutine_closure_sig());
+				let params = sig
+					.tupled_inputs_ty
+					.tuple_fields()
+					.iter()
+					.map(|t| self.ty(t, span))
+					.collect();
+				Type::Func(params, Box::new(self.future_ty(sig.return_ty, span)))
 			}
 			ty::Adt(adt, args) => self.adt_ty(*adt, args, span),
 			ty::Pat(base, _) => self.ty(*base, span),
@@ -2054,6 +2066,24 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			span = data.call_site;
 		}
 		site
+	}
+}
+
+/// What the closure or async closure `ty` captured, in order.
+pub fn captured<'tcx>(ty: Ty<'tcx>) -> Option<&'tcx ty::List<Ty<'tcx>>> {
+	match ty.kind() {
+		ty::Closure(_, args) => Some(args.as_closure().upvar_tys()),
+		ty::CoroutineClosure(_, args) => Some(args.as_coroutine_closure().upvar_tys()),
+		_ => None,
+	}
+}
+
+/// The function trait that calls the closure or async closure `ty`.
+pub fn closure_kind(ty: Ty<'_>) -> Option<ty::ClosureKind> {
+	match ty.kind() {
+		ty::Closure(_, args) => Some(args.as_closure().kind()),
+		ty::CoroutineClosure(_, args) => Some(args.as_coroutine_closure().kind()),
+		_ => None,
 	}
 }
 

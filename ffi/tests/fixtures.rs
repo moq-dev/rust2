@@ -604,7 +604,8 @@ fn locked() {
 }
 
 /// A package reached through a symlinked directory is the same package, though cargo
-/// keeps the link in its paths.
+/// keeps the link in its paths. On Unix: making a symlink on Windows takes a privilege.
+#[cfg(unix)]
 #[test]
 fn symlinked() {
 	let package = package("symlinked");

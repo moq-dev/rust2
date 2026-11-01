@@ -20,11 +20,10 @@ the rest of std's iterators' `Debug`.
   in `insert` and `remove`. std keeps `RawVec`'s capacity, moves the shorter segment as it
   grows (`handle_capacity_increase`), and moves the shorter side in `insert`, `remove`, and
   the rest. Every function that places items must place them where std's does.
+- Open: a deque holds only what std guarantees of its capacity, doubling as it grows
+  (decided 2026-11-01 to keep pushes cheap), so splitting where std's does needs its exact
+  capacity, at a cost to measure, or the maintainer's call to drop the split.
 - `Drain` writes its counts, `Drain(drain_len, idx, tail_len, remaining)`, which the
   runtime's drain does not keep.
 
 Public API: the translator's output.
-
-## Required
-
-- [The rest of std the model reaches](/quest/m2/ts-model/std-rest.md) - `VecDeque` carries std's capacity, which the split depends on

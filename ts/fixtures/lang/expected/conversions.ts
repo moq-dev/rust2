@@ -320,7 +320,7 @@ export function cloneFromParam$String(to: rt.Place<string>, from: string): void 
 
 /** `clone_from` through a `&mut` whose place only the caller knows. */
 export function cloneFromParam$Vec_u32(to: rt.u32[], from: rt.u32[]): void {
-	rt.replaceIn(to, from.slice());
+	rt.replaceIn(to, rt.vecExact(from.slice(), 4));
 }
 
 /** `clone_from` through a `&mut` whose place only the caller knows. */
@@ -390,7 +390,7 @@ export function cloneIntoParam$String(from: string, to: rt.Place<string>): void 
 
 /** `clone_into` through a `&mut` whose place only the caller knows. */
 export function cloneIntoParam$Vec_u32(from: rt.u32[], to: rt.u32[]): void {
-	rt.replaceIn(to, from.slice());
+	rt.replaceIn(to, rt.vecExact(from.slice(), 4));
 }
 
 /** `clone_into` through a `&mut` whose place only the caller knows. */
@@ -477,7 +477,7 @@ export function writeFirst$String(s: string[], value: string): string {
 /** A whole write into what a slice holds, as a function given any slice makes it. */
 export function writeFirst$Vec_u32(s: rt.u32[][], value: rt.u32[]): rt.u32[] {
 	rt.idx(s, 0);
-	const _8: rt.u32[] = value.slice();
+	const _8: rt.u32[] = rt.vecExact(value.slice(), 4);
 	const old2 = s[0];
 	s[0] = _8;
 	const old: rt.u32[] = old2;
@@ -890,30 +890,30 @@ export function converted$String(data: rt.ByteSlice, out: rt.ByteVec): void {
 export function converted$Vec_u32(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let a: rt.u32[] = make$conversions_Value_Vec_u32(data, 0);
 	const b: rt.u32[] = make$conversions_Value_Vec_u32(data, 3);
-	const owned: rt.u32[] = a.slice();
-	a = b.slice();
+	const owned: rt.u32[] = rt.vecExact(a.slice(), 4);
+	a = rt.vecExact(b.slice(), 4);
 	put$conversions_Value_Vec_u32(owned, out);
 	put$conversions_Value_Vec_u32(a, out);
 	let c: rt.u32[] = make$conversions_Value_Vec_u32(data, 6);
-	c = owned.slice();
+	c = rt.vecExact(owned.slice(), 4);
 	put$conversions_Value_Vec_u32(c, out);
 	cloneFromParam$Vec_u32(c, b);
 	cloneIntoParam$Vec_u32(owned, a);
 	put$conversions_Value_Vec_u32(c, out);
 	put$conversions_Value_Vec_u32(a, out);
 	const held: conversions_Held.Held<rt.u32[]> = new conversions_Held.Held(make$conversions_Value_Vec_u32(data, 1));
-	held.value = c.slice();
+	held.value = rt.vecExact(c.slice(), 4);
 	const v: rt.u32[][] = [make$conversions_Value_Vec_u32(data, 2), make$conversions_Value_Vec_u32(data, 4)];
-	v[rt.idx(v, 1)] = held.value.slice();
-	v[rt.idx(v, 0)] = b.slice();
+	v[rt.idx(v, 1)] = rt.vecExact(held.value.slice(), 4);
+	v[rt.idx(v, 0)] = rt.vecExact(b.slice(), 4);
 	put$conversions_Value_Vec_u32(held.value, out);
 	put$conversions_Value_Vec_u32(v[rt.idx(v, 0)], out);
 	put$conversions_Value_Vec_u32(v[rt.idx(v, 1)], out);
 	const one: rt.u32[][] = [b];
 	rt.byteVecPush(out, one.length & 0xff);
-	const copied: rt.u32[] = one[0].slice();
+	const copied: rt.u32[] = rt.vecExact(one[0].slice(), 4);
 	put$conversions_Value_Vec_u32(one[0], out);
-	a = copied.slice();
+	a = rt.vecExact(copied.slice(), 4);
 	put$conversions_Value_Vec_u32(copied, out);
 	put$conversions_Value_Vec_u32(a, out);
 	const cell: rt.Cell<rt.u32[]> = rt.cellOfPlace(rt.place(() => c, (value) => c = value));
@@ -932,13 +932,13 @@ export function converted$Vec_u32(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterSlice(rt.bytesMap([array.length, array.length], (n: rt.usize): rt.u8 => {
 		return n & 0xff;
 	})), undefined, true);
-	const _114: rt.u32[] = b.slice();
+	const _114: rt.u32[] = rt.vecExact(b.slice(), 4);
 	const _116: rt.u32[][] = array;
 	rt.idx(_116, 0);
 	_116[0] = _114;
 	const _124: rt.u32[][] = array;
 	rt.idx(_124, 2);
-	_124[2] = c.slice();
+	_124[2] = rt.vecExact(c.slice(), 4);
 	for (const _134 of array) {
 		put$conversions_Value_Vec_u32(_134, out);
 	}
@@ -1831,8 +1831,8 @@ export function lentOne$Vec_u32(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const borrowed3 = at;
 	put$conversions_Value_Vec_u32(writeFirst$Vec_u32(rt.sliceOfPlace(rt.place(() => borrowed2[borrowed3], (value3) => borrowed2[borrowed3] = value3)), make$conversions_Value_Vec_u32(data, 8)), out);
 	put$conversions_Value_Vec_u32(v[rt.idx(v, 1)], out);
-	rt.sliceFill(rt.sliceOfPlace(rt.place(() => c, (value4) => c = value4)), b.slice(), (a0: rt.u32[]): rt.u32[] => {
-		return a0.slice();
+	rt.sliceFill(rt.sliceOfPlace(rt.place(() => c, (value4) => c = value4)), rt.vecExact(b.slice(), 4), (a0: rt.u32[]): rt.u32[] => {
+		return rt.vecExact(a0.slice(), 4);
 	});
 	for (const _61 of rt.sliceOfPlace(rt.place(() => a, (value5) => a = value5))) {
 		rt.vecAssign(_61, make$conversions_Value_Vec_u32(data, 9));

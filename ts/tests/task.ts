@@ -66,6 +66,7 @@ export interface Fixture<V> {
 		boxed(rx: Consumer, guard: Guard): Future<V>;
 		wakers(rx: Consumer, guard: Guard): Future<V>;
 	};
+	closures: { closures(rx: Consumer, guard: Guard): Future<V> };
 }
 
 /** What every waker of one task points at. */
@@ -330,6 +331,13 @@ export const steps: [string, (r: Run<unknown>, arg: number) => void][] = [
 		},
 	],
 	["lists", (r, arg) => r.f.drops.lists(r.log, 1000 * r.exec.tasks.length, arg)],
+	[
+		"closures",
+		(r, arg) => {
+			const c = pick(r.channels.length, arg);
+			if (c !== undefined) r.exec.spawn(r.f.closures.closures(r.f.Channel.consumer(r.channels[c]), guard(r)));
+		},
+	],
 ];
 
 /** The script runner, as `harness.rs` runs it natively. */
@@ -426,4 +434,12 @@ export const cases: Uint8Array[] = [
 	// another task's in between.
 	script(["open", 0], ["wakers", 0], ["run", 0], ["send", 3], ["run", 0], ["close", 0], ["run", 0]),
 	script(["open", 0], ["wakers", 0], ["wakers", 0], ["run", 0], ["send", 2], ["step", 0], ["step", 0], ["drop", 1], ["send", 5], ["run", 0], ["drop", 0]),
+	// Async closures, cancelled at each await in turn: a borrowing closure's own future,
+	// one through `AsyncFnMut`, the future that owns a consumed closure's guard, a read
+	// beside closures that borrow and own, and the future of a consumed box of a closure;
+	// then returning, and closed early.
+	...Array.from({ length: 7 }, (_, sends) =>
+		script(["open", 0], ["closures", 0], ["run", 0], ...Array.from({ length: sends }, (_, i): [string, number][] => [["send", i + 1], ["run", 0]]).flat(), ["drop", 0]),
+	),
+	script(["open", 0], ["closures", 0], ["run", 0], ["send", 6], ["run", 0], ["close", 0], ["run", 0]),
 ];
