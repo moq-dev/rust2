@@ -4,8 +4,8 @@
 
 A private byte slice field, such as `Decoder::buf`, is three JS fields, so a cursor that
 advances through it makes no object. Chrome's varint and frame decode on `just ts bench`
-are faster than with [returns](/quest/m2/ts-byte-views/returns.md), with every
-differential test passing.
+are faster than with slices passed and returned as parts alone
+([#160](https://github.com/moq-dev/rust2/pull/160)), with every differential test passing.
 
 ## Plan
 
@@ -23,7 +23,3 @@ Decided with the maintainer on 2026-10-27: private fields split even on root typ
 
 Public API: the translator's output; a private slice field of an exported class becomes
 three `#private` fields.
-
-## Required
-
-- [Byte slices passed and returned as parts](/quest/m2/ts-byte-views/returns.md) - the measurement this one builds on
