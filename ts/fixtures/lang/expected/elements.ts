@@ -201,7 +201,7 @@ export function inline(data: rt.ByteSlice, out: rt.ByteVec): void {
 /**
  * Pointers wrapped around wasm32's 32-bit addresses and back, to a value in no array, as
  * the array of one Rust treats it as, and into a mutable part of an array, measured from
- * the array, and the pointer an empty slice keeps.
+ * the array, the pointer an empty slice keeps, and within a shared part, which JS copies.
  */
 export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 	for (const n of rt.byteSliceView(data)) {
@@ -241,6 +241,13 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.iterExtendBytes(out, rt.iterMap(rt.iterSlice(a), (_2: rt.u32): rt.u8 => {
 			return _2 & 0xff;
 		}), undefined, true);
+		const lanes: rt.u32[] = [n as rt.u32, 4, 5, 6];
+		const first: rt.Place<rt.u32> = rt.sliceAsPtr(rt.sliceRange(lanes, 1, 3));
+		rt.byteVecPush(out, rt.ptrAdd(first, 1).v & 0xff);
+		rt.byteVecPush(out, rt.ptrOffsetFrom(rt.ptrAdd(first, 2), first) & 0xff);
+		const _159: rt.u32[] = rt.ptrSlice(rt.ptrAdd(first, 1), 1);
+		rt.idx(_159, 0);
+		rt.byteVecPush(out, _159[0] & 0xff);
 	}
 }
 
