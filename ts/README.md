@@ -102,7 +102,7 @@ crate translation reaches is refused, and so are two versions of one crate it re
 | `a..b`, `a..=b` | `rt.Range<T>`, `rt.RangeInclusive<T>`, which are iterators too |
 | `a..`, `..b`, `..=b`, `Bound<T>` | `{ start }`, `{ end }`, `{ end, inclusive: true }`; `rt.RangeBound<T>`, a union tagged by variant |
 | a range a drain or a B-tree's `range` takes | itself, or of a type other than std's ranges and a pair of `Bound`s, `rt.boundsOf` of it and its `start_bound` and `end_bound`, which the runtime calls where std's does; one that drops, the parameter of the call `rt.dropAfter` makes, which drops it once the call returns, as std drops it before it does anything JS can see |
-| `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `VecDeque`, `BinaryHeap` | `rt.HashMap<K, V>` and so on, each a plain object whose functions are the runtime's: `rt.hashGet(map, key)` |
+| `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `VecDeque`, `LinkedList`, `BinaryHeap` | `rt.HashMap<K, V>` and so on, each a plain object whose functions are the runtime's: `rt.hashGet(map, key)` |
 | `PeekMut<T>` | `rt.PeekMut<T>`, the `rt.Place` of a heap's greatest element, which sifts it down as it drops once `DerefMut` lent it |
 | `Ordering`, `DefaultHasher`, `RandomState` | `rt.Ordering`, which is `-1`, `0`, or `1`; `rt.Hasher`; `rt.RandomState`, the keys of the `DefaultHasher` it builds, never changed once made |
 | `Duration` | `rt.Duration`: `{ secs, nanos }`, std's whole seconds as an `rt.u64` and the nanoseconds past them, never changed once made |
@@ -229,7 +229,8 @@ std's Unicode tables, which the runtime carries, not the engine's. `Debug` of st
 collections writes their items in the order each iterates, a hash map's or set's included,
 and of their iterators and `Chars` the items each has left, in std's wrapper; a deque's
 `Iter` and `IterMut`, which write its buffer's two halves, and its `Drain`, which writes its
-counts, are refused. `Debug` of `Bound`, `Ordering`, `Reverse`, and `ControlFlow` is
+counts, are refused; a list's `Iter` and `IterMut` write what is left and its length, as
+std's do. `Debug` of `Bound`, `Ordering`, `Reverse`, and `ControlFlow` is
 their derived one, whichever way each is held. A caller prints a
 `printable` type as `to_string()` and `format!("{err:?}")`
 would: `rt.fmtToString((f) => DecodeError.fmt$fmt_Display(err, f))` and
@@ -367,7 +368,8 @@ so a map of `Arc<str>` finds a `&str`, a `Cell` and a `RefCell` compare and orde
 what they hold, a `RefCell` borrowing each, a one-time cell compares its `Option`, and
 arrays, slices, and vectors, of bytes or of other elements, order by their elements and then their length, and compare and hash alike
 whatever their form, so a map of `Vec<u8>` finds a `&[u8]` and one of `[u16; 2]` a `&[u16]`.
-A `VecDeque` orders as they do, however its buffer wraps.
+A `VecDeque` orders as they do, however its buffer wraps, and so does a `LinkedList`, which
+also compares and hashes as its iterator does: each item by `==`, never `!=`.
 Slices, arrays, `Vec`s, and `VecDeque`s compare against each
 other as std's do, by their lengths and then each pair of items in order, through the
 items' own `PartialEq<U>`, and its `ne` where the crate overrides it, which a tuple's and
@@ -687,7 +689,9 @@ they need.
   and Chrome; 64 keys a node measured best of 16 to 128. A hash map's JS primitive keys
   are a JS `Map`'s, the engine's own hash table; its other keys go into a second `Map`
   by their translated hash, chained by `Eq`. `VecDeque` is a ring buffer over an array
-  whose length is a power of two. Dropping a whole map or set drops its entries in the
+  whose length is a power of two. A `LinkedList` is nodes linked both ways, as std's are,
+  so `append` is O(1) and `split_off` walks from the nearer end; each node is the place
+  `iter_mut` and `front_mut` lend of an item JS copies. Dropping a whole map or set drops its entries in the
   runtime's order, keys' for a B-tree, not std's node by node: std leaves that order
   undocumented, and matching it would mean porting std's 11-key node layout, measured 1.5x
   slower ([#272](https://github.com/moq-dev/rust2/pull/272)). Maintainer's decision on

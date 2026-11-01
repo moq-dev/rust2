@@ -2,7 +2,7 @@
 //! width's arithmetic, casts, and inherent methods, `f64`, `char`s and the `str` methods over them,
 //! `Cow<str>`, boxed slices and text, `Duration`, control flow, patterns, byte slices split apart, `Copy`
 //! aggregates, closures and what they write of what they captured, traits, generic
-//! types, formatting, collections, UTF-8 decoding, `&mut` to values JS copies, whole
+//! types, formatting, collections, `LinkedList`s, UTF-8 decoding, `&mut` to values JS copies, whole
 //! writes through a `&mut` to an object, the standard library calls it maps, `Option`'s
 //! and `Result`'s combinators from core's MIR, `Option`s of values that can already be
 //! `undefined`, atomics, `static` ones included, trait objects, one-time cells, mutexes,
@@ -59,6 +59,7 @@ mod iters;
 mod joins;
 mod keys;
 mod lengths;
+mod lists;
 mod locals;
 mod locks;
 mod methods;

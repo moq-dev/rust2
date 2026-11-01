@@ -1826,6 +1826,12 @@ export function fmtIter<T>(it: Iter<unknown>, f: Formatter, debug: Debug<T>, wra
 	return wrapIn(f, wraps, (f) => fmtList(it.remaining() as Iterable<T>, f, debug));
 }
 
+/** `Debug` of a `LinkedList`'s `Iter` or `IterMut`, `name`: the list it has left, then its length by `len`. */
+export function fmtListIter<T>(it: Iter<unknown>, f: Formatter, debug: Debug<T>, len: Debug<usize>, name: string): FmtResult {
+	const list: Fmt = (f) => fmtList(it.remaining() as Iterable<T>, f, debug);
+	return fmtDebugTupleFields(f, name, [list, (f) => len(it.len(), f)]);
+}
+
 function wrapIn(f: Formatter, wraps: readonly IterWrap[], inner: Fmt): FmtResult {
 	if (wraps.length === 0) return inner(f);
 	const [wrap, ...rest] = wraps;

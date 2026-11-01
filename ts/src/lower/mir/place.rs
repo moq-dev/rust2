@@ -1864,9 +1864,10 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 
 	/// Why a reference made of `place` here would not keep pointing where Rust's does, if
 	/// a raw pointer the crate's code can't follow back here may be made through it, as
-	/// one a callee takes and returns, into a part JS keeps as an object: the variable it
-	/// is in, or a part on its path, assigned again while the reference, or what is made of
-	/// it, may still be read, as [`Self::out_of_step`] judges the pointer.
+	/// one a callee takes and returns, into a part JS keeps as an object that holds an
+	/// `UnsafeCell`: the variable it is in, or a part on its path, assigned again while the
+	/// reference, or what is made of it, may still be read, as [`Self::out_of_step`] judges
+	/// the pointer. A read through a pointer into any other part after is undefined.
 	pub(super) fn lent_out_of_step(&self, place: Place<'tcx>) -> Option<String> {
 		let ty = place.ty(&self.mir.local_decls, self.tcx).ty;
 		if !self
