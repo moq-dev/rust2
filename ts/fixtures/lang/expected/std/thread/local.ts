@@ -13,6 +13,14 @@ export function set$0st49po(self: rt.LocalKey<rt.Cell<rt.u32>>, value: rt.u32): 
 	});
 }
 
+export function set$0xuu1fw(self: rt.LocalKey<rt.Cell<rt.u8>>, value: rt.u8): void {
+	rt.localKeyInitializeWith(self, new rt.Cell(value), (value2: rt.Cell<rt.u8> | undefined, cell: rt.Cell<rt.u8>): undefined => {
+		if (value2 !== undefined) {
+			rt.cellSet(cell, value2.v);
+		}
+	});
+}
+
 export function get$0x8wyln(self: rt.LocalKey<rt.Cell<[locals_Twin.Twin, locals_Twin.Twin]>>): [locals_Twin.Twin, locals_Twin.Twin] {
 	return ((a0: rt.Cell<[locals_Twin.Twin, locals_Twin.Twin]>): [locals_Twin.Twin, locals_Twin.Twin] => {
 		return copy$tuple2_locals_Twin_locals_Twin(a0.v);
@@ -21,6 +29,12 @@ export function get$0x8wyln(self: rt.LocalKey<rt.Cell<[locals_Twin.Twin, locals_
 
 export function get$1ei2eoj(self: rt.LocalKey<rt.Cell<rt.u32>>): rt.u32 {
 	return ((a0: rt.Cell<rt.u32>): rt.u32 => {
+		return a0.v;
+	})(self.get());
+}
+
+export function get$18ignl5(self: rt.LocalKey<rt.Cell<rt.u8>>): rt.u8 {
+	return ((a0: rt.Cell<rt.u8>): rt.u8 => {
 		return a0.v;
 	})(self.get());
 }
