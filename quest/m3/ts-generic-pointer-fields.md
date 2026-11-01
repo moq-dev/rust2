@@ -9,7 +9,7 @@ struct and with a `u8`.
 
 ## Plan
 
-Found by [ts-taken-precision](/quest/m2/ts-taken-precision.md)'s lang case: the
+Found by lang's `pointers::reattached` case: the
 interface declares `at: rt.Place<T>`, because `pointee` of a type parameter outside an
 instance is a `Place`, but `Window<Reattached>`'s code stores the object itself, so
 `tsc` rejects the assignment and `(*w.at).0`. Either type the field by a conditional
