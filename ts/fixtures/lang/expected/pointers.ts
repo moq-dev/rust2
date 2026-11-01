@@ -170,12 +170,12 @@ export function shared(dataData: Uint8Array, dataStart: number, dataLen: number,
 }
 
 /**
- * Pointers to numbers, to a field, and to a whole struct: read, written, swapped,
- * replaced, compared, and null.
+ * Pointers to numbers, to a field, to a whole struct, and to bytes: read, written,
+ * swapped, replaced with the old value read or not, compared, and null.
  */
 export function places(data: rt.ByteSlice, out: rt.ByteVec): void {
-	let _29!: rt.Place<rt.u32>;
-	let _42!: rt.u8;
+	let _31!: rt.Place<rt.u32>;
+	let _52!: rt.u8;
 	let x: rt.u32 = 0;
 	let y: rt.u32 = 1;
 	const pair: pointers_Pair.Pair = { a: 2, b: 3 };
@@ -184,48 +184,66 @@ export function places(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const pa: rt.Place<rt.u32> = rt.place(() => pair.a, (value3) => pair.a = value3);
 	const pp: pointers_Pair.Pair = pair;
 	let held: rt.Place<rt.u32> = rt.NULL;
+	const bytes: Uint8Array = rt.bytes(2);
+	const pb: rt.ByteSlice = rt.byteSliceFrom(bytes);
 	for (const byte of rt.byteSliceView(data)) {
 		const v: rt.u32 = byte as rt.u32;
-		const _19: rt.u8 = rt.u8Rem(byte, 9);
-		if (_19 === 0) {
+		const _21: rt.u8 = rt.u8Rem(byte, 12);
+		if (_21 === 0) {
 			px.v = rt.u32Add(px.v, v);
-		} else if (_19 === 1) {
+		} else if (_21 === 1) {
 			py.v = v;
-		} else if (_19 === 2) {
+		} else if (_21 === 2) {
 			const x2 = px;
 			const y2 = py;
-			const old3 = x2.v;
+			const old6 = x2.v;
 			x2.v = y2.v;
-			y2.v = old3;
-		} else if (_19 === 3) {
-			const pointer = pa;
-			const old2 = pointer.v;
-			pointer.v = v;
-			rt.byteVecPush(out, old2 & 0xff);
-		} else if (_19 === 4) {
+			y2.v = old6;
+		} else if (_21 === 3) {
+			const pointer4 = pa;
+			const old5 = pointer4.v;
+			pointer4.v = v;
+			rt.byteVecPush(out, old5 & 0xff);
+		} else if (_21 === 4) {
 			pp.b = v;
-		} else if (_19 === 5) {
+		} else if (_21 === 5) {
 			const old: pointers_Pair.Pair = copy$pointers_Pair(pp);
 			rt.ptrWrite(pp, { a: old.b, b: old.a });
-		} else if (_19 === 6) {
+		} else if (_21 === 6) {
 			if (!((byte & 1) === 0)) {
-				_29 = pa;
+				_31 = pa;
 			} else {
-				_29 = px;
+				_31 = px;
 			}
-			held = _29;
-		} else if (_19 === 7) {
+			held = _31;
+		} else if (_21 === 7) {
 			rt.byteVecPush(out, (held === rt.NULL ? 1 : 0) | (((pp === pair ? 1 : 0) << 1) & 0xff));
+		} else if (_21 === 9) {
+			const pointer3 = pa;
+			const old4 = pointer3.v;
+			pointer3.v = v;
+			old4;
+		} else if (_21 === 10) {
+			const _46: pointers_Pair.Pair = { a: v, b: rt.u32Add(v, 1) };
+			const pointer2 = pp;
+			const old3 = copy$pointers_Pair(pointer2);
+			rt.ptrWrite(pointer2, _46);
+			old3;
+		} else if (_21 === 11) {
+			const pointer = pb;
+			const old2 = rt.byteSliceToArray(pointer);
+			rt.byteSliceSet(pointer, Uint8Array.of(byte, ~byte & 0xff));
+			old2;
 		} else {
 			if (!((held === rt.NULL))) {
-				_42 = held.v & 0xff;
+				_52 = held.v & 0xff;
 			} else {
-				_42 = 255;
+				_52 = 255;
 			}
-			rt.byteVecPush(out, _42);
+			rt.byteVecPush(out, _52);
 		}
 	}
-	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(x & 0xff, y & 0xff, pair.a & 0xff, pair.b & 0xff)));
+	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(x & 0xff, y & 0xff, pair.a & 0xff, pair.b & 0xff, bytes[0], bytes[1])));
 }
 
 /**
