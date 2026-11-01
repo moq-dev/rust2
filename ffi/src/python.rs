@@ -99,7 +99,11 @@ pub fn generate(abi: &Abi<'_>, packages: &str, contract: u64) -> Result<Output, 
 	}
 	let p = &abi.prefix;
 	let registry: String = g.types.iter().map(|t| format!("\t{t},\n")).collect();
-	let consts: String = g.consts.iter().map(|(name, bare)| format!("\t\"{name}\": _n.{bare},\n")).collect();
+	let consts: String = g
+		.consts
+		.iter()
+		.map(|(name, bare)| format!("\t\"{name}\": _n.{bare},\n"))
+		.collect();
 	let mut body = format!(
 		"{RUNTIME}\n{}{}_n._register(\n{registry})\n\n_consts = {{\n{consts}}}\n\n\ndef __getattr__(name):\n\t\"\"\"A constant, made anew each time it is read, as Rust makes it.\"\"\"\n\tget = _consts.get(name)\n\tif get is None:\n\t\traise _AttributeError(f\"module {{__name__!r}} has no attribute {{name!r}}\")\n\treturn get()\n",
 		g.py, g.top
@@ -390,7 +394,10 @@ impl<'a> Gen<'a> {
 			}
 			Type::Callback(i, _) => {
 				let c = abi.callback(*i);
-				format!("Ok(crate::{c} {{ vtable: &VTABLE_{c}, data: rt::callback({o}, {}, s)? }})", self.t(&c))
+				format!(
+					"Ok(crate::{c} {{ vtable: &VTABLE_{c}, data: rt::callback({o}, {}, s)? }})",
+					self.t(&c)
+				)
 			}
 			Type::Waker => format!("rt::waker_in({o}, s)"),
 			Type::Range(int) => format!("rt::range_in::<{}>({o})", int.rust()),
@@ -623,7 +630,11 @@ impl<'a> Gen<'a> {
 		let object = matches!(ty, Type::Object(_));
 		// The receiver as the glue reads it: a handle, held for the call, or a value.
 		let this = match object {
-			true => self.lift(&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())), "a[0]", "false"),
+			true => self.lift(
+				&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())),
+				"a[0]",
+				"false",
+			),
 			false => self.lift(ty, "a[0]", "false"),
 		};
 		let pass = match object {
@@ -634,7 +645,9 @@ impl<'a> Gen<'a> {
 			g.native(
 				&format!("{bare}_{suffix}"),
 				1,
-				&format!("let this = {this}?;\n\t\tlet ret = rt::call(|| crate::{c}_{suffix}({pass}));\n\t\ts.done();\n\t\t{lower}"),
+				&format!(
+					"let this = {this}?;\n\t\tlet ret = rt::call(|| crate::{c}_{suffix}({pass}));\n\t\ts.done();\n\t\t{lower}"
+				),
 			);
 		};
 		if t.display {
@@ -653,7 +666,11 @@ impl<'a> Gen<'a> {
 			));
 		}
 		if object && t.eq {
-			let other = self.lift(&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())), "a[1]", "false");
+			let other = self.lift(
+				&Type::Ref(crate::ir::Mutability::Not, Box::new(ty.clone())),
+				"a[1]",
+				"false",
+			);
 			self.native(
 				&format!("{bare}_eq"),
 				2,
@@ -689,7 +706,11 @@ impl<'a> Gen<'a> {
 		reserved: &[&str],
 		body: &mut Vec<String>,
 	) {
-		let reserved: Vec<&str> = reserved.iter().copied().chain(data.iter().map(String::as_str)).collect();
+		let reserved: Vec<&str> = reserved
+			.iter()
+			.copied()
+			.chain(data.iter().map(String::as_str))
+			.collect();
 		for method in methods {
 			let place = match method.receiver {
 				Some(_) => Place::Member,
@@ -705,7 +726,11 @@ impl<'a> Gen<'a> {
 	/// Check that the members `body` of the type `rust` and its data's names `data` differ.
 	fn distinct(&mut self, rust: &str, data: &[String], body: &[String]) {
 		let mut seen = BTreeSet::new();
-		for name in data.iter().cloned().chain(body.iter().filter_map(|code| member_name(code))) {
+		for name in data
+			.iter()
+			.cloned()
+			.chain(body.iter().filter_map(|code| member_name(code)))
+		{
 			if !seen.insert(name.clone()) {
 				self.errors.push(format!(
 					"two members of `{rust}` are both `{name}` in Python: rename one in the config"
@@ -731,7 +756,14 @@ impl<'a> Gen<'a> {
 		let fields: String = record
 			.fields
 			.iter()
-			.map(|f| format!("\t{}: {}\n{}", field_name(&f.name), self.py_ty(&f.ty), docstring(&f.docs, "\t")))
+			.map(|f| {
+				format!(
+					"\t{}: {}\n{}",
+					field_name(&f.name),
+					self.py_ty(&f.ty),
+					docstring(&f.docs, "\t")
+				)
+			})
 			.collect();
 		let repr = match record.traits.debug {
 			true => ", repr=False",
@@ -800,7 +832,12 @@ impl<'a> Gen<'a> {
 		}
 		// Each variant's class, and its fields, which on an instance hide the enum's members.
 		let mut data: Vec<String> = e.variants.iter().map(|v| pascal(&abi::snake(&v.name))).collect();
-		let fields: BTreeSet<String> = e.variants.iter().flat_map(|v| &v.fields).map(|f| field_name(&f.name)).collect();
+		let fields: BTreeSet<String> = e
+			.variants
+			.iter()
+			.flat_map(|v| &v.fields)
+			.map(|f| field_name(&f.name))
+			.collect();
 		data.extend(fields);
 		self.methods(&e.methods, (&ty, &owner, &rust), &data, &[], &mut body);
 		let _ = write!(
@@ -1095,13 +1132,22 @@ impl<'a> Gen<'a> {
 				(Type::Closure(lent, ret), Ty::Fn(c_lent, c_ret)) => {
 					c_params.next().expect("a closure has its data");
 					let trampoline = format!("py_{c_name}_{}", abi::escape(&param.name));
-					closures.push((lent.clone(), (**ret).clone(), c_lent.clone(), (**c_ret).clone(), trampoline.clone()));
+					closures.push((
+						lent.clone(),
+						(**ret).clone(),
+						c_lent.clone(),
+						(**c_ret).clone(),
+						trampoline.clone(),
+					));
 					stmts.push(format!("let p{n} = rt::closure(a[{n}])?;"));
 					c_args.push(format!("Some({trampoline})"));
 					c_args.push(format!("p{n}"));
 				}
 				_ => {
-					stmts.push(format!("let p{n} = {}?;", self.lift(&param.ty, &format!("a[{n}]"), "true")));
+					stmts.push(format!(
+						"let p{n} = {}?;",
+						self.lift(&param.ty, &format!("a[{n}]"), "true")
+					));
 					c_args.push(format!("p{n}"));
 				}
 			}
@@ -1167,7 +1213,9 @@ impl<'a> Gen<'a> {
 		for param in &function.params {
 			if let Type::Closure(lent, _) = &param.ty {
 				let name = param_name(&param.name);
-				text.push_str(&format!("\n\nRust calls `{name}` only during the call, from any thread."));
+				text.push_str(&format!(
+					"\n\nRust calls `{name}` only during the call, from any thread."
+				));
 				if lent.iter().any(|p| matches!(p.base(), Type::Object(_))) {
 					text.push_str(&format!(
 						"\nAn object it lends lives only for that call of `{name}`: keep none past it."
@@ -1181,9 +1229,7 @@ impl<'a> Gen<'a> {
 			(true, false) => format!(
 				"async def {member}({params}) -> {ret}:\n{docs}\tr = {native}\n\treturn (await r) if r.__class__ is _Future else r"
 			),
-			(true, true) => format!(
-				"def {member}({params}) -> _typing.Awaitable[{ret}]:\n{docs}\treturn {native}"
-			),
+			(true, true) => format!("def {member}({params}) -> _typing.Awaitable[{ret}]:\n{docs}\treturn {native}"),
 			(false, _) => format!("def {member}({params}) -> {ret}:\n{docs}\treturn {native}"),
 		};
 		let code = match (function.access, place) {
@@ -1194,7 +1240,11 @@ impl<'a> Gen<'a> {
 				return None;
 			}
 			(Access::Const, Place::Static) if function.params.is_empty() => {
-				format!("{} = _Const(_n.{bare})\n{}", member.to_uppercase(), docstring(text.trim(), ""))
+				format!(
+					"{} = _Const(_n.{bare})\n{}",
+					member.to_uppercase(),
+					docstring(text.trim(), "")
+				)
 			}
 			(Access::Field { set: false, .. }, Place::Member) => format!("@_property\n{code}"),
 			(_, Place::Static) => format!("@_staticmethod\n{code}"),
@@ -1210,7 +1260,14 @@ impl<'a> Gen<'a> {
 	/// `exception`: their declarations, the pointers the C call takes after its arguments,
 	/// and the glue's expression of the value, an `R<Obj>`, where `ok` says whether it
 	/// returned ok.
-	fn outs(&mut self, outs: &[(String, Ty)], ok: &Type, err: Option<&Type>, exception: Option<&str>, is_ok: &str) -> (String, Vec<String>, String) {
+	fn outs(
+		&mut self,
+		outs: &[(String, Ty)],
+		ok: &Type,
+		err: Option<&Type>,
+		exception: Option<&str>,
+		is_ok: &str,
+	) -> (String, Vec<String>, String) {
 		let mut decl = Vec::new();
 		let mut ptrs = Vec::new();
 		let types: Vec<&Type> = match ok {
@@ -1235,9 +1292,7 @@ impl<'a> Gen<'a> {
 			_ => values.pop().expect("an out value"),
 		};
 		let value = match exception {
-			Some(exception) => format!(
-				"(if {is_ok} {{ {value} }} else {{ rt::raise_error({exception}, {error}) }})"
-			),
+			Some(exception) => format!("(if {is_ok} {{ {value} }} else {{ rt::raise_error({exception}, {error}) }})"),
 			None => value,
 		};
 		(decl.join("\n\t\t"), ptrs, value)

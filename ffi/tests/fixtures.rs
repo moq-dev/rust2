@@ -541,7 +541,10 @@ fn api_python() {
 	std::fs::create_dir_all(&mismatched).unwrap();
 	std::fs::copy(dir.join(PYTHON_LIB), mismatched.join(PYTHON_LIB)).unwrap();
 	let source = std::fs::read_to_string(dir.join("api.py")).unwrap();
-	let at = source.find("_n.contract() != 0x").expect("the Python checks its contract") + 19;
+	let at = source
+		.find("_n.contract() != 0x")
+		.expect("the Python checks its contract")
+		+ 19;
 	let flipped = match &source[at..at + 1] {
 		"0" => "1",
 		_ => "0",
