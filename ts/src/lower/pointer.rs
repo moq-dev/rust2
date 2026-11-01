@@ -206,19 +206,16 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				let info = self.adt(*adt, span);
 				match info.repr {
 					AdtRepr::Struct { ctor, fields } => {
-						let tys: Vec<Ty<'tcx>> = adt
-							.non_enum_variant()
-							.fields
-							.iter()
-							.map(|f| self.field_ty(f.did, args))
-							.collect();
 						// A class's constructor types each of its parameters.
 						let plain = self.plain(info.sym);
-						let values = tys
-							.into_iter()
-							.map(|t| match plain {
-								true => self.shell(t, span),
-								false => self.uninit(t, span),
+						let values = (adt.non_enum_variant().fields.iter())
+							.map(|f| {
+								let t = self.field_ty(f.did, args);
+								let value = match plain {
+									true => self.shell(t, span),
+									false => self.uninit(t, span),
+								};
+								self.field_value(value, adt.did(), f.did, args, span)
 							})
 							.collect();
 						self.construct(info.sym, &ctor, &fields, values)

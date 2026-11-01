@@ -673,7 +673,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						false => value.typed(),
 					}
 				};
-				let values = values.into_iter().enumerate().map(|(i, v)| field_arg(i, v)).collect();
+				let values = (def.fields.iter().zip(values).enumerate())
+					.map(|(i, (field, v))| {
+						let v = self.b.t.field_value(v, def_id, field.did, args, span);
+						field_arg(i, v)
+					})
+					.collect();
 				self.b.t.construct(info.sym, &ctor, &fields, values)
 			}
 			AdtRepr::Tags => {

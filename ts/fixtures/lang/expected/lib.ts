@@ -500,31 +500,31 @@ export function copy$ops_ControlFlow_unit_array2_u8(v: rt.Result<Uint8Array, und
 }
 
 export function copy$pointers_Aimed_Cell_u8(v: Aimed.Aimed<rt.Cell<rt.u8>>): Aimed.Aimed<rt.Cell<rt.u8>> {
-	return { at: v.at as rt.Place<rt.Cell<rt.u8>>, seen: v.seen as rt.Place<rt.Cell<rt.u8>>, held: v.held as rt.Place<rt.Cell<rt.u8>>, maybe: v.maybe as rt.Place<rt.Cell<rt.u8>> | undefined, tagged: copy$tuple2_mutPtr_Cell_u8_u8(v.tagged as [rt.Place<rt.Cell<rt.u8>>, rt.u8]), to: v.to };
+	return { at: v.at as rt.Place<rt.Cell<rt.u8>>, seen: v.seen as rt.Place<rt.Cell<rt.u8>>, held: v.held as rt.Place<rt.Cell<rt.u8>>, maybe: v.maybe as rt.Place<rt.Cell<rt.u8>> | undefined, tagged: copy$tuple2_mutPtr_Cell_u8_u8(v.tagged as [rt.Place<rt.Cell<rt.u8>>, rt.u8]), to: v.to, read: (v.read as (a0: rt.Place<rt.Cell<rt.u8>>) => rt.u8) as (a0: rt.Ptr<rt.Cell<rt.u8>>) => rt.u8 };
 }
 
 export function copy$pointers_Aimed_array2_u16(v: Aimed.Aimed<rt.u16[]>): Aimed.Aimed<rt.u16[]> {
-	return { at: v.at as rt.u16[], seen: v.seen as rt.u16[], held: v.held as rt.u16[], maybe: v.maybe as rt.u16[] | undefined, tagged: copy$tuple2_mutPtr_array2_u16_u8(v.tagged as [rt.u16[], rt.u8]), to: v.to };
+	return { at: v.at as rt.u16[], seen: v.seen as rt.u16[], held: v.held as rt.u16[], maybe: v.maybe as rt.u16[] | undefined, tagged: copy$tuple2_mutPtr_array2_u16_u8(v.tagged as [rt.u16[], rt.u8]), to: v.to, read: (v.read as (a0: rt.u16[]) => rt.u8) as (a0: rt.Ptr<rt.u16[]>) => rt.u8 };
 }
 
 export function copy$pointers_Aimed_array4_u8(v: Aimed.Aimed<Uint8Array>): Aimed.Aimed<Uint8Array> {
-	return { at: v.at as rt.ByteSlice, seen: v.seen as rt.ByteSlice, held: v.held as rt.ByteSlice, maybe: v.maybe as rt.ByteSlice | undefined, tagged: copy$tuple2_mutPtr_array4_u8_u8(v.tagged as [rt.ByteSlice, rt.u8]), to: v.to };
+	return { at: v.at as rt.ByteSlice, seen: v.seen as rt.ByteSlice, held: v.held as rt.ByteSlice, maybe: v.maybe as rt.ByteSlice | undefined, tagged: copy$tuple2_mutPtr_array4_u8_u8(v.tagged as [rt.ByteSlice, rt.u8]), to: v.to, read: (v.read as (a0: rt.ByteSlice) => rt.u8) as (a0: rt.Ptr<Uint8Array>) => rt.u8 };
 }
 
 export function copy$pointers_Aimed_pointers_Housed_u8(v: Aimed.Aimed<Housed.Housed<rt.u8>>): Aimed.Aimed<Housed.Housed<rt.u8>> {
-	return { at: v.at as Housed.Housed<rt.u8>, seen: v.seen as Housed.Housed<rt.u8>, held: v.held as Housed.Housed<rt.u8>, maybe: v.maybe as Housed.Housed<rt.u8> | undefined, tagged: copy$tuple2_mutPtr_pointers_Housed_u8_u8(v.tagged as [Housed.Housed<rt.u8>, rt.u8]), to: v.to };
+	return { at: v.at as Housed.Housed<rt.u8>, seen: v.seen as Housed.Housed<rt.u8>, held: v.held as Housed.Housed<rt.u8>, maybe: v.maybe as Housed.Housed<rt.u8> | undefined, tagged: copy$tuple2_mutPtr_pointers_Housed_u8_u8(v.tagged as [Housed.Housed<rt.u8>, rt.u8]), to: v.to, read: (v.read as (a0: Housed.Housed<rt.u8>) => rt.u8) as (a0: rt.Ptr<Housed.Housed<rt.u8>>) => rt.u8 };
 }
 
 export function copy$pointers_Aimed_pointers_Leaning(v: Aimed.Aimed<Leaning.Leaning>): Aimed.Aimed<Leaning.Leaning> {
-	return { at: v.at as rt.Place<Leaning.Leaning>, seen: v.seen as rt.Place<Leaning.Leaning>, held: v.held as rt.Place<Leaning.Leaning>, maybe: v.maybe as rt.Place<Leaning.Leaning> | undefined, tagged: copy$tuple2_mutPtr_pointers_Leaning_u8(v.tagged as [rt.Place<Leaning.Leaning>, rt.u8]), to: v.to };
+	return { at: v.at as rt.Place<Leaning.Leaning>, seen: v.seen as rt.Place<Leaning.Leaning>, held: v.held as rt.Place<Leaning.Leaning>, maybe: v.maybe as rt.Place<Leaning.Leaning> | undefined, tagged: copy$tuple2_mutPtr_pointers_Leaning_u8(v.tagged as [rt.Place<Leaning.Leaning>, rt.u8]), to: v.to, read: (v.read as (a0: rt.Place<Leaning.Leaning>) => rt.u8) as (a0: rt.Ptr<Leaning.Leaning>) => rt.u8 };
 }
 
 export function copy$pointers_Aimed_pointers_Paired(v: Aimed.Aimed<Paired.Paired>): Aimed.Aimed<Paired.Paired> {
-	return { at: v.at as Paired.Paired, seen: v.seen as Paired.Paired, held: v.held as Paired.Paired, maybe: v.maybe as Paired.Paired | undefined, tagged: copy$tuple2_mutPtr_pointers_Paired_u8(v.tagged as [Paired.Paired, rt.u8]), to: v.to };
+	return { at: v.at as Paired.Paired, seen: v.seen as Paired.Paired, held: v.held as Paired.Paired, maybe: v.maybe as Paired.Paired | undefined, tagged: copy$tuple2_mutPtr_pointers_Paired_u8(v.tagged as [Paired.Paired, rt.u8]), to: v.to, read: (v.read as (a0: Paired.Paired) => rt.u8) as (a0: rt.Ptr<Paired.Paired>) => rt.u8 };
 }
 
 export function copy$pointers_Aimed_u8(v: Aimed.Aimed<rt.u8>): Aimed.Aimed<rt.u8> {
-	return { at: v.at as rt.Place<rt.u8>, seen: v.seen as rt.Place<rt.u8>, held: v.held as rt.Place<rt.u8>, maybe: v.maybe as rt.Place<rt.u8> | undefined, tagged: copy$tuple2_mutPtr_u8_u8(v.tagged as [rt.Place<rt.u8>, rt.u8]), to: v.to };
+	return { at: v.at as rt.Place<rt.u8>, seen: v.seen as rt.Place<rt.u8>, held: v.held as rt.Place<rt.u8>, maybe: v.maybe as rt.Place<rt.u8> | undefined, tagged: copy$tuple2_mutPtr_u8_u8(v.tagged as [rt.Place<rt.u8>, rt.u8]), to: v.to, read: (v.read as (a0: rt.Place<rt.u8>) => rt.u8) as (a0: rt.Ptr<rt.u8>) => rt.u8 };
 }
 
 export function copy$pointers_ByCall(v: ByCall.ByCall): ByCall.ByCall {

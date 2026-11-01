@@ -280,7 +280,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 								.map(|(field, &id)| {
 									let field_ty = self.field_ty(field.did, args);
 									let read = self.held_field(v().field(id), field.did, args, span);
-									self.snapshot(read, part(field_ty), span)
+									let copy = self.snapshot(read, part(field_ty), span);
+									self.field_value(copy, adt.did(), field.did, args, span)
 								})
 								.collect();
 							ret(self.construct(info.sym, &ctor, &fields, values))

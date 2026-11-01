@@ -1565,6 +1565,7 @@ macro_rules! aim {
 				maybe: if $n % 2 == 0 { Some(held) } else { None },
 				tagged: (at, $n),
 				to: if $n % 3 == 0 { To::At(at) } else { To::Nowhere },
+				read: read_through,
 			},
 		}
 	}};
@@ -1754,6 +1755,8 @@ struct Aimed<T> {
 	maybe: Option<NonNull<T>>,
 	tagged: (*mut T, u8),
 	to: To<T>,
+	/// A function taking one, which JS takes as the instance's own pointer.
+	read: fn(*const T) -> u8,
 }
 
 impl<T> Clone for Aimed<T> {
@@ -1803,7 +1806,7 @@ fn through<T: Aim>(nest: &Enclosed<T>, n: u8, out: &mut Vec<u8>) {
 	out.extend([a.tagged.1, tag]);
 	unsafe {
 		(*at).put(tag);
-		out.push((*a.seen).get());
+		out.push((a.read)(a.seen));
 		(*a.at).put(n);
 		out.push((*a.held.as_ptr()).get());
 		if let Some(p) = a.maybe {
@@ -1819,6 +1822,11 @@ fn through<T: Aim>(nest: &Enclosed<T>, n: u8, out: &mut Vec<u8>) {
 		}
 		out.push((*a.seen).get());
 	}
+}
+
+/// What `at` points at, read as a byte.
+fn read_through<T: Aim>(at: *const T) -> u8 {
+	unsafe { (*at).get() }
 }
 
 /// `a`'s tagged pointer and tag, taken apart.

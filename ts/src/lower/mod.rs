@@ -192,8 +192,9 @@ pub struct Translator<'a, 'tcx> {
 	queue: VecDeque<(Instance<'tcx>, SymId)>,
 	adts: rustc_data_structures::fx::FxHashMap<DefId, Adt>,
 	/// The fields of generic types whose definition types a pointer as an `rt.Ptr`, which
-	/// an instance's read casts to what it holds.
-	ptr_fields: rustc_data_structures::fx::FxHashSet<DefId>,
+	/// an instance's read casts to what it holds, with that type where a function type in
+	/// it takes one, which an instance's value is cast to.
+	ptr_fields: rustc_data_structures::fx::FxHashMap<DefId, Option<Type>>,
 	/// Source files by name, as indexes into `program.sources`.
 	sources: rustc_data_structures::fx::FxHashMap<String, Option<u32>>,
 	failed: bool,
@@ -1622,16 +1623,44 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// parameters, noting a field that holds an `rt.Ptr` for [`Self::held_field`].
 	fn defined_field_ty(&mut self, field: &ty::FieldDef, identity: GenericArgsRef<'tcx>, span: Span) -> Type {
 		let ty = self.ty(field.ty(self.tcx, identity).skip_norm_wip(), span);
-		if ty.any(&|t| matches!(t, Type::Rt("Ptr", _))) {
-			self.ptr_fields.insert(field.did);
+		let ptr = |t: &Type| matches!(t, Type::Rt("Ptr", _));
+		if ty.any(&ptr) {
+			self.ptr_fields.insert(field.did, ty.takes(&ptr).then(|| ty.clone()));
 		}
 		ty
+	}
+
+	/// `value`, for `field` of an instance of `adt` with `args`, cast to the field's type in
+	/// the definition at those arguments where a function type in it takes an `rt.Ptr`: a
+	/// function taking what the instance's pointer is takes no other form of one.
+	pub fn field_value(
+		&mut self,
+		value: ts::Expr,
+		adt: DefId,
+		field: DefId,
+		args: GenericArgsRef<'tcx>,
+		span: Span,
+	) -> ts::Expr {
+		let Some(Some(defined)) = self.ptr_fields.get(&field).cloned() else {
+			return value;
+		};
+		let params: Vec<(String, Type)> = (self.tcx.generics_of(adt).own_params.iter())
+			.filter(|param| matches!(param.kind, ty::GenericParamDefKind::Type { .. }))
+			.map(|param| {
+				(
+					param.name.to_string(),
+					self.ty(args.type_at(param.index as usize), span),
+				)
+			})
+			.collect();
+		let at = defined.subst(&|name| params.iter().find(|(p, _)| p == name).map(|(_, t)| t.clone()));
+		ts::Expr::As(Box::new(value), at)
 	}
 
 	/// `read`, of `field` of an instance with `args`, cast to what the instance holds there
 	/// where the definition types a pointer in it as an `rt.Ptr`.
 	pub fn held_field(&mut self, read: ts::Expr, field: DefId, args: GenericArgsRef<'tcx>, span: Span) -> ts::Expr {
-		if !self.ptr_fields.contains(&field) {
+		if !self.ptr_fields.contains_key(&field) {
 			return read;
 		}
 		let ty = self.field_ty(field, args);

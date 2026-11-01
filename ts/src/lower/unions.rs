@@ -236,12 +236,12 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					.iter()
 					.map(|f| self.field_ty(f.did, args))
 					.collect();
-				let values = tys
-					.into_iter()
-					.enumerate()
-					.map(|(i, t)| {
+				let defs = &adt.non_enum_variant().fields;
+				let values = (tys.into_iter().zip(defs.iter()).enumerate())
+					.map(|(i, (t, field))| {
 						let part = within(i);
-						self.of_slots(base.clone(), t, &part, span)
+						let value = self.of_slots(base.clone(), t, &part, span);
+						self.field_value(value, adt.did(), field.did, args, span)
 					})
 					.collect();
 				self.construct(info.sym, &ctor, &fields, values)

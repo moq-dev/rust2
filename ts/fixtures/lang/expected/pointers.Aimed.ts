@@ -11,6 +11,8 @@ export interface Aimed<T> {
 	maybe: rt.Ptr<T> | undefined;
 	tagged: [rt.Ptr<T>, rt.u8];
 	to: To.To<T>;
+	/** A function taking one, which JS takes as the instance's own pointer. */
+	read: (a0: rt.Ptr<T>) => rt.u8;
 }
 
 //# sourceMappingURL=pointers.Aimed.ts.map
