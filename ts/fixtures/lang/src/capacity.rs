@@ -517,9 +517,9 @@ pub fn maps(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 				floors = before;
 			}
 			8 => {
-				let mut keep = alternate();
-				m.retain(|_, _| keep());
-				s.retain(|_| keep());
+				// By key, as which keys every other one would keep follows iteration order.
+				m.retain(|k, _| k % 3 != u16::from(arg % 3));
+				s.retain(|k| k % 3 != arg % 3);
 				// std promises nothing of a clone's capacity.
 				m = m.clone();
 				s = s.clone();

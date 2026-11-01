@@ -1964,9 +1964,9 @@ export function collects(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void
 /**
  * std's `HashMap` and `HashSet`, made by `with_capacity` if `kind` is odd, as each pair of
  * `data`'s bytes changes them: their lengths, and whether each holds at least its length,
- * what `with_capacity` and `reserve` asked for, and no less past `shrink_to` or `clear`
- * than it asked for of what there was. A `reserve` or `with_capacity` past what one may
- * hold panics.
+ * what `with_capacity` and `reserve` asked for, and no less past `shrink_to`, `clear`, or
+ * `drain` than it asked for of what there was. A `reserve` or `with_capacity` past what
+ * one may hold panics.
  */
 export function maps(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _8!: [rt.HashMap<rt.u16, [rt.u64, rt.u8]>, rt.HashSet<rt.u8>];
@@ -2059,19 +2059,18 @@ export function maps(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.hashClear(s);
 				floors = before;
 			} else if (_64 === 8) {
-				const keep: () => boolean = alternate();
-				rt.hashRetain(m, (_210: rt.u16, _3: [rt.u64, rt.u8]): boolean => {
-					return keep();
+				rt.hashRetain(m, (k: rt.u16, _3: [rt.u64, rt.u8]): boolean => {
+					return rt.u16Rem(k, 3) !== rt.u8Rem(arg, 3) as rt.u16;
 				});
-				rt.hashRetain(s, (_211: rt.u8): boolean => {
-					return keep();
+				rt.hashRetain(s, (k2: rt.u8): boolean => {
+					return rt.u8Rem(k2, 3) !== rt.u8Rem(arg, 3);
 				});
+				m = rt.hashClone(m, undefined, copy$tuple2_u64_u8);
+				s = rt.hashClone(s, undefined, undefined);
 			} else {
 				rt.hashDrain(m);
 				rt.hashDrainKeys(s);
 				floors = before;
-				m = rt.hashClone(m, undefined, copy$tuple2_u64_u8);
-				s = rt.hashClone(s, undefined, undefined);
 			}
 		}
 		const part2 = [rt.hashLen(m), rt.hashLen(s)];

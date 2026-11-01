@@ -149,11 +149,18 @@ pub fn table(data: &[u8], out: &mut Vec<u8>) {
 			_ => {
 				let sum: u32 = t.iter().map(|e| u32::from(e.0) + e.1).sum();
 				put(out, sum as usize);
+				let copy = t.clone();
 				let mut drained: Vec<(u16, u32)> = t.drain().collect();
 				drained.sort();
 				for (k, v) in drained {
 					put(out, usize::from(k));
 					put(out, v as usize);
+				}
+				// The clone finds each item under the hash its original was given.
+				put(out, copy.find(h, |e| e.0 == key).map_or(0x100, |e| e.1 as usize));
+				put(out, copy.len());
+				if arg & 1 == 1 {
+					t = copy;
 				}
 			}
 		}

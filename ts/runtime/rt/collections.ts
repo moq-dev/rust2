@@ -1024,8 +1024,10 @@ export function hashExtendKeys<K>(m: HashSet<K>, keys: Iter<K>, k?: (key: K) => 
 export function hashClone<K, V>(m: HashMap<K, V>, key: (k: K) => K = itself, value: (v: V) => V = itself): HashMap<K, V> {
 	const out = hashNew<K, V>(m.h);
 	for (const [k, v] of m.p) out.p.set(key(k), value(v));
-	for (const first of m.o?.values() ?? []) {
-		for (let s: Slot<K, V> | undefined = first; s !== undefined; s = s.next) add(out, key(s.k), value(s.v));
+	// Each clone keeps its original's hash, as hashbrown's copies its table without
+	// rehashing, and a table has no hasher to rehash by.
+	for (const [hash, first] of m.o ?? []) {
+		for (let s: Slot<K, V> | undefined = first; s !== undefined; s = s.next) add(out, key(s.k), value(s.v), hash);
 	}
 	return out;
 }
