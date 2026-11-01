@@ -341,9 +341,9 @@ fun script() {
 	println("ports ${ports(listOf(v4, v6))}")
 	val peer = Peer(v6, listOf("a", "b")).next("c")
 	println("peer ${peer.debug()} ${peer.aliases().joinToString(", ", "[", "]") { "\"$it\"" }}")
-	val file = file("dir", "f")
-	println("file $file")
-	println("parents ${parents(listOf(file, "/")).joinToString(" ") { it ?: "none" }}")
+	val file = file("dir", "f\\'\"\t")
+	println("file ${escaped(file)}")
+	println("parents ${parents(listOf(file, "/")).joinToString(" ") { it?.let(::escaped) ?: "none" }}")
 	val words = words(" one two  three ")
 	println("words ${words.size} ${words.joinToString(", ", "[", "]") { "\"$it\"" }}")
 	println("sentence ${sentence(words)} ${sentence(null)}")
@@ -388,6 +388,18 @@ fun script() {
 	val at6 = java.net.InetSocketAddress(java.net.Inet6Address.getByAddress(null, loopback, 3), 443)
 	val (next4, next6) = nexts(at4, at6)
 	println("nexts ${next4.address.hostAddress} ${next4.port} ${next6.port} ${(next6.address as java.net.Inet6Address).scopeId}")
+}
+
+/** A path's UTF-8 bytes as Rust's `escape_ascii` prints them. */
+fun escaped(path: String): String = path.encodeToByteArray().joinToString("") {
+	when (val b = it.toInt() and 0xff) {
+		'\t'.code -> "\\t"
+		'\r'.code -> "\\r"
+		'\n'.code -> "\\n"
+		'\\'.code, '\''.code, '"'.code -> "\\${b.toChar()}"
+		in 0x20 until 0x7f -> b.toChar().toString()
+		else -> "\\x%02x".format(b)
+	}
 }
 
 /** The bytes as text, closing them. */

@@ -1391,7 +1391,7 @@ export function edited(log: Log.Log, id: rt.u32, arg: rt.u8): void {
 		const _195: Key.Key = key(2);
 		v8.push(_195);
 		const v7: Key.Key[] = v8;
-		const _209: Key.Key[] = v7.map(Key.clone$Clone);
+		const _209: Key.Key[] = rt.vecExact(v7.map(Key.clone$Clone), 12);
 		const part15 = ids(_209);
 		const args14: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, part15)];
 		const _200: string = rt.fmtFormat(["cloned ", args14[0]]);

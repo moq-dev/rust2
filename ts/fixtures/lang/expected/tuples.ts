@@ -82,7 +82,7 @@ export function ones(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: rt.Iter<[rt.u8]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_26: rt.u8): [rt.u8] => {
 		return [_26] as [rt.u8];
 	});
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(rt.tupleExtendOne([rt.heapNew() as rt.BinaryHeap<rt.u8>] as [rt.BinaryHeap<rt.u8>], _22, (c3, items3) => rt.heapExtend(c3, items3, rt.le, rt.ge, rt.lt, undefined, 1, true))[0].d)))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(rt.tupleExtendOne([rt.heapNew() as rt.BinaryHeap<rt.u8>] as [rt.BinaryHeap<rt.u8>], _22, (c3, items3) => rt.heapExtend(c3, items3, rt.le, rt.ge, rt.lt, undefined, 1, true))[0].d))), undefined, true);
 	const _28: rt.Iter<[rt.u8]> = rt.iterMap(rt.iterFilter(rt.iterSlice(rt.byteSliceView(data)), (_210: rt.u8): boolean => {
 		return (_210 & 1) === 0;
 	}), (_211: rt.u8): [rt.u8] => {
@@ -122,7 +122,7 @@ export function ones(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const v2: rt.ByteVec = _64[0][0];
 	const heap2: rt.BinaryHeap<rt.u8> = _64[0][1];
 	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(v2)), undefined, true);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(heap2.d)))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(heap2.d))), undefined, true);
 	rt.tupleExtendOne([undefined] as [undefined], rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_216: rt.u8): [undefined] => {
 		return [undefined] as [undefined];
 	}), (_c11, items10) => rt.iterFold(items10, undefined, () => undefined));
@@ -160,7 +160,7 @@ export function pairs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _22: [rt.BinaryHeap<rt.u8>, rt.VecDeque<rt.u16>] = rt.tupleExtend([rt.heapNew() as rt.BinaryHeap<rt.u8>, rt.dequeNew() as rt.VecDeque<rt.u16>] as [rt.BinaryHeap<rt.u8>, rt.VecDeque<rt.u16>], _23, [rt.heapPart(rt.le, 1), rt.dequePart(2)]);
 	const heap: rt.BinaryHeap<rt.u8> = _22[0];
 	const q: rt.VecDeque<rt.u16> = _22[1];
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(heap.d)))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(heap.d))), undefined, true);
 	rt.iterExtendBytes(out, rt.iterFlatMap(rt.dequeIter(q), (n: rt.u16): Uint8Array => {
 		return rt.u16ToBeBytes(n).reverse();
 	}, (value: Uint8Array) => rt.iterSlice(value), false, 2), undefined, true);
@@ -210,7 +210,7 @@ export function triples(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterFlatMap(rt.btreeIter(tree), (_25: [rt.u8, rt.u16]): Uint8Array => {
 		return Uint8Array.of(_25[0], _25[1] & 0xff);
 	}, (value: Uint8Array) => rt.iterSlice(value), false, 2), undefined, true);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(heap.d)))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(heap.d))), undefined, true);
 	const _35: rt.Iter<[rt.u8, [rt.char, rt.u16]]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_26: rt.u8): [rt.u8, [rt.char, rt.u16]] => {
 		const b3: rt.u8 = _26;
 		return [b3, [b3 as rt.char, rt.u16Add(b3 as rt.u16, 1)] as [rt.char, rt.u16]] as [rt.u8, [rt.char, rt.u16]];
@@ -274,7 +274,7 @@ export function twelves(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.strBytes(chars), undefined, true);
 	rt.iterExtendBytes(out, rt.strBytes(texts), undefined, true);
 	rt.iterExtendBytes(out, rt.dequeIter(q), undefined, true);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(heap.d)))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(heap.d))), undefined, true);
 	entries(map, out);
 	sorted(set, out);
 	rt.iterExtendBytes(out, rt.iterFlatMap(rt.btreeIter(tree), (_210: [rt.u8, rt.u16]): Uint8Array => {
@@ -319,7 +319,7 @@ export function extended(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return [b2, [rt.u8Rem(b2, 4), b2] as [rt.u8, rt.u8]] as [rt.u8, [rt.u8, rt.u8]];
 	});
 	rt.tupleExtend(t2, _45, [rt.heapPart(rt.le, 1), rt.hashPart(undefined, undefined, 469762048)]);
-	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFrom(Uint8Array.from(t2[0].d)))), undefined, true);
+	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(rt.byteVecFromVec(t2[0].d))), undefined, true);
 	entries(t2[1], out);
 }
 

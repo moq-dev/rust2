@@ -30,7 +30,7 @@ export function each$0(data: rt.ByteSlice, out: rt.ByteVec): void {
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 0, true);
-	joined$0(data, rows.map(copy$array_u8), out);
+	joined$0(data, rt.vecExact(rows.map(copy$array_u8), 0), out);
 	joined$0(data, copy$array_array0_u8([rt.bytes(0).fill(165), rt.bytesFromFn(0, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);
@@ -65,7 +65,7 @@ export function each$1(data: rt.ByteSlice, out: rt.ByteVec): void {
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 4, true);
-	joined$1(data, rows.map(copy$array_u8), out);
+	joined$1(data, rt.vecExact(rows.map(copy$array_u8), 1), out);
 	joined$1(data, copy$array_array1_u8([rt.bytes(1).fill(165), rt.bytesFromFn(1, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);
@@ -100,7 +100,7 @@ export function each$17(data: rt.ByteSlice, out: rt.ByteVec): void {
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 68, true);
-	joined$17(data, rows.map(copy$array_u8), out);
+	joined$17(data, rt.vecExact(rows.map(copy$array_u8), 17), out);
 	joined$17(data, copy$array_array17_u8([rt.bytes(17).fill(165), rt.bytesFromFn(17, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);
@@ -135,7 +135,7 @@ export function each$3(data: rt.ByteSlice, out: rt.ByteVec): void {
 			return (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
 		});
 	}), undefined, 12, true);
-	joined$3(data, rows.map(copy$array_u8), out);
+	joined$3(data, rt.vecExact(rows.map(copy$array_u8), 3), out);
 	joined$3(data, copy$array_array3_u8([rt.bytes(3).fill(165), rt.bytesFromFn(3, (i2: rt.usize): rt.u8 => {
 		return i2 & 0xff;
 	})]).map(copy$array_u8), out);

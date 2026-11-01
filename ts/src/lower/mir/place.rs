@@ -1384,13 +1384,13 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			let mir::TerminatorKind::Call { args, .. } = &bb.terminator().kind else {
 				return None;
 			};
-			args.iter().find_map(|a| match a.node.constant()?.ty().kind() {
-				ty::Closure(def_id, args) => Some((*def_id, *args)),
-				_ => None,
+			args.iter().find_map(|a| {
+				let ty = a.node.constant()?.ty();
+				matches!(ty.kind(), ty::Closure(..)).then_some(ty)
 			})
 		});
-		if let Some((def_id, args)) = lazy {
-			return (self.bare_closure(def_id, args, span), true);
+		if let Some(ty) = lazy {
+			return (self.bare_closure(ty, span), true);
 		}
 		// A `const` one's `EagerStorage` holds the value of the `const` the macro declares in
 		// the key's own initializer, so defined after the key and before its accessor. The
@@ -1533,7 +1533,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					self.b.t.construct(info.sym, &crate::ts::Ctor::Unit, &[], Vec::new())
 				}
 				ty::Array(..) => Expr::Array(Vec::new()),
-				ty::Closure(def_id, args) => self.bare_closure(def_id, args, span),
+				ty::Closure(..) | ty::CoroutineClosure(..) => self.bare_closure(ty, span),
 				ty::Adt(adt, _) if Std::of(tcx, adt.did()) == Some(Std::RangeFull) => Expr::undefined(),
 				_ => self.err(span, format!("a zero-sized constant of type `{ty}`")),
 			},
@@ -1653,14 +1653,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let tcx = self.tcx;
 		match instance.def {
 			ty::InstanceKind::Item(def_id) if tcx.is_closure_like(def_id) => {
-				self.bare_closure(def_id, instance.args, span)
+				self.bare_closure(Ty::new_closure(tcx, def_id, instance.args), span)
 			}
 			ty::InstanceKind::Item(def_id) | ty::InstanceKind::Shim(ty::ShimKind::Reify(def_id, _)) => {
 				self.b.fn_value(def_id, instance.args, span)
 			}
 			// A closure coerced to a function pointer calls it once.
 			ty::InstanceKind::Shim(ty::ShimKind::ClosureOnce { .. }) => match instance.args.type_at(0).kind() {
-				ty::Closure(def_id, args) => self.bare_closure(*def_id, args, span),
+				ty::Closure(..) => self.bare_closure(instance.args.type_at(0), span),
 				_ => self.err(span, format!("a pointer to `{instance}`")),
 			},
 			_ => self.err(span, format!("a pointer to `{instance}`")),
@@ -1863,10 +1863,9 @@ pub fn transparent<'tcx>(t: &crate::lower::Translator<'_, 'tcx>, ty: Ty<'tcx>) -
 /// nothing when written.
 fn changes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
 	match ty.kind() {
-		ty::Closure(_, args) => {
-			let closure = args.as_closure();
-			let writes = closure.kind() == ty::ClosureKind::FnMut && writes_captures(tcx, ty);
-			writes || closure.upvar_tys().iter().any(|t| changes_captures(tcx, t))
+		ty::Closure(..) | ty::CoroutineClosure(..) => {
+			let writes = crate::lower::closure_kind(ty) == Some(ty::ClosureKind::FnMut) && writes_captures(tcx, ty);
+			writes || crate::lower::captured(ty).is_some_and(|tys| tys.iter().any(|t| changes_captures(tcx, t)))
 		}
 		ty::Tuple(tys) => tys.iter().any(|t| changes_captures(tcx, t)),
 		ty::Array(t, _) => changes_captures(tcx, *t),
@@ -1878,10 +1877,10 @@ fn changes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
 /// Whether the body of `ty`, a closure, writes a capture that holds state, which a JS
 /// closure sharing its variables would write for each copy of it.
 pub fn writes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
-	let ty::Closure(def_id, args) = ty.kind() else {
+	let (ty::Closure(def_id, _) | ty::CoroutineClosure(def_id, _)) = ty.kind() else {
 		return false;
 	};
-	let upvars = args.as_closure().upvar_tys();
+	let upvars = crate::lower::captured(ty).unwrap_or_default();
 	!tcx.is_mir_available(*def_id)
 		|| written_captures(tcx.optimized_mir(*def_id))
 			.into_iter()
@@ -1892,7 +1891,7 @@ pub fn writes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
 fn stateless(ty: Ty<'_>) -> bool {
 	match ty.kind() {
 		ty::FnDef(..) => true,
-		ty::Closure(_, args) => args.as_closure().upvar_tys().is_empty(),
+		ty::Closure(..) | ty::CoroutineClosure(..) => crate::lower::captured(ty).is_some_and(|tys| tys.is_empty()),
 		ty::Tuple(tys) => tys.is_empty(),
 		_ => false,
 	}

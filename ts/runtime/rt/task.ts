@@ -50,8 +50,24 @@ export function closureClone<F>(f: F): F {
 	return (f as F & { [CLONE]: () => F })[CLONE]();
 }
 
-/** `FnOnce::call_once` of a closure that `Fn` or `FnMut` call: `f(...args)`, then `f` drops. */
+/** What makes the future of a call that consumes an async closure. */
+const BY_MOVE: unique symbol = /* @__PURE__ */ Symbol("byMove");
+
+/**
+ * An async closure `f` that `Fn` or `FnMut` call and that owns what drops: a call that
+ * consumes it calls `once`, whose future owns what `f`'s would borrow.
+ */
+export function byMove<F extends (...args: never[]) => unknown>(f: F, once: F): F {
+	return Object.assign(f, { [BY_MOVE]: once });
+}
+
+/**
+ * `FnOnce::call_once` of a closure that `Fn` or `FnMut` call: `f(...args)`, then `f`
+ * drops; or, of an async closure `byMove` made, the future that owns what it captured.
+ */
 export function callOnce<A extends unknown[], R>(f: (...args: A) => R, ...args: A): R {
+	const once = (f as { [BY_MOVE]?: (...args: A) => R })[BY_MOVE];
+	if (once !== undefined) return once(...args);
 	const r = f(...args);
 	drop(f);
 	return r;
@@ -319,9 +335,61 @@ export function mutexTryLock<T>(mutex: Mutex<T>): Result<Mutex<T>, TryLockError<
 	return Ok(mutex);
 }
 
-/** A `MutexGuard`'s drop. */
-export function mutexUnlock<T>(mutex: Mutex<T>): void {
-	mutex.locked = false;
+/**
+ * What a guard's map lends: where its part of the value is, which it reads and writes as
+ * `value`, as its cell or mutex does its own value.
+ */
+abstract class Mapped<T> implements Disposable {
+	readonly at: Place<T>;
+
+	constructor(at: Place<T>) {
+		this.at = at;
+	}
+
+	get value(): T {
+		return this.at.v;
+	}
+
+	set value(value: T) {
+		this.at.v = value;
+	}
+
+	/** A guard drops nothing of what it lends. */
+	[Symbol.dispose](): void {}
+}
+
+/** A `MappedMutexGuard`: a `Mapped` of a part of the value of `mutex`, a guard it took over. */
+export class MutexMap<T> extends Mapped<T> implements Mutex<T> {
+	readonly mutex: Mutex<unknown>;
+
+	constructor(at: Place<T>, mutex: Mutex<unknown>) {
+		super(at);
+		this.mutex = mutex;
+	}
+
+	/** Its mutex's lock, which its drop releases. */
+	get locked(): boolean {
+		return this.mutex.locked;
+	}
+
+	set locked(locked: boolean) {
+		this.mutex.locked = locked;
+	}
+}
+
+/** A `MutexGuard`'s drop, or a `MappedMutexGuard`'s. */
+export function mutexUnlock<T>(guard: Mutex<T>): void {
+	guard.locked = false;
+}
+
+/** `MutexGuard::map`: a `MappedMutexGuard` of the part of `guard`'s value at `at`, which takes over its lock. */
+export function mutexMap<U>(guard: Mutex<unknown>, at: Place<U>): Mutex<U> {
+	return new MutexMap(at, guard);
+}
+
+/** `MutexGuard::filter_map`: `mutexMap` of the part at `at`, or `guard` back if there is none. */
+export function mutexFilterMap<T, U>(guard: Mutex<T>, at: Place<U> | undefined): Result<Mutex<U>, Mutex<T>> {
+	return at === undefined ? Err(guard) : Ok(new MutexMap(at, guard));
 }
 
 /**
@@ -393,31 +461,16 @@ export function rwLockTryWrite<T>(lock: RefCell<T>): Result<RefCell<T>, TryLockE
 	return Ok(lock);
 }
 
-/**
- * A guard a map made: where the part of a cell's value it lends is, which it reads and
- * writes as `value`, as a cell does its own, and whose borrow that cell counts.
- */
-export class RefMap<T> implements RefCell<T> {
+/** A guard a map of a cell's guard made: a `Mapped` of a part of its value, whose borrow that cell counts. */
+export class RefMap<T> extends Mapped<T> implements RefCell<T> {
 	/** A cell's count, which a guard's cell keeps instead. */
 	borrows = 0;
-	readonly at: Place<T>;
 	readonly cell: RefCell<unknown>;
 
 	constructor(at: Place<T>, cell: RefCell<unknown>) {
-		this.at = at;
+		super(at);
 		this.cell = cell;
 	}
-
-	get value(): T {
-		return this.at.v;
-	}
-
-	set value(value: T) {
-		this.at.v = value;
-	}
-
-	/** A guard drops nothing of what it lends. */
-	[Symbol.dispose](): void {}
 }
 
 /** The cell whose borrow `r`, a guard, holds. */
@@ -438,6 +491,11 @@ export function refMap<U>(r: RefCell<unknown>, part: U): RefCell<U> {
 /** `Ref::filter_map`: `refMap` of `part`, or `r` back if there is none. */
 export function refFilterMap<T, U>(r: RefCell<T>, part: U | undefined): Result<RefCell<U>, RefCell<T>> {
 	return part === undefined ? Err(r) : Ok(new RefMap({ v: part }, refCellOf(r)));
+}
+
+/** `Ref::try_map`: `refMap` of the part `f` gave, or `r` back beside its error. */
+export function refTryMap<T, U, E>(r: RefCell<T>, part: Result<U, E>): Result<RefCell<U>, [RefCell<T>, E]> {
+	return part.ok ? Ok(new RefMap({ v: part.value }, refCellOf(r))) : Err([r, part.error]);
 }
 
 /** `Ref::map_split`: `Ref`s of the two `parts` of `r`'s value, which share `r`'s borrow. */
@@ -475,6 +533,11 @@ export function refMutMap<U>(r: RefCell<unknown>, at: Place<U>): RefCell<U> {
 /** `RefMut::filter_map`: `refMutMap` of the part at `at`, or `r` back if there is none. */
 export function refMutFilterMap<T, U>(r: RefCell<T>, at: Place<U> | undefined): Result<RefCell<U>, RefCell<T>> {
 	return at === undefined ? Err(r) : Ok(new RefMap(at, refCellOf(r)));
+}
+
+/** `RefMut::try_map`: `refMutMap` of the part at where `f` gave, or `r` back beside its error. */
+export function refMutTryMap<T, U, E>(r: RefCell<T>, at: Result<Place<U>, E>): Result<RefCell<U>, [RefCell<T>, E]> {
+	return at.ok ? Ok(new RefMap(at.value, refCellOf(r))) : Err([r, at.error]);
 }
 
 /** `RefMut::map_split`: `RefMut`s of the parts of `r`'s value at `a` and `b`, which share `r`'s borrow. */
@@ -1191,10 +1254,12 @@ export function asyncFnResumedPanic(): never {
 
 /**
  * Run `future` to completion on the microtask queue, as a promise of its output. A
- * panic rejects the promise with the `Panic`.
+ * panic rejects the promise with the `Panic`. Aborting `signal` cancels it: the future
+ * drops as Rust drops a future, at once, or as the poll it aborts in returns pending,
+ * and the promise rejects with the signal's reason. A future that is ready first wins.
  */
-export function spawn<T>(future: Future<T>): Promise<T> {
-	return new Promise((resolve, reject) => new Task(future, resolve, reject).schedule());
+export function spawn<T>(future: Future<T>, signal?: AbortSignal): Promise<T> {
+	return new Promise((resolve, reject) => new Task(future, resolve, reject, signal).schedule());
 }
 
 /** How many polls one microtask runs before it yields to a macrotask, so a task that keeps waking itself cannot starve I/O. */
@@ -1224,11 +1289,44 @@ class Task<T> implements Waker {
 	#resolve: (value: T) => void;
 	#reject: (err: unknown) => void;
 	#queued = false;
+	#signal: AbortSignal | undefined;
+	/** Whether a poll is running, which an abort waits out, as Rust can't drop a future it polls. */
+	#polling = false;
 
-	constructor(future: Future<T>, resolve: (value: T) => void, reject: (err: unknown) => void) {
+	constructor(future: Future<T>, resolve: (value: T) => void, reject: (err: unknown) => void, signal?: AbortSignal) {
 		this.#future = future;
 		this.#resolve = resolve;
 		this.#reject = reject;
+		if (signal === undefined) return;
+		this.#signal = signal;
+		if (signal.aborted) this.#cancel();
+		else signal.addEventListener("abort", this);
+	}
+
+	/** The signal's abort: cancel now, or once the running poll returns. */
+	handleEvent(): void {
+		if (!this.#polling) this.#cancel();
+	}
+
+	/** Drop the future and reject with the signal's reason, or with a panic its drop throws. */
+	#cancel(): void {
+		const future = this.#future;
+		if (future === undefined) return;
+		this.#finish();
+		try {
+			future[Symbol.dispose]();
+		} catch (err) {
+			this.#reject(err);
+			if (!(err instanceof Panic)) throw err;
+			return;
+		}
+		this.#reject(this.#signal!.reason);
+	}
+
+	/** Settle: no poll, wake, or abort reaches the future again. */
+	#finish(): void {
+		this.#future = undefined;
+		this.#signal?.removeEventListener("abort", this);
 	}
 
 	schedule(): void {
@@ -1247,17 +1345,22 @@ class Task<T> implements Waker {
 		if (future === undefined) return;
 		let output: Poll<T>;
 		try {
+			this.#polling = true;
 			output = future.poll(this);
-			if (output === Pending) return;
-			this.#future = undefined;
-			future[Symbol.dispose]();
+			this.#polling = false;
+			if (output !== Pending) {
+				this.#finish();
+				future[Symbol.dispose]();
+			}
 		} catch (err) {
-			this.#future = undefined;
+			this.#polling = false;
+			this.#finish();
 			this.#reject(err);
 			if (!(err instanceof Panic)) throw err;
 			return;
 		}
-		this.#resolve(output);
+		if (output !== Pending) this.#resolve(output);
+		else if (this.#signal?.aborted) this.#cancel();
 	}
 
 	wake(): void {
