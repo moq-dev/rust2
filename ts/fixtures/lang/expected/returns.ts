@@ -94,11 +94,11 @@ export function count(dataData: Uint8Array, dataStart: number, dataLen: number):
 		return 0;
 	}
 	const part: rt.u64 | undefined = count(dataData, dataStart + 1, dataLen - 1);
+	const err: returns_Error.Error | undefined = part === undefined ? wideOut.err as returns_Error.Error : undefined;
 	const part2: Uint8Array = wideOut.p_1Data;
 	const part3: number = wideOut.p_1Start;
 	const part4: number = wideOut.p_1Len;
-	const err: returns_Error.Error | undefined = part === undefined ? wideOut.err as returns_Error.Error : undefined;
-	if (part !== undefined) {
+	if (err === undefined) {
 		const _14_0: rt.u64 = rt.u64Add(part as rt.u64, 1);
 		wideOut.p_1Data = part2;
 		wideOut.p_1Start = part3;
@@ -135,18 +135,18 @@ export const halvesOut: { p_0Data: Uint8Array; p_0Start: number; p_0Len: number;
 /** Calls whose results are both held while the slot is written again between them. */
 export function both(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u64 | undefined {
 	const part: rt.u64 | undefined = narrow(dataData, dataStart, dataLen);
+	const err: returns_Error.Error | undefined = part === undefined ? wideOut.err as returns_Error.Error : undefined;
 	const part2: Uint8Array = wideOut.p_1Data;
 	const part3: number = wideOut.p_1Start;
 	const part4: number = wideOut.p_1Len;
-	const err: returns_Error.Error | undefined = part === undefined ? wideOut.err as returns_Error.Error : undefined;
-	if (part !== undefined) {
+	if (err === undefined) {
 		const a: rt.u64 = part as rt.u64;
 		const part5: rt.u64 | undefined = number(part2, part3, part4, rt.u64Rem(a, 2) === 1);
+		const err2: returns_Error.Error | undefined = part5 === undefined ? wideOut.err as returns_Error.Error : undefined;
 		const part6: Uint8Array = wideOut.p_1Data;
 		const part7: number = wideOut.p_1Start;
 		const part8: number = wideOut.p_1Len;
-		const err2: returns_Error.Error | undefined = part5 === undefined ? wideOut.err as returns_Error.Error : undefined;
-		if (part5 !== undefined) {
+		if (err2 === undefined) {
 			const b: rt.u64 = part5 as rt.u64;
 			const err3: returns_Error.Error | undefined = tail(part6, part7, part8, rt.u64Low(rt.u64Rem(a, 3)));
 			const part9: Uint8Array = takeOut.pData;
@@ -179,12 +179,12 @@ export const bothOut: { err: unknown; p_1: rt.u64; p_2Data: Uint8Array; p_2Start
 
 export function guarded(dataData: Uint8Array, dataStart: number, dataLen: number, otherData: Uint8Array, otherStart: number, otherLen: number): rt.u64 | undefined {
 	const part: rt.u64 | undefined = narrow(dataData, dataStart, dataLen);
+	const err: returns_Error.Error | undefined = part === undefined ? wideOut.err as returns_Error.Error : undefined;
 	const part2: Uint8Array = wideOut.p_1Data;
 	const part3: number = wideOut.p_1Start;
 	const part4: number = wideOut.p_1Len;
-	const err: returns_Error.Error | undefined = part === undefined ? wideOut.err as returns_Error.Error : undefined;
 	new Guard.Guard(new rt.ByteSlice(otherData, otherStart, otherLen), dataLen & 0xff)[Symbol.dispose]();
-	if (part === undefined) {
+	if (err !== undefined) {
 		wideOut.err = err as returns_Error.Error;
 		return undefined;
 	}
@@ -288,17 +288,17 @@ export function returns(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 			const part66: number = takeOut.pLen;
 			push(out, (err16 !== undefined ? rt.Err(err16 as returns_Error.Error) : rt.Ok(new rt.ByteSlice(part64, part65, part66))) as rt.Result<rt.ByteSlice, returns_Error.Error>);
 			const part67: rt.u64 | undefined = number(data.data, data.start, data.length, rt.u8Rem(kind, 2) === 0);
+			const err17: returns_Error.Error | undefined = part67 === undefined ? wideOut.err as returns_Error.Error : undefined;
 			const part68: Uint8Array = wideOut.p_1Data;
 			const part69: number = wideOut.p_1Start;
 			const part70: number = wideOut.p_1Len;
-			const err17: returns_Error.Error | undefined = part67 === undefined ? wideOut.err as returns_Error.Error : undefined;
-			pushNumber(out, (part67 === undefined ? rt.Err(err17 as returns_Error.Error) : rt.Ok([part67 as rt.u64, new rt.ByteSlice(part68, part69, part70)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
+			pushNumber(out, (err17 !== undefined ? rt.Err(err17 as returns_Error.Error) : rt.Ok([part67 as rt.u64, new rt.ByteSlice(part68, part69, part70)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
 			const part71: rt.u64 | undefined = count(data.data, data.start, data.length);
+			const err18: returns_Error.Error | undefined = part71 === undefined ? wideOut.err as returns_Error.Error : undefined;
 			const part72: Uint8Array = wideOut.p_1Data;
 			const part73: number = wideOut.p_1Start;
 			const part74: number = wideOut.p_1Len;
-			const err18: returns_Error.Error | undefined = part71 === undefined ? wideOut.err as returns_Error.Error : undefined;
-			pushNumber(out, (part71 === undefined ? rt.Err(err18 as returns_Error.Error) : rt.Ok([part71 as rt.u64, new rt.ByteSlice(part72, part73, part74)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
+			pushNumber(out, (err18 !== undefined ? rt.Err(err18 as returns_Error.Error) : rt.Ok([part71 as rt.u64, new rt.ByteSlice(part72, part73, part74)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
 		} else if (_4 === 1) {
 			const kept: rt.Result<rt.ByteSlice, returns_Error.Error>[] = rt.iterToArray(rt.iterMap(new rt.Range(0, 4), (n3: rt.usize): rt.Result<rt.ByteSlice, returns_Error.Error> => {
 				const err11 = take(data.data, data.start, data.length, rt.usizeMul(n3, 3));
@@ -313,10 +313,10 @@ export function returns(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 			}
 			push(out, (err12 !== undefined ? rt.Err(err12 as returns_Error.Error) : rt.Ok(new rt.ByteSlice(part50, part51, part52))) as rt.Result<rt.ByteSlice, returns_Error.Error>);
 			const part53: rt.u64 | undefined = both(data.data, data.start, data.length);
+			const err13: returns_Error.Error | undefined = part53 === undefined ? bothOut.err as returns_Error.Error : undefined;
 			const part54: rt.u64 = bothOut.p_1;
 			const part57: number = bothOut.p_2Len;
-			const err13: returns_Error.Error | undefined = part53 === undefined ? bothOut.err as returns_Error.Error : undefined;
-			if (part53 !== undefined) {
+			if (err13 === undefined) {
 				const a: rt.u64 = part53 as rt.u64;
 				const b: rt.u64 = part54;
 				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u64ToBeBytes(a)));
@@ -377,18 +377,18 @@ export function returns(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 			const other: Uint8Array = Uint8Array.of(255, 1, 2);
 			const _96: rt.ByteSlice = rt.byteSliceFrom(other);
 			const part35: rt.u64 | undefined = guarded(data.data, data.start, data.length, _96.data, _96.start, _96.length);
+			const err8: returns_Error.Error | undefined = part35 === undefined ? wideOut.err as returns_Error.Error : undefined;
 			const part36: Uint8Array = wideOut.p_1Data;
 			const part37: number = wideOut.p_1Start;
 			const part38: number = wideOut.p_1Len;
-			const err8: returns_Error.Error | undefined = part35 === undefined ? wideOut.err as returns_Error.Error : undefined;
-			pushNumber(out, (part35 === undefined ? rt.Err(err8 as returns_Error.Error) : rt.Ok([part35 as rt.u64, new rt.ByteSlice(part36, part37, part38)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
+			pushNumber(out, (err8 !== undefined ? rt.Err(err8 as returns_Error.Error) : rt.Ok([part35 as rt.u64, new rt.ByteSlice(part36, part37, part38)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
 			const _100: rt.ByteSlice = rt.byteSliceRange(rt.byteSliceFrom(other), 1);
 			const part39: rt.u64 | undefined = guarded(data.data, data.start, data.length, _100.data, _100.start, _100.length);
+			const err9: returns_Error.Error | undefined = part39 === undefined ? wideOut.err as returns_Error.Error : undefined;
 			const part40: Uint8Array = wideOut.p_1Data;
 			const part41: number = wideOut.p_1Start;
 			const part42: number = wideOut.p_1Len;
-			const err9: returns_Error.Error | undefined = part39 === undefined ? wideOut.err as returns_Error.Error : undefined;
-			pushNumber(out, (part39 === undefined ? rt.Err(err9 as returns_Error.Error) : rt.Ok([part39 as rt.u64, new rt.ByteSlice(part40, part41, part42)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
+			pushNumber(out, (err9 !== undefined ? rt.Err(err9 as returns_Error.Error) : rt.Ok([part39 as rt.u64, new rt.ByteSlice(part40, part41, part42)] as [rt.u64, rt.ByteSlice])) as rt.Result<[rt.u64, rt.ByteSlice], returns_Error.Error>);
 		} else if (_4 === 4) {
 			const _104: rt.Result<rt.ByteSlice, undefined> = unitErr(data.data, data.start, data.length);
 			if (_104.ok) {
@@ -403,18 +403,18 @@ export function returns(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(238, option_unwrapOr$0r2bmpr(_110.error, 0))));
 			}
 			const part17: rt.u16 | undefined = lead$u16(data.data, data.start, data.length);
+			const err5: returns_Error.Error | undefined = part17 === undefined ? leadOut$u16.err as returns_Error.Error : undefined;
 			const part18: Uint8Array = leadOut$u16.p_1Data;
 			const part19: number = leadOut$u16.p_1Start;
 			const part20: number = leadOut$u16.p_1Len;
-			const err5: returns_Error.Error | undefined = part17 === undefined ? leadOut$u16.err as returns_Error.Error : undefined;
 			const _123: rt.ByteSlice = rt.byteSliceRange(data, rt.min(data.length, 1));
 			const part22: rt.u32 | undefined = lead$u32(_123.data, _123.start, _123.length);
+			const err6: returns_Error.Error | undefined = part22 === undefined ? leadOut$u32.err as returns_Error.Error : undefined;
 			const part23: Uint8Array = leadOut$u32.p_1Data;
 			const part24: number = leadOut$u32.p_1Start;
 			const part25: number = leadOut$u32.p_1Len;
-			const err6: returns_Error.Error | undefined = part22 === undefined ? leadOut$u32.err as returns_Error.Error : undefined;
-			if (part17 !== undefined) {
-				if (part22 !== undefined) {
+			if (err5 === undefined) {
+				if (err6 === undefined) {
 					const a3: rt.u16 = part17 as rt.u16;
 					const b3: rt.u32 = part22 as rt.u32;
 					rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u16ToBeBytes(a3)));
@@ -423,7 +423,7 @@ export function returns(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 					break b0;
 				}
 			}
-			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(((part17 === undefined ? rt.Err(err5 as returns_Error.Error) : rt.Ok([part17 as rt.u16, new rt.ByteSlice(part18, part19, part20)] as [rt.u16, rt.ByteSlice])) as rt.Result<[rt.u16, rt.ByteSlice], returns_Error.Error>).ok ? 1 : 0, ((part22 === undefined ? rt.Err(err6 as returns_Error.Error) : rt.Ok([part22 as rt.u32, new rt.ByteSlice(part23, part24, part25)] as [rt.u32, rt.ByteSlice])) as rt.Result<[rt.u32, rt.ByteSlice], returns_Error.Error>).ok ? 1 : 0)));
+			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(((err5 !== undefined ? rt.Err(err5 as returns_Error.Error) : rt.Ok([part17 as rt.u16, new rt.ByteSlice(part18, part19, part20)] as [rt.u16, rt.ByteSlice])) as rt.Result<[rt.u16, rt.ByteSlice], returns_Error.Error>).ok ? 1 : 0, ((err6 !== undefined ? rt.Err(err6 as returns_Error.Error) : rt.Ok([part22 as rt.u32, new rt.ByteSlice(part23, part24, part25)] as [rt.u32, rt.ByteSlice])) as rt.Result<[rt.u32, rt.ByteSlice], returns_Error.Error>).ok ? 1 : 0)));
 		} else {
 			const at: At.At = { _0: rt.usizeRem(kind as rt.usize, 5) };
 			const err: returns_Error.Error | undefined = splitWith$returns_At(at, data.data, data.start, data.length);
@@ -462,11 +462,11 @@ export function returns(kind: rt.u8, dataData: Uint8Array, dataStart: number, da
 			let sum: rt.u64 = 0;
 			while (true) {
 				const part13: rt.u64 | undefined = narrow(restData3, restStart3, restLen3);
+				const err4: returns_Error.Error | undefined = part13 === undefined ? wideOut.err as returns_Error.Error : undefined;
 				const part14: Uint8Array = wideOut.p_1Data;
 				const part15: number = wideOut.p_1Start;
 				const part16: number = wideOut.p_1Len;
-				part13 === undefined ? wideOut.err as returns_Error.Error : undefined;
-				if (part13 !== undefined) {
+				if (err4 === undefined) {
 					sum = rt.u64WrappingAdd(rt.u64WrappingMul(sum, 31), part13 as rt.u64);
 					restData3 = part14;
 					restStart3 = part15;

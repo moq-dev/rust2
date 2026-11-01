@@ -111,12 +111,12 @@ export function splits(kind: rt.u8, dataData: Uint8Array, dataStart: number, dat
 		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(dataData, dataStart + mid4, dataLen - mid4));
 	} else if (_4 === 2) {
 		const part7: rt.u8 | undefined = header(dataData, dataStart, dataLen);
+		const err3: Short.Short | undefined = part7 === undefined ? headerOut.err as Short.Short : undefined;
 		const part8: rt.u16 = headerOut.p_1;
 		const part9: Uint8Array = headerOut.p_2Data;
 		const part10: number = headerOut.p_2Start;
 		const part11: number = headerOut.p_2Len;
-		const err3: Short.Short | undefined = part7 === undefined ? headerOut.err as Short.Short : undefined;
-		if (part7 !== undefined) {
+		if (err3 === undefined) {
 			const a2: rt.u8 = part7 as rt.u8;
 			const b3: rt.u16 = part8;
 			rt.byteVecPush(out, a2);
