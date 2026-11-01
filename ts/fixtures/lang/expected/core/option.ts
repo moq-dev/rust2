@@ -148,14 +148,14 @@ export function unwrapOr$0mkoact(self: Loaded.Loaded | undefined, default_: Load
 	return self;
 }
 
-export function unwrapOr$039uout(self: edits_Named.Named[] | undefined, default_: edits_Named.Named[]): edits_Named.Named[] {
+export function unwrapOr$1rbuegs(self: rt.ByteSlice | undefined, default_: rt.ByteSlice): rt.ByteSlice {
 	if (self === undefined) {
 		return default_;
 	}
 	return self;
 }
 
-export function unwrapOr$1rbuegs(self: rt.ByteSlice | undefined, default_: rt.ByteSlice): rt.ByteSlice {
+export function unwrapOr$039uout(self: edits_Named.Named[] | undefined, default_: edits_Named.Named[]): edits_Named.Named[] {
 	if (self === undefined) {
 		return default_;
 	}

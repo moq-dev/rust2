@@ -261,6 +261,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("pointers::part_written", |_, data, out| {
 			pointers::part_written(data, out)
 		}),
+		("arrays::flattened", arrays::flattened),
 	]
 }
 
