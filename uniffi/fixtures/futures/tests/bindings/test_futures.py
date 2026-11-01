@@ -2,6 +2,7 @@ from futures import *
 import unittest
 from datetime import datetime
 import asyncio
+import threading
 import futures
 
 def now():
@@ -290,6 +291,74 @@ class TestFutures(unittest.TestCase):
             await use_shared_resource(SharedResourceOptions(release_after_ms=100, timeout_ms=1000))
             await use_shared_resource(SharedResourceOptions(release_after_ms=0, timeout_ms=1000))
         asyncio.run(test())
+
+    def test_call_from_a_second_event_loop(self):
+        """A call is awaited on the loop making it, not on whichever one was set first.
+
+        `uniffi_set_event_loop` exists so a thread with no loop of its own has one to schedule a
+        callback on. A thread that IS running a loop needs no such fallback, and taking it there
+        builds the poll future on one loop and awaits it from another, which asyncio refuses with
+        "got Future attached to a different loop".
+        """
+        first = asyncio.new_event_loop()
+        try:
+            futures.uniffi_set_event_loop(first)
+
+            async def test():
+                self.assertEqual(await always_ready(), True)
+
+            # A second loop, of the kind `asyncio.run` makes: this is the one awaiting the call.
+            asyncio.run(test())
+        finally:
+            futures.uniffi_set_event_loop(None)
+            first.close()
+
+    def test_callback_while_the_configured_loop_is_idle(self):
+        """A callback made on a running loop runs there while the configured loop is not running.
+
+        Nothing would run it on the idle configured loop, so the call awaiting it would never finish.
+        """
+        idle = asyncio.new_event_loop()
+        try:
+            futures.uniffi_set_event_loop(idle)
+
+            async def test():
+                self.assertEqual(await as_string_using_trait(EchoParser(), 1, 42), "42")
+
+            asyncio.run(test())
+        finally:
+            futures.uniffi_set_event_loop(None)
+            idle.close()
+
+    def test_blocking_callback_from_a_running_loop(self):
+        """A callback that blocks this thread's loop runs on the configured loop.
+
+        The sync call holds the running loop until the callback finishes, so the callback cannot run
+        there.
+        """
+        configured = asyncio.new_event_loop()
+        running = threading.Event()
+        configured.call_soon(running.set)
+        thread = threading.Thread(target=configured.run_forever)
+        thread.start()
+        try:
+            running.wait()
+            futures.uniffi_set_event_loop(configured)
+
+            async def test():
+                self.assertEqual(as_string_using_trait_blocking(EchoParser(), 1, 42), "42")
+
+            asyncio.run(test())
+        finally:
+            futures.uniffi_set_event_loop(None)
+            configured.call_soon_threadsafe(configured.stop)
+            thread.join()
+            configured.close()
+
+class EchoParser(AsyncParser):
+    async def as_string(self, delay_ms, value):
+        await asyncio.sleep(delay_ms / 1000.0)
+        return str(value)
 
 if __name__ == '__main__':
     unittest.main()
