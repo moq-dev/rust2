@@ -22,7 +22,7 @@
 // `owned` functions follow it, dispatching on the kind, so a bundle that never drops an
 // item carries none of it.
 
-import { ByteSlice, ByteVec, byteVecExtendFromSlice, byteVecPush, Err, type None, Ok, type Place, panic, place, type RangeBound, type Result, sliceView, vecExtendFromSlice } from "../rt.ts";
+import { ByteSlice, ByteVec, byteVecExtendFromSlice, byteVecPush, byteVecReserve, byteVecWithCapacity, type Capped, capOf, capReserve, capSet, Err, type None, Ok, type Place, panic, place, type RangeBound, type Result, sliceView, vecCapacity, vecExtendFromSlice, vecMax, vecWithCapacity } from "../rt.ts";
 import { AtIndex, BTreeIter, HashIter, type Ordering } from "./collections.ts";
 import { type Hasher, hash8 } from "./hash.ts";
 import { charStep, intToBig, type Limbs, lt as wideLt, type Step } from "./int.ts";
@@ -535,31 +535,18 @@ export function iterBorrow<T>(it: Iter<T>): Iter<T> {
 // How std's `Vec` and `VecDeque` reserve for an iterator they collect or extend by, of
 // elements `size` bytes each, which panics past what they may hold: a `TrustedLen` one's
 // upper bound first, and else, after each item that finds them full, the lower bound and
-// one more; as a tuple's part, the lower bound first. Their capacity is not modeled, so
-// one they extend is taken as full, as one holding nothing is, and grows as std's would
-// from there.
+// one more; as a tuple's part, the lower bound first.
 
-/** wasm32's `isize::MAX`, the most bytes std's `Layout` describes. */
-const ISIZE_MAX = 0x7fffffff;
-
-/** How many `size`-byte elements a `Vec` holds at most: `usize::MAX` of zero-sized ones. */
-function vecMax(size: number): number {
-	return size === 0 ? USIZE_MAX : Math.floor(ISIZE_MAX / size);
-}
-
-/**
- * std's reserve for a `TrustedLen` iterator `it`, in a `Vec` or `VecDeque` holding `len`
- * of `size`-byte elements: its upper bound, which panics without one or past what it may
- * hold.
- */
-export function vecReserveExact(it: Iter<unknown>, len: number, size: number): void {
+/** The upper bound of a `TrustedLen` iterator `it`, which std's reserves, panicking without one. */
+export function trustedUpper(it: Iter<unknown>): number {
 	const upper = it.sizeHint()[1];
-	if (upper === undefined || len + upper > vecMax(size)) panic("capacity overflow");
+	if (upper === undefined) panic("capacity overflow");
+	return upper;
 }
 
-/** The capacity of a `Vec` or `VecDeque` holding `len` of `size`-byte elements: full, but for zero-sized ones. */
-export function vecCapacity(len: number, size: number): number {
-	return size === 0 ? USIZE_MAX : len;
+/** The capacity `cap`, holding `len`, once it reserved for the next item of `it` and those it holds past it. */
+export function capNext(it: Iter<unknown>, len: number, cap: number, size: number): number {
+	return capReserve(len, cap, satAdd(it.sizeHint()[0], 1), size);
 }
 
 /**
@@ -610,59 +597,22 @@ function joinedLength(parts: readonly { length: number }[], sep: { length: numbe
 }
 
 /**
- * The capacity a full `Vec` or `VecDeque` of `cap` `size`-byte elements grows to as it
- * reserves for the next item of `it`, as std's `RawVec` amortizes it, or a panic past what
- * it may hold.
- */
-export function vecGrow(it: Iter<unknown>, cap: number, size: number): number {
-	return grow(cap, cap + satAdd(it.sizeHint()[0], 1), size);
-}
-
-/** The capacity `cap` of `size`-byte elements grows to as std's `RawVec` amortizes it to hold `required`, or a panic past what it may hold. */
-function grow(cap: number, required: number, size: number): number {
-	const grown = Math.max(cap * 2, required, size === 1 ? 8 : size <= 1024 ? 4 : 1);
-	if (grown > vecMax(size)) panic("capacity overflow");
-	return grown;
-}
-
-/**
- * The capacity of a `Vec` or `VecDeque` of capacity `cap`, or else full, holding `len` of
- * `size`-byte elements, once it reserved `additional` more, growing as `vecGrow` does.
- */
-export function vecReserve(len: number, additional: number, size: number, cap = vecCapacity(len, size)): number {
-	return additional > cap - len ? grow(cap, len + additional, size) : cap;
-}
-
-/** The capacity of one as `vecReserve` takes it once it pushed an item, growing by one as std's `grow_one` does once full. */
-export function vecPush(len: number, size: number, cap = vecCapacity(len, size)): number {
-	return len === cap ? grow(cap, len + 1, size) : cap;
-}
-
-/**
- * The reserve std's `VecDeque` makes at the first item it extends by, holding `len`, for
- * what `it` holds past it, which panics past `usize::MAX` even where its zero-sized
- * elements never fill it.
- */
-export function dequeReserve(it: Iter<unknown>, len: number): void {
-	if (len + satAdd(it.sizeHint()[0], 1) > USIZE_MAX) panic("capacity overflow");
-}
-
-/**
  * `Extend::extend` of a `Vec`, which takes `items` as `take` says, and with elements
  * `size` bytes each, reserves as std's does for a `trusted`, `TrustedLen`, iterator or any
  * other.
  */
-export function iterExtend<T>(v: T[], items: Iter<T>, take?: Take, size?: number, trusted = false): T[] {
+export function iterExtend<T>(v: T[] & Capped, items: Iter<T>, take?: Take, size?: number, trusted = false): T[] {
 	if (size !== undefined && !trusted) {
-		let cap = vecCapacity(v.length, size);
+		let cap = vecCapacity(v, size);
 		for (let item = items.next(); item !== DONE; item = items.next()) {
-			if (v.length === cap) cap = vecGrow(items, cap, size);
+			if (v.length === cap) cap = capNext(items, v.length, cap, size);
 			v.push(item);
 		}
+		capSet(v, v.length, cap, size);
 		if (take !== undefined) dispose(items);
 		return v;
 	}
-	if (size !== undefined) vecReserveExact(items, v.length, size);
+	if (size !== undefined) capSet(v, v.length, capReserve(v.length, vecCapacity(v, size), trustedUpper(items), size), size);
 	if (take === undefined) {
 		const folded = items.folded(trusted);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) v.push(item);
@@ -675,15 +625,14 @@ export function iterExtend<T>(v: T[], items: Iter<T>, take?: Take, size?: number
 /** `Extend::extend` of a `Vec<u8>`, reserving as `iterExtend` does. */
 export function iterExtendBytes(v: ByteVec, items: Iter<number>, take?: Take, trusted = false): ByteVec {
 	if (!trusted) {
-		let cap = v.length;
 		for (let item = items.next(); item !== DONE; item = items.next()) {
-			if (v.length === cap) cap = vecGrow(items, cap, 1);
+			if (v.length === v.data.length) byteVecReserve(v, satAdd(items.sizeHint()[0], 1));
 			byteVecPush(v, item);
 		}
 		if (take !== undefined) dispose(items);
 		return v;
 	}
-	vecReserveExact(items, v.length, 1);
+	byteVecReserve(v, trustedUpper(items));
 	if (take === undefined) {
 		const folded = items.folded(true);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) byteVecPush(v, item);
@@ -1259,17 +1208,19 @@ export function iterGe<T, U>(a: Iter<T>, b: Iter<U>, cmp: (x: T, y: U) => Orderi
 
 /** `collect` into a `Vec`, as `iterExtend` of an empty one. */
 export function iterToArray<T>(it: Iter<T>, take?: Take, size?: number, trusted = false): T[] {
-	const out: T[] = [];
 	if (size !== undefined && !trusted) {
-		let cap = vecCapacity(0, size);
+		const out: T[] = [];
+		let cap = capOf(0, undefined, size);
 		for (let item = it.next(); item !== DONE; item = it.next()) {
-			if (out.length === cap) cap = vecGrow(it, cap, size);
+			if (out.length === cap) cap = capNext(it, out.length, cap, size);
 			out.push(item);
 		}
+		capSet(out, out.length, cap, size);
 		if (take !== undefined) dispose(it);
 		return out;
 	}
-	if (size !== undefined) vecReserveExact(it, 0, size);
+	// std's makes one with room for exactly the upper bound.
+	const out = size === undefined ? [] : vecWithCapacity<T>(trustedUpper(it), size);
 	if (take === undefined) {
 		const folded = it.folded(trusted);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) out.push(item);
@@ -1281,18 +1232,17 @@ export function iterToArray<T>(it: Iter<T>, take?: Take, size?: number, trusted 
 
 /** `collect` into a `Vec<u8>`, as `iterExtendBytes` of an empty one. */
 export function iterToByteVec(it: Iter<number>, take?: Take, trusted = false): ByteVec {
-	const out = new ByteVec();
 	// Its own loops: through `iterExtendBytes`, JavaScriptCore took 1.9x as long.
 	if (!trusted) {
-		let cap = 0;
+		const out = new ByteVec();
 		for (let item = it.next(); item !== DONE; item = it.next()) {
-			if (out.length === cap) cap = vecGrow(it, cap, 1);
+			if (out.length === out.data.length) byteVecReserve(out, satAdd(it.sizeHint()[0], 1));
 			byteVecPush(out, item);
 		}
 		if (take !== undefined) dispose(it);
 		return out;
 	}
-	vecReserveExact(it, 0, 1);
+	const out = byteVecWithCapacity(trustedUpper(it));
 	if (take === undefined) {
 		const folded = it.folded(true);
 		for (let item = folded.next(); item !== DONE; item = folded.next()) byteVecPush(out, item);

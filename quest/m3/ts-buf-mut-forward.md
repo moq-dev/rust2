@@ -16,7 +16,7 @@ moq-net's census reaches none of them, so this is m3 under the all-of-std decisi
 - Mapping them as the buffer's own methods is the likely shape, but the provided bodies
   grow through `chunk_mut`, which reserves 64 bytes when full, where `Vec<u8>`'s and
   `BytesMut`'s overrides reserve what they write. Match the provided body's capacity once
-  capacity is exact ([std's capacity](/quest/m2/ts-model/std-rest.md),
-  [`BytesMut`'s](/quest/m3/ts-bytes-capacity.md)), not the override's.
+  `BytesMut`'s capacity is exact ([`BytesMut`'s](/quest/m3/ts-bytes-capacity.md)), not the
+  override's.
 
 Public API: the translator's output.

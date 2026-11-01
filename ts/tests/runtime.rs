@@ -3,9 +3,9 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-/// `rt.spawn` yields to a macrotask once a batch spends its poll budget.
+/// `rt.spawn` yields to a macrotask once a batch spends its poll budget, and a signal cancels it.
 #[test]
-fn spawn_budget() {
+fn spawn() {
 	let script = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests").join("spawn.ts");
 	let output = Command::new("node")
 		.arg(script)

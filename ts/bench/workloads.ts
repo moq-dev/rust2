@@ -5,7 +5,7 @@
 export interface Workload {
 	/** What is coded, such as `varint/quic/2B` or `frames/video/lite-07`, iterated, or converted. */
 	name: string;
-	op: "encode" | "decode" | "iterate" | "map" | "convert" | "add" | "compare" | "order" | "handoff";
+	op: "encode" | "decode" | "iterate" | "map" | "convert" | "add" | "compare" | "order" | "push" | "handoff";
 	/** Varints, frame headers, messages, items, keys, timestamps, integers, or handoffs per call, which each time is divided by. */
 	items: number;
 	input: Uint8Array;
@@ -98,6 +98,11 @@ export function workloads(encode: (input: Uint8Array) => Uint8Array): Workload[]
 	const orders = ["sort", "sort-by-key", "iter-max-min", "ord-max-min", "binary-heap", "btree-map-collect", "btree-set-collect"];
 	orders.forEach((name, selector) => {
 		out.push({ name: `order/${name}`, op: "order", items: count, input: Uint8Array.of(12, selector, ...u64(BigInt(count))) });
+	});
+
+	// `bench.rs`'s op 13: pushes, which grow a vector by std's capacity.
+	["vec", "deque"].forEach((name, selector) => {
+		out.push({ name: `push/${name}`, op: "push", items: count, input: Uint8Array.of(13, selector, ...u64(BigInt(count))) });
 	});
 	return out;
 }
