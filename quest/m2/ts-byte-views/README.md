@@ -1,4 +1,4 @@
-# Byte slices without objects
+# [M] Byte slices without objects
 
 ## Goal
 
@@ -17,9 +17,15 @@ kept them as `(data, start, length)` made Chrome's varint decode 2.3-2.9x and fr
 
 Decided with the maintainer on 2026-10-27: scalar-replace values built of byte slices,
 scalars, tuples, `Option`, `Result`, and `ControlFlow`, materializing an object only where
-one escapes, in pieces that each land and measure alone (the children below).
+one escapes, in pieces that each land and measure alone.
 The precedents are `stepped` iterators, `range_nexts`, and `place_opts`, which a general
 pass could later absorb.
+
+Slices now pass as their parts, a `Result` holding one comes back in a slot
+([#160](https://github.com/moq-dev/rust2/pull/160)), and a private slice field is three
+fields ([#379](https://github.com/moq-dev/rust2/pull/379)). What remains is a `Result` or
+tuple of scalars alone: `Decoder::varint` still returns an `rt.Ok` per read, and the
+bench's `frame_header` an `rt.Ok` of a pair per frame.
 
 Left here: iterating a byte slice makes one view, which `rt.iterSlice` and stepping in
 place read.
@@ -27,7 +33,3 @@ place read.
 Measure Chrome, Firefox, Node, and Bun; Chrome decides.
 
 Public API: the translator's output for byte slices.
-
-## Required
-
-- [Byte slices in fields](/quest/m2/ts-byte-views/fields.md) - a private slice field is three fields

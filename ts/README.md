@@ -142,8 +142,11 @@ crate translation reaches is refused, and so are two versions of one crate it re
 `byteOffset` and `byteLength`, and copy it before transferring it.
 
 An `rt.ByteSlice` is a range of a `Uint8Array`: its `data`, from `start`, for `length`
-bytes. A caller passes bytes as `rt.byteSliceFrom(array)` and reads a slice it gets as
-`rt.byteSliceView(slice)`, a view of it. A mutable part of a slice of other values, as
+bytes. A struct's private `&[u8]` or `&[u8; N]` field is its three parts, `bufData`,
+`bufStart`, and `bufLen` for `buf`, so a cursor moving through it makes no object; a
+read that needs the slice whole makes it there. A caller passes bytes as
+`rt.byteSliceFrom(array)` and reads a slice it gets as `rt.byteSliceView(slice)`, a view
+of it. A mutable part of a slice of other values, as
 `&mut v[a..b]`, `split_at_mut`, `chunks_mut`, and `split_mut` lend it, is a `Proxy` of an
 array whose elements are the slice's, read and written where they are, since a JS array
 has no views.
@@ -289,8 +292,8 @@ A `str` is a JS string, which is UTF-16: `chars` steps by code point, and a sear
 `char`, a `&str`, a predicate, or an array or slice of chars, as in `rt.strSplit(s, "/")`, takes the text or the
 closure, which it calls on each char it reads, in the order std reads them. An offset it
 returns, from `rfind` or `match_indices`, counts UTF-8 bytes, as Rust's does, and so does
-one `&s[a..b]` takes, which reads the string up to it and panics as std does inside a
-char. A JS string can't change in place, so `String`'s edits, `push_str`, `truncate`,
+one `&s[a..b]` or `&s[a..=b]` takes, which reads the string up to it and panics as std
+does inside a char, where `get` gives `None`. A JS string can't change in place, so `String`'s edits, `push_str`, `truncate`,
 `insert`, `retain`, `replace_range`, and the rest, assign the edited one to the local or
 field the `&mut` borrows, taking and checking byte offsets as std does. A `&mut str` is
 the `rt.Place` of its `String` wherever that is, and a part of one, from `&mut s[a..b]`,

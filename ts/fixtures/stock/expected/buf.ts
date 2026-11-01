@@ -14,7 +14,7 @@ import { then$1y5f3ge } from "./core/bool.ts";
  */
 export function bytesMut(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _80!: rt.usize;
-	const ops: Ops.Ops = { _0: data };
+	const ops: Ops.Ops = { _0Data: data.data, _0Start: data.start, _0Len: data.length };
 	const buf: rt.BytesMut = rt.bytesMutWithCapacity(rt.usizeRem(Ops.byte(ops) as rt.usize, 24));
 	const pieces: rt.BytesMut[] = [];
 	const frozen: rt.ByteSlice[] = [];

@@ -771,4 +771,17 @@ const asciiCases = [
 	...Array.from({ length: 8 * 3 * 3 }, (_, i) => Uint8Array.of(op("ascii::parts"), 0x10 | (i % 8), Math.floor(i / 8) % 3, Math.floor(i / 24))),
 ];
 
-export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...maps, ...mappedLocks, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases];
+/**
+ * `strs::gets` of each kind at every pair of byte offsets up to two past the end of its 13
+ * bytes of text, and of no text, and at `usize::MAX`.
+ */
+const getsOp = op("strs::gets");
+const getsAt = (n: number) => [...Array.from({ length: n + 3 }, (_, i) => i), 0xff];
+const gets = [0, 0x10].flatMap((text) => {
+	const at = getsAt(text === 0 ? 13 : 0);
+	return Array.from({ length: 16 * at.length * at.length }, (_, i) =>
+		Uint8Array.of(getsOp, text | (i % 16), at[Math.floor(i / 16) % at.length], at[Math.floor(i / 16 / at.length)]),
+	);
+});
+
+export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...maps, ...mappedLocks, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases, ...gets];

@@ -9,7 +9,7 @@
 import { fmtCharDebug, type Place, panic, panicFmt, stringLen } from "../rt.ts";
 import { type Bounds, boundsRange, type Part } from "./collections.ts";
 import type { char, u8, usize } from "./int.ts";
-import { type Clones, DONE, type Done, Iter, iterForEach, iterSlice, type SizeHint } from "./iter.ts";
+import { type Clones, DONE, type Done, Iter, iterForEach, iterSlice, type RangeInclusive, type SizeHint } from "./iter.ts";
 import { drop as dispose } from "./task.ts";
 
 const encoder = /* @__PURE__ */ new TextEncoder();
@@ -61,6 +61,23 @@ function unitAt(s: string, i: number, from: number, to: number): number {
 /** `&s[start..end]` by UTF-8 byte offsets, with `end` defaulting to the length. */
 export function strSlice(s: string, start: number, end?: number): string {
 	return s.slice(...units(s, start, end));
+}
+
+/** `str::get` by a range's UTF-8 byte offsets, with `end` defaulting to the length. */
+export function strGet(s: string, start: number, end?: number): string | undefined {
+	const at = unitsChecked(s, start, end);
+	return at && s.slice(...at);
+}
+
+/**
+ * The byte offsets `&s[r]` reads for an `a..=b` or a `..=b`, panicking as std's does where
+ * `b` is not before the end; the part is checked as `a..b + 1`'s is.
+ */
+export function strInclusive(s: string, r: RangeInclusive<usize> | { readonly end: usize; readonly inclusive: true }): [number, number] {
+	const [lo, hi] = "lo" in r ? [r.lo, r.hi] : [0, r.end];
+	if (hi >= stringLen(s)) sliceFailed(s, lo, hi);
+	// An `a..=b` iterated to its end starts past it, at `b + 1`, which JS doesn't overflow.
+	return ["exhausted" in r && r.exhausted ? hi + 1 : lo, hi + 1];
 }
 
 /**
@@ -127,13 +144,22 @@ export function strSplitAtMutChecked(p: Place<string>, mid: number): [Place<stri
 	return at && [new StrPart(p, at), new StrPart(p, [at[1], p.v.length])];
 }
 
-/** std's panic for a slice of `s` that is out of bounds, backwards, or inside a char. */
+/**
+ * std's panic for a slice of `s` that is out of bounds, backwards, or inside a char, or that
+ * ends inclusively at the length.
+ */
 function sliceFailed(s: string, start: number, end: number): never {
 	const len = stringLen(s);
 	if (start > len) panic(`start byte index ${start} is out of bounds for string of length ${len}`);
 	if (end > len) panic(`end byte index ${end} is out of bounds for string of length ${len}`);
 	if (start > end) panic(`byte range starts at ${start} but ends at ${end}`);
-	const [which, at] = unitAt(s, 0, 0, start) < 0 ? ["start", start] : ["end", end];
+	// Neither inside a char: an inclusive end at the length, which is past the last byte.
+	const [which, at] =
+		unitAt(s, 0, 0, start) < 0
+			? ["start", start]
+			: unitAt(s, 0, 0, end) < 0
+				? ["end", end]
+				: panic(`end byte index ${end} is out of bounds for string of length ${len}`);
 	// The char `at` is inside, and where its bytes start.
 	let floor = 0;
 	let c = 0;

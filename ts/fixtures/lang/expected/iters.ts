@@ -1369,7 +1369,7 @@ export function options(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return _83(b9, calls);
 	})) & 0xff);
 	rt.byteVecExtendFromSlice(out, rt.byteVecSlice(calls));
-	const iter3: Gaps.Gaps = { data, at: 0 };
+	const iter3: Gaps.Gaps = { dataData: data.data, dataStart: data.start, dataLen: data.length, at: 0 };
 	while (true) {
 		const _114: rt.u8 | undefined | rt.Done = Gaps.next$iter_Iterator(iter3);
 		if (_114 === rt.DONE) {
@@ -1715,8 +1715,9 @@ export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 		rt.byteVecPush(out, _21);
 	}
-	const _31: Doubled.Doubled = { _0: data };
-	const _33: Doubled.Doubled = { _0: rt.byteSliceRange(data, 0, rt.min(data.length, 2)) };
+	const _34: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.min(data.length, 2));
+	const _31: Doubled.Doubled = { _0Data: data.data, _0Start: data.start, _0Len: data.length };
+	const _33: Doubled.Doubled = { _0Data: _34.data, _0Start: _34.start, _0Len: _34.length };
 	const args2: rt.Fmt[] = [(f: rt.Formatter) => Doubled.fmt$fmt_Debug(_31, f), (f: rt.Formatter) => Doubled.fmt$fmt_Debug(_33, f)];
 	rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args2[0], "|", rt.fmtSpec({ alternate: true }, args2[1])])));
 	const tags: Tag.Tag[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): Tag.Tag => {
@@ -1800,7 +1801,7 @@ export function returned(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return undefined;
 	}));
 	_4(part6, out);
-	const part7 = first$iters_Gaps({ data, at: n });
+	const part7 = first$iters_Gaps({ dataData: data.data, dataStart: data.start, dataLen: data.length, at: n });
 	_4(part7, out);
 	const part8 = first$iters_Countdown({ left: n & 0xff, step: 1 });
 	_3(part8, out);
@@ -1809,7 +1810,7 @@ export function returned(data: rt.ByteSlice, out: rt.ByteVec): void {
 	})).reverse()), undefined, true);
 	const part9 = byMut$iter_Copied_slice_Iter_u8(rt.iterSlice(rt.byteSliceView(data)));
 	_3(part9, out);
-	const gaps: Gaps.Gaps = { data, at: 0 };
+	const gaps: Gaps.Gaps = { dataData: data.data, dataStart: data.start, dataLen: data.length, at: 0 };
 	const part10 = byMut$iters_Gaps(gaps);
 	_4(part10, out);
 	const part11 = byMut$iters_Gaps(gaps);

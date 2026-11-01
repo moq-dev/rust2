@@ -685,15 +685,6 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					false,
 				)
 			}
-			// A part of a `str` is a place of its own, which splices the whole anew.
-			("str", "get_mut") => {
-				let whole = self.operand(&args[0].node, span, out);
-				let (start, end) = self.range_bounds(&args[1].node, targ(0)?, span, out)?;
-				done(
-					Expr::rt("strGetMut", [whole, start].into_iter().chain(end).collect()),
-					true,
-				)
-			}
 			("str", "split_at_mut" | "split_at_mut_checked") => {
 				let values = self.operands(false, &[], args, dest.ty(&self.mir.local_decls, tcx).ty, span, out);
 				let f = match name.as_str() {
@@ -764,6 +755,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			}
 			// Indexing, whose result a `&mut` reads in place.
 			("Index" | "IndexMut", "index" | "index_mut") => self.index(&name, gargs, args, dest, span, out),
+			("str", "get" | "get_mut") => {
+				let gargs = tcx.mk_args(&[tcx.types.str_.into(), targ(0)?.into()]);
+				self.index(&name, gargs, args, dest, span, out)
+			}
 			// Out of bounds is undefined, so the checked index's panic is one outcome of it; a
 			// part by a range is checked as indexing by it is, giving `None` where that panics.
 			("slice", "get_unchecked" | "get_unchecked_mut" | "get" | "get_mut")
@@ -1456,12 +1451,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	fn set_borrowed(&mut self, (read, place): &Borrowed<'tcx>, value: Expr, span: Span, out: &mut Vec<Stmt>) {
 		match place {
 			Some(place) => out.extend(self.store(*place, value, span)),
-			None => out.push(StmtKind::Expr(read.clone().assign(value)).at(None)),
+			None => self.assign_to(read.clone(), value, None, out),
 		}
 	}
 
 	/// `container[index]`, or a slice of it by a range, which a reference reads in place; or
-	/// `get` or `get_mut` of a slice by a range.
+	/// `get` or `get_mut` of a slice or a `str` by a range.
 	fn index(
 		&mut self,
 		name: &str,
@@ -1476,13 +1471,42 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		// A string slices by UTF-8 byte offsets, which a JS string doesn't index by, and a
 		// part a `&mut` borrows is a place of its own, which splices the whole anew.
 		if container.is_str() || self.b.t.std_of(container) == Some(Std::String) {
+			let get = matches!(name, "get" | "get_mut");
 			let base = self.operand(&args[0].node, span, out);
-			let (start, end) = self.range_bounds(&args[1].node, index_ty, span, out)?;
+			let (base, (start, end)) = match self.range_bounds(&args[1].node, index_ty, span, out) {
+				Some(bounds) if get => (base, bounds),
+				Some(bounds) => (self.path(base, "s", out), bounds),
+				// Any other range gives its byte offsets, checked as std checks its own kind.
+				None if crate::lower::collections::plain_bounds(self.b.t, index_ty) => {
+					let base = self.path(base, "s", out);
+					let range = self.operand(&args[1].node, span, out);
+					let text = match name {
+						"index_mut" | "get_mut" => base.clone().member("v"),
+						_ => base.clone(),
+					};
+					let len = || Expr::rt("stringLen", vec![text.clone()]);
+					let checked = match (get, self.b.t.std_of(index_ty)) {
+						(true, _) => Expr::rt("sliceGetBounds", vec![range, len()]),
+						(_, Some(Std::RangeInclusive | Std::RangeToInclusive)) => {
+							Expr::rt("strInclusive", vec![text.clone(), range])
+						}
+						_ => Expr::rt("boundsRange", vec![range, len()]),
+					};
+					let pair = self.path(checked, "bounds", out);
+					(
+						base,
+						(pair.clone().index(Expr::lit("0")), Some(pair.index(Expr::lit("1")))),
+					)
+				}
+				None => return None,
+			};
 			let f = match name {
 				"index_mut" => "strPart",
+				"get" => "strGet",
+				"get_mut" => "strGetMut",
 				_ => "strSlice",
 			};
-			let mut values = vec![self.path(base, "s", out), start];
+			let mut values = vec![base, start];
 			values.extend(end);
 			return Some(Some((Expr::rt(f, values), true)));
 		}
@@ -1739,6 +1763,7 @@ fn continued(ty: Ty<'_>) -> Ty<'_> {
 /// Whether an assignment can write `e`: a path, an element, or a member of one.
 fn assignable(e: &Expr) -> bool {
 	match e {
+		_ if super::place::split_target(e).is_some() => true,
 		Expr::Index(..) => true,
 		Expr::Member(base, _) | Expr::Located(_, base) => assignable(base),
 		e => e.is_path(),
