@@ -634,18 +634,18 @@ export function map$0zzqmaz(self: rt.Result<rt.Arc<[rt.u8, rt.u8]>, rt.Arc<Any.A
 	return rt.Err(self.error);
 }
 
-export function map$1rffkv6(self: rt.Result<rt.u32, returns_Error.Error>, _: (a0: rt.u32) => rt.u64): rt.Result<rt.u64, returns_Error.Error> {
-	if (self.ok) {
-		return rt.Ok(self.value as rt.u64);
-	}
-	return self as rt.Result<rt.u64, returns_Error.Error>;
-}
-
 export function map$1g6jln5(self: rt.Result<rt.RefCell<rt.u64>, rt.RefCell<locks_Tally.Tally>>, op: (a0: rt.RefCell<rt.u64>) => rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>): rt.Result<rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>, rt.RefCell<locks_Tally.Tally>> {
 	if (self.ok) {
 		return rt.Ok(op(self.value));
 	}
 	return self as rt.Result<rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>, rt.RefCell<locks_Tally.Tally>>;
+}
+
+export function map$1rffkv6(self: rt.Result<rt.u32, returns_Error.Error>, _: (a0: rt.u32) => rt.u64): rt.Result<rt.u64, returns_Error.Error> {
+	if (self.ok) {
+		return rt.Ok(self.value as rt.u64);
+	}
+	return self as rt.Result<rt.u64, returns_Error.Error>;
 }
 
 export function map$0r57egs(self: rt.Result<rt.u8, rt.ParseIntError>, op: (a0: rt.u8) => rt.u8 | undefined): rt.Result<rt.u8 | undefined, rt.ParseIntError> {
