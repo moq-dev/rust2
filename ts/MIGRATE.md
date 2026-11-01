@@ -2,15 +2,26 @@
 
 ## Unreleased
 
+- `rt.vecCapacity`, `rt.vecReserve`, `rt.vecReserveExact`, and `rt.dequeReserve` are now
+  `Vec::capacity`, `reserve`, and `reserve_exact` and `VecDeque::reserve` of a vector, its
+  element size in bytes last, as in `rt.vecReserve(v, additional, 4)`, not the arithmetic
+  an extend reserved by; `rt.vecPush` and `rt.vecGrow` are gone. `rt.dequeClone` and
+  `rt.heapClone` take the element size after the clone function.
+- Every translation needs `tsc` 7.0 or later on `PATH`, not only one with bindings: it
+  type-checks the output, and fails at the Rust span of each error, where it succeeded
+  before.
 - A function the config's roots don't name takes each `&[u8]` or `&[u8; N]` parameter
   whose object its body never makes as its `data`, `start`, and `length`:
   `read(buf, form)` is `read(buf.data, buf.start, buf.length, form)`. A caller takes
   which from the output. One that returns a `Result` of byte slices
-  and scalars returns its error or `undefined`, and leaves the `Ok`'s parts in a
+  and scalars, or of numbers alone, returns its error or `undefined`, and leaves the `Ok`'s parts in a
   module-level slot, such as `sliceOut`. If the `Ok`'s first part is a number, it returns
   that, or `undefined` for an error, and leaves the rest, or the error as `err`, in the
   slot, such as `readOut`. A root still takes an `rt.ByteSlice` and returns
   the `Result`.
+- A struct's private `&[u8]` or `&[u8; N]` field is three fields, its bytes, start, and
+  length, named for it: `buf` is `bufData`, `bufStart`, and `bufLen`, and a class's
+  constructor takes the three in its place. A `pub` field is still an `rt.ByteSlice`.
 - `rt.btreeCollect` takes whether it sorts and the keys' `!ne` after the entries, and
   `rt.btreeCollectKeys` the keys' `PartialOrd::lt` and `!ne`, as in
   `rt.btreeCollect(m, entries, true, Key.eq$cmp_PartialEq)`; neither takes a test for keys
@@ -47,6 +58,11 @@
   the form of, such as `*mut T`, `NonNull<T>`, or `&'a mut T`, is an `rt.Ptr<T>`, the
   object, an `rt.Place<T>`, or an `rt.ByteSlice`, rather than `rt.Place<T>` or `T`: a
   caller reading one casts it to what its instance holds, as the output does.
+- A generic type's field holding a run of a type parameter is an `rt.ArrayOf<T>` for
+  `[T; N]`, an `rt.SliceOf<T>` for `[T]` behind a reference or a `Box`, an `rt.VecOf<T>`
+  for `Vec<T>`, or an `rt.CowOf<T>` for `Cow<[T]>`, rather than `T[]` or `rt.Cow<T>`:
+  each also holds the byte form of its `u8` instance, which a caller reading one casts
+  it to, as the output does.
 - A closure, a `fn` pointer, a `dyn Fn`, or a function item as a value returns
   `undefined` for `()`, not `void`, as in `(a0: rt.u8) => undefined`: a caller passes such
   a parameter a function typed `=> undefined`.

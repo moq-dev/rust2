@@ -710,7 +710,7 @@ export function parses(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 	const _39: string | undefined = one;
 	if (_39 === undefined) {
-		all = ["true", "false", "True", "FALSE", "", " true", "true ", "t", "truefalse", "a", "é", "ࠀ", "😀", "􏿿", "ab", "a😀", "😀a", "éé", "0", "+0", "-0", "000", "1", "+1", "-1", "+", "-", "--1", "+-1", "1_0", "0x1", "127", "128", "-128", "-129", "255", "256", "32767", "32768", "-32768", "-32769", "65535", "65536", "2147483647", "2147483648", "-2147483648", "-2147483649", "4294967295", "4294967296", "9223372036854775807", "9223372036854775808", "-9223372036854775808", "-9223372036854775809", "18446744073709551615", "18446744073709551616", "170141183460469231731687303715884105727", "170141183460469231731687303715884105728", "-170141183460469231731687303715884105728", "-170141183460469231731687303715884105729", "340282366920938463463374607431768211455", "340282366920938463463374607431768211456"].slice();
+		all = rt.vecExact(["true", "false", "True", "FALSE", "", " true", "true ", "t", "truefalse", "a", "é", "ࠀ", "😀", "􏿿", "ab", "a😀", "😀a", "éé", "0", "+0", "-0", "000", "1", "+1", "-1", "+", "-", "--1", "+-1", "1_0", "0x1", "127", "128", "-128", "-129", "255", "256", "32767", "32768", "-32768", "-32769", "65535", "65536", "2147483647", "2147483648", "-2147483648", "-2147483649", "4294967295", "4294967296", "9223372036854775807", "9223372036854775808", "-9223372036854775808", "-9223372036854775809", "18446744073709551615", "18446744073709551616", "170141183460469231731687303715884105727", "170141183460469231731687303715884105728", "-170141183460469231731687303715884105728", "-170141183460469231731687303715884105729", "340282366920938463463374607431768211455", "340282366920938463463374607431768211456"].slice(), 8);
 	} else {
 		all = [_39];
 	}
@@ -1516,6 +1516,169 @@ export function hinted(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		_172.v = rt.stringExtendChars(_172.v, chars);
 	}
 	fmt_put(out, t);
+}
+
+/** A part a checked read gives, or 0xfe if it gave none. */
+export function putPart(out: rt.ByteVec, part: string | undefined): void {
+	if (part === undefined) {
+		rt.byteVecPush(out, 254);
+	} else {
+		fmt_put(out, part);
+	}
+}
+
+/** A part a checked `&mut` read gives, upper-cased and put, or 0xfe if it gave none. */
+export function putUpper(out: rt.ByteVec, part: rt.Place<string> | undefined): void {
+	if (part === undefined) {
+		rt.byteVecPush(out, 254);
+	} else {
+		part.v = rt.strToAsciiUppercase(part.v);
+		fmt_put(out, part.v);
+	}
+}
+
+/**
+ * `a..=b` searched to its end, which leaves it at `b` but exhausted: `b + 1..b + 1` as an
+ * index. Skipped to `b` first, so a search to `usize::MAX` is short.
+ */
+export function exhausted(a: rt.usize, b: rt.usize): rt.RangeInclusive<rt.usize> {
+	const r: rt.RangeInclusive<rt.usize> = new rt.RangeInclusive(a, b, rt.usizeStep);
+	if (b > a) {
+		rt.iterNth(r, rt.usizeSub(rt.usizeSub(b, a), 1));
+	}
+	rt.iterFind(r, (_2: rt.usize): boolean => {
+		return false;
+	});
+	return r;
+}
+
+/**
+ * `str::get` and `get_mut` by every kind of range, and a `str` or a `String` indexed by an
+ * inclusive range or a pair of `Bound`s, shared and `&mut`, at byte offsets `data` picks:
+ * up to two past the end, or `usize::MAX` for 0xff. A checked read out of bounds, backwards,
+ * or inside a char gives `None`, and indexing panics as std's does.
+ */
+export function gets(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	let text!: string;
+	if ((kind & 16) === 0) {
+		text = "aébࠀc😀d";
+	} else {
+		text = "";
+	}
+	const _7: string = text;
+	const at: (a0: rt.usize) => rt.usize = (i: rt.usize): rt.usize => {
+		const _3: rt.u8 | undefined = rt.byteSliceGet(data, i);
+		if (_3 === undefined) {
+			return 0;
+		}
+		if (_3 === 255) {
+			return 4294967295;
+		}
+		return rt.usizeRem(_3 as rt.usize, rt.usizeAdd(rt.stringLen(_7), 3));
+	};
+	const _10: [rt.usize, rt.usize] = [at(0), at(1)];
+	const a: rt.usize = _10[0];
+	const b: rt.usize = _10[1];
+	const s: string = text;
+	let string: string = text;
+	const _20: rt.u8 = rt.u8Rem(kind, 16);
+	if (_20 === 0) {
+		putPart(out, rt.strGet(s, a, b));
+		putPart(out, rt.strGet(s, a));
+		putPart(out, rt.strGet(s, 0, b));
+		putPart(out, rt.strGet(s, 0));
+	} else if (_20 === 1) {
+		const bounds22 = rt.sliceGetBounds(new rt.RangeInclusive(a, b, rt.usizeStep), rt.stringLen(s));
+		putPart(out, rt.strGet(s, bounds22[0], bounds22[1]));
+		const bounds23 = rt.sliceGetBounds({ end: b, inclusive: true }, rt.stringLen(s));
+		putPart(out, rt.strGet(s, bounds23[0], bounds23[1]));
+		const _41: string = string;
+		const bounds24 = rt.sliceGetBounds(exhausted(a, b), rt.stringLen(_41));
+		putPart(out, rt.strGet(_41, bounds24[0], bounds24[1]));
+	} else if (_20 === 2) {
+		const bounds18 = rt.sliceGetBounds([{ tag: "Excluded", _0: a } as rt.RangeBound<rt.usize>, { tag: "Included", _0: b } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(s));
+		putPart(out, rt.strGet(s, bounds18[0], bounds18[1]));
+		const bounds19 = rt.sliceGetBounds([{ tag: "Included", _0: a } as rt.RangeBound<rt.usize>, { tag: "Excluded", _0: b } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(s));
+		putPart(out, rt.strGet(s, bounds19[0], bounds19[1]));
+		const bounds20 = rt.sliceGetBounds([{ tag: "Excluded", _0: a } as rt.RangeBound<rt.usize>, { tag: "Unbounded" } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(s));
+		putPart(out, rt.strGet(s, bounds20[0], bounds20[1]));
+		const bounds21 = rt.sliceGetBounds([{ tag: "Unbounded" } as rt.RangeBound<rt.usize>, { tag: "Included", _0: b } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(s));
+		putPart(out, rt.strGet(s, bounds21[0], bounds21[1]));
+	} else if (_20 === 3) {
+		const bounds17 = rt.strInclusive(s, new rt.RangeInclusive(a, b, rt.usizeStep));
+		fmt_put(out, rt.strSlice(s, bounds17[0], bounds17[1]));
+	} else if (_20 === 4) {
+		const bounds16 = rt.strInclusive(s, { end: b, inclusive: true });
+		fmt_put(out, rt.strSlice(s, bounds16[0], bounds16[1]));
+	} else if (_20 === 5) {
+		const _70: rt.RangeInclusive<rt.usize> = new rt.RangeInclusive(a, b, rt.usizeStep);
+		const bounds15 = rt.strInclusive(string, _70);
+		fmt_put(out, rt.strSlice(string, bounds15[0], bounds15[1]));
+	} else if (_20 === 6) {
+		const bounds14 = rt.strInclusive(string, { end: b, inclusive: true });
+		fmt_put(out, rt.strSlice(string, bounds14[0], bounds14[1]));
+	} else if (_20 === 7) {
+		const bounds13 = rt.strInclusive(s, exhausted(a, b));
+		fmt_put(out, rt.strSlice(s, bounds13[0], bounds13[1]));
+	} else if (_20 === 8) {
+		const bounds12 = rt.boundsRange([{ tag: "Excluded", _0: a } as rt.RangeBound<rt.usize>, { tag: "Included", _0: b } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(s));
+		fmt_put(out, rt.strSlice(s, bounds12[0], bounds12[1]));
+	} else if (_20 === 9) {
+		const bounds11 = rt.boundsRange([{ tag: "Included", _0: a } as rt.RangeBound<rt.usize>, { tag: "Excluded", _0: b } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(string));
+		fmt_put(out, rt.strSlice(string, bounds11[0], bounds11[1]));
+	} else if (_20 === 10) {
+		const _89: rt.RangeInclusive<rt.usize> = new rt.RangeInclusive(a, b, rt.usizeStep);
+		const s7 = rt.place(() => string, (value6) => string = value6);
+		const bounds7 = rt.sliceGetBounds(_89, rt.stringLen(s7.v));
+		putUpper(out, rt.strGetMut(s7, bounds7[0], bounds7[1]));
+		const s8 = rt.place(() => string, (value7) => string = value7);
+		const bounds8 = rt.sliceGetBounds({ end: b, inclusive: true }, rt.stringLen(s8.v));
+		putUpper(out, rt.strGetMut(s8, bounds8[0], bounds8[1]));
+		const _99: rt.RangeInclusive<rt.usize> = exhausted(a, b);
+		const s9 = rt.place(() => string, (value8) => string = value8);
+		const bounds9 = rt.sliceGetBounds(_99, rt.stringLen(s9.v));
+		putUpper(out, rt.strGetMut(s9, bounds9[0], bounds9[1]));
+		const s10 = rt.place(() => string, (value9) => string = value9);
+		const bounds10 = rt.sliceGetBounds([{ tag: "Excluded", _0: a } as rt.RangeBound<rt.usize>, { tag: "Included", _0: b } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(s10.v));
+		putUpper(out, rt.strGetMut(s10, bounds10[0], bounds10[1]));
+		fmt_put(out, string);
+	} else if (_20 === 11) {
+		const _113: rt.RangeInclusive<rt.usize> = new rt.RangeInclusive(a, b, rt.usizeStep);
+		const s6 = rt.place(() => string, (value5) => string = value5);
+		const bounds6 = rt.strInclusive(s6.v, _113);
+		const _111: rt.Place<string> = rt.strPart(s6, bounds6[0], bounds6[1]);
+		_111.v = rt.strToAsciiUppercase(_111.v);
+		fmt_put(out, string);
+	} else if (_20 === 12) {
+		const s5 = rt.place(() => string, (value4) => string = value4);
+		const bounds5 = rt.strInclusive(s5.v, { end: b, inclusive: true });
+		const _118: rt.Place<string> = rt.strPart(s5, bounds5[0], bounds5[1]);
+		_118.v = rt.strToAsciiUppercase(_118.v);
+		fmt_put(out, string);
+	} else if (_20 === 13) {
+		const _128: rt.RangeInclusive<rt.usize> = exhausted(a, b);
+		const s4 = rt.place(() => string, (value3) => string = value3);
+		const bounds4 = rt.strInclusive(s4.v, _128);
+		const _126: rt.Place<string> = rt.strPart(s4, bounds4[0], bounds4[1]);
+		_126.v = rt.strToAsciiUppercase(_126.v);
+		fmt_put(out, string);
+	} else if (_20 === 14) {
+		const s3 = rt.place(() => string, (value2) => string = value2);
+		const bounds3 = rt.boundsRange([{ tag: "Excluded", _0: a } as rt.RangeBound<rt.usize>, { tag: "Excluded", _0: b } as rt.RangeBound<rt.usize>] as [rt.RangeBound<rt.usize>, rt.RangeBound<rt.usize>], rt.stringLen(s3.v));
+		const _133: rt.Place<string> = rt.strPart(s3, bounds3[0], bounds3[1]);
+		_133.v = rt.strToAsciiUppercase(_133.v);
+		fmt_put(out, string);
+	} else {
+		const s2 = rt.place(() => string, (value) => string = value);
+		const bounds = rt.strInclusive(s2.v, { end: b, inclusive: true });
+		const part: rt.Place<string> = rt.strPart(s2, bounds[0], bounds[1]);
+		const last: rt.usize = rt.usizeSaturatingSub(rt.stringLen(part.v), 1);
+		const _150: rt.RangeInclusive<rt.usize> = new rt.RangeInclusive(rt.min(a, last), last, rt.usizeStep);
+		const bounds2 = rt.strInclusive(part.v, _150);
+		const _149: rt.Place<string> = rt.strPart(part, bounds2[0], bounds2[1]);
+		_149.v = rt.strToAsciiUppercase(_149.v);
+		fmt_put(out, string);
+	}
 }
 
 //# sourceMappingURL=strs.ts.map

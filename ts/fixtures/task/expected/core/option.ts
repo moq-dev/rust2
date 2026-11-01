@@ -157,6 +157,13 @@ export function map$0upmgd9(self: rt.u64 | undefined, f: (a0: rt.u64) => rt.Resu
 	return f(self);
 }
 
+export function map$1cf8u0y(self: rt.u64 | undefined, f: (a0: rt.u64) => rt.u64): rt.u64 | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
 export function mapOr$0vxyhav(self: Guard.Guard[] | undefined, default_: rt.usize, f: (a0: Guard.Guard[]) => rt.usize): rt.usize {
 	if (self === undefined) {
 		return default_;

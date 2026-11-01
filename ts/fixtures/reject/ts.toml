@@ -7,7 +7,6 @@ roots = [
     "scanned",
     "generic_unit",
     "Noisy",
-    "async_closure",
     "pointer",
     "written",
     "statics",
@@ -55,7 +54,6 @@ roots = [
     "generic_object",
     "first_of",
     "tail_read",
-    "mutex_number",
     "missing",
     "generic_pending",
     "rebound_reference",
@@ -67,6 +65,7 @@ roots = [
     "vec_pointer",
     "bits",
     "places_compared",
+    "optional_places_compared",
     "part_replaced",
     "variable_reassigned",
     "variable_replaced",
@@ -165,5 +164,6 @@ roots = [
     "byte_pointer_rebound",
     "block_cloned",
     "lists",
+    "mapped_closure",
 ]
 printable = ["Meters"]

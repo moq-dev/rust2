@@ -1,11 +1,15 @@
 //! Mutexes on one thread, where a panic aborts and so never poisons one: made by
 //! `Default`, read and written through a guard, recovered from a `PoisonError` that never
-//! comes, read by `get_mut` without locking, tried while held and free, and locked again
+//! comes, read and written by `get_mut` without locking, taken apart, tried while held and free, and locked again
 //! while held, which panics as wasm32's does; and read-write locks, read and written,
-//! tried while read and while written.
+//! tried while read and while written, written through `get_mut`, taken apart, and read
+//! and written through guards mapped and filtered to parts of their values.
 
 use std::fmt;
-use std::sync::{Arc, Mutex, PoisonError, RwLock, TryLockError};
+use std::sync::{
+	Arc, MappedRwLockReadGuard, MappedRwLockWriteGuard, Mutex, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard,
+	TryLockError,
+};
 
 /// A value a mutex holds, which `Default` makes.
 #[derive(Default)]
@@ -31,7 +35,8 @@ pub fn locks(data: &[u8], out: &mut Vec<u8>) {
 	let shared: Arc<Mutex<Tally>> = Arc::default();
 	let other = shared.clone();
 	let mut own: Mutex<Vec<u8>> = Mutex::default();
-	let number: Mutex<u32> = Mutex::default();
+	let mut number: Mutex<u32> = Mutex::default();
+	let mut slot: Mutex<Option<u8>> = Mutex::default();
 	let lock = Lock(Mutex::new(7));
 	for &op in data {
 		match op % 8 {
@@ -45,7 +50,14 @@ pub fn locks(data: &[u8], out: &mut Vec<u8>) {
 				out.push(tally.n as u8);
 				out.push(tally.seen.len() as u8);
 			}
-			2 => own.get_mut().unwrap().push(op),
+			// A value JS copies, written in place, as moq's `Content` takes its own.
+			2 => {
+				own.get_mut().unwrap().push(op);
+				*number.get_mut().unwrap() += u32::from(op);
+				let held = slot.get_mut().unwrap_or_else(PoisonError::into_inner);
+				out.push(held.take().unwrap_or(0xfd));
+				*held = Some(op);
+			}
 			3 => {
 				*number.lock().unwrap() += u32::from(op);
 				out.push(*number.lock().unwrap() as u8);
@@ -79,6 +91,8 @@ pub fn locks(data: &[u8], out: &mut Vec<u8>) {
 	}
 	out.extend_from_slice(own.get_mut().unwrap_or_else(PoisonError::into_inner));
 	out.push(Arc::strong_count(&shared) as u8);
+	out.push(number.into_inner().unwrap() as u8);
+	out.push(slot.into_inner().unwrap().unwrap_or(0xfd));
 }
 
 /// Locks a mutex while a guard of it is held, if the first byte is odd, which panics.
@@ -97,9 +111,10 @@ pub fn relock(data: &[u8], out: &mut Vec<u8>) {
 /// read.
 pub fn rwlocks(data: &[u8], out: &mut Vec<u8>) {
 	let lock: Arc<RwLock<Tally>> = Arc::default();
-	let number = RwLock::new(0u32);
+	let mut number = RwLock::new(0u32);
+	let mut owned: RwLock<Vec<u8>> = RwLock::default();
 	for &op in data {
-		match op % 6 {
+		match op % 8 {
 			0 => {
 				let mut tally = lock.write().unwrap();
 				tally.n += u64::from(op);
@@ -131,12 +146,102 @@ pub fn rwlocks(data: &[u8], out: &mut Vec<u8>) {
 				Err(TryLockError::WouldBlock) => out.push(0xfe),
 				Err(TryLockError::Poisoned(err)) => out.push(err.into_inner().n as u8),
 			},
-			_ => {
+			5 => {
 				let made: RwLock<Vec<u8>> = RwLock::default();
 				made.write().unwrap().push(op);
 				out.extend_from_slice(&made.read().unwrap());
 			}
+			6 => {
+				*number.get_mut().unwrap() += u32::from(op);
+				owned.get_mut().unwrap_or_else(PoisonError::into_inner).push(op);
+				out.push(*number.read().unwrap() as u8);
+			}
+			_ => {
+				let made = RwLock::new(Tally {
+					n: u64::from(op),
+					seen: vec![op],
+				});
+				let tally = made.into_inner().unwrap();
+				out.push(tally.n as u8);
+				out.extend_from_slice(&tally.seen);
+			}
 		}
 	}
 	out.push(lock.read().unwrap().n as u8);
+	out.push(number.into_inner().unwrap() as u8);
+	out.extend_from_slice(&owned.into_inner().unwrap_or_else(PoisonError::into_inner));
+}
+
+/// Each byte an operation on a read-write lock through guards mapped and filtered to its
+/// parts, its value the operand; each puts what it read through them, what the lock holds
+/// after they drop, and whether it is still locked. Locking it again while one is held
+/// aborts on wasm32, with no panic message to compare.
+pub fn mapped(data: &[u8], out: &mut Vec<u8>) {
+	let lock = RwLock::new(Tally::default());
+	let locked = |out: &mut Vec<u8>| {
+		let read = matches!(lock.try_read(), Err(TryLockError::WouldBlock));
+		let write = matches!(lock.try_write(), Err(TryLockError::WouldBlock));
+		out.push(u8::from(read) << 1 | u8::from(write));
+	};
+	for &op in data {
+		match op % 4 {
+			// A number written through a write guard mapped to it, and through that one's map.
+			0 => {
+				let mut n = RwLockWriteGuard::map(lock.write().unwrap(), |t| &mut t.n);
+				*n += u64::from(op);
+				locked(out);
+				let mut again = MappedRwLockWriteGuard::map(n, |n| n);
+				*again = again.wrapping_mul(3);
+				drop(again);
+				locked(out);
+				out.push(lock.read().unwrap().n as u8);
+			}
+			// Read through a read guard mapped to a part, and that one's map to a part of it.
+			1 => {
+				let seen = RwLockReadGuard::map(lock.read().unwrap(), |t| &t.seen);
+				out.push(seen.len() as u8);
+				let last = MappedRwLockReadGuard::map(seen, |s| s.last().unwrap_or(&0xfd));
+				out.push(*last);
+				locked(out);
+				drop(last);
+				locked(out);
+			}
+			// Filtered, which gives the guard back where there is no part.
+			2 => {
+				match RwLockWriteGuard::filter_map(lock.write().unwrap(), |t| t.seen.last_mut()) {
+					Ok(mut last) => *last = last.wrapping_add(op),
+					Err(mut whole) => whole.seen.push(op),
+				}
+				locked(out);
+				match RwLockReadGuard::filter_map(lock.read().unwrap(), |t| t.seen.first()) {
+					Ok(first) => match MappedRwLockReadGuard::filter_map(first, |b| (*b > 0x80).then_some(b)) {
+						Ok(b) => out.push(*b),
+						Err(first) => out.push(!*first),
+					},
+					Err(whole) => out.push(0xf0 | whole.seen.len() as u8),
+				}
+				locked(out);
+				let n = RwLockWriteGuard::filter_map(lock.write().unwrap(), |t| Some(&mut t.n));
+				match n.map(|n| MappedRwLockWriteGuard::filter_map(n, |n| (*n & 1 == 0).then_some(n))) {
+					Ok(Ok(mut n)) => *n += 1,
+					Ok(Err(mut n)) => *n += 2,
+					Err(_) => out.push(0xfe),
+				}
+				out.push(lock.read().unwrap().n as u8);
+				out.extend_from_slice(&lock.read().unwrap().seen);
+			}
+			// Tried while a mapped write guard holds it, then while a mapped read guard does.
+			_ => {
+				let n = RwLockWriteGuard::map(lock.write().unwrap(), |t| &mut t.n);
+				locked(out);
+				drop(n);
+				let n = RwLockReadGuard::map(lock.read().unwrap(), |t| &t.n);
+				locked(out);
+				out.push(*n as u8);
+			}
+		}
+	}
+	let last = lock.into_inner().unwrap();
+	out.push(last.n as u8);
+	out.extend_from_slice(&last.seen);
 }

@@ -6,7 +6,7 @@ import { mapOr$1jgrjsu as option_mapOr$1jgrjsu } from "./core/option.ts";
 
 export function header(dataData: Uint8Array, dataStart: number, dataLen: number): Header.Header | undefined {
 	if (dataLen >= 2) {
-		return { tag: new rt.ByteSlice(dataData, dataStart, 2), rest: new rt.ByteSlice(dataData, dataStart + 2, dataLen - 2) };
+		return { tagData: dataData, tagStart: dataStart, tagLen: 2, restData: dataData, restStart: dataStart + 2, restLen: dataLen - 2 };
 	}
 	return undefined;
 }
@@ -64,9 +64,9 @@ export function chunks(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const _6: Header.Header | undefined = header(data.data, data.start, data.length);
 		if (_6 !== undefined) {
 			const h: Header.Header = _6;
-			rt.byteVecExtendFromSlice(out, h.tag);
-			rt.byteVecPush(out, h.tag.data[h.tag.start + 1]);
-			rt.byteVecPush(out, h.rest.length & 0xff);
+			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(h.tagData, h.tagStart, h.tagLen));
+			rt.byteVecPush(out, h.tagData[h.tagStart + 1]);
+			rt.byteVecPush(out, h.restLen & 0xff);
 		}
 		const err: rt.u8 | undefined = take4(data.data, data.start, data.length);
 		const part3: Uint8Array = take4Out.p_0Data;

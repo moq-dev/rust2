@@ -4,11 +4,11 @@
 //! decode's input. Op 6 runs iterator chains over its bytes instead, as moq-net's model
 //! writes them, op 7 decodes frame headers as they arrive a few bytes at a time, op 8
 //! keeps a `BTreeMap`, as moq-net's model keeps its state, op 9 converts timestamps
-//! between timescales, ops 10 and 11 add and order them as moq-net's `Timestamp` does, and
-//! op 12 orders integers by std's own `Ord`.
+//! between timescales, ops 10 and 11 add and order them as moq-net's `Timestamp` does,
+//! op 12 orders integers by std's own `Ord`, and op 13 pushes onto vectors.
 
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque};
 
 use crate::coding::{Decode, DecodeError, Decoder, Encode, EncodeError, Encoder, Form, varint};
 use crate::harness::{decode_error, encode_error, form, lite_version, put_u64, put_usize, take_u64};
@@ -37,6 +37,7 @@ pub fn run(input: &[u8]) -> Vec<u8> {
 		10 => stamp(data, &mut out),
 		11 => interleave(data, &mut out),
 		12 => order(selector, data, &mut out),
+		13 => push(selector, data, &mut out),
 		_ => decoded(decode_group(data, lite_version(selector), &mut out), &mut out),
 	}
 	out
@@ -250,6 +251,31 @@ fn order(selector: u8, data: &[u8], out: &mut Vec<u8>) {
 	for x in [v[0], v[v.len() / 2], v[v.len() - 1]] {
 		put_u64(out, x as u64);
 	}
+}
+
+/// `count` integers pushed onto a `Vec`, or a `VecDeque` if `selector` is 1: its length
+/// and middle item.
+fn push(selector: u8, data: &[u8], out: &mut Vec<u8>) {
+	let (count, _) = take_u64(data);
+	let count = count.min(1 << 16) as u32;
+	let (len, middle) = match selector {
+		1 => {
+			let mut q = VecDeque::new();
+			for i in 0..count {
+				q.push_back(i);
+			}
+			(q.len(), q.get(q.len() / 2).copied())
+		}
+		_ => {
+			let mut v = Vec::new();
+			for i in 0..count {
+				v.push(i);
+			}
+			(v.len(), v.get(v.len() / 2).copied())
+		}
+	};
+	put_usize(out, len);
+	put_u64(out, middle.map_or(0, u64::from));
 }
 
 /// One iterator chain over every byte, picked by `chain`, with closures that cost little

@@ -74,6 +74,9 @@ pub enum Std {
 	RefCell,
 	Ref,
 	RefMut,
+	/// `rt.BorrowError` and `rt.BorrowMutError`: why `try_borrow` and `try_borrow_mut` failed.
+	BorrowError,
+	BorrowMutError,
 	/// `rt.Cell<T>`, a place holding its value: a `Cell`'s or an `UnsafeCell`'s.
 	Cell,
 	/// `rt.LocalKey<T>`: a thread-local, a module's value.
@@ -310,7 +313,12 @@ impl Std {
 			["cmp", "Ordering"] => Some(Self::Ordering),
 			["sync", "atomic", "Ordering"] => Some(Self::AtomicOrdering),
 			["cell", "once", "OnceCell"] => Some(Self::OnceCell),
+			["cell", "BorrowError"] => Some(Self::BorrowError),
+			["cell", "BorrowMutError"] => Some(Self::BorrowMutError),
 			["sync", "once_lock", "OnceLock"] => Some(Self::OnceLock),
+			// What a read-write lock's guards map to, which guard as they do.
+			["sync", "poison", "rwlock", "MappedRwLockReadGuard"] => Some(Self::Ref),
+			["sync", "poison", "rwlock", "MappedRwLockWriteGuard"] => Some(Self::RefMut),
 			["sync", "once", "Once"] => Some(Self::Once),
 			["sync", "once", "OnceState"] => Some(Self::OnceState),
 			["cell", "lazy", "LazyCell"] => Some(Self::LazyCell),
@@ -623,9 +631,9 @@ pub fn clone_copies<'tcx>(t: &super::Translator<'_, 'tcx>, env: TypingEnv<'tcx>,
 pub fn clone_shares<'tcx>(t: &super::Translator<'_, 'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>) -> bool {
 	match ty.kind() {
 		ty::FnDef(..) => true,
-		ty::Closure(_, args) => {
+		ty::Closure(..) | ty::CoroutineClosure(..) => {
 			!super::mir::writes_captures(t.tcx, ty)
-				&& (args.as_closure().upvar_tys().iter())
+				&& (super::captured(ty).unwrap_or_default().iter())
 					.all(|capture| clone_copies(t, env, capture) || clone_shares(t, env, capture))
 		}
 		_ => string(t.tcx, ty),
@@ -829,7 +837,7 @@ pub fn may_from_mir(tcx: TyCtxt<'_>, did: DefId) -> bool {
 			"unwrap" | "expect" | "is_some" | "is_none" | "as_ref" | "copied" | "cloned" | "iter"
 		) | (
 			Some(Std::Result),
-			"unwrap" | "expect" | "unwrap_err" | "is_ok" | "is_err"
+			"unwrap" | "expect" | "unwrap_err" | "is_ok" | "is_err" | "iter"
 		) | (
 			Some(Std::LocalKey),
 			"with" | "try_with" | "initialize_with" | "with_borrow_mut"
@@ -896,7 +904,12 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		// over, and `fill` its value if there is no slot for it.
 		("slice", "fill" | "fill_with" | "clone_from_slice") => &[0],
 		// `get_or_init::<T, F>` drops its function uncalled if the cell is set.
-		("OnceCell" | "OnceLock", "get_or_init") => &[1],
+		("OnceCell" | "OnceLock", "get_or_init" | "get_or_try_init") => &[1],
+		// A guard's map calls its function, filtered or not.
+		(
+			"Ref" | "RefMut" | "RwLockReadGuard" | "RwLockWriteGuard" | "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
+			"map" | "filter_map" | "map_split",
+		) => &[],
 		("Once", "call_once" | "call_once_force") => &[0],
 		("Arc" | "Rc", "new_cyclic") => &[1],
 		// `pop_if::<F>` drops its test uncalled if there is no element.
@@ -927,7 +940,7 @@ fn takes_none(owner: &str, name: &str) -> bool {
 			) | ("Peekable", "peek" | "next_if" | "next_if_eq")
 				| (
 					"OnceCell" | "OnceLock",
-					"get" | "set" | "get_or_init" | "take" | "into_inner"
+					"get" | "get_mut" | "set" | "get_or_init" | "get_or_try_init" | "take" | "into_inner"
 				)
 				| ("Arc" | "Rc", "into_inner")
 				| ("DoubleEndedIterator", "next_back" | "nth_back" | "rfind")
@@ -1523,7 +1536,9 @@ fn mapping<'tcx>(
 				// Through the reference, a slice of the bytes.
 				_ if super::byte_array(ty) => Expr::rt("byteSliceToArray", vec![value]),
 				_ if b.t.std_iter(ty) => return super::iter::clone(b, ty, value, span),
-				ty::Closure(def_id, _) if !clone_shares(b.t, b.t.typing_env_pub(), ty) => {
+				ty::Closure(def_id, _) | ty::CoroutineClosure(def_id, _)
+					if !clone_shares(b.t, b.t.typing_env_pub(), ty) =>
+				{
 					b.t.clone_closure(*def_id);
 					Expr::rt("closureClone", vec![value])
 				}
@@ -1539,6 +1554,8 @@ fn mapping<'tcx>(
 		("Option", "is_some") => args.pop()?.binary("!==", b.t.none(targ(gargs, 0))),
 		("Option", "is_none") => args.pop()?.binary("===", b.t.none(targ(gargs, 0))),
 		("Option", "as_ref" | "as_mut") => args.pop()?,
+		// A box is what it holds.
+		("Option", "as_deref_mut") if targ(gargs, 0).is_box() => args.pop()?,
 		// `Option<&T>` or `Option<&mut T>` of the `T` it points at, through `T`'s `Clone`
 		// where that does more than copy, as std's `cloned` does.
 		("Option", "copied" | "cloned") => {
@@ -1970,10 +1987,28 @@ fn mapping<'tcx>(
 			true => Expr::New(Box::new(Expr::Rt("ByteVec".into())), Vec::new()),
 			false => Expr::Array(Vec::new()),
 		},
-		("Vec", "with_capacity") => match is_u8(targ(gargs, 0)) {
-			true => Expr::New(Box::new(Expr::Rt("ByteVec".into())), args),
-			false => Expr::Array(Vec::new()),
-		},
+		// What reads or sets a capacity is given the size of the elements, by which std's
+		// grows it.
+		("Vec", "with_capacity") if is_u8(targ(gargs, 0)) => Expr::rt("byteVecWithCapacity", args),
+		("Vec", "capacity") if is_u8(targ(gargs, 0)) => args.pop()?.member("data").member("length"),
+		("Vec", "reserve" | "reserve_exact" | "shrink_to") if is_u8(targ(gargs, 0)) => {
+			rt2(args, "byteVec", &super::camel(&name))
+		}
+		("Vec", "shrink_to_fit") if is_u8(targ(gargs, 0)) => {
+			Expr::rt("byteVecShrinkTo", vec![args.pop()?, Expr::lit("0")])
+		}
+		("Vec", "with_capacity" | "capacity" | "reserve" | "reserve_exact" | "shrink_to" | "shrink_to_fit") => {
+			let mut values = args;
+			if name == "shrink_to_fit" {
+				values.push(Expr::lit("0"));
+			}
+			values.push(super::iter::size_of(b, targ(gargs, 0), span));
+			let f = match name.as_str() {
+				"shrink_to_fit" => "shrinkTo".to_string(),
+				_ => super::camel(&name),
+			};
+			rt2(values, "vec", &f)
+		}
 		("Vec", "push") => {
 			let mut values = args;
 			match is_u8(targ(gargs, 0)) {
@@ -2517,14 +2552,20 @@ pub fn cow_cloned<'tcx>(b: &mut Body<'_, '_, 'tcx>, op: &str, cow: Expr, elem: T
 	Expr::rt(format!("cow{op}"), args)
 }
 
-/// A clone of `value`, a slice, array, or `Vec` of `elem` other than bytes, as a `Vec`: a
-/// copy of the array if each element's clone is itself, or else each element cloned.
+/// A clone of `value`, a slice, array, or `Vec` of `elem` other than bytes, as a `Vec` with
+/// room for exactly its elements, as std's allocates one.
 fn vec_clone<'tcx>(b: &mut Body<'_, '_, 'tcx>, value: Expr, elem: Ty<'tcx>, span: Span) -> Option<Expr> {
-	let clone = super::collections::clone_fn(b, elem, span);
-	if matches!(&clone, Expr::Lit(l) if l == "undefined") {
-		return Some(value.method("slice", Vec::new()));
+	let v = slice_clone(b, value, elem, span);
+	Some(Expr::rt("vecExact", vec![v, super::iter::size_of(b, elem, span)]))
+}
+
+/// A clone of `value`, a slice, array, or `Vec` of `elem` other than bytes, as an array: a
+/// copy of it if each element's clone is itself, or else each element cloned.
+fn slice_clone<'tcx>(b: &mut Body<'_, '_, 'tcx>, value: Expr, elem: Ty<'tcx>, span: Span) -> Expr {
+	match super::collections::clone_fn(b, elem, span) {
+		Expr::Lit(l) if l == "undefined" => value.method("slice", Vec::new()),
+		clone => value.method("map", vec![clone]),
 	}
-	Some(value.method("map", vec![clone]))
 }
 
 /// A `Box<[elem]>` of clones of the elements of `slice`, as std's `From<&[T]>` and `Clone`
@@ -2535,7 +2576,7 @@ fn slice_boxed<'tcx>(b: &mut Body<'_, '_, 'tcx>, slice: Expr, elem: Ty<'tcx>, sp
 			"byteSliceFrom",
 			vec![Expr::rt("byteSliceToArray", vec![slice])],
 		)),
-		_ => vec_clone(b, slice, elem, span),
+		_ => Some(slice_clone(b, slice, elem, span)),
 	}
 }
 

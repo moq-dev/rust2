@@ -17,7 +17,7 @@ use rustc_span::Span;
 use super::{Env, Fx, Pending, Slot};
 use crate::lower::library::{self, Flow, Std};
 use crate::lower::num::Int;
-use crate::lower::{AdtRepr, ObjectKind, byte_array, bytes_ref};
+use crate::lower::{AdtRepr, ObjectKind, StructField, Translator, byte_array, bytes_ref};
 use crate::program::{SymKind, Symbol};
 use crate::ts::{Expr, Item, Stmt, StmtKind, SymId};
 
@@ -209,7 +209,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					}
 				}
 				ProjectionElem::Field(field, _) => {
-					e = self.field(e, ty, pty.variant_index, field, span);
+					e = self.field(e, ty, pty.variant_index, field, span, out);
 				}
 				ProjectionElem::Downcast(_, variant) => {
 					let base = Place {
@@ -541,7 +541,15 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	}
 
 	/// A field of `base`, a `ty`, in `variant` if it was downcast to one.
-	fn field(&mut self, base: Expr, ty: Ty<'tcx>, variant: Option<VariantIdx>, field: FieldIdx, span: Span) -> Expr {
+	fn field(
+		&mut self,
+		base: Expr,
+		ty: Ty<'tcx>,
+		variant: Option<VariantIdx>,
+		field: FieldIdx,
+		span: Span,
+		out: &mut Vec<Stmt>,
+	) -> Expr {
 		let tcx = self.tcx;
 		match ty.kind() {
 			ty::Tuple(_) => base.index(Expr::lit(field.index().to_string())),
@@ -615,7 +623,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					let info = self.b.t.adt(*adt, span);
 					let def = &adt.variant(variant.unwrap_or(rustc_abi::FIRST_VARIANT)).fields[field];
 					let read = match info.repr {
-						AdtRepr::Struct { fields, .. } => base.field(fields[field.index()]),
+						AdtRepr::Struct { fields, .. } => match fields[field.index()] {
+							whole @ StructField::Whole(_) => Translator::read_field(base, whole),
+							// Read from each of its fields, of one object.
+							parts @ StructField::Slice(_) => {
+								let base = self.path(base, "object", out);
+								Translator::read_field(base, parts)
+							}
+						},
 						AdtRepr::Slots(_) => {
 							return self.err(span, format!("a field of union `{ty}` read apart from its place"));
 						}
@@ -726,14 +741,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				matches!(self.mir.local_decls[place.local].ty.kind(), ty::RawPtr(..)) && !self.box_pointer(place.local);
 			let e = match raw {
 				true => Expr::rt("ptrWrite", vec![target, value]),
-				false => match self.write_in(pointee) {
+				false => match self.b.t.write_in(pointee) {
 					Some(ObjectKind::Bytes) => target.member("set").call(vec![value]),
 					// A `Vec<u8>` is an `rt.ByteVec`, and any other a JS array, as a boxed slice
 					// is, whose length a write changes, unlike a tuple's or an array's.
-					Some(ObjectKind::Vec) if !byte_vec(self.erased(pointee)) => {
+					Some(ObjectKind::Vec) if !byte_vec(self.b.t.erased(pointee)) => {
 						Expr::rt("vecAssign", vec![target, value])
 					}
-					Some(ObjectKind::Array) if self.erased(pointee).is_slice() => {
+					Some(ObjectKind::Array) if self.b.t.erased(pointee).is_slice() => {
 						Expr::rt("vecAssign", vec![target, value])
 					}
 					Some(_) => Expr::ident("Object").member("assign").call(vec![target, value]),
@@ -744,8 +759,38 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			return out;
 		}
 		let target = self.place_expr(place, span, &mut out);
-		out.push(StmtKind::Expr(target.assign(value)).at(self.b.t.loc(span)));
+		let loc = self.b.t.loc(span);
+		self.assign_to(target, value, loc, &mut out);
 		out
+	}
+
+	/// `target = value`, where `target` may be a struct's byte slice field held as its
+	/// parts: each of its fields gets its part, in order, read before any is written where
+	/// a part reads a field written before it.
+	pub(super) fn assign_to(&mut self, target: Expr, value: Expr, loc: Option<crate::ts::Loc>, out: &mut Vec<Stmt>) {
+		let Some((base, ids)) = split_target(&target) else {
+			out.push(StmtKind::Expr(target.assign(value)).at(loc));
+			return;
+		};
+		let base = base.clone();
+		let value = match crate::lower::slice_parts(value.clone()) {
+			Some(_) => value,
+			None => self.path(value, "slice", out),
+		};
+		let mut parts = crate::lower::slice_parts(value).expect("a path's parts");
+		if (1..3).any(|k| reads_fields(&parts[k], &ids[..k])) {
+			for part in &mut parts {
+				if !part.is_constant() {
+					let name = self.b.fresh("part");
+					let value = std::mem::replace(part, Expr::ident(&name));
+					let stmt = StmtKind::decl(false, name, None, Some(value)).at(None);
+					self.emit(vec![stmt], false, out);
+				}
+			}
+		}
+		for (id, part) in ids.into_iter().zip(parts) {
+			out.push(StmtKind::Expr(base.clone().field(id).assign(part)).at(loc));
+		}
 	}
 
 	/// What `place` is, where it is `*r` for an `r` that is the object it points at, with
@@ -773,43 +818,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	pub(super) fn in_object(&self, place: Place<'tcx>) -> bool {
 		let raw = matches!(self.mir.local_decls[place.local].ty.kind(), ty::RawPtr(..));
 		self.pointee_object(place)
-			.and_then(|pointee| self.write_in(pointee))
+			.and_then(|pointee| self.b.t.write_in(pointee))
 			.is_some_and(|kind| kind != ObjectKind::Bytes && !raw)
-	}
-
-	/// The kind of a `pointee`'s object, through the `Pin`s and `Box`es JS erases, where a
-	/// whole value of it can be written into the object in place: one only its owner
-	/// holds, unlike an `Arc`'s, which its clones share, and whose parts `Object.assign`
-	/// copies, unlike a binding's, an `rt.PollFn`'s or a future's private fields, or a
-	/// trait object's, whatever class it is.
-	pub(super) fn write_in(&self, pointee: Ty<'tcx>) -> Option<ObjectKind> {
-		let erased = self.erased(pointee);
-		let hidden = match erased.kind() {
-			ty::Adt(adt, _) => {
-				self.b.t.bound_drops(adt.did()).is_some() || Std::of(self.tcx, adt.did()) == Some(Std::PollFn)
-			}
-			ty::Dynamic(..) | ty::Closure(..) => true,
-			// A `Uint8Array`'s length never changes, as a boxed slice's may.
-			ty::Slice(elem) => matches!(elem.kind(), ty::Uint(ty::UintTy::U8)),
-			_ => false,
-		};
-		self.b.t.object_kind(pointee)?;
-		match self.b.t.object_kind(erased)? {
-			_ if hidden || shared(self, pointee) => None,
-			ObjectKind::Closure => None,
-			kind => Some(kind),
-		}
-	}
-
-	/// What JS keeps of a `ty`: what it holds through any number of `Pin`s and `Box`es.
-	fn erased(&self, ty: Ty<'tcx>) -> Ty<'tcx> {
-		let mut erased = ty;
-		while let ty::Adt(adt, args) = erased.kind()
-			&& matches!(Std::of(self.tcx, adt.did()), Some(Std::Pin | Std::Box))
-		{
-			erased = args.type_at(0);
-		}
-		erased
 	}
 
 	/// A store of `value` to `place` as a store of the whole value to what holds it, where
@@ -820,11 +830,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let tcx = self.tcx;
 		let (mut at, mut value, mut rebuilt) = (place, value, false);
 		loop {
-			if let [ProjectionElem::Deref, rest @ ..] = at.projection.as_slice()
-				&& self.alias_of_place(at.local)
-				&& let Some(mir::Rvalue::Ref(_, _, borrowed)) = self.def_rvalue(at.local)
+			let through = self.through_aliases(at);
+			if through != at {
+				at = through;
+				continue;
+			}
+			// A box is what it holds.
+			if let [rest @ .., ProjectionElem::Deref] = at.projection.as_slice()
+				&& Place::ty_from(at.local, rest, &self.mir.local_decls, tcx).ty.is_box()
 			{
-				at = borrowed.project_deeper(rest, tcx);
+				at = Place {
+					local: at.local,
+					projection: tcx.mk_place_elems(rest),
+				};
 				continue;
 			}
 			if let [ProjectionElem::Deref, rest @ ..] = at.projection.as_slice()
@@ -865,8 +883,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		matches!(self.slots[local], Slot::Alias(_))
 			&& match self.def_rvalue(local) {
 				// A reborrow of what an alias of a borrowed place points at borrows that place.
+				// A box's pointer is the box, so what it points at is the place holding the box.
 				Some(mir::Rvalue::Ref(_, _, p)) => match p.projection.as_slice() {
-					[ProjectionElem::Deref] => self.points_at_place(p.local),
+					[ProjectionElem::Deref] => self.points_at_place(p.local) || self.box_pointer(p.local),
 					[.., ProjectionElem::Deref] => false,
 					_ => true,
 				},
@@ -912,10 +931,54 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// The type of `place` if it is a variant's payload, whose JS path is its whole enum,
 	/// as `Some`'s is the `Option`.
 	pub(super) fn payload_ty(&mut self, place: Place<'tcx>, span: Span) -> Option<crate::ts::Type> {
+		let place = self.through_aliases(place);
 		let downcast = place.iter_projections().any(|(base, e)| {
 			matches!(e, ProjectionElem::Downcast(..)) && base.ty(&self.mir.local_decls, self.tcx).ty.is_enum()
 		});
 		downcast.then(|| self.b.t.ty(place.ty(&self.mir.local_decls, self.tcx).ty, span))
+	}
+
+	/// `place` with each alias it starts from replaced by the place the alias stands for,
+	/// as its JS path is: a borrowed place for what an alias of one points at, the box for a
+	/// copy of it, and what the box holds for what a box's pointer points at.
+	pub(super) fn through_aliases(&self, mut place: Place<'tcx>) -> Place<'tcx> {
+		let tcx = self.tcx;
+		loop {
+			if !matches!(self.slots[place.local], Slot::Alias(_)) {
+				return place;
+			}
+			let (base, rest) = match (self.def_rvalue(place.local), place.projection.as_slice()) {
+				(Some(mir::Rvalue::Ref(_, _, p)), [ProjectionElem::Deref, rest @ ..])
+					if self.alias_of_place(place.local) =>
+				{
+					(*p, rest)
+				}
+				(
+					Some(mir::Rvalue::Cast(mir::CastKind::BoxDerefTransmute, op, _)),
+					[ProjectionElem::Deref, rest @ ..],
+				) if let Some(p) = op.place()
+					&& let [inner @ .., ProjectionElem::Field(..)] = p.projection.as_slice() =>
+				{
+					let boxed = Place {
+						local: p.local,
+						projection: tcx.mk_place_elems(inner),
+					};
+					(tcx.mk_place_deref(boxed), rest)
+				}
+				(Some(mir::Rvalue::Use(Operand::Copy(p), _) | mir::Rvalue::CopyForDeref(p)), rest)
+					if self.mir.local_decls[place.local].ty.is_box() =>
+				{
+					(*p, rest)
+				}
+				_ => return place,
+			};
+			let mut projection = base.projection.to_vec();
+			projection.extend_from_slice(rest);
+			place = Place {
+				local: base.local,
+				projection: tcx.mk_place_elems(&projection),
+			};
+		}
 	}
 
 	/// `target`, the JS path of the borrowed `place`, with the objects and index it goes
@@ -923,7 +986,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// reads and writes it later.
 	pub(super) fn stable_target(&mut self, place: Place<'tcx>, target: Expr, span: Span, out: &mut Vec<Stmt>) -> Expr {
 		// A store into a `Result`'s value makes the `Result` again, which a path can't.
-		for (base, elem) in place.iter_projections() {
+		for (base, elem) in self.through_aliases(place).iter_projections() {
 			if let ProjectionElem::Downcast(..) = elem
 				&& let Some(std @ (Std::Result | Std::ControlFlow)) =
 					self.b.t.std_of(base.ty(&self.mir.local_decls, self.tcx).ty)
@@ -961,6 +1024,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// object too unless it is `fixed`, which can't change while borrowed.
 	pub(super) fn stable_path(&mut self, target: Expr, fixed: bool, span: Span, out: &mut Vec<Stmt>) -> Expr {
 		self.materialize(&target, out);
+		if let Some((base, ids)) = split_target(&target) {
+			let base = self.stable_object(base.clone(), fixed, out);
+			return Translator::read_field(base, StructField::Slice(ids));
+		}
 		match target {
 			Expr::Located(_, e) => self.stable_path(*e, fixed, span, out),
 			// A payload `Option::insert` lends, read as its type.
@@ -1020,7 +1087,17 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			None => target.clone(),
 		};
 		let get = Expr::Lambda(Vec::new(), Box::new(read));
-		let set = Expr::Lambda(vec![param], Box::new(target.assign(Expr::ident(value))));
+		let set = match split_target(&target) {
+			// The value's parts, which are its own.
+			Some((base, ids)) => {
+				let parts = crate::lower::slice_parts(Expr::ident(&value)).expect("a name's parts");
+				let sets = (ids.into_iter().zip(parts))
+					.map(|(id, part)| StmtKind::Expr(base.clone().field(id).assign(part)).at(None))
+					.collect();
+				Expr::Arrow(vec![param], crate::ts::Type::Builtin("void"), sets)
+			}
+			None => Expr::Lambda(vec![param], Box::new(target.assign(Expr::ident(value)))),
+		};
 		Expr::rt("place", vec![get, set])
 	}
 
@@ -1047,7 +1124,11 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			projection: self.tcx.mk_place_elems(rest),
 		};
 		let base_ty = base.ty(&self.mir.local_decls, self.tcx).ty;
-		if self.b.t.place_pointee(base_ty).is_none() || base.as_local().is_some_and(|l| self.alias_of_place(l)) {
+		if self.b.t.place_pointee(base_ty).is_none()
+			|| base
+				.as_local()
+				.is_some_and(|l| self.alias_of_place(l) || self.box_pointer(l))
+		{
 			return None;
 		}
 		Some(self.place_expr(base, span, out))
@@ -1303,13 +1384,13 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			let mir::TerminatorKind::Call { args, .. } = &bb.terminator().kind else {
 				return None;
 			};
-			args.iter().find_map(|a| match a.node.constant()?.ty().kind() {
-				ty::Closure(def_id, args) => Some((*def_id, *args)),
-				_ => None,
+			args.iter().find_map(|a| {
+				let ty = a.node.constant()?.ty();
+				matches!(ty.kind(), ty::Closure(..)).then_some(ty)
 			})
 		});
-		if let Some((def_id, args)) = lazy {
-			return (self.bare_closure(def_id, args, span), true);
+		if let Some(ty) = lazy {
+			return (self.bare_closure(ty, span), true);
 		}
 		// A `const` one's `EagerStorage` holds the value of the `const` the macro declares in
 		// the key's own initializer, so defined after the key and before its accessor. The
@@ -1452,7 +1533,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					self.b.t.construct(info.sym, &crate::ts::Ctor::Unit, &[], Vec::new())
 				}
 				ty::Array(..) => Expr::Array(Vec::new()),
-				ty::Closure(def_id, args) => self.bare_closure(def_id, args, span),
+				ty::Closure(..) | ty::CoroutineClosure(..) => self.bare_closure(ty, span),
 				ty::Adt(adt, _) if Std::of(tcx, adt.did()) == Some(Std::RangeFull) => Expr::undefined(),
 				_ => self.err(span, format!("a zero-sized constant of type `{ty}`")),
 			},
@@ -1572,14 +1653,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let tcx = self.tcx;
 		match instance.def {
 			ty::InstanceKind::Item(def_id) if tcx.is_closure_like(def_id) => {
-				self.bare_closure(def_id, instance.args, span)
+				self.bare_closure(Ty::new_closure(tcx, def_id, instance.args), span)
 			}
 			ty::InstanceKind::Item(def_id) | ty::InstanceKind::Shim(ty::ShimKind::Reify(def_id, _)) => {
 				self.b.fn_value(def_id, instance.args, span)
 			}
 			// A closure coerced to a function pointer calls it once.
 			ty::InstanceKind::Shim(ty::ShimKind::ClosureOnce { .. }) => match instance.args.type_at(0).kind() {
-				ty::Closure(def_id, args) => self.bare_closure(*def_id, args, span),
+				ty::Closure(..) => self.bare_closure(instance.args.type_at(0), span),
 				_ => self.err(span, format!("a pointer to `{instance}`")),
 			},
 			_ => self.err(span, format!("a pointer to `{instance}`")),
@@ -1717,6 +1798,41 @@ pub fn slice_member(slice: Expr, key: &str) -> Expr {
 	slice.member(key)
 }
 
+/// The object and fields of `target`, if it is a struct's byte slice field held as its
+/// parts, as [`Translator::read_field`] reads it.
+pub fn split_target(target: &Expr) -> Option<(&Expr, [crate::ts::FieldId; 3])> {
+	fn field(e: &Expr) -> Option<(&Expr, crate::ts::FieldId)> {
+		match e {
+			Expr::Member(base, crate::ts::Key::Field(id)) => Some((base, *id)),
+			_ => None,
+		}
+	}
+	let [data, start, length] = made_slice(target)?;
+	let ((base, d), (b1, s), (b2, l)) = (field(data)?, field(start)?, field(length)?);
+	(base == b1 && base == b2).then_some((base, [d, s, l]))
+}
+
+/// Whether `e` may read any of the fields `ids`, of any object.
+fn reads_fields(e: &Expr, ids: &[crate::ts::FieldId]) -> bool {
+	let any = |es: &[Expr]| es.iter().any(|e| reads_fields(e, ids));
+	match e {
+		Expr::Ident(_) | Expr::This | Expr::Sym(_) | Expr::Rt(_) | Expr::Lit(_) | Expr::Str(_) => false,
+		Expr::Member(base, key) => {
+			matches!(key, crate::ts::Key::Field(id) if ids.contains(id)) || reads_fields(base, ids)
+		}
+		Expr::Array(items) => any(items),
+		Expr::Object(props) => props.iter().any(|(_, e)| reads_fields(e, ids)),
+		Expr::Index(a, b) | Expr::Binary(a, _, b) | Expr::Assign(a, b) => reads_fields(a, ids) || reads_fields(b, ids),
+		Expr::Call(f, args) | Expr::New(f, args) => reads_fields(f, ids) || any(args),
+		Expr::Cond(c, a, b) => reads_fields(c, ids) || reads_fields(a, ids) || reads_fields(b, ids),
+		Expr::Unary(_, e) | Expr::Postfix(e, _) | Expr::As(e, _) | Expr::Instantiate(e, _) | Expr::Located(_, e) => {
+			reads_fields(e, ids)
+		}
+		// What a function reads when called is unknown here.
+		Expr::Arrow(..) | Expr::Lambda(..) => true,
+	}
+}
+
 /// The parts of `slice`, if it is an `rt.ByteSlice` made in place.
 pub fn made_slice(slice: &Expr) -> Option<&[Expr; 3]> {
 	match slice {
@@ -1747,10 +1863,9 @@ pub fn transparent<'tcx>(t: &crate::lower::Translator<'_, 'tcx>, ty: Ty<'tcx>) -
 /// nothing when written.
 fn changes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
 	match ty.kind() {
-		ty::Closure(_, args) => {
-			let closure = args.as_closure();
-			let writes = closure.kind() == ty::ClosureKind::FnMut && writes_captures(tcx, ty);
-			writes || closure.upvar_tys().iter().any(|t| changes_captures(tcx, t))
+		ty::Closure(..) | ty::CoroutineClosure(..) => {
+			let writes = crate::lower::closure_kind(ty) == Some(ty::ClosureKind::FnMut) && writes_captures(tcx, ty);
+			writes || crate::lower::captured(ty).is_some_and(|tys| tys.iter().any(|t| changes_captures(tcx, t)))
 		}
 		ty::Tuple(tys) => tys.iter().any(|t| changes_captures(tcx, t)),
 		ty::Array(t, _) => changes_captures(tcx, *t),
@@ -1762,10 +1877,10 @@ fn changes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
 /// Whether the body of `ty`, a closure, writes a capture that holds state, which a JS
 /// closure sharing its variables would write for each copy of it.
 pub fn writes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
-	let ty::Closure(def_id, args) = ty.kind() else {
+	let (ty::Closure(def_id, _) | ty::CoroutineClosure(def_id, _)) = ty.kind() else {
 		return false;
 	};
-	let upvars = args.as_closure().upvar_tys();
+	let upvars = crate::lower::captured(ty).unwrap_or_default();
 	!tcx.is_mir_available(*def_id)
 		|| written_captures(tcx.optimized_mir(*def_id))
 			.into_iter()
@@ -1776,7 +1891,7 @@ pub fn writes_captures<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
 fn stateless(ty: Ty<'_>) -> bool {
 	match ty.kind() {
 		ty::FnDef(..) => true,
-		ty::Closure(_, args) => args.as_closure().upvar_tys().is_empty(),
+		ty::Closure(..) | ty::CoroutineClosure(..) => crate::lower::captured(ty).is_some_and(|tys| tys.is_empty()),
 		ty::Tuple(tys) => tys.is_empty(),
 		_ => false,
 	}
@@ -1806,26 +1921,6 @@ fn written_captures(mir: &mir::Body<'_>) -> FxHashSet<FieldIdx> {
 	let mut written = Written(FxHashSet::default());
 	written.visit_body(mir);
 	written.0
-}
-
-/// Whether the JS object of a `ty` is shared or private, so that copying fields into it
-/// would change other handles, or nothing.
-fn shared<'tcx>(fx: &Fx<'_, '_, '_, 'tcx>, ty: Ty<'tcx>) -> bool {
-	let tcx = fx.tcx;
-	let mut erased = ty;
-	while let ty::Adt(adt, args) = erased.kind()
-		&& matches!(Std::of(tcx, adt.did()), Some(Std::Pin | Std::Box))
-	{
-		erased = args.type_at(0);
-	}
-	match erased.kind() {
-		ty::Adt(adt, _) => matches!(
-			Std::of(tcx, adt.did()),
-			Some(Std::Arc | Std::Waker | Std::Context | Std::MutexGuard | Std::Ref | Std::RefMut)
-		),
-		ty::Ref(..) | ty::Coroutine(..) => true,
-		_ => false,
-	}
 }
 
 /// Whether `ty` is a `Vec<u8>`, an `rt.ByteVec`.

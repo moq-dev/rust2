@@ -24,6 +24,13 @@ export function map$1cf8u0y(self: rt.u64 | undefined, f: (a0: rt.u64) => rt.u64)
 	return f(self);
 }
 
+export function mapOr$1jt76jv(self: rt.u32 | undefined, default_: rt.u64, _: (a0: rt.u32) => rt.u64): rt.u64 {
+	if (self === undefined) {
+		return default_;
+	}
+	return self as rt.u64;
+}
+
 export function okOr$1lamf4s(self: rt.u64 | undefined, err: EncodeError.EncodeError): rt.Result<rt.u64, EncodeError.EncodeError> {
 	if (self === undefined) {
 		return rt.Err(err);

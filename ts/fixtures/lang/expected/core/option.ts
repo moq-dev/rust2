@@ -3,6 +3,7 @@
 import * as rt from "../rt.ts";
 import { opaque as args_opaque, len as args_len } from "../args.ts";
 import type * as borrows_Noisy from "../borrows.Noisy.ts";
+import type * as borrows_Tagged from "../borrows.Tagged.ts";
 import type * as bounds_Item from "../bounds.Item.ts";
 import * as clones_Logged from "../clones.Logged.ts";
 import type * as ByRef from "../collections.ByRef.ts";
@@ -24,6 +25,7 @@ import type * as cycles_Logged from "../cycles.Logged.ts";
 import * as defaults_Made from "../defaults.Made.ts";
 import type * as dyns_Shape from "../dyns.Shape.ts";
 import * as edits_Named from "../edits.Named.ts";
+import type * as Ticked from "../generics.Ticked.ts";
 import type * as hints_Unit from "../hints.Unit.ts";
 import type * as Badge from "../iters.Badge.ts";
 import type * as Quarter from "../iters.Quarter.ts";
@@ -74,6 +76,13 @@ export function isNoneOr$1s1o3ss(self: rt.u8 | undefined, f: (a0: rt.u8) => bool
 
 export function unwrapOr$1kxjsqb(self: rt.u8 | undefined | rt.None, default_: rt.u8 | undefined): rt.u8 | undefined {
 	if (self === rt.None) {
+		return default_;
+	}
+	return self;
+}
+
+export function unwrapOr$17ntxfo(self: rt.Result<rt.u8, rt.u8> | undefined, default_: rt.Result<rt.u8, rt.u8>): rt.Result<rt.u8, rt.u8> {
+	if (self === undefined) {
 		return default_;
 	}
 	return self;
@@ -236,6 +245,13 @@ export function unwrapOrDefault$0wx44sw(self: rt.ByteVec | undefined): rt.ByteVe
 export function unwrapOrDefault$0k1p6nh(self: [rt.u64 | undefined, defaults_Made.Made] | undefined): [rt.u64 | undefined, defaults_Made.Made] {
 	if (self === undefined) {
 		return [undefined, defaults_Made.default$Default()];
+	}
+	return self;
+}
+
+export function unwrapOrDefault$001fvl5(self: rt.u16 | undefined): rt.u16 {
+	if (self === undefined) {
+		return 0;
 	}
 	return self;
 }
@@ -501,6 +517,13 @@ export function map$11y9s7r(self: slices_Pair.Pair[] | undefined, f: (a0: slices
 	return f(self);
 }
 
+export function map$1k1fy8u(self: rt.u32 | undefined | rt.None, _: (a0: rt.u32 | undefined) => rt.u32 | undefined): rt.u32 | undefined | rt.None {
+	if (self === rt.None) {
+		return rt.None;
+	}
+	return self;
+}
+
 export function map$0ltgf8p(self: ByRef.ByRef | undefined, f: (a0: ByRef.ByRef) => rt.u8): rt.u8 | undefined {
 	if (self === undefined) {
 		return undefined;
@@ -602,6 +625,13 @@ export function map$1xk4yz1(self: rt.ByteSlice | undefined, _: (a0: rt.ByteSlice
 export function map$0rbsrz6(self: rt.u8 | undefined, f: (a0: rt.u8) => rt.u8 | undefined): rt.u8 | undefined | rt.None {
 	if (self === undefined) {
 		return rt.None;
+	}
+	return f(self);
+}
+
+export function map$12l9avg(self: rt.u8 | undefined, f: (a0: rt.u8) => Ticked.Ticked[]): Ticked.Ticked[] | undefined {
+	if (self === undefined) {
+		return undefined;
 	}
 	return f(self);
 }
@@ -1104,6 +1134,13 @@ export function mapOr$0qqbaqw(self: borrows_Noisy.Noisy | undefined, default_: r
 	return f(self);
 }
 
+export function mapOr$1dvn0au(self: borrows_Tagged.Tagged | undefined, default_: rt.u8, f: (a0: borrows_Tagged.Tagged) => rt.u8): rt.u8 {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
 export function mapOr$1yabfom(self: clones_Logged.Logged | undefined, default_: rt.u8, _: (a0: clones_Logged.Logged) => rt.u8): rt.u8 {
 	if (self === undefined) {
 		return default_;
@@ -1363,6 +1400,13 @@ export function mapOr$1hjjwvv(self: [rt.Mutex<rt.u8>, rt.u8] | undefined, defaul
 	return f(self);
 }
 
+export function mapOr$1ttssgs(self: [rt.u8, rt.ByteSlice] | undefined, default_: [rt.u8, rt.ByteSlice], f: (a0: [rt.u8, rt.ByteSlice]) => [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
 export function mapOr$0mmpeqx(self: [rt.u8, rt.u8] | undefined, default_: rt.u8, f: (a0: [rt.u8, rt.u8]) => rt.u8): rt.u8 {
 	if (self === undefined) {
 		return default_;
@@ -1489,6 +1533,13 @@ export function okOr$07zal2e(self: rt.u32[] | undefined, err: rt.u8): rt.Result<
 	return rt.Ok(self);
 }
 
+export function okOr$1b6nkwr(self: rt.char | undefined, err: rt.u8): rt.Result<rt.char, rt.u8> {
+	if (self === undefined) {
+		return rt.Err(err);
+	}
+	return rt.Ok(self);
+}
+
 export function okOr$0gtm15y(self: rt.ByteSlice | undefined, err: rt.u8 | undefined): rt.Result<rt.ByteSlice, rt.u8 | undefined> {
 	if (self === undefined) {
 		return rt.Err(err);
@@ -1506,6 +1557,13 @@ export function okOr$12p77jh(self: rt.ByteSlice | undefined, err: returns_Error.
 export function okOr$0tezn0w(self: rt.ByteSlice | undefined, _: undefined): rt.Result<rt.ByteSlice, undefined> {
 	if (self === undefined) {
 		return rt.ERR;
+	}
+	return rt.Ok(self);
+}
+
+export function okOr$1w08zpl(self: rt.ByteSlice | undefined, err: rt.usize): rt.Result<rt.ByteSlice, rt.usize> {
+	if (self === undefined) {
+		return rt.Err(err);
 	}
 	return rt.Ok(self);
 }
@@ -1566,6 +1624,18 @@ export function asDeref$0s3650c(self: rt.Arc<rt.u8> | undefined): rt.u8 | undefi
 
 export function asDeref$0w8at8i(self: string | undefined): string | undefined {
 	return map$1uo1d4o(self, (a0: string): string => {
+		return a0;
+	});
+}
+
+export function asDeref$0w2m0zn(self: rt.u32 | undefined | rt.None): rt.u32 | undefined | rt.None {
+	return map$1k1fy8u(self, (a0: rt.u32 | undefined): rt.u32 | undefined => {
+		return a0;
+	});
+}
+
+export function asDeref$0avuzwv(self: rt.u32 | undefined): rt.u32 | undefined {
+	return map$0xz4pvf(self, (a0: rt.u32): rt.u32 => {
 		return a0;
 	});
 }
@@ -1815,6 +1885,20 @@ export function clone$14nprly(self: string | undefined): string | undefined {
 	return self;
 }
 
+export function clone$0hmts8n(self: rt.u16[] | undefined): rt.u16[] | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return rt.vecExact(self.slice(), 2);
+}
+
+export function clone$1grnave(self: rt.ByteVec | undefined): rt.ByteVec | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return rt.byteVecFrom(rt.byteVecView(self));
+}
+
 export function clone$0vcwlo5(self: edits_Named.Named | undefined): edits_Named.Named | undefined {
 	if (self === undefined) {
 		return undefined;
@@ -1827,6 +1911,13 @@ export function clone$1omlcob(self: slices_Noisy.Noisy | undefined): slices_Nois
 		return undefined;
 	}
 	return slices_Noisy.clone$Clone(self);
+}
+
+export function flatten$08boupk(self: rt.u32 | undefined | rt.None): rt.u32 | undefined {
+	if (self === rt.None) {
+		return undefined;
+	}
+	return self;
 }
 
 export function flatten$1nwzx42(self: rt.u8 | undefined | rt.None): rt.u8 | undefined {
