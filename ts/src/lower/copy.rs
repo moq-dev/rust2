@@ -15,11 +15,10 @@ use rustc_hir::def_id::DefId;
 use rustc_index::IndexVec;
 use rustc_middle::mir::visit::{MutatingUseContext, PlaceContext, Visitor};
 use rustc_middle::mir::{self, Local, Location, Place, ProjectionElem, Rvalue};
-use rustc_middle::ty::fast_reject::DeepRejectCtxt;
 use rustc_middle::ty::{self, EarlyBinder, Ty, TyCtxt, TypeVisitableExt};
 use rustc_mir_dataflow::ResultsCursor;
 use rustc_mir_dataflow::impls::MaybeLiveLocals;
-use rustc_span::{DUMMY_SP, Span};
+use rustc_span::Span;
 
 use super::library::{Flow, Std};
 use super::mir::holders::{Filled, Trace};
@@ -64,7 +63,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		object
 			&& self
 				.writes
-				.contains(&self.writes.into, false, self.tcx, ty, self.polymorphic())
+				.contains(&self.writes.into, false, self.tcx, ty)
 			|| parts.into_iter().any(|t| self.changes(t))
 	}
 
@@ -72,12 +71,12 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// or with `None` in an element, another object: by a write of that part, or of a whole
 	/// value that is or holds a `ty`.
 	pub fn replaced(&self, ty: Ty<'tcx>, at: Option<FieldIdx>) -> bool {
-		let (writes, polymorphic) = (&self.writes, self.polymorphic());
-		writes.contains(&writes.replaced, true, self.tcx, ty, polymorphic)
+		let writes = &self.writes;
+		writes.contains(&writes.replaced, true, self.tcx, ty)
 			|| writes
 				.holders
 				.get(&at)
-				.is_some_and(|holders| writes.contains(holders, false, self.tcx, ty, polymorphic))
+				.is_some_and(|holders| writes.contains(holders, false, self.tcx, ty))
 	}
 
 	/// Whether a `ty` is, or holds by value at any depth, a part that `object` says is a JS
@@ -88,13 +87,13 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// it, so a read through one after is undefined in both Stacked and Tree Borrows, but
 	/// comparing its address is not.
 	pub fn taken(&self, body: DefId, ty: Ty<'tcx>, object: &dyn Fn(Ty<'tcx>) -> bool) -> bool {
-		let (tcx, writes, polymorphic, env) = (self.tcx, &self.writes, self.polymorphic(), self.typing_env());
+		let (tcx, writes, env) = (self.tcx, &self.writes, self.typing_env());
 		let local = writes.taken_in.get(&body);
 		by_value(tcx, env, ty).any(|part| {
 			object(part)
 				&& (!part.is_freeze(tcx, env) || by_value(tcx, env, part).any(|held| self.compared(held)))
-				&& (writes.contains(&writes.taken, false, tcx, part, polymorphic)
-					|| local.is_some_and(|local| writes.contains(local, false, tcx, part, polymorphic)))
+				&& (writes.contains(&writes.taken, false, tcx, part)
+					|| local.is_some_and(|local| writes.contains(local, false, tcx, part)))
 		})
 	}
 
@@ -102,13 +101,13 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// run on if a pointer may be made into it, or into what holds it, through a reference,
 	/// by any body.
 	pub fn compare(&mut self, ty: Ty<'tcx>) {
-		let (tcx, env, writes, polymorphic) = (self.tcx, self.typing_env(), &self.writes, self.polymorphic());
+		let (tcx, env, writes) = (self.tcx, self.typing_env(), &self.writes);
 		let stored = storage(tcx, ty);
 		let kept = (ty.has_param() || ty.is_freeze(tcx, env))
 			&& std::iter::once(&writes.taken)
 				.chain(writes.taken_in.values())
 				.any(|taken| {
-					writes.contains(taken, true, tcx, ty, polymorphic)
+					writes.contains(taken, true, tcx, ty)
 						|| taken
 							.concrete
 							.iter()
@@ -394,8 +393,7 @@ pub fn instantiate<'tcx>(
 /// it back is the crate's code, whose writes count where they are, or std's, given it
 /// where a call shows. Bodies are read as written, over their own type parameters, so a
 /// write into a type parameter stands for the type each instance of the body that
-/// translation reaches gives it, or in a census lowering a function over its own type
-/// parameters, for every type its bounds let it be. A write that fills memory nothing
+/// translation reaches gives it, in a census too. A write that fills memory nothing
 /// points into yet gives no pointer's object another.
 #[derive(Default)]
 pub struct Writes<'tcx> {
@@ -432,8 +430,8 @@ struct Types<'tcx> {
 	concrete: FxHashSet<Ty<'tcx>>,
 	/// Each type over the type parameters of the body writing it, and that body.
 	generic: FxIndexSet<(DefId, Ty<'tcx>)>,
-	/// What [`Writes::contains`] found of each type it was asked about, and whether it was
-	/// asked over type parameters.
+	/// What [`Writes::contains`] found of each type it was asked about, with `held` or
+	/// without.
 	found: RefCell<FxHashMap<(Ty<'tcx>, bool), bool>>,
 }
 
@@ -509,25 +507,20 @@ impl<'tcx> Writes<'tcx> {
 	}
 
 	/// Whether `ty` is one of `types`, or with `held`, a type one of them holds by value.
-	/// Over type parameters, as a census lowers some functions, it may be, and a write into
-	/// a type parameter counts for every type its bounds allow; otherwise for the type each
-	/// reached instance gives it.
-	fn contains(&self, types: &Types<'tcx>, held: bool, tcx: TyCtxt<'tcx>, ty: Ty<'tcx>, polymorphic: bool) -> bool {
+	/// Over type parameters, as a census lowers some functions, it may be. A write into a
+	/// type parameter counts for the type each reached instance gives it: in a census, a
+	/// body that no instance reaches decides nothing that hinges on what its own are.
+	fn contains(&self, types: &Types<'tcx>, held: bool, tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> bool {
 		let ty = tcx.erase_and_anonymize_regions(ty);
 		let stored = storage(tcx, ty);
 		if ty.has_param() || types.concrete.contains(&stored) {
 			return true;
 		}
-		if let Some(&found) = types.found.borrow().get(&(ty, polymorphic)) {
+		if let Some(&found) = types.found.borrow().get(&(ty, held)) {
 			return found;
 		}
-		let found = types.generic.iter().any(|&(def_id, written)| match polymorphic {
-			// A parameter can be the array itself, as in `*dst = value` with `dst: &mut T`, and
-			// its slice pattern can be any array of that element.
-			true => {
-				instantiates(tcx, def_id, written, ty) || stored != ty && instantiates(tcx, def_id, written, stored)
-			}
-			false => self.reached.get(&def_id).is_some_and(|reached| {
+		let found = types.generic.iter().any(|&(def_id, written)| {
+			self.reached.get(&def_id).is_some_and(|reached| {
 				reached.iter().any(|&args| {
 					let written = EarlyBinder::bind(tcx, written);
 					// One that doesn't normalize counts.
@@ -539,9 +532,9 @@ impl<'tcx> Writes<'tcx> {
 							false => storage(tcx, written) == stored,
 						})
 				})
-			}),
+			})
 		});
-		types.found.borrow_mut().insert((ty, polymorphic), found);
+		types.found.borrow_mut().insert((ty, held), found);
 		found
 	}
 }
@@ -594,79 +587,6 @@ fn by_value<'tcx>(tcx: TyCtxt<'tcx>, env: ty::TypingEnv<'tcx>, ty: Ty<'tcx>) -> 
 		}
 	}
 	held.into_iter()
-}
-
-/// Whether `written`, a type over the type parameters of `def_id`, is `ty` for some
-/// arguments that satisfy its bounds. A projection on them, which only those arguments
-/// decide, is any type that satisfies its associated type's bounds.
-fn instantiates<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, written: Ty<'tcx>, ty: Ty<'tcx>) -> bool {
-	use rustc_infer::infer::TyCtxtInferExt;
-	use rustc_infer::traits::{Obligation, ObligationCause};
-	use rustc_middle::ty::{BottomUpFolder, TypeFoldable, Upcast};
-	use rustc_trait_selection::traits::ObligationCtxt;
-	if !DeepRejectCtxt::relate_rigid_infer(tcx).types_may_unify(ty, written) {
-		return false;
-	}
-	let (infcx, env) = tcx
-		.infer_ctxt()
-		.build_with_typing_env(ty::TypingEnv::fully_monomorphized());
-	let ocx = ObligationCtxt::new(&infcx);
-	let cause = ObligationCause::dummy();
-	let register = |clause: ty::Clause<'tcx>| ocx.register_obligation(Obligation::new(tcx, cause.clone(), env, clause));
-	let args = infcx.fresh_args_for_item(DUMMY_SP, def_id);
-	let written = EarlyBinder::bind(tcx, written)
-		.instantiate(tcx, args)
-		.skip_normalization();
-	let mut projections = Vec::new();
-	let written = written.fold_with(&mut BottomUpFolder {
-		tcx,
-		ty_op: |t: Ty<'tcx>| match *t.kind() {
-			ty::Alias(
-				_,
-				alias @ ty::AliasTy {
-					kind: ty::Projection { .. },
-					..
-				},
-			) => {
-				let var = infcx.next_ty_var(DUMMY_SP);
-				projections.push((alias, var));
-				var
-			}
-			_ => t,
-		},
-		lt_op: |r| r,
-		ct_op: |c| c,
-	});
-	for (alias, var) in projections {
-		let ty::Projection { def_id: item } = alias.kind else {
-			unreachable!("only projections are replaced")
-		};
-		for clause in tcx.item_bounds(item).iter_instantiated(tcx, alias.args) {
-			let clause = clause.skip_normalization().fold_with(&mut BottomUpFolder {
-				tcx,
-				ty_op: |t: Ty<'tcx>| match *t.kind() {
-					ty::Alias(_, a) if a == alias => var,
-					_ => t,
-				},
-				lt_op: |r| r,
-				ct_op: |c| c,
-			});
-			register(ocx.normalize(&cause, env, ty::Unnormalized::new(clause)));
-		}
-		let projection = ty::ProjectionClause {
-			projection_term: alias.into(),
-			term: var.into(),
-		};
-		register(projection.upcast(tcx));
-	}
-	let written = ocx.normalize(&cause, env, ty::Unnormalized::new(written));
-	if ocx.eq(&cause, env, written, ty).is_err() {
-		return false;
-	}
-	for (clause, _) in tcx.clauses_of(def_id).instantiate(tcx, args) {
-		register(ocx.normalize(&cause, env, clause));
-	}
-	!ocx.try_evaluate_obligations().has_errors()
 }
 
 /// The value std's `def_id`, given `this` as its `self`, writes whole through that shared

@@ -2128,3 +2128,23 @@ pub fn lists(l: &mut std::collections::LinkedList<u8>, r: &mut std::collections:
 	r.clone_from(&std::collections::LinkedList::new());
 	std::collections::linked_list::IterMut::<u8>::default().count()
 }
+
+pub struct Parking<T> {
+	pub task: T,
+	pub park: Parked,
+}
+
+pub struct Parked(pub std::cell::Cell<i16>);
+
+fn parked_of<A>(a: &A) -> *const A {
+	a
+}
+
+/// A pointer a callee generic over what it points at makes into a cell, which the
+/// caller's assignment replaces, in a body that the census lowers over its own type
+/// parameter: the callee's instance for the cell's holder takes it.
+pub fn generic_park_rebound<T>(mut w: Parking<T>, next: Parking<T>) -> i16 {
+	let p = parked_of(&w.park);
+	w = next;
+	unsafe { (*p).0.get() + w.park.0.get() }
+}
