@@ -500,6 +500,13 @@ export function map$11y9s7r(self: slices_Pair.Pair[] | undefined, f: (a0: slices
 	return f(self);
 }
 
+export function map$1k1fy8u(self: rt.u32 | undefined | rt.None, _: (a0: rt.u32 | undefined) => rt.u32 | undefined): rt.u32 | undefined | rt.None {
+	if (self === rt.None) {
+		return rt.None;
+	}
+	return self;
+}
+
 export function map$0ltgf8p(self: ByRef.ByRef | undefined, f: (a0: ByRef.ByRef) => rt.u8): rt.u8 | undefined {
 	if (self === undefined) {
 		return undefined;
@@ -1541,6 +1548,12 @@ export function asDeref$0w8at8i(self: string | undefined): string | undefined {
 	});
 }
 
+export function asDeref$0w2m0zn(self: rt.u32 | undefined | rt.None): rt.u32 | undefined | rt.None {
+	return map$1k1fy8u(self, (a0: rt.u32 | undefined): rt.u32 | undefined => {
+		return a0;
+	});
+}
+
 export function asDeref$0avuzwv(self: rt.u32 | undefined): rt.u32 | undefined {
 	return map$0xz4pvf(self, (a0: rt.u32): rt.u32 => {
 		return a0;
@@ -1804,6 +1817,13 @@ export function clone$1omlcob(self: slices_Noisy.Noisy | undefined): slices_Nois
 		return undefined;
 	}
 	return slices_Noisy.clone$Clone(self);
+}
+
+export function flatten$08boupk(self: rt.u32 | undefined | rt.None): rt.u32 | undefined {
+	if (self === rt.None) {
+		return undefined;
+	}
+	return self;
 }
 
 export function flatten$1nwzx42(self: rt.u8 | undefined | rt.None): rt.u8 | undefined {

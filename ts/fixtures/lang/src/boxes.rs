@@ -410,6 +410,9 @@ pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
 	let mut some_words: Option<Box<[u32]>> = Some(Box::from([3, 5]));
 	let mut named: Option<Box<str>> = Some(Box::from("xY/z"));
 	let leaked = Box::leak(Box::new(11u32));
+	let mut deep: Option<Box<Option<u32>>> = Some(Box::new(Some(1)));
+	let mut tup: Result<Box<(u32, u32)>, u8> = Ok(Box::new((1, 2)));
+	let mut boxed_opt: Box<Option<u32>> = Box::new(Some(3));
 	for (i, &by) in data.iter().enumerate() {
 		match by % 26 {
 			0 => {
@@ -484,6 +487,26 @@ pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
 				if let Some(t) = named.as_deref_mut() {
 					shout(t, by);
 				}
+				if let Some(Some(x)) = deep.as_deref_mut() {
+					*x += u32::from(by);
+				}
+				if let Some(d) = deep.as_deref_mut() {
+					if by % 4 == 0 {
+						*d = None;
+					} else if d.is_none() {
+						*d = Some(9);
+					}
+				}
+				if let Ok(b) = &mut tup {
+					b.0 += u32::from(by);
+					bump(&mut b.1, by);
+				}
+				if let Some(x) = boxed_opt.as_mut().as_mut() {
+					bump(x, by);
+				}
+				if let Some(x) = &mut *boxed_opt {
+					*x += 1;
+				}
 			}
 			23 => {
 				let mut f = |by| bump(&mut *n, by);
@@ -513,5 +536,8 @@ pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
 		out.extend(some_words.iter().flatten().flat_map(|w| w.to_le_bytes()));
 		put(out, named.as_deref().unwrap_or("-"));
 		out.extend(leaked.to_le_bytes());
+		out.extend(deep.as_deref().copied().flatten().unwrap_or(0xee).to_le_bytes());
+		out.extend(tup.as_deref().map(|t| t.0 ^ t.1).unwrap_or(0xee).to_le_bytes());
+		out.extend(boxed_opt.unwrap_or(0xee).to_le_bytes());
 	}
 }

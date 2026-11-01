@@ -486,6 +486,13 @@ export function err$05f656d(self: rt.Result<rt.u8, rt.u16>): rt.u16 | undefined 
 	return self.error;
 }
 
+export function asRef$0iljode(self: rt.Result<[rt.u32, rt.u32], rt.u8>): rt.Result<[rt.u32, rt.u32], rt.u8> {
+	if (self.ok) {
+		return rt.Ok(self.value);
+	}
+	return rt.Err(self.error);
+}
+
 export function asRef$10maq8w(self: rt.Result<rt.u32, rt.u8>): rt.Result<rt.u32, rt.u8> {
 	if (self.ok) {
 		return rt.Ok(self.value);
@@ -528,11 +535,25 @@ export function map$0fm1w6u(self: rt.Result<boolean, rt.ParseBoolError>, op: (a0
 	return self as rt.Result<rt.Result<rt.char, rt.ParseCharError>, rt.ParseBoolError>;
 }
 
+export function map$17yn9bi(self: rt.Result<[rt.u32, rt.u32], rt.u8>, _: (a0: [rt.u32, rt.u32]) => [rt.u32, rt.u32]): rt.Result<[rt.u32, rt.u32], rt.u8> {
+	if (self.ok) {
+		return rt.Ok(self.value);
+	}
+	return self;
+}
+
 export function map$0m0doqe(self: rt.Result<rt.u32, rt.u8>, _: (a0: rt.u32) => rt.u32): rt.Result<rt.u32, rt.u8> {
 	if (self.ok) {
 		return rt.Ok(self.value);
 	}
 	return self;
+}
+
+export function map$0nfi04k(self: rt.Result<[rt.u32, rt.u32], rt.u8>, op: (a0: [rt.u32, rt.u32]) => rt.u32): rt.Result<rt.u32, rt.u8> {
+	if (self.ok) {
+		return rt.Ok(op(self.value));
+	}
+	return self as rt.Result<rt.u32, rt.u8>;
 }
 
 export function map$0zzqmaz(self: rt.Result<rt.Arc<[rt.u8, rt.u8]>, rt.Arc<Any.Any>>, op: (a0: rt.Arc<[rt.u8, rt.u8]>) => [rt.usize, rt.u8]): rt.Result<[rt.usize, rt.u8], rt.Arc<Any.Any>> {
@@ -640,6 +661,12 @@ export function inspectErr$06tv5sa(self: rt.Result<rt.u8, rt.u16>, f: (a0: rt.u1
 		f(self.error);
 	}
 	return self;
+}
+
+export function asDeref$1fldd5d(self: rt.Result<[rt.u32, rt.u32], rt.u8>): rt.Result<[rt.u32, rt.u32], rt.u8> {
+	return map$17yn9bi(asRef$0iljode(self), (a0: [rt.u32, rt.u32]): [rt.u32, rt.u32] => {
+		return a0;
+	});
 }
 
 export function asDeref$04i8i5u(self: rt.Result<rt.u32, rt.u8>): rt.Result<rt.u32, rt.u8> {
