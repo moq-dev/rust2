@@ -41,7 +41,7 @@ export function item(tag: rt.usize, key: rt.u8): orders_Item.Item {
 export function orders(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	const _5: rt.u8 = rt.u8Rem(kind, 4);
 	if (_5 === 0) {
-		cmps(data, out);
+		cmps(data.data, data.start, data.length, out);
 	} else if (_5 === 1) {
 		sorted(data, out);
 	} else if (_5 === 2) {
@@ -56,17 +56,21 @@ export function orders(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
  * `cmp::max` and `min` and their forms of each byte and the next, as integers, strings,
  * and items, which the one not returned drops, and of references to items.
  */
-export function cmps(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function cmps(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let _7!: rt.usize;
 	let iterStart: rt.usize = 1;
-	const iterEnd: rt.usize = data.length;
+	const iterEnd: rt.usize = dataLen;
 	while ((_7 = iterStart++) < iterEnd) {
 		const i: rt.usize = _7;
 		const _15: rt.usize = rt.usizeSub(i, 1);
-		rt.idx(data, _15);
-		const _14: rt.u8 = data.data[data.start + _15];
-		rt.idx(data, i);
-		const _13: [rt.u8, rt.u8] = [_14, data.data[data.start + i]];
+		if (_15 >= dataLen) {
+			rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + _15);
+		}
+		const _14: rt.u8 = dataData[dataStart + _15];
+		if (i >= dataLen) {
+			rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + i);
+		}
+		const _13: [rt.u8, rt.u8] = [_14, dataData[dataStart + i]];
 		const a: rt.u8 = _14;
 		const b: rt.u8 = _13[1];
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(max$0g5g0ks(a, b), min$1mtc1eg(a, b), max$0i3ups8((a << 24) >> 24, (b << 24) >> 24) & 0xff)), undefined, true);
@@ -733,23 +737,23 @@ export function order(o: rt.Ordering | undefined): rt.u8 {
  * A deque of `f` of each byte and its index: straight, or with its first half pushed to the
  * front in reverse, so it wraps around its buffer.
  */
-export function deque$orders_Part_orders_held_closure3(s: rt.ByteSlice, wraps: boolean, f: (a0: rt.usize, a1: rt.u8) => Part.Part): rt.VecDeque<Part.Part> {
+export function deque$orders_Part_orders_held_closure3(sData: Uint8Array, sStart: number, sLen: number, wraps: boolean, f: (a0: rt.usize, a1: rt.u8) => Part.Part): rt.VecDeque<Part.Part> {
 	let at!: rt.usize;
 	if (!wraps) {
 		at = 0;
 	} else {
-		at = rt.usizeDiv(s.length, 2);
+		at = rt.usizeDiv(sLen, 2);
 	}
 	const mid: number = at;
-	if (mid > s.length) {
+	if (mid > sLen) {
 		rt.panic("mid > len");
 	}
 	const _17: rt.usize = at;
-	const _12: rt.Iter<Part.Part> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start + mid, s.length - mid)))), (_2: [rt.usize, rt.u8]): Part.Part => {
+	const _12: rt.Iter<Part.Part> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart + mid, sLen - mid)))), (_2: [rt.usize, rt.u8]): Part.Part => {
 		return f(rt.usizeAdd(_2[0], _17), _2[1]);
 	});
 	const d: rt.VecDeque<Part.Part> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<Part.Part>, _12, undefined, 2, true);
-	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start, mid)))));
+	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart, mid)))));
 	while (true) {
 		const _23: [rt.usize, rt.u8] | rt.Done = iter.next();
 		if (_23 === rt.DONE) {
@@ -764,23 +768,23 @@ export function deque$orders_Part_orders_held_closure3(s: rt.ByteSlice, wraps: b
  * A deque of `f` of each byte and its index: straight, or with its first half pushed to the
  * front in reverse, so it wraps around its buffer.
  */
-export function deque$orders_Part_orders_part(s: rt.ByteSlice, wraps: boolean, _: (a0: rt.usize, a1: rt.u8) => Part.Part): rt.VecDeque<Part.Part> {
+export function deque$orders_Part_orders_part(sData: Uint8Array, sStart: number, sLen: number, wraps: boolean, _: (a0: rt.usize, a1: rt.u8) => Part.Part): rt.VecDeque<Part.Part> {
 	let at!: rt.usize;
 	if (!wraps) {
 		at = 0;
 	} else {
-		at = rt.usizeDiv(s.length, 2);
+		at = rt.usizeDiv(sLen, 2);
 	}
 	const mid: number = at;
-	if (mid > s.length) {
+	if (mid > sLen) {
 		rt.panic("mid > len");
 	}
 	const _17: rt.usize = at;
-	const _12: rt.Iter<Part.Part> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start + mid, s.length - mid)))), (_2: [rt.usize, rt.u8]): Part.Part => {
+	const _12: rt.Iter<Part.Part> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart + mid, sLen - mid)))), (_2: [rt.usize, rt.u8]): Part.Part => {
 		return part(rt.usizeAdd(_2[0], _17), _2[1]);
 	});
 	const d: rt.VecDeque<Part.Part> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<Part.Part>, _12, undefined, 2, true);
-	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start, mid)))));
+	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart, mid)))));
 	while (true) {
 		const _23: [rt.usize, rt.u8] | rt.Done = iter.next();
 		if (_23 === rt.DONE) {
@@ -795,23 +799,23 @@ export function deque$orders_Part_orders_part(s: rt.ByteSlice, wraps: boolean, _
  * A deque of `f` of each byte and its index: straight, or with its first half pushed to the
  * front in reverse, so it wraps around its buffer.
  */
-export function deque$u8_orders_held_closure11(s: rt.ByteSlice, wraps: boolean, f: (a0: rt.usize, a1: rt.u8) => rt.u8): rt.VecDeque<rt.u8> {
+export function deque$u8_orders_held_closure11(sData: Uint8Array, sStart: number, sLen: number, wraps: boolean, f: (a0: rt.usize, a1: rt.u8) => rt.u8): rt.VecDeque<rt.u8> {
 	let at!: rt.usize;
 	if (!wraps) {
 		at = 0;
 	} else {
-		at = rt.usizeDiv(s.length, 2);
+		at = rt.usizeDiv(sLen, 2);
 	}
 	const mid: number = at;
-	if (mid > s.length) {
+	if (mid > sLen) {
 		rt.panic("mid > len");
 	}
 	const _17: rt.usize = at;
-	const _12: rt.Iter<rt.u8> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start + mid, s.length - mid)))), (_2: [rt.usize, rt.u8]): rt.u8 => {
+	const _12: rt.Iter<rt.u8> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart + mid, sLen - mid)))), (_2: [rt.usize, rt.u8]): rt.u8 => {
 		return f(rt.usizeAdd(_2[0], _17), _2[1]);
 	});
 	const d: rt.VecDeque<rt.u8> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.u8>, _12, undefined, 1, true);
-	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start, mid)))));
+	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart, mid)))));
 	while (true) {
 		const _23: [rt.usize, rt.u8] | rt.Done = iter.next();
 		if (_23 === rt.DONE) {
@@ -826,23 +830,23 @@ export function deque$u8_orders_held_closure11(s: rt.ByteSlice, wraps: boolean, 
  * A deque of `f` of each byte and its index: straight, or with its first half pushed to the
  * front in reverse, so it wraps around its buffer.
  */
-export function deque$u8_orders_held_closure8(s: rt.ByteSlice, wraps: boolean, f: (a0: rt.usize, a1: rt.u8) => rt.u8): rt.VecDeque<rt.u8> {
+export function deque$u8_orders_held_closure8(sData: Uint8Array, sStart: number, sLen: number, wraps: boolean, f: (a0: rt.usize, a1: rt.u8) => rt.u8): rt.VecDeque<rt.u8> {
 	let at!: rt.usize;
 	if (!wraps) {
 		at = 0;
 	} else {
-		at = rt.usizeDiv(s.length, 2);
+		at = rt.usizeDiv(sLen, 2);
 	}
 	const mid: number = at;
-	if (mid > s.length) {
+	if (mid > sLen) {
 		rt.panic("mid > len");
 	}
 	const _17: rt.usize = at;
-	const _12: rt.Iter<rt.u8> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start + mid, s.length - mid)))), (_2: [rt.usize, rt.u8]): rt.u8 => {
+	const _12: rt.Iter<rt.u8> = rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart + mid, sLen - mid)))), (_2: [rt.usize, rt.u8]): rt.u8 => {
 		return f(rt.usizeAdd(_2[0], _17), _2[1]);
 	});
 	const d: rt.VecDeque<rt.u8> = rt.dequeExtend(rt.dequeNew() as rt.VecDeque<rt.u8>, _12, undefined, 1, true);
-	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(s.data, s.start, mid)))));
+	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterRev(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(sData, sStart, mid)))));
 	while (true) {
 		const _23: [rt.usize, rt.u8] | rt.Done = iter.next();
 		if (_23 === rt.DONE) {
@@ -990,9 +994,11 @@ export function held(data: rt.ByteSlice, out: rt.ByteVec): void {
 			if (_232 === rt.DONE) {
 				continue l3;
 			}
+			const _240: rt.ByteSlice = rt.byteSliceRange(data, 0, i2);
 			const j: rt.usize = _232;
-			const _239: rt.VecDeque<Part.Part> = deque$orders_Part_orders_part(rt.byteSliceRange(data, 0, i2), false, part);
-			const _238: [rt.VecDeque<Part.Part>, rt.VecDeque<Part.Part>] = [_239, deque$orders_Part_orders_held_closure3(rt.byteSliceRange(data, j, cut), true, (i6: rt.usize, b5: rt.u8): Part.Part => {
+			const _239: rt.VecDeque<Part.Part> = deque$orders_Part_orders_part(_240.data, _240.start, _240.length, false, part);
+			const _243: rt.ByteSlice = rt.byteSliceRange(data, j, cut);
+			const _238: [rt.VecDeque<Part.Part>, rt.VecDeque<Part.Part>] = [_239, deque$orders_Part_orders_held_closure3(_243.data, _243.start, _243.length, true, (i6: rt.usize, b5: rt.u8): Part.Part => {
 				return part(rt.usizeAdd(i6, 50), b5);
 			})];
 			const d: rt.VecDeque<Part.Part> = _239;
@@ -1059,7 +1065,7 @@ export function held(data: rt.ByteSlice, out: rt.ByteVec): void {
 			break;
 		}
 		const i4: rt.usize = _366[0];
-		const d2: rt.VecDeque<rt.u8> = deque$u8_orders_held_closure8(_366[1], rt.usizeRem(i4, 2) === 1, (_211: rt.usize, b7: rt.u8): rt.u8 => {
+		const d2: rt.VecDeque<rt.u8> = deque$u8_orders_held_closure8(_366[1].data, _366[1].start, _366[1].length, rt.usizeRem(i4, 2) === 1, (_211: rt.usize, b7: rt.u8): rt.u8 => {
 			return rt.u8Rem(b7, 4);
 		});
 		rt.idx(_366[1], 0);
@@ -1076,7 +1082,8 @@ export function held(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterMap(rt.btreeValues(deques), (_213: rt.usize): rt.u8 => {
 		return _213 & 0xff;
 	}), undefined, true);
-	const _409: rt.Result<rt.VecDeque<rt.u8>, rt.Poll<rt.u8>> = rt.Ok(deque$u8_orders_held_closure11(rt.byteSliceRange(data, 0, rt.min(data.length, 3)), true, (_216: rt.usize, b8: rt.u8): rt.u8 => {
+	const _400: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.min(data.length, 3));
+	const _409: rt.Result<rt.VecDeque<rt.u8>, rt.Poll<rt.u8>> = rt.Ok(deque$u8_orders_held_closure11(_400.data, _400.start, _400.length, true, (_216: rt.usize, b8: rt.u8): rt.u8 => {
 		return rt.u8Rem(b8, 4);
 	}));
 	rt.byteVecPush(out, rt.btreeContains(deques, _409) ? 1 : 0);

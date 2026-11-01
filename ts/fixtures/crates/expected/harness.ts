@@ -77,7 +77,7 @@ export function run(input: rt.ByteSlice): rt.ByteVec {
 	const filled: rt.i16[] = copy$array_i16(kept);
 	Slots.fill(Slots.withBase(kept[0]), filled);
 	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(kept[0] & 0xff, kept[1] & 0xff, filled[0] & 0xff, filled[1] & 0xff)), undefined, true);
-	const _181: rt.u8 = first(input);
+	const _181: rt.u8 = first(input.data, input.start, input.length);
 	rt.byteVecPush(out, _181);
 	const _184: rt.u8 = last.last(input);
 	rt.byteVecPush(out, _184);

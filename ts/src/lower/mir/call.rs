@@ -29,6 +29,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		out: &mut Vec<Stmt>,
 	) {
 		let tcx = self.tcx;
+		if self.forwards(dest) {
+			self.forward_call(args, span, out);
+			return;
+		}
 		if let Some(local) = dest.as_local()
 			&& self.scalars.contains_key(&local)
 		{
@@ -161,7 +165,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	/// first, but for a `Copy` aggregate std `keeps`, copied unless moved out of a local's
 	/// own value, which the analysis then made the local's own. Each argument `pointees`
 	/// marks is what an `rt.Place` it is reads, as std's mappings take a `&mut` parameter.
-	fn operands(
+	pub(super) fn operands(
 		&mut self,
 		translated: bool,
 		pointees: &[bool],

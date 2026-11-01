@@ -127,7 +127,10 @@ impl<'tcx> Translator<'_, 'tcx> {
 		let tcx = self.tcx;
 		let module = || self.module_of(def_id);
 		match tcx.def_kind(def_id) {
-			DefKind::Fn => importable(names, &escape(&fn_base(tcx, def_id)), module()),
+			DefKind::Fn => {
+				importable(names, &escape(&fn_base(tcx, def_id)), module());
+				self.slot_names(def_id, names);
+			}
 			DefKind::Const | DefKind::Static { .. } | DefKind::AssocConst => {
 				importable(names, &escape(tcx.item_name(def_id).as_str()), module())
 			}
@@ -145,6 +148,7 @@ impl<'tcx> Translator<'_, 'tcx> {
 				};
 				if named {
 					importable(names, &escape(&camel(tcx.item_name(def_id).as_str())), module());
+					self.slot_names(def_id, names);
 				}
 			}
 			// A coroutine's class, beside the function it is of.
@@ -155,6 +159,15 @@ impl<'tcx> Translator<'_, 'tcx> {
 				}
 			}
 			_ => {}
+		}
+	}
+
+	/// The slot of `Ok` parts beside the function `def_id`, if it returns a `Result`.
+	fn slot_names(&self, def_id: DefId, names: &mut Names) {
+		let output = self.tcx.fn_sig(def_id).skip_binder().output().skip_binder();
+		if matches!(output.kind(), ty::Adt(adt, _) if library::Std::of(self.tcx, adt.did()) == Some(library::Std::Result))
+		{
+			importable(names, &slot_base(self.tcx, def_id), self.module_of(def_id));
 		}
 	}
 
@@ -179,6 +192,11 @@ pub fn fn_base(tcx: TyCtxt<'_>, def_id: DefId) -> String {
 		Some(key) => format!("{}$init", tcx.item_name(key)),
 		None => camel(tcx.item_name(def_id).as_str()),
 	}
+}
+
+/// The name of the slot the function `def_id` hands back its `Ok`'s parts in.
+pub fn slot_base(tcx: TyCtxt<'_>, def_id: DefId) -> String {
+	format!("{}Out", camel(tcx.item_name(def_id).as_str()))
 }
 
 /// The name of the class of a coroutine of the function `name`.
