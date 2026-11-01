@@ -15,6 +15,7 @@ use super::Translator;
 use super::body::Body;
 use super::library::{self, Call, Std};
 use super::num::Int;
+use super::pointer::raw_pointee;
 use crate::ts::{Expr, Param, Stmt, StmtKind, Type};
 
 /// A call of a standard library function on these types, or its arguments back if it is
@@ -1943,7 +1944,7 @@ fn std_key<'tcx>(b: &Body<'_, '_, 'tcx>, ty: Ty<'tcx>) -> bool {
 		ty::Bool | ty::Char | ty::Int(_) | ty::Uint(_) | ty::Float(_) | ty::Str => true,
 		_ if library::nothing(b.t.tcx, ty) => true,
 		// Which compares by where it points, and orders and hashes by none.
-		ty::RawPtr(..) => true,
+		_ if raw_pointee(b.t.tcx, ty).is_some() => true,
 		ty::Tuple(tys) => tys.iter().all(held),
 		_ if let Some(elem) = elements_of(b, ty) => held(elem),
 		_ if bytes(b, ty) => true,
@@ -2230,7 +2231,7 @@ pub fn cmp_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, partial: bool, spa
 			let cmp = trait_fn(tcx, "Ord", "cmp");
 			b.fn_value(cmp, tcx.mk_args(&[ty.into()]), span)
 		}
-		ty::RawPtr(..) => b.err(
+		_ if raw_pointee(tcx, ty).is_some() => b.err(
 			span,
 			format!("ordering `{ty}` by its address, which JS has no counterpart of"),
 		),
@@ -2262,9 +2263,9 @@ pub fn eq_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Expr
 			let fns = tys.iter().map(|t| eq_fn(b, t, span)).collect();
 			Expr::rt("eqTuple", vec![Expr::Array(fns)])
 		}
-		ty::RawPtr(pointee, _) => match b.t.incomparable(*pointee) {
+		_ if let Some(pointee) = raw_pointee(tcx, ty) => match b.t.incomparable(pointee) {
 			Some(why) => b.err(span, why),
-			None if b.t.pointee(*pointee) == super::pointer::Pointee::Bytes => Expr::Rt("byteSliceSame".into()),
+			None if b.t.pointee(pointee) == super::pointer::Pointee::Bytes => Expr::Rt("byteSliceSame".into()),
 			None => Expr::Rt("same".into()),
 		},
 		ty::Adt(..) if let Some(inner) = option_of(b, ty) => match eq_fn(b, inner, span) {
@@ -2516,7 +2517,7 @@ fn hash_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, hasher: Ty<'tcx>, spa
 			let hash = trait_fn(tcx, "Hash", "hash");
 			b.fn_value(hash, tcx.mk_args(&[ty.into(), hasher.into()]), span)
 		}
-		ty::RawPtr(..) => b.err(
+		_ if raw_pointee(tcx, ty).is_some() => b.err(
 			span,
 			format!("hashing `{ty}` by its address, which JS has no counterpart of"),
 		),

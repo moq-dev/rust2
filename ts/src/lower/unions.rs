@@ -194,7 +194,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				};
 				let field = &adt.non_enum_variant().fields[FieldIdx::from_usize(first)];
 				let part_ty = self.field_ty(field.did, args);
-				let read = self.held_field(value.field(fields[first]), field.did, args, span);
+				let read = self.held_field(Translator::read_field(value, fields[first]), field.did, args, span);
 				self.part_of(read, part_ty, rest, span)
 			}
 			_ => unreachable!("a union's part is in a tuple or a struct"),
