@@ -389,6 +389,11 @@ pub fn std_impl<'tcx>(
 				let item = b.fmt_fn(tr, args.type_at(0), span);
 				rt("list", vec![Expr::rt("listIter", vec![value]), f, item])
 			}
+			// Its items, as a set.
+			(Std::HashTable, Trait::Debug) => {
+				let item = b.fmt_fn(tr, args.type_at(0), span);
+				rt("set", vec![Expr::rt("hashValues", vec![value]), f, item])
+			}
 			(std @ (Std::HashSet | Std::BTreeSet), Trait::Debug) => {
 				let item = b.fmt_fn(tr, args.type_at(0), span);
 				let keys = if std == Std::HashSet { "hashKeys" } else { "btreeKeys" };

@@ -156,6 +156,11 @@ pub enum Std {
 	PeekMut,
 	/// `rt.Entry`: a map's `Entry`, `OccupiedEntry`, or `VacantEntry`.
 	Entry,
+	/// `rt.HashTable`: hashbrown's `HashTable`, an `rt.HashMap` of its items by the hash its
+	/// caller gives.
+	HashTable,
+	/// `rt.TableEntry`: a `HashTable`'s `Entry`, `OccupiedEntry`, `VacantEntry`, or `AbsentEntry`.
+	TableEntry,
 	/// `rt.Ordering`: its discriminant, -1, 0, or 1.
 	Ordering,
 	/// `rt.Hasher`: `DefaultHasher`, which hash collections hash their keys with.
@@ -979,6 +984,7 @@ pub(super) fn none_last(owner: &str, name: &str) -> bool {
 			)
 			| ("BinaryHeap", "pop" | "peek")
 			| ("HashSet", "get" | "take" | "replace")
+			| ("HashTable", "find")
 			| (
 				"BTreeSet",
 				"first" | "last" | "pop_first" | "pop_last" | "get" | "take" | "replace"
@@ -1218,7 +1224,7 @@ pub fn call<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, args: Vec<Expr>
 		Ok(e) => return e,
 		Err(args) => args,
 	};
-	if !is_std(tcx, call.def_id) {
+	if !is_std(tcx, call.def_id) && !super::stock::as_std(tcx, call.def_id) {
 		return None;
 	}
 	let (owner, name) = key(tcx, call.def_id)?;
