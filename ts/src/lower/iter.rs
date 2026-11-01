@@ -968,6 +968,7 @@ fn clones<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Option<
 		| ["option", "Iter"]
 		| ["ops", "range", "Range" | "RangeFrom" | "RangeInclusive"]
 		| ["collections", "vec_deque", "iter", "Iter"]
+		| ["collections", "linked_list", "Iter"]
 		| ["collections", "binary_heap", "Iter"]
 		| ["collections", "btree", "map", "Iter" | "Keys" | "Values" | "Range"]
 		| ["collections", "hash", "map", "Iter" | "Keys" | "Values"]
@@ -983,6 +984,7 @@ fn clones<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Option<
 		| ["option", "IntoIter"]
 		| ["iter", "sources", "once", "Once"]
 		| ["collections", "vec_deque", "into_iter", "IntoIter"]
+		| ["collections", "linked_list", "IntoIter"]
 		| ["collections", "binary_heap", "IntoIter"] => parts(vec![("v", value(b, arg(0)?))]),
 		// A closure's searcher clones the closure; another holds what it searches for.
 		["str", "iter", "Split" | "MatchIndices"] => match arg(0)?.kind() {
@@ -1056,6 +1058,7 @@ pub(super) fn holds_closure(tcx: ty::TyCtxt<'_>, did: DefId) -> bool {
 		] | ["iter", "adapters", "flatten", "FlatMap"]
 			| ["iter", "sources", "from_fn", "FromFn"]
 			| ["iter", "sources", "successors", "Successors"]
+			| ["collections", "linked_list", "ExtractIf"]
 			| [
 				"slice",
 				"iter",
@@ -1094,6 +1097,7 @@ fn flattens<'tcx>(b: &mut Body<'_, '_, 'tcx>, inner: Ty<'tcx>, span: Span) {
 			| ["collections", "btree", "map", "IntoIter" | "IntoKeys" | "IntoValues"]
 			| ["collections", "btree", "set", "IntoIter"]
 			| ["collections", "vec_deque", "into_iter", "IntoIter"]
+			| ["collections", "linked_list", "IntoIter"]
 	);
 	if !empties {
 		b.t.err(

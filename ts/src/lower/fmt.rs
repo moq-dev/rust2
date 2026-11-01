@@ -385,6 +385,10 @@ pub fn std_impl<'tcx>(
 				let item = b.fmt_fn(tr, args.type_at(0), span);
 				rt("list", vec![Expr::rt("dequeIter", vec![value]), f, item])
 			}
+			(Std::LinkedList, Trait::Debug) => {
+				let item = b.fmt_fn(tr, args.type_at(0), span);
+				rt("list", vec![Expr::rt("listIter", vec![value]), f, item])
+			}
 			(std @ (Std::HashSet | Std::BTreeSet), Trait::Debug) => {
 				let item = b.fmt_fn(tr, args.type_at(0), span);
 				let keys = if std == Std::HashSet { "hashKeys" } else { "btreeKeys" };
@@ -468,6 +472,13 @@ fn iter_debug<'tcx>(
 	let path: Vec<&str> = path.iter().map(String::as_str).collect();
 	let (item, wraps): (Item, &[Wrap]) = match path.as_slice() {
 		["str", "iter", "Chars"] => return Some(Expr::rt("fmtChars", vec![value.clone(), f.clone()])),
+		// The list it has left, then its length.
+		["collections", "linked_list", name @ ("Iter" | "IterMut")] => {
+			let debug = b.fmt_fn(Trait::Debug, args.types().next()?, span);
+			let len = b.fmt_fn(Trait::Debug, tcx.types.usize, span);
+			let call = vec![value.clone(), f.clone(), debug, len, Expr::Str((*name).into())];
+			return Some(Expr::rt("fmtListIter", call));
+		}
 		["str", "iter", "Bytes"] => (Byte, &[Tuple("Bytes"), Struct("Copied", "it"), Tuple("Iter")]),
 		["slice", "iter", "Iter"]
 		| ["collections", "binary_heap", "Iter"]
@@ -475,7 +486,8 @@ fn iter_debug<'tcx>(
 		["slice", "iter", "IterMut"] => (Arg(0), &[Tuple("IterMut")]),
 		["vec", "into_iter", "IntoIter"]
 		| ["collections", "binary_heap", "IntoIter"]
-		| ["collections", "vec_deque", "into_iter", "IntoIter"] => (Arg(0), &[Tuple("IntoIter")]),
+		| ["collections", "vec_deque", "into_iter", "IntoIter"]
+		| ["collections", "linked_list", "IntoIter"] => (Arg(0), &[Tuple("IntoIter")]),
 		["vec", "drain", "Drain"] => (Arg(0), &[Tuple("Drain")]),
 		["collections", "binary_heap", "Drain"] => (Arg(0), &[Struct("Drain", "iter"), Tuple("Drain")]),
 		["collections", "btree", "set", "Range"] => (SetVal, &[Struct("Range", "iter")]),

@@ -7,6 +7,7 @@
 
 import { ByteSlice, type ByteVec, type None } from "../rt.ts";
 import { type I64Limbs, type I128Limbs, type U64Limbs, type U128Limbs, type u64, u64FromHalves } from "./int.ts";
+import type { LinkedList } from "./collections.ts";
 import type { Arc } from "./task.ts";
 
 /** What `Hash` writes into: `DefaultHasher`, or a hash collection's own. */
@@ -314,6 +315,14 @@ export function hashSlice<T>(hash: (value: T, s: Hasher) => void): (value: Array
 	return (value, s) => {
 		s.word(value.length, 4);
 		for (let i = 0; i < value.length; i++) hash(value[i], s);
+	};
+}
+
+/** `Hash::hash` of a `LinkedList`: its length as a `usize`, then its items' in order. */
+export function hashList<T>(hash: (value: T, s: Hasher) => void): (value: LinkedList<T>, s: Hasher) => void {
+	return (value, s) => {
+		s.word(value.n, 4);
+		for (let node = value.h; node !== undefined; node = node.x) hash(node.v, s);
 	};
 }
 
