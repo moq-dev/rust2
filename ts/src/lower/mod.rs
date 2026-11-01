@@ -1295,6 +1295,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					| library::Std::BinaryHeap
 					| library::Std::PeekMut
 					| library::Std::Entry
+					| library::Std::HashTable
+					| library::Std::TableEntry
 					| library::Std::Hasher
 					| library::Std::BytesMut
 					| library::Std::ThreadRng,
@@ -1710,6 +1712,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				| library::Std::BTreeMap
 				| library::Std::Entry
 				| library::Std::HashSet
+				| library::Std::HashTable
+				| library::Std::TableEntry
 				| library::Std::BTreeSet
 				| library::Std::VecDeque
 				| library::Std::LinkedList
@@ -1720,6 +1724,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						library::Std::BTreeMap => ("BTreeMap", 2),
 						library::Std::Entry => ("Entry", 2),
 						library::Std::HashSet => ("HashSet", 1),
+						library::Std::HashTable => ("HashTable", 1),
+						library::Std::TableEntry => ("TableEntry", 1),
 						library::Std::BTreeSet => ("BTreeSet", 1),
 						library::Std::BinaryHeap => ("BinaryHeap", 1),
 						library::Std::PeekMut => ("PeekMut", 1),

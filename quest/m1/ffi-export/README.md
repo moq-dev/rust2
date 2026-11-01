@@ -19,7 +19,7 @@ what the census refuses and what moq waits on first, then the runtime, then the 
 What stays here is the end-to-end: moq-ffi shrinks to its remainder and takes the stand-in
 package's place.
 
-Every generator on the C ABI:
+Every generator:
 
 - checks `<prefix>_contract()` against the header's contract when it loads, before any
   other call, and fails loud on a mismatch;
@@ -45,9 +45,19 @@ Every generator on the C ABI:
   Each driver runs on a goroutine that lives as long as its object, and a call's `ctx`
   bounds only that call.
 
+Decided with the maintainer on 2026-11-01: the Swift, Python, Go, and Dart generators are
+independent and unranked, and each generates the crate's own API in its language's idiom, as
+Kotlin does. Only Python skips the C ABI, since a CPython extension calls about 40 times faster
+than `ctypes`; the others call C natively. moq's packages switch to them in moq's own
+[quest](https://github.com/moq-dev/moq/blob/main/quest/m2/uniffi-fork.md).
+
 ## Required
 
 - [moq-clock's C names once it moves into kio](/quest/m1/ffi-export/crates.md) - `moq_now` and `moq_origin` become the clock's, after moq moves it into `kio::clock`
 - [Sessions on sans-IO QUIC](/quest/m1/ffi-export/session-quic.md) - bindings move UDP datagrams and drive the session's poll themselves, over moq's runtime-free QUIC driver once it lands
 - [C++ bindings on MSVC](/quest/m1/ffi-export/cpp.md) - the nightly's MSVC job passes the C++ checks
 - [Waiting: moq-tokio within the recursion limit](/quest/m1/ffi-export/recursion-limit.md) - the exporter's moq pin moves past moq-dev/moq#7032 once moq-tokio's `Send` check fits the limit
+- [Swift bindings](/quest/m1/ffi-export/swift.md) - Swift over the C ABI as a clang module, tested on Linux and Apple
+- [Python bindings](/quest/m1/ffi-export/python.md) - a generated CPython extension, skipping the C ABI as Kotlin's JNI does
+- [Go bindings](/quest/m1/ffi-export/go.md) - Go over the C ABI through cgo
+- [Dart bindings](/quest/m1/ffi-export/dart.md) - Dart over the C ABI through `dart:ffi`

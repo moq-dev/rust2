@@ -3,12 +3,13 @@
 //! comes, read and written by `get_mut` without locking, taken apart, tried while held and free, and locked again
 //! while held, which panics as wasm32's does; and read-write locks, read and written,
 //! tried while read and while written, written through `get_mut`, taken apart, and read
-//! and written through guards mapped and filtered to parts of their values.
+//! and written through guards mapped and filtered to parts of their values, a mutex's
+//! included; and each lock's guards printed.
 
 use std::fmt;
 use std::sync::{
-	Arc, MappedRwLockReadGuard, MappedRwLockWriteGuard, Mutex, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard,
-	TryLockError,
+	Arc, MappedMutexGuard, MappedRwLockReadGuard, MappedRwLockWriteGuard, Mutex, MutexGuard, PoisonError, RwLock,
+	RwLockReadGuard, RwLockWriteGuard, TryLockError,
 };
 
 /// A value a mutex holds, which `Default` makes.
@@ -244,4 +245,127 @@ pub fn mapped(data: &[u8], out: &mut Vec<u8>) {
 	let last = lock.into_inner().unwrap();
 	out.push(last.n as u8);
 	out.extend_from_slice(&last.seen);
+}
+
+/// Each byte an operation on mutexes through guards mapped and filtered to parts of their
+/// values, its value the operand; each puts what it read through them, what the mutex
+/// holds after they drop, and whether it is still locked. Locking it again while one is
+/// held aborts on wasm32, with no panic message to compare.
+pub fn mutex_mapped(data: &[u8], out: &mut Vec<u8>) {
+	let mutex = Mutex::new(Tally::default());
+	let number = Mutex::new(0u32);
+	let locked = |out: &mut Vec<u8>| {
+		let tally = matches!(mutex.try_lock(), Err(TryLockError::WouldBlock));
+		let number = matches!(number.try_lock(), Err(TryLockError::WouldBlock));
+		out.push(u8::from(tally) << 1 | u8::from(number));
+	};
+	for &op in data {
+		match op % 4 {
+			// A number written through a guard mapped to it, and through that one's map.
+			0 => {
+				let mut n = MutexGuard::map(mutex.lock().unwrap(), |t| &mut t.n);
+				*n += u64::from(op);
+				locked(out);
+				let mut again = MappedMutexGuard::map(n, |n| n);
+				*again = again.wrapping_mul(3);
+				drop(again);
+				locked(out);
+				out.push(mutex.lock().unwrap().n as u8);
+				let mut whole = MutexGuard::map(number.lock().unwrap(), |n| n);
+				*whole = whole.wrapping_mul(5) + u32::from(op);
+				locked(out);
+				drop(whole);
+				out.push(*number.lock().unwrap() as u8);
+			}
+			// A `Vec`, which JS doesn't copy, pushed to and written whole, and the whole value
+			// written through a guard mapped to it.
+			1 => {
+				let mut seen = MutexGuard::map(mutex.lock().unwrap(), |t| &mut t.seen);
+				seen.push(op);
+				if op >> 4 == 0xf {
+					*seen = vec![op, op];
+				}
+				locked(out);
+				drop(seen);
+				out.extend_from_slice(&mutex.lock().unwrap().seen);
+				if op >> 4 == 0xe {
+					let mut whole = MutexGuard::map(mutex.lock().unwrap(), |t| t);
+					*whole = Tally {
+						n: u64::from(op),
+						seen: vec![op],
+					};
+					drop(whole);
+					out.push(mutex.lock().unwrap().n as u8);
+				}
+			}
+			// Filtered, which gives the guard back where there is no part.
+			2 => {
+				match MutexGuard::filter_map(mutex.lock().unwrap(), |t| t.seen.last_mut()) {
+					Ok(mut last) => *last = last.wrapping_add(op),
+					Err(mut whole) => whole.seen.push(op),
+				}
+				locked(out);
+				let n = MutexGuard::filter_map(mutex.lock().unwrap(), |t| Some(&mut t.n));
+				match n.map(|n| MappedMutexGuard::filter_map(n, |n| (*n & 1 == 0).then_some(n))) {
+					Ok(Ok(mut n)) => *n += 1,
+					Ok(Err(mut n)) => {
+						locked(out);
+						*n += 2;
+					}
+					Err(_) => out.push(0xfe),
+				}
+				locked(out);
+				out.push(mutex.lock().unwrap().n as u8);
+				out.extend_from_slice(&mutex.lock().unwrap().seen);
+			}
+			// Tried while a mapped guard holds it, and once that guard drops.
+			_ => {
+				let n = MutexGuard::map(mutex.lock().unwrap(), |t| &mut t.n);
+				locked(out);
+				out.push(mutex.try_lock().is_err() as u8);
+				drop(n);
+				out.push(mutex.try_lock().map_or(0xfe, |t| t.seen.len() as u8));
+				locked(out);
+			}
+		}
+	}
+	let last = mutex.into_inner().unwrap();
+	out.push(last.n as u8);
+	out.extend_from_slice(&last.seen);
+	out.push(number.into_inner().unwrap() as u8);
+}
+
+/// Each lock's guards printed, plain and mapped, by `Debug` and `Display` and with options,
+/// as std writes what each lends.
+pub fn printed(data: &[u8], out: &mut Vec<u8>) {
+	let text: String = data.iter().map(|b| char::from(b'a' + b % 26)).collect();
+	let mutex = Mutex::new((data.len() as u8, text.clone()));
+	let lock = RwLock::new((data.to_vec(), text));
+	{
+		let guard = mutex.lock().unwrap();
+		out.extend_from_slice(format!("{guard:?} {guard:#?}").as_bytes());
+		let n = MutexGuard::map(guard, |t| &mut t.0);
+		out.extend_from_slice(format!("{n} {n:?} {n:>4} {n:04}").as_bytes());
+		let n = MappedMutexGuard::map(n, |n| n);
+		out.extend_from_slice(format!("[{n:<3}]").as_bytes());
+	}
+	let text = MutexGuard::map(mutex.lock().unwrap(), |t| &mut t.1);
+	out.extend_from_slice(format!("{text} {text:?} [{text:^9}]").as_bytes());
+	drop(text);
+	{
+		let read = lock.read().unwrap();
+		out.extend_from_slice(format!("{read:?}").as_bytes());
+		let bytes = RwLockReadGuard::map(read, |t| &t.0);
+		out.extend_from_slice(format!("{bytes:?} {bytes:#?}").as_bytes());
+		let text = RwLockReadGuard::map(lock.read().unwrap(), |t| &t.1);
+		let first = MappedRwLockReadGuard::map(text, |t| t.get(..1).unwrap_or("-"));
+		out.extend_from_slice(format!("{first} {first:?} {first:>3}").as_bytes());
+	}
+	let write = lock.write().unwrap();
+	out.extend_from_slice(format!("{write:?}").as_bytes());
+	let mut text = RwLockWriteGuard::map(write, |t| &mut t.1);
+	text.push('!');
+	out.extend_from_slice(format!("{text} {text:?}").as_bytes());
+	let text = MappedRwLockWriteGuard::map(text, |t| t);
+	out.extend_from_slice(format!("{text:>12}").as_bytes());
 }

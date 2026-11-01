@@ -9,4 +9,25 @@ export function unwrapOr$0r2bmpr(self: rt.u8 | undefined, default_: rt.u8): rt.u
 	return self;
 }
 
+export function mapOr$1787w44(self: rt.Place<rt.u32> | undefined, default_: rt.usize, f: (a0: rt.Place<rt.u32>) => rt.usize): rt.usize {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
+export function mapOr$0iaogpf(self: [rt.u16, rt.u32] | undefined, default_: rt.usize, f: (a0: [rt.u16, rt.u32]) => rt.usize): rt.usize {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
+export function mapOr$1vcgixw(self: rt.u32 | undefined, default_: rt.usize, f: (a0: rt.u32) => rt.usize): rt.usize {
+	if (self === undefined) {
+		return default_;
+	}
+	return f(self);
+}
+
 //# sourceMappingURL=option.ts.map

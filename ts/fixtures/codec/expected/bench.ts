@@ -47,6 +47,8 @@ export function run(input: rt.ByteSlice): rt.ByteVec {
 				order(selector, new rt.ByteSlice(input.data, input.start + 2, input.length - 2), out);
 			} else if (op === 13) {
 				push(selector, new rt.ByteSlice(input.data, input.start + 2, input.length - 2), out);
+			} else if (op === 14) {
+				hashed(selector, new rt.ByteSlice(input.data, input.start + 2, input.length - 2), out);
 			} else {
 				decoded(decodeGroup(new rt.ByteSlice(input.data, input.start + 2, input.length - 2), liteVersion(selector), out), out);
 			}
@@ -316,6 +318,51 @@ export function ordered(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.btreeRemove(map, _73);
 	}
 	harness_putU64(out, sum);
+}
+
+/**
+ * `count` keys, scattered as `ordered`'s, inserted into a `HashMap`, and unless `selector`
+ * is 1, each looked up and removed: the sum of what the lookups found, and the length left.
+ */
+export function hashed(selector: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+	let _16!: rt.u32;
+	let sum!: rt.u64;
+	let _30!: rt.u32;
+	let _51!: rt.u32;
+	const _11: (a0: rt.u32) => rt.u32 = (i4: rt.u32): rt.u32 => {
+		return rt.u32Rem(rt.u32Mul(i4, 40503), 1 << 16);
+	};
+	const count2: rt.u32 = rt.u64Low(rt.u64Min(takeU64(data)[0], 65536));
+	const map: rt.HashMap<rt.u32, rt.u32> = rt.hashNew() as rt.HashMap<rt.u32, rt.u32>;
+	let iterStart: rt.u32 = 0;
+	const iterEnd: rt.u32 = count2;
+	while ((_16 = iterStart++) < iterEnd) {
+		const i: rt.u32 = _16;
+		const _22: rt.u32 = _11(i);
+		rt.hashInsert(map, _22, i);
+	}
+	b2: {
+		sum = 0;
+		if (selector !== 1) {
+			let iterStart2: rt.u32 = 0;
+			const iterEnd2: rt.u32 = count2;
+			while ((_30 = iterStart2++) < iterEnd2) {
+				const _40: rt.u32 = _11(rt.u32Sub(rt.u32Sub(count2, 1), _30));
+				sum = rt.u64Add(sum, option_unwrapOr$11c0we2(rt.hashGet(map, _40), 0) as rt.u64);
+			}
+			let iterStart3: rt.u32 = 0;
+			const iterEnd3: rt.u32 = count2;
+			while (true) {
+				if (!((_51 = iterStart3++) < iterEnd3)) {
+					break b2;
+				}
+				const _58: rt.u32 = _11(_51);
+				rt.hashRemove(map, _58);
+			}
+		}
+	}
+	harness_putU64(out, sum);
+	putUsize(out, rt.hashLen(map));
 }
 
 /**

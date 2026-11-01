@@ -260,12 +260,13 @@ pub fn call<'tcx>(
 		("RefCell", "borrow_mut") => Expr::rt("refCellBorrowMut", args),
 		("RefCell", "try_borrow") => Expr::rt("refCellTryBorrow", args),
 		("RefCell", "try_borrow_mut") => Expr::rt("refCellTryBorrowMut", args),
-		("Ref" | "RwLockReadGuard" | "MappedRwLockReadGuard", "map" | "filter_map" | "map_split") => {
-			guard_map(b, call, name, false, args, out)
+		("Ref" | "RwLockReadGuard" | "MappedRwLockReadGuard", "map" | "filter_map" | "try_map" | "map_split") => {
+			guard_map(b, call, name, "ref", args, out)
 		}
-		("RefMut" | "RwLockWriteGuard" | "MappedRwLockWriteGuard", "map" | "filter_map" | "map_split") => {
-			guard_map(b, call, name, true, args, out)
+		("RefMut" | "RwLockWriteGuard" | "MappedRwLockWriteGuard", "map" | "filter_map" | "try_map" | "map_split") => {
+			guard_map(b, call, name, "refMut", args, out)
 		}
+		("MutexGuard" | "MappedMutexGuard", "map" | "filter_map") => guard_map(b, call, name, "mutex", args, out),
 		("Ref", "clone") => Expr::rt("refClone", args),
 		("RefCell", "replace") => Expr::rt("refCellReplace", args),
 		("RefCell", "take") => {
@@ -576,18 +577,20 @@ fn held(ty: Option<Ty<'_>>) -> Ty<'_> {
 	}
 }
 
-/// `map`, `filter_map`, or `map_split` of a guard, `exclusive` for a `RefMut` or a write
-/// guard: its function called on what the guard lends, and a guard of each part that
-/// lends, which for an exclusive one is where the part is, so a write through it reaches.
+/// `map`, `filter_map`, `try_map`, or `map_split` of a guard, by the runtime's functions
+/// named for `guard_of`, `ref` for a `Ref` or a read guard: its function called on what
+/// the guard lends, and a guard of each part that lends, which for an exclusive one is where the
+/// part is, so a write through it reaches.
 fn guard_map<'tcx>(
 	b: &mut Body<'_, '_, 'tcx>,
 	call: &Call<'tcx>,
 	name: &str,
-	exclusive: bool,
+	guard_of: &str,
 	args: Vec<Expr>,
 	out: &mut Vec<Stmt>,
 ) -> Expr {
 	let tcx = b.t.tcx;
+	let exclusive = guard_of != "ref";
 	let [guard, f] = two(args);
 	let guard = match guard.is_path() {
 		true => guard,
@@ -623,10 +626,7 @@ fn guard_map<'tcx>(
 		}
 	};
 	let part = tys.next().expect("a part's type");
-	let f = |name: &str| match exclusive {
-		true => format!("refMut{name}"),
-		false => format!("ref{name}"),
-	};
+	let f = |name: &str| format!("{guard_of}{name}");
 	match name {
 		"map" => {
 			let at = at(b, part, lent);
@@ -642,6 +642,17 @@ fn guard_map<'tcx>(
 				Box::new(some),
 			);
 			Expr::rt(f("FilterMap"), vec![guard, at])
+		}
+		"try_map" if !converts(b, part) => Expr::rt(f("TryMap"), vec![guard, lent]),
+		"try_map" => {
+			let lent = b.spill(lent, "part", out);
+			let some = at(b, part, lent.clone().member("value"));
+			let at = Expr::Cond(
+				Box::new(lent.clone().member("ok")),
+				Box::new(Expr::result(true, some)),
+				Box::new(Expr::result(false, lent.member("error"))),
+			);
+			Expr::rt(f("TryMap"), vec![guard, at])
 		}
 		_ => {
 			let other = tys.next().expect("the other part's type");

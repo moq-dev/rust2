@@ -32,7 +32,6 @@ generic std gap is planned here even when moq never calls it.
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
 - [Rc and Arc of a slice](/quest/m3/ts-shared-slices.md) - `Rc<[T]>` and `Arc<[T]>` from a `Vec`, a slice, or an iterator translate
 - [The rest of a vector's methods](/quest/m3/ts-vec-rest.md) - `append`, `resize`, `split_off`, `try_reserve`, and `Vec::from(VecDeque)` translate
-- [The rest of a guard's methods](/quest/m3/ts-guard-rest.md) - `Debug` of `RefCell` and `RwLock` guards, `MutexGuard::map`, and the guards' `try_map` translate
 - [Aborts in the differential](/quest/m3/ts-abort-differential.md) - the lang differential compares wasm32's aborts, so an `RwLock` locked again while held is tested
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained
 - [Whole writes into a lazy cell or thread-local key](/quest/m3/ts-lazy-writes.md) - a whole write through a `&mut` to a `LazyCell`, `LazyLock`, or `LocalKey` keeps its state
@@ -40,3 +39,5 @@ generic std gap is planned here even when moq never calls it.
 - [Type errors at the Rust that made them](/quest/m3/ts-span-precision.md) - a `tsc` error on output names the tail expression or call argument that made it
 - [An empty iterator of mutable references](/quest/m3/ts-empty-places.md) - `iter::empty::<&mut T>()` given to `zip` or `chain` translates
 - [An Option of numbers in the result slot](/quest/m3/ts-option-slot.md) - `varint_opt`'s `Option` comes back through the slot with no object per call
+- [Dropping a crate's generic type inside another](/quest/m3/ts-nested-generic-drop.md) - an `LruCache` holding a `LinkedHashMap` drops as rustc's glue does
+- [Fresh writes through a zip, a copy, and a repeat](/quest/m3/ts-fresh-shapes.md) - zipping a `Vec<[T; N]>`, reading a `T` out of `Zip::next`, and `copied` or `vec![x; n]` over a `Copy` type translate

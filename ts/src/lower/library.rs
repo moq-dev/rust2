@@ -156,6 +156,11 @@ pub enum Std {
 	PeekMut,
 	/// `rt.Entry`: a map's `Entry`, `OccupiedEntry`, or `VacantEntry`.
 	Entry,
+	/// `rt.HashTable`: hashbrown's `HashTable`, an `rt.HashMap` of its items by the hash its
+	/// caller gives.
+	HashTable,
+	/// `rt.TableEntry`: a `HashTable`'s `Entry`, `OccupiedEntry`, `VacantEntry`, or `AbsentEntry`.
+	TableEntry,
 	/// `rt.Ordering`: its discriminant, -1, 0, or 1.
 	Ordering,
 	/// `rt.Hasher`: `DefaultHasher`, which hash collections hash their keys with.
@@ -316,7 +321,8 @@ impl Std {
 			["cell", "BorrowError"] => Some(Self::BorrowError),
 			["cell", "BorrowMutError"] => Some(Self::BorrowMutError),
 			["sync", "once_lock", "OnceLock"] => Some(Self::OnceLock),
-			// What a read-write lock's guards map to, which guard as they do.
+			// What a lock's guards map to, which guard as they do.
+			["sync", "poison", "mutex", "MappedMutexGuard"] => Some(Self::MutexGuard),
 			["sync", "poison", "rwlock", "MappedRwLockReadGuard"] => Some(Self::Ref),
 			["sync", "poison", "rwlock", "MappedRwLockWriteGuard"] => Some(Self::RefMut),
 			["sync", "once", "Once"] => Some(Self::Once),
@@ -909,8 +915,9 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		("OnceCell" | "OnceLock", "get_or_init" | "get_or_try_init") => &[1],
 		// A guard's map calls its function, filtered or not.
 		(
-			"Ref" | "RefMut" | "RwLockReadGuard" | "RwLockWriteGuard" | "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
-			"map" | "filter_map" | "map_split",
+			"Ref" | "RefMut" | "MutexGuard" | "MappedMutexGuard" | "RwLockReadGuard" | "RwLockWriteGuard"
+			| "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
+			"map" | "filter_map" | "try_map" | "map_split",
 		) => &[],
 		("Once", "call_once" | "call_once_force") => &[0],
 		("Arc" | "Rc", "new_cyclic") => &[1],
@@ -981,6 +988,7 @@ pub(super) fn none_last(owner: &str, name: &str) -> bool {
 			)
 			| ("BinaryHeap", "pop" | "peek")
 			| ("HashSet", "get" | "take" | "replace")
+			| ("HashTable", "find")
 			| (
 				"BTreeSet",
 				"first" | "last" | "pop_first" | "pop_last" | "get" | "take" | "replace"
@@ -1220,7 +1228,7 @@ pub fn call<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, args: Vec<Expr>
 		Ok(e) => return e,
 		Err(args) => args,
 	};
-	if !is_std(tcx, call.def_id) {
+	if !is_std(tcx, call.def_id) && !super::stock::as_std(tcx, call.def_id) {
 		return None;
 	}
 	let (owner, name) = key(tcx, call.def_id)?;
