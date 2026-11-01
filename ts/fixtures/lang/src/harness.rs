@@ -271,6 +271,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("borrows::guards", |_, data, out| borrows::guards(data, out)),
 		("results::results", results::results),
 		("fields::fields", fields::fields),
+		("strs::gets", strs::gets),
 	]
 }
 

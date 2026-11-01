@@ -32,6 +32,5 @@ generic std gap is planned here even when moq never calls it.
 - [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
 - [The rest of a guard's maps](/quest/m3/ts-guard-maps.md) - `RefMut::map`, the guards' `filter_map` and `map_split`, and an `RwLock` guard's `map` translate
-- [A str's checked and inclusive parts](/quest/m3/ts-str-get.md) - `str::get` and indexing a `str` by `a..=b` or `..=b` translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained
