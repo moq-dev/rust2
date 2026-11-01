@@ -594,16 +594,21 @@ pub enum Type {
 impl Type {
 	/// Whether it names the type parameter `param`.
 	pub fn names(&self, param: &str) -> bool {
-		match self {
-			Type::Param(name) => name == param,
-			Type::Builtin(_) | Type::StrLit(_) => false,
-			Type::Rt(_, tys) | Type::Sym(_, tys) | Type::Union(tys) | Type::Tuple(tys) => {
-				tys.iter().any(|t| t.names(param))
+		self.any(&|t| matches!(t, Type::Param(name) if name == param))
+	}
+
+	/// Whether it, or any type in it, is one `f` picks.
+	pub fn any(&self, f: &impl Fn(&Type) -> bool) -> bool {
+		f(self)
+			|| match self {
+				Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) => false,
+				Type::Rt(_, tys) | Type::Sym(_, tys) | Type::Union(tys) | Type::Tuple(tys) => {
+					tys.iter().any(|t| t.any(f))
+				}
+				Type::Array(t) => t.any(f),
+				Type::Func(tys, ret) => ret.any(f) || tys.iter().any(|t| t.any(f)),
+				Type::Object(fields) => fields.iter().any(|(_, t)| t.any(f)),
 			}
-			Type::Array(t) => t.names(param),
-			Type::Func(tys, ret) => ret.names(param) || tys.iter().any(|t| t.names(param)),
-			Type::Object(fields) => fields.iter().any(|(_, t)| t.names(param)),
-		}
 	}
 }
 

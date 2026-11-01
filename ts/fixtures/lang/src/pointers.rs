@@ -7,7 +7,7 @@
 //! nodes that an `AtomicPtr` and memory hold pointers to; pointers to arrays of bytes; and
 //! a pointer into a cell that other functions write whole through a `&mut` to it.
 
-use std::cell::UnsafeCell;
+use std::cell::{Cell, UnsafeCell};
 use std::mem::MaybeUninit;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
@@ -1458,7 +1458,7 @@ pub fn reattached(data: &[u8], out: &mut Vec<u8>) {
 		at: std::ptr::null_mut(),
 	};
 	let mut buf = [0u16; 4];
-	let mut slot = Slot {
+	let mut slot = Window {
 		at: std::ptr::null_mut(),
 	};
 	let mut pair = Reattached(0, 0);
@@ -1478,12 +1478,8 @@ pub fn reattached(data: &[u8], out: &mut Vec<u8>) {
 /// A struct JS keeps as an object that only [`reattached`] points into.
 struct Reattached(u8, u8);
 
-struct Window {
-	at: *mut [u16; 4],
-}
-
-struct Slot {
-	at: *mut Reattached,
+struct Window<T> {
+	at: *mut T,
 }
 
 fn attach<T>(at: &mut *mut T, to: &mut T) {
@@ -1553,4 +1549,274 @@ fn refill(r: &mut Refilled, n: u8) -> u8 {
 
 fn swap_cell(c: &mut UnsafeCell<u8>, n: u8) {
 	std::mem::swap(c, &mut UnsafeCell::new(n));
+}
+
+/// An [`Enclosed`] of pointers to `$to`, a local of the body making them.
+macro_rules! aim {
+	($to:expr, $n:expr) => {{
+		let at: *mut _ = &raw mut $to;
+		let held = NonNull::new(at).unwrap();
+		Enclosed {
+			inner: Aimed {
+				at,
+				seen: at,
+				held,
+				maybe: if $n % 2 == 0 { Some(held) } else { None },
+				tagged: (at, $n),
+				to: if $n % 3 == 0 { To::At(at) } else { To::Nowhere },
+			},
+		}
+	}};
+}
+
+/// Whether pointers that JS keeps as the pointee, or as where its bytes are, compare as
+/// Rust's do: equal however they were made, and apart from another's. Written out for
+/// each type, as comparing pointers to a type parameter would compare every type's.
+macro_rules! compared {
+	($to:expr, $other:expr) => {{
+		let other: *mut _ = &raw mut $other;
+		let nest = aim!($to, 0u8);
+		let a = &nest.inner;
+		let same = [
+			a.at as *const _ == a.seen,
+			a.held == NonNull::new(a.at).unwrap(),
+			matches!(a.maybe, Some(p) if p == a.held),
+			a.tagged.0 == a.at,
+			matches!(a.to, To::At(p) if p == a.at),
+		];
+		let apart = [
+			a.at == other,
+			matches!(a.maybe, Some(p) if p.as_ptr() == other),
+			ptr::eq(a.seen, other),
+		];
+		let bits = |b: &[bool]| b.iter().fold(0u8, |acc, &b| acc << 1 | u8::from(b));
+		[bits(&same), bits(&apart)]
+	}};
+}
+
+/// Reads and writes `$to` through an [`Enclosed`] of pointers to it, an `AtomicPtr` to it,
+/// and references to it, then reads it.
+macro_rules! aimed_at {
+	($to:ident, $n:expr, $out:expr) => {{
+		let nest = aim!($to, $n);
+		through(&nest, $n, $out);
+		swapped_in(&raw mut $to, $n, $out);
+		lend(&mut $to, $n, $out);
+		$out.push($to.get());
+	}};
+}
+
+/// Pointers a generic type holds to its type parameter, in each shape a field can hold
+/// one, instantiated where JS keeps the pointee as an object, a number it copies, an
+/// enum it copies, the bytes of a `[u8; N]`, a cell, an array, and another generic
+/// type's instance: read and written through, and compared where JS can compare them.
+/// An `AtomicPtr` to the parameter and references to it are held beside them.
+pub fn aimed(data: &[u8], out: &mut Vec<u8>) {
+	for &n in data {
+		let mut pair = Paired(n, !n);
+		aimed_at!(pair, n, out);
+		let mut num = n;
+		aimed_at!(num, n, out);
+		let mut signed = if n % 2 == 0 { Leaning::Pos(n) } else { Leaning::Neg(n) };
+		aimed_at!(signed, n, out);
+		let mut bytes = [n; 4];
+		aimed_at!(bytes, n, out);
+		let mut cell = Cell::new(n);
+		aimed_at!(cell, n, out);
+		let mut wide = [u16::from(n) << 4; 2];
+		aimed_at!(wide, n, out);
+		let mut wrap = Housed(n);
+		aimed_at!(wrap, n, out);
+		let mut other = Paired(!n, n);
+		let mut other_bytes = [!n; 4];
+		let mut other_wrap = Housed(!n);
+		out.extend(compared!(pair, other));
+		out.extend(compared!(bytes, other_bytes));
+		out.extend(compared!(wrap, other_wrap));
+	}
+}
+
+/// A pointee that reads and writes as a byte, whatever JS keeps it as.
+trait Aim {
+	fn made(n: u8) -> Self;
+	fn get(&self) -> u8;
+	fn put(&mut self, n: u8);
+}
+
+/// A struct JS keeps as an object, which pointers to are.
+struct Paired(u8, u8);
+
+impl Aim for Paired {
+	fn made(n: u8) -> Self {
+		Paired(n, n ^ 0x0f)
+	}
+	fn get(&self) -> u8 {
+		self.0 ^ self.1
+	}
+	fn put(&mut self, n: u8) {
+		self.1 = self.0.wrapping_add(n);
+	}
+}
+
+impl Aim for u8 {
+	fn made(n: u8) -> Self {
+		n ^ 0x3c
+	}
+	fn get(&self) -> u8 {
+		*self
+	}
+	fn put(&mut self, n: u8) {
+		*self = self.wrapping_mul(3).wrapping_add(n);
+	}
+}
+
+/// An enum, an object JS copies, so pointers to it are places, as pointers to a number are.
+enum Leaning {
+	Pos(u8),
+	Neg(u8),
+}
+
+impl Aim for Leaning {
+	fn made(n: u8) -> Self {
+		Leaning::Neg(n ^ 0x55)
+	}
+	fn get(&self) -> u8 {
+		match self {
+			Leaning::Pos(n) => *n,
+			Leaning::Neg(n) => !*n,
+		}
+	}
+	fn put(&mut self, n: u8) {
+		*self = match self {
+			Leaning::Pos(m) => Leaning::Neg(m.wrapping_add(n)),
+			Leaning::Neg(m) => Leaning::Pos(m.wrapping_sub(n)),
+		};
+	}
+}
+
+impl Aim for [u8; 4] {
+	fn made(n: u8) -> Self {
+		[n, !n, n ^ 1, n ^ 2]
+	}
+	fn get(&self) -> u8 {
+		self[0] ^ self[3]
+	}
+	fn put(&mut self, n: u8) {
+		self[usize::from(n % 4)] = self[0].wrapping_add(n);
+	}
+}
+
+impl Aim for Cell<u8> {
+	fn made(n: u8) -> Self {
+		Cell::new(n ^ 0x77)
+	}
+	fn get(&self) -> u8 {
+		Cell::get(self)
+	}
+	fn put(&mut self, n: u8) {
+		self.set(self.get().rotate_left(1) ^ n);
+	}
+}
+
+impl Aim for [u16; 2] {
+	fn made(n: u8) -> Self {
+		[u16::from(n) << 4, u16::from(!n) << 4]
+	}
+	fn get(&self) -> u8 {
+		((self[0] ^ self[1]) >> 4) as u8
+	}
+	fn put(&mut self, n: u8) {
+		self[usize::from(n % 2)] ^= u16::from(n) << 4;
+	}
+}
+
+/// An instance of another generic type.
+struct Housed<T>(T);
+
+impl Aim for Housed<u8> {
+	fn made(n: u8) -> Self {
+		Housed(n ^ 0x99)
+	}
+	fn get(&self) -> u8 {
+		self.0
+	}
+	fn put(&mut self, n: u8) {
+		self.0 = self.0.wrapping_add(n) ^ 0x10;
+	}
+}
+
+/// Pointers to `T` in each shape a field holds one.
+struct Aimed<T> {
+	at: *mut T,
+	seen: *const T,
+	held: NonNull<T>,
+	maybe: Option<NonNull<T>>,
+	tagged: (*mut T, u8),
+	to: To<T>,
+}
+
+enum To<T> {
+	At(*mut T),
+	Nowhere,
+}
+
+/// A generic type holding another's instance.
+struct Enclosed<T> {
+	inner: Aimed<T>,
+}
+
+/// References to `T`.
+struct Borrows<'a, T> {
+	to: &'a mut T,
+	seen: &'a T,
+}
+
+/// An `AtomicPtr` to `T`.
+struct Swapped<T> {
+	at: AtomicPtr<T>,
+}
+
+/// Reads and writes through each of `nest`'s pointers.
+fn through<T: Aim>(nest: &Enclosed<T>, n: u8, out: &mut Vec<u8>) {
+	let a = &nest.inner;
+	unsafe {
+		out.push((*a.seen).get());
+		(*a.at).put(n);
+		out.push((*a.held.as_ptr()).get());
+		if let Some(p) = a.maybe {
+			(*p.as_ptr()).put(n ^ 3);
+		}
+		(*a.tagged.0).put(n.wrapping_add(a.tagged.1));
+		if let To::At(p) = a.to {
+			(*p).put(!n);
+		}
+		out.push(u8::from(a.maybe.is_some()) << 1 | u8::from(matches!(a.to, To::At(_))));
+		if n % 5 == 0 {
+			a.at.write(T::made(n));
+		}
+		out.push((*a.seen).get());
+	}
+}
+
+/// Reads and writes through an `AtomicPtr` to what `to` points at, swapped in for null.
+fn swapped_in<T: Aim>(to: *mut T, n: u8, out: &mut Vec<u8>) {
+	let shared: Swapped<T> = Swapped {
+		at: AtomicPtr::new(ptr::null_mut()),
+	};
+	out.push(u8::from(shared.at.load(SeqCst).is_null()));
+	shared.at.store(to, SeqCst);
+	unsafe {
+		let at = shared.at.load(SeqCst);
+		(*at).put(n);
+		out.push((*at).get());
+	}
+	out.push(u8::from(shared.at.swap(ptr::null_mut(), SeqCst).is_null()));
+}
+
+/// Reads and writes `to` through references to it and to another `T`.
+fn lend<T: Aim>(to: &mut T, n: u8, out: &mut Vec<u8>) {
+	let made = T::made(n);
+	let lent = Borrows { to, seen: &made };
+	lent.to.put(n >> 1);
+	out.extend([lent.to.get(), lent.seen.get()]);
 }

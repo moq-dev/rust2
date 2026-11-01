@@ -112,8 +112,27 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		ty
 	}
 
+	/// Whether only an instance decides what a pointer or reference to `ty` is, as in a
+	/// generic type's definition: `ty` a type parameter, an array of one, either through
+	/// `MaybeUninit`s, or a binding's generic type, which an instance decides is `Copy`.
+	pub fn instance_pointee(&self, ty: Ty<'tcx>) -> bool {
+		if self.polymorphic() || !ty.has_param() {
+			return false;
+		}
+		let open = |ty: Ty<'tcx>| matches!(ty.kind(), ty::Param(_) | ty::Alias(..));
+		let ty = self.uninit_inner(ty);
+		match ty.kind() {
+			ty::Array(elem, _) => open(*elem),
+			ty::Adt(adt, _) => self.bound_drops(adt.did()).is_some(),
+			_ => open(ty),
+		}
+	}
+
 	/// The TypeScript type of a raw pointer or `NonNull` to `pointee`.
 	pub fn pointer_ty(&mut self, pointee: Ty<'tcx>, span: Span) -> Type {
+		if self.instance_pointee(pointee) {
+			return Type::Rt("Ptr", vec![self.ty(pointee, span)]);
+		}
 		match self.pointee(pointee) {
 			Pointee::Place => Type::Rt("Place", vec![self.ty(pointee, span)]),
 			Pointee::Object => self.ty(pointee, span),

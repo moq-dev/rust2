@@ -191,6 +191,9 @@ pub struct Translator<'a, 'tcx> {
 	instances: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, SymId>,
 	queue: VecDeque<(Instance<'tcx>, SymId)>,
 	adts: rustc_data_structures::fx::FxHashMap<DefId, Adt>,
+	/// The fields of generic types whose definition types a pointer as an `rt.Ptr`, which
+	/// an instance's read casts to what it holds.
+	ptr_fields: rustc_data_structures::fx::FxHashSet<DefId>,
 	/// Source files by name, as indexes into `program.sources`.
 	sources: rustc_data_structures::fx::FxHashMap<String, Option<u32>>,
 	failed: bool,
@@ -428,6 +431,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			instances: Default::default(),
 			queue: VecDeque::new(),
 			adts: Default::default(),
+			ptr_fields: Default::default(),
 			sources: Default::default(),
 			failed: false,
 			env: TypingEnv::fully_monomorphized(),
@@ -1049,7 +1053,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						let span = tcx.def_span(field.did);
 						ts::Field {
 							id,
-							ty: self.ty(field.ty(tcx, identity).skip_norm_wip(), span),
+							ty: self.defined_field_ty(field, identity, span),
 							doc: self.doc(field.did),
 							init: ts::FieldInit::Ctor,
 						}
@@ -1093,7 +1097,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						let mut fields = vec![("tag".to_string(), Type::StrLit(v.name.to_string()))];
 						for (i, field) in v.fields.iter().enumerate() {
 							let span = tcx.def_span(field.did);
-							let ty = self.ty(field.ty(tcx, identity).skip_norm_wip(), span);
+							let ty = self.defined_field_ty(field, identity, span);
 							fields.push((field_name(field.name.as_str(), i), ty));
 						}
 						Type::Object(fields)
@@ -1272,6 +1276,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			ty::Never => Type::Builtin("never"),
 			ty::Tuple(tys) if tys.is_empty() => Type::Builtin("undefined"),
 			ty::Tuple(tys) => Type::Tuple(tys.iter().map(|t| self.ty(t, span)).collect()),
+			ty::Ref(_, inner, _) if self.instance_pointee(*inner) => Type::Rt("Ptr", vec![self.ty(*inner, span)]),
 			ty::Ref(_, inner, rustc_ast::Mutability::Mut) if self.needs_place(*inner) => {
 				Type::Rt("Place", vec![self.ty(*inner, span)])
 			}
@@ -1611,6 +1616,28 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		}
 		let args = args.types().map(|t| self.ty(t, span)).collect();
 		Type::Sym(info.sym, args)
+	}
+
+	/// The TypeScript type of `field` in its type's definition, with `identity` its own
+	/// parameters, noting a field that holds an `rt.Ptr` for [`Self::ptr_field`].
+	fn defined_field_ty(&mut self, field: &ty::FieldDef, identity: GenericArgsRef<'tcx>, span: Span) -> Type {
+		let ty = self.ty(field.ty(self.tcx, identity).skip_norm_wip(), span);
+		if ty.any(&|t| matches!(t, Type::Rt("Ptr", _))) {
+			self.ptr_fields.insert(field.did);
+		}
+		ty
+	}
+
+	/// The type an instance with `args` holds in `field`, if its definition types a pointer
+	/// in it as an `rt.Ptr`, which a read casts to it.
+	pub fn ptr_field(&mut self, field: DefId, args: GenericArgsRef<'tcx>, span: Span) -> Option<Type> {
+		match self.ptr_fields.contains(&field) {
+			true => {
+				let ty = self.field_ty(field, args);
+				Some(self.ty(ty, span))
+			}
+			false => None,
+		}
 	}
 
 	/// Why an instance of the crate's generic `adt` with `args` can't hold its fields' values,
