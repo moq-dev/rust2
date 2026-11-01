@@ -1946,6 +1946,163 @@ pub fn generic_cell_rebound(n: u32) -> u32 {
 	unsafe { (*p).1.get() + w.0 as u32 }
 }
 
+fn part_cell(c: &std::cell::UnsafeCell<u16>) -> *mut u16 {
+	c.get()
+}
+
+pub struct Replaced {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn replace_part(r: &mut Replaced) {
+	drop(std::mem::replace(&mut r.cell, std::cell::UnsafeCell::new(0)));
+}
+
+/// A pointer a callee takes through a reference to a cell in a struct, which another
+/// function's `mem::replace` gives another object.
+pub fn part_mem_replaced(n: u16) -> u16 {
+	let mut r = Replaced {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&r.cell);
+	replace_part(&mut r);
+	unsafe { *p }
+}
+
+pub struct Swapped {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn swap_part(s: &mut Swapped) {
+	std::mem::swap(&mut s.cell, &mut std::cell::UnsafeCell::new(0));
+}
+
+/// As `part_replaced`, by another function's `mem::swap`.
+pub fn part_swapped(n: u16) -> u16 {
+	let mut s = Swapped {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&s.cell);
+	swap_part(&mut s);
+	unsafe { *p }
+}
+
+pub struct Taken {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn take_part(t: &mut Taken) {
+	drop(std::mem::take(&mut t.cell));
+}
+
+/// As `part_replaced`, by another function's `mem::take`.
+pub fn part_taken(n: u16) -> u16 {
+	let mut t = Taken {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&t.cell);
+	take_part(&mut t);
+	unsafe { *p }
+}
+
+pub struct Assigned {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn assign_part(a: &mut Assigned) {
+	a.cell = std::cell::UnsafeCell::new(0);
+}
+
+/// As `part_replaced`, by another function's assignment of the part through a `&mut` to
+/// its holder.
+pub fn part_assigned(n: u16) -> u16 {
+	let mut a = Assigned {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&a.cell);
+	assign_part(&mut a);
+	unsafe { *p }
+}
+
+pub struct Deeper {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn deeper_cell(c: &std::cell::UnsafeCell<u16>) -> *mut u16 {
+	part_cell(c)
+}
+
+fn assign_deeper(d: &mut Deeper) {
+	d.cell = std::cell::UnsafeCell::new(0);
+}
+
+fn reset_deeper(d: &mut Deeper) {
+	assign_deeper(d);
+}
+
+/// As `part_assigned`, with the pointer taken and the part assigned each two calls deep.
+pub fn part_replaced_deep(n: u16) -> u16 {
+	let mut d = Deeper {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = deeper_cell(&d.cell);
+	reset_deeper(&mut d);
+	unsafe { *p }
+}
+
+pub trait Clear {
+	fn clear(&mut self);
+}
+
+pub struct Dynamic {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+impl Clear for Dynamic {
+	fn clear(&mut self) {
+		self.cell = std::cell::UnsafeCell::new(0);
+	}
+}
+
+/// As `part_assigned`, through a trait object's method.
+pub fn part_replaced_dyn(n: u16) -> u16 {
+	let mut d = Dynamic {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&d.cell);
+	let clear: &mut dyn Clear = &mut d;
+	clear.clear();
+	unsafe { *p }
+}
+
+pub struct Closed {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+/// As `part_assigned`, by a closure, which also takes the pointer.
+pub fn part_replaced_closure(n: u16) -> u16 {
+	let mut e = Closed {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let take = |c: &std::cell::UnsafeCell<u16>| c.get();
+	let p = take(&e.cell);
+	let reset = |e: &mut Closed| e.cell = std::cell::UnsafeCell::new(0);
+	reset(&mut e);
+	unsafe { *p }
+}
+
+fn replace_element(cells: &mut [std::cell::UnsafeCell<u16>; 2]) {
+	cells[1] = std::cell::UnsafeCell::new(0);
+}
+
+/// As `part_assigned`, with the cell an array's element, which another function assigns.
+pub fn element_replaced(n: u16) -> u16 {
+	let mut cells = [std::cell::UnsafeCell::new(n), std::cell::UnsafeCell::new(n)];
+	let p = part_cell(&cells[1]);
+	replace_element(&mut cells);
+	unsafe { *p }
+}
+
 #[derive(Clone, Copy)]
 pub struct Block<const N: usize>([u8; N]);
 
