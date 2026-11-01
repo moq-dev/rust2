@@ -1,6 +1,8 @@
 //! Methods on generic structs and enums, each instance its own method.
 
 use std::borrow::Cow;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::fmt::{Pair, put};
 use crate::shapes::{Area, Meters, Point, Shape, Track};
@@ -249,6 +251,20 @@ impl<T: Copy> Run<T> {
 	}
 }
 
+/// A generic type JS copies, holding an array of its parameter.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Fixed<T> {
+	pub pair: [T; 2],
+	pub tag: u8,
+}
+
+/// `fixed` with its pair swapped, in a copy of it.
+fn swapped<T: Copy>(fixed: Fixed<T>) -> Fixed<T> {
+	let mut copy = fixed;
+	copy.pair.swap(0, 1);
+	copy
+}
+
 /// A generic type lending a run of its parameter, which it writes through, and a function
 /// of one.
 struct Lends<'a, T> {
@@ -297,10 +313,14 @@ macro_rules! runs_of {
 		}
 		fill(lent.run, <$ty>::from(3u8));
 		let run = runs.run();
+		let fixed = Fixed { pair: [n, n], tag: 1 };
+		let mut copy = fixed;
+		copy.pair[0] = <$ty>::from(9u8);
+		let swapped = swapped(copy);
 		put(
 			$out,
 			&format!(
-				"{runs:?} {before:?} {taken:?} {run:?} {} {} {:?} {last:?}",
+				"{runs:?} {before:?} {taken:?} {run:?} {fixed:?} {copy:?} {swapped:?} {} {} {:?} {last:?}",
 				runs.total(),
 				runs == before,
 				run.first(),
@@ -309,8 +329,57 @@ macro_rules! runs_of {
 	}};
 }
 
-/// [`Runs`] and [`Run`] at `u8`, whose runs JS keeps as bytes, and at `u16`.
+/// Logs its id as it drops, and as it is cloned, the id with the high bit set.
+struct Ticked {
+	id: u8,
+	log: Rc<RefCell<Vec<u8>>>,
+}
+
+impl Clone for Ticked {
+	fn clone(&self) -> Self {
+		self.log.borrow_mut().push(0x80 | self.id);
+		Self {
+			id: self.id,
+			log: self.log.clone(),
+		}
+	}
+}
+
+impl Drop for Ticked {
+	fn drop(&mut self) {
+		self.log.borrow_mut().push(self.id);
+	}
+}
+
+/// [`Runs`], [`Run`], and [`Fixed`] at `u8`, whose runs JS keeps as bytes, and at
+/// `u16`, then [`Runs`] and [`Run`] of values that drop, in the order of their fields.
 pub fn runs(data: &[u8], out: &mut Vec<u8>) {
 	runs_of!(data, out, u8);
 	runs_of!(data, out, u16);
+	let log = Rc::new(RefCell::new(Vec::new()));
+	let tick = |id: u8| Ticked { id, log: log.clone() };
+	let ticks: Vec<Ticked> = data.iter().map(|&id| tick(id)).collect();
+	let runs = Runs {
+		array: [tick(1), tick(2), tick(3)],
+		list: ticks.clone(),
+		view: &ticks,
+		boxed: Box::new([tick(4)]),
+		cow: match data.len() % 2 {
+			0 => Cow::Borrowed(&ticks),
+			_ => Cow::Owned(vec![tick(7)]),
+		},
+		pairs: vec![[tick(5), tick(6)]],
+		maybe: data.first().map(|&id| vec![tick(!id)]),
+	};
+	drop(runs);
+	let run = match data.len() % 3 {
+		0 => Run::Listed(vec![tick(8)]),
+		1 => Run::Fixed {
+			array: [tick(9), tick(10)],
+		},
+		_ => Run::Empty,
+	};
+	drop(run);
+	drop(ticks);
+	out.extend(log.borrow().iter());
 }

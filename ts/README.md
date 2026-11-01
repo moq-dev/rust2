@@ -841,8 +841,8 @@ built natively for wasm32 and run beside its translation on the same inputs by
   `MaybeUninit` entry, pointers to locals, fields, and whole structs, those
   `UnsafeCell::get` gives, as crossbeam-epoch's own `OnceLock` keeps its collector, and
   those a generic type holds to its parameter, at each form a pointer takes, and a
-  generic type's arrays, slices, `Vec`s, and `Cow`s of its parameter at bytes and at
-  `u16`. Its
+  generic type's arrays, slices, `Vec`s, and `Cow`s of its parameter at bytes, at
+  `u16`, and at values that drop. Its
   differential test runs through `caller.ts`, a
   hand-written caller that also prints a `printable` error nothing translated prints,
   and adds every 64- and 128-bit case over each pair of values next to a power of two,

@@ -24,6 +24,7 @@ import type * as cycles_Logged from "../cycles.Logged.ts";
 import * as defaults_Made from "../defaults.Made.ts";
 import type * as dyns_Shape from "../dyns.Shape.ts";
 import * as edits_Named from "../edits.Named.ts";
+import type * as Ticked from "../generics.Ticked.ts";
 import type * as hints_Unit from "../hints.Unit.ts";
 import type * as Badge from "../iters.Badge.ts";
 import type * as Quarter from "../iters.Quarter.ts";
@@ -609,6 +610,13 @@ export function map$1xk4yz1(self: rt.ByteSlice | undefined, _: (a0: rt.ByteSlice
 export function map$0rbsrz6(self: rt.u8 | undefined, f: (a0: rt.u8) => rt.u8 | undefined): rt.u8 | undefined | rt.None {
 	if (self === undefined) {
 		return rt.None;
+	}
+	return f(self);
+}
+
+export function map$12l9avg(self: rt.u8 | undefined, f: (a0: rt.u8) => Ticked.Ticked[]): Ticked.Ticked[] | undefined {
+	if (self === undefined) {
+		return undefined;
 	}
 	return f(self);
 }

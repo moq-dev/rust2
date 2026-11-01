@@ -250,6 +250,9 @@ pub struct Translator<'a, 'tcx> {
 	pub coroutines: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, mir::coroutine::Info<'tcx>>,
 	/// Whether [`Self::ty`] is typing a variable: see [`Self::held_ty`].
 	held: bool,
+	/// Whether [`Self::ty`] is typing a generic class's drop glue, which only an instance
+	/// whose parameters drop runs, so none is a byte.
+	glue: bool,
 	/// Where the crate first reached each instance of std's that lowers from its MIR, which
 	/// refuses there: its own spans are std's.
 	sites: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, Span>,
@@ -472,6 +475,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			compared,
 			comparing: Default::default(),
 			held: false,
+			glue: false,
 			sites: Default::default(),
 			site: None,
 			bindings: Default::default(),
@@ -592,6 +596,12 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// definition, which only an instance decides.
 	pub fn open(&self, ty: Ty<'tcx>) -> bool {
 		!self.polymorphic() && ty.has_param() && matches!(ty.kind(), ty::Param(_) | ty::Alias(..))
+	}
+
+	/// Whether only an instance decides whether `elem`, a run's element, is a byte, which
+	/// JS keeps a run of apart.
+	fn open_elem(&self, elem: Ty<'tcx>) -> bool {
+		!self.glue && self.open(elem)
 	}
 
 	pub fn typing_env_pub(&self) -> TypingEnv<'tcx> {
@@ -985,8 +995,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		}
 		// Its fields' types are refused where they are written, whatever reached it.
 		let held = std::mem::replace(&mut self.held, false);
+		let glue = std::mem::replace(&mut self.glue, false);
 		let info = self.define(adt, span);
-		self.held = held;
+		(self.held, self.glue) = (held, glue);
 		info
 	}
 
@@ -1308,8 +1319,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			ty::RawPtr(inner, _) => self.pointer_ty(*inner, span),
 			ty::Ref(..) if bytes_ref(ty) => Type::Rt("ByteSlice", vec![]),
 			ty::Ref(_, inner, _) => self.ty(*inner, span),
-			ty::Array(elem, _) if self.open(*elem) => Type::Rt("ArrayOf", vec![self.ty(*elem, span)]),
-			ty::Slice(elem) if self.open(*elem) => Type::Rt("SliceOf", vec![self.ty(*elem, span)]),
+			ty::Array(elem, _) if self.open_elem(*elem) => Type::Rt("ArrayOf", vec![self.ty(*elem, span)]),
+			ty::Slice(elem) if self.open_elem(*elem) => Type::Rt("SliceOf", vec![self.ty(*elem, span)]),
 			ty::Array(elem, _) => match elem.kind() {
 				ty::Uint(ty::UintTy::U8) => Type::Builtin("Uint8Array"),
 				_ => Type::Array(Box::new(self.ty(*elem, span))),
@@ -1459,7 +1470,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					"Result",
 					vec![self.ty(args.type_at(0), span), self.ty(args.type_at(1), span)],
 				),
-				library::Std::Vec if self.open(args.type_at(0)) => Type::Rt("VecOf", vec![self.ty(args.type_at(0), span)]),
+				library::Std::Vec if self.open_elem(args.type_at(0)) => {
+					Type::Rt("VecOf", vec![self.ty(args.type_at(0), span)])
+				}
 				library::Std::Vec => match args.type_at(0).kind() {
 					ty::Uint(ty::UintTy::U8) => Type::Rt("ByteVec", vec![]),
 					_ => Type::Array(Box::new(self.ty(args.type_at(0), span))),
@@ -1468,7 +1481,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				library::Std::Cow if library::string(tcx, Ty::new_adt(tcx, adt, args)) => Type::Builtin("string"),
 				library::Std::Cow if let Some(elem) = library::cow_slice(tcx, Ty::new_adt(tcx, adt, args)) => {
 					match elem.kind() {
-						_ if self.open(elem) => Type::Rt("CowOf", vec![self.ty(elem, span)]),
+						_ if self.open_elem(elem) => Type::Rt("CowOf", vec![self.ty(elem, span)]),
 						ty::Uint(ty::UintTy::U8) => Type::Rt("ByteCow", vec![]),
 						_ => Type::Rt("Cow", vec![self.ty(elem, span)]),
 					}
@@ -1654,7 +1667,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		let ty = self.ty(field.ty(self.tcx, identity).skip_norm_wip(), span);
 		let instanced = |t: &Type| matches!(t, Type::Rt("Ptr" | "ArrayOf" | "SliceOf" | "VecOf" | "CowOf", _));
 		if ty.any(&instanced) {
-			self.instanced_fields.insert(field.did, ty.takes(&instanced).then(|| ty.clone()));
+			self.instanced_fields
+				.insert(field.did, ty.takes(&instanced).then(|| ty.clone()));
 		}
 		ty
 	}

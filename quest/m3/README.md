@@ -35,5 +35,6 @@ generic std gap is planned here even when moq never calls it.
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
 - [A &mut into a Box of a value JS copies](/quest/m3/ts-box-places.md) - a write through `&mut *b` of a `Box<u32>`, a `Box<String>`, or a `Box<str>` reaches the box's place
 - [A str's checked and inclusive parts](/quest/m3/ts-str-get.md) - `str::get` and indexing a `str` by `a..=b` or `..=b` translate
+- [Rc and Arc of a slice](/quest/m3/ts-shared-slices.md) - `Rc<[T]>` and `Arc<[T]>` from a `Vec`, a slice, or an iterator translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained

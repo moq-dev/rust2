@@ -13,6 +13,9 @@ import type * as RcReleasing from "./counts.RcReleasing.ts";
 import type * as RcShared from "./counts.RcShared.ts";
 import type * as durations_Window from "./durations.Window.ts";
 import type * as Either from "./generics.Either.ts";
+import * as Fixed from "./generics.Fixed.ts";
+import type * as generics_Run from "./generics.Run.ts";
+import type * as Ticked from "./generics.Ticked.ts";
 import * as Wrap from "./generics.Wrap.ts";
 import type * as Bumped from "./iters.Bumped.ts";
 import type * as joins_Logged from "./joins.Logged.ts";
@@ -300,6 +303,14 @@ export function copy$generics_Either_u8_shapes_Point(v: Either.Either<rt.u8, Poi
 		return { tag: "Right", value: copy$shapes_Point(v.value) };
 	}
 	return v;
+}
+
+export function copy$generics_Fixed_u16(v: Fixed.Fixed<rt.u16>): Fixed.Fixed<rt.u16> {
+	return new Fixed.Fixed(copy$array_u16(v.pair as rt.u16[]), v.tag);
+}
+
+export function copy$generics_Fixed_u8(v: Fixed.Fixed<rt.u8>): Fixed.Fixed<rt.u8> {
+	return new Fixed.Fixed(copy$array_u8(v.pair as Uint8Array), v.tag);
 }
 
 export function copy$generics_Wrap_shapes_Point(v: Wrap.Wrap<Point.Point>): Wrap.Wrap<Point.Point> {
@@ -851,6 +862,14 @@ export function drop$cell_RefCell_Vec_Rc_counts_RcReleasing(value: rt.RefCell<rt
 
 export function drop$cell_RefCell_Vec_sync_Arc_counts_ArcReleasing(value: rt.RefCell<rt.Arc<ArcReleasing.ArcReleasing>[]>): void {
 	rt.dropAll(value.value);
+}
+
+export function drop$generics_Run_generics_Ticked(_1: generics_Run.Run<Ticked.Ticked>): void {
+	if (_1.tag === "Listed") {
+		rt.dropAll(_1._0 as Ticked.Ticked[]);
+	} else if (_1.tag === "Fixed") {
+		rt.dropAll(_1.array as Ticked.Ticked[]);
+	}
 }
 
 export function drop$pointers_List_String(_1: List.List<string>): void {

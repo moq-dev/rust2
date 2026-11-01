@@ -106,6 +106,15 @@ export class Runs<T> {
 		this.pairs = pairs;
 		this.maybe = maybe;
 	}
+
+	[Symbol.dispose](): void {
+		rt.dropAll(this.array as T[]);
+		rt.dropAll(this.list as T[]);
+		rt.dropAll(this.boxed as T[]);
+		rt.cowDrop(this.cow as rt.Cow<T>);
+		rt.dropAll(this.pairs as T[][], (value: T[]) => rt.dropAll(value));
+		rt.dropAll(this.maybe as T[] | undefined);
+	}
 }
 
 export function total$u16(self: Runs<rt.u16>): rt.usize {
