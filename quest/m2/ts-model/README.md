@@ -3,7 +3,7 @@
 ## Goal
 
 [rust2-ts](/ts/README.md) translates moq-net's model layer, with the workspace crates it
-calls (kio, moq-clock, moq-pattern), as it translates the codec today, so moq can compare
+calls (kio, with its clock, and moq-pattern), as it translates the codec today, so moq can compare
 the source-translator route against its WASM build on the code a browser session runs.
 
 ## Plan

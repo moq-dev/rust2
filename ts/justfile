@@ -9,7 +9,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 export PATH := if env("RUST2_TS_TOOLCHAIN", "") == "" { env("PATH") } else { env("RUST2_TS_TOOLCHAIN") / "bin:" + env("PATH") }
 
 # The moq revision `moq` translates by default.
-moq_rev := "30f25c04e6d0288d87893dc609ba582518be2cf6"
+moq_rev := "4b8e37bd44e407b3416a17992720870ea3f9221c"
 
 default:
     @just --list
@@ -51,8 +51,7 @@ moq checkout="":
         src=target/moq
     fi
     out=target/moq-ts
-    # moq-wasm comes along to select getrandom's wasm backend for moq-net.
-    cargo run --locked --quiet -- --config moq/ts.toml --manifest-path "$src/rs/moq-net/Cargo.toml" --out "$out" -- --package moq-wasm
+    cargo run --locked --quiet -- --config moq/ts.toml --manifest-path "$src/rs/moq-net/Cargo.toml" --out "$out"
     printf '{ "extends": "%s/runtime/tsconfig.json", "files": [], "include": ["**/*.ts"] }\n' "$PWD" > "$out/tsconfig.json"
     tsc -p "$out"
 
@@ -65,24 +64,24 @@ census checkout="":
         just moq-pin
         src=target/moq
     fi
-    cargo run --locked --quiet -- --config moq/net.toml --manifest-path "$src/rs/moq-net/Cargo.toml" --census target/census/moq-net.md -- --package moq-wasm
-    cargo run --locked --quiet -- --config moq/model.toml --manifest-path "$src/rs/moq-net/Cargo.toml" --census target/census/model.md -- --package moq-wasm
+    cargo run --locked --quiet -- --config moq/net.toml --manifest-path "$src/rs/moq-net/Cargo.toml" --census target/census/moq-net.md
+    cargo run --locked --quiet -- --config moq/model.toml --manifest-path "$src/rs/moq-net/Cargo.toml" --census target/census/model.md
     cargo run --locked --quiet -- --config moq/kio.toml --manifest-path "$src/rs/kio/Cargo.toml" --census target/census/kio.md
 
-# Check out the pinned moq revision in target/moq.
+# Check out the pinned moq revision, or another, in target/moq.
 [private]
-moq-pin:
+moq-pin rev=moq_rev:
     [ -d target/moq/.git ] || git clone --quiet --filter=blob:none https://github.com/moq-dev/moq target/moq
     # Fetch only a missing pin; the partial clone would otherwise fetch it lazily to look it up.
-    GIT_NO_LAZY_FETCH=1 git -C target/moq cat-file -e {{ moq_rev }}^{commit} 2> /dev/null || git -C target/moq fetch --quiet --depth 1 origin {{ moq_rev }}
-    git -C target/moq checkout --quiet --detach {{ moq_rev }}
+    GIT_NO_LAZY_FETCH=1 git -C target/moq cat-file -e {{ rev }}^{commit} 2> /dev/null || git -C target/moq fetch --quiet --depth 1 origin {{ rev }}
+    git -C target/moq checkout --quiet --detach {{ rev }}
 
 # Time the codec natively, as moq's WASM, as moq's hand-written TS, and translated, in Node, Bun, Chrome, and Firefox; `--route name=dir` adds another run's translations.
 [arg("route", long)]
 bench checkout="" route="": (moq checkout)
     #!/usr/bin/env bash
     set -euo pipefail
-    for tool in bun chromium firefox wasm-bindgen; do
+    for tool in bun chromium firefox; do
         command -v "$tool" > /dev/null || { echo "$tool is missing: run this in the bench shell, nix develop .#bench" >&2; exit 1; }
     done
     src="{{ checkout }}"
@@ -98,10 +97,7 @@ bench checkout="" route="": (moq checkout)
     cargo build --locked --quiet --package task-fixture --example handoff --release
     # moq's hand-written TS imports its npm dependencies; its postinstall builds libav.
     (cd "$src" && bun install --frozen-lockfile --ignore-scripts --filter @moq/net)
-    # moq-wasm's package, as moq's `just js wasm` builds it.
-    (cd "$src" && cargo build --locked --quiet --package moq-wasm --target wasm32-unknown-unknown --profile wasm-release)
-    wasm-bindgen --target web --out-name moq --out-dir "$out/moq-wasm" "$src/target/wasm32-unknown-unknown/wasm-release/moq_wasm.wasm"
-    bun bench/main.ts --translated "$out/translated" --moq "$src" --moq-wasm "$out/moq-wasm" --out "$out" \
+    bun bench/main.ts --translated "$out/translated" --moq "$src" --out "$out" \
         --wasm target/wasm32-unknown-unknown/wasm-release/codec_fixture.wasm --native target/release/examples/bench \
         --task "$out/task" \
         --task-wasm target/wasm32-unknown-unknown/wasm-release/task_fixture.wasm --task-native target/release/examples/handoff \
