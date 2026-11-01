@@ -2,6 +2,7 @@
 
 import * as rt from "./rt.ts";
 import { copy$Option_tuple2_u8_u8, copy$array_u32 } from "./lib.ts";
+import { madeOut$u8 } from "./cells.ts";
 import { thenSome$0xksuo2, then$0ozmvid } from "./core/bool.ts";
 import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$0x6fy3l as option_unwrapOr$0x6fy3l, unwrapOr$11c0we2 as option_unwrapOr$11c0we2, unwrapOrDefault$165pyh5 as option_unwrapOrDefault$165pyh5, unwrapOrDefault$0wx44sw as option_unwrapOrDefault$0wx44sw, map$1k7m6zz as option_map$1k7m6zz, map$1fmzefe as option_map$1fmzefe, map$0cs071d as option_map$0cs071d, mapOr$1xztl8h as option_mapOr$1xztl8h, mapOr$0lcrgk1 as option_mapOr$0lcrgk1, mapOr$1giiemz as option_mapOr$1giiemz, mapOr$1surhce as option_mapOr$1surhce, mapOr$0mmpeqx as option_mapOr$0mmpeqx, mapOr$1m2xzon as option_mapOr$1m2xzon, andThen$101gy6h as option_andThen$101gy6h, filter$033ccod, or$1loyskh as option_or$1loyskh } from "./core/option.ts";
 import { err$1nqzzwu, asRef$0ssaoss } from "./core/result.ts";
@@ -1379,11 +1380,12 @@ export function toRefs(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** `Ok` for an even byte, else `Err`. */
-export function parity(b: rt.u8): rt.Result<rt.u8, rt.u8> {
+export function parity(b: rt.u8): rt.u8 | undefined {
 	if (!(rt.u8Rem(b, 2) === 0)) {
-		return rt.Err(b);
+		madeOut$u8.err = b;
+		return undefined;
 	}
-	return rt.Ok(b);
+	return b;
 }
 
 /**
@@ -1394,7 +1396,8 @@ export function parity(b: rt.u8): rt.Result<rt.u8, rt.u8> {
 export function adapted(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const v: rt.ByteVec = rt.byteSliceToByteVec(data);
 	let opt: rt.u8 | undefined = rt.byteSliceFirst(data);
-	let res: rt.Result<rt.u8, rt.u8> = parity(option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, 1), 4));
+	const part = parity(option_unwrapOr$0r2bmpr(rt.byteSliceGet(data, 1), 4));
+	let res: rt.Result<rt.u8, rt.u8> = part === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part);
 	const iter: rt.Iter<[rt.u8, rt.Place<rt.u8>]> = rt.iterZip(rt.iterRev(rt.iterSlice(rt.byteSliceView(data))), rt.iterSliceMut(rt.byteVecView(v)), "len");
 	while (true) {
 		const _16: [rt.u8, rt.Place<rt.u8>] | rt.Done = iter.next();

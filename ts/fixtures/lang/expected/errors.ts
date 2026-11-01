@@ -436,9 +436,9 @@ export function eqs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.idx(_14, _15);
 		input = input + String.fromCodePoint(_14[_15]);
 	}
-	const all: string[] = ["", "0", "-0", "1", "-1", "+", "a", "ab", "😀", "true", "false", "127", "128", "-128", "-129", "256", "18446744073709551615", "18446744073709551616", "-170141183460469231731687303715884105729", "1.5", "1e400", "NaN", "inf"].slice();
+	const all: string[] = rt.vecExact(["", "0", "-0", "1", "-1", "+", "a", "ab", "😀", "true", "false", "127", "128", "-128", "-129", "256", "18446744073709551615", "18446744073709551616", "-170141183460469231731687303715884105729", "1.5", "1e400", "NaN", "inf"].slice(), 8);
 	all.push(input);
-	const bytes: rt.ByteSlice[] = [rt.byteSliceFrom(Uint8Array.of()), rt.byteSliceFrom(Uint8Array.of(97)), rt.byteSliceFrom(Uint8Array.of(255)), rt.byteSliceFrom(Uint8Array.of(97, 255)), rt.byteSliceFrom(Uint8Array.of(195)), rt.byteSliceFrom(Uint8Array.of(97, 195)), rt.byteSliceFrom(Uint8Array.of(224, 128)), rt.byteSliceFrom(Uint8Array.of(240, 159, 152)), rt.byteSliceFrom(Uint8Array.of(240, 159, 152, 128)), rt.byteSliceFrom(Uint8Array.of(237, 160, 128))].slice();
+	const bytes: rt.ByteSlice[] = rt.vecExact([rt.byteSliceFrom(Uint8Array.of()), rt.byteSliceFrom(Uint8Array.of(97)), rt.byteSliceFrom(Uint8Array.of(255)), rt.byteSliceFrom(Uint8Array.of(97, 255)), rt.byteSliceFrom(Uint8Array.of(195)), rt.byteSliceFrom(Uint8Array.of(97, 195)), rt.byteSliceFrom(Uint8Array.of(224, 128)), rt.byteSliceFrom(Uint8Array.of(240, 159, 152)), rt.byteSliceFrom(Uint8Array.of(240, 159, 152, 128)), rt.byteSliceFrom(Uint8Array.of(237, 160, 128))].slice(), 8);
 	bytes.push(data);
 	const _32: rt.u8 = rt.u8Rem(kind, 15);
 	if (_32 === 0) {

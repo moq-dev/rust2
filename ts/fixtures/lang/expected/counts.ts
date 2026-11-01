@@ -298,9 +298,9 @@ export function clonedArcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 				_192 = false;
 			} else if (_34 === 6) {
 				const _125: rt.Arc<counts_Noisy.Noisy>[] | undefined = rt.sliceFirst(lists);
-				const list: rt.Arc<counts_Noisy.Noisy>[] | undefined = _125 === undefined ? undefined : _125.map((a0: rt.Arc<counts_Noisy.Noisy>): rt.Arc<counts_Noisy.Noisy> => {
+				const list: rt.Arc<counts_Noisy.Noisy>[] | undefined = _125 === undefined ? undefined : rt.vecExact(_125.map((a0: rt.Arc<counts_Noisy.Noisy>): rt.Arc<counts_Noisy.Noisy> => {
 					return rt.arcClone(a0);
-				});
+				}), 4);
 				rt.byteVecPush(out, option_mapOr$1unqgn7(list, 253, (l: rt.Arc<counts_Noisy.Noisy>[]): rt.u8 => {
 					return l.length & 0xff;
 				}));
@@ -655,9 +655,9 @@ export function clonedRcs(data: rt.ByteSlice, out: rt.ByteVec): void {
 				_192 = false;
 			} else if (_34 === 6) {
 				const _125: rt.Arc<counts_Noisy.Noisy>[] | undefined = rt.sliceFirst(lists);
-				const list: rt.Arc<counts_Noisy.Noisy>[] | undefined = _125 === undefined ? undefined : _125.map((a0: rt.Arc<counts_Noisy.Noisy>): rt.Arc<counts_Noisy.Noisy> => {
+				const list: rt.Arc<counts_Noisy.Noisy>[] | undefined = _125 === undefined ? undefined : rt.vecExact(_125.map((a0: rt.Arc<counts_Noisy.Noisy>): rt.Arc<counts_Noisy.Noisy> => {
 					return rt.arcClone(a0);
-				});
+				}), 4);
 				rt.byteVecPush(out, option_mapOr$1unqgn7(list, 253, (l: rt.Arc<counts_Noisy.Noisy>[]): rt.u8 => {
 					return l.length & 0xff;
 				}));

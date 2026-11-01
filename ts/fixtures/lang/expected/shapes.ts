@@ -2,6 +2,7 @@
 
 import * as rt from "./rt.ts";
 import { copy$Option_shapes_Shape, copy$Option_tuple2_ref_sync_Mutex_u8_u8, copy$Result_tuple2_ref_sync_Mutex_u8_u8_u8, copy$array_ref_sync_Mutex_u8, copy$array_shapes_Point, copy$array_u8, copy$ops_ControlFlow_ref_sync_Arc_u8_array1_u8, copy$ops_ControlFlow_unit_array2_u8, copy$shapes_Gauge, copy$shapes_Held, copy$shapes_Lens, copy$shapes_Level, copy$shapes_Point, copy$shapes_Shape, copy$task_Poll_array1_u8, copy$tuple2_ref_sync_Mutex_u8_u8, copy$tuple2_shapes_Point_u8, copy$tuple2_u8_u8 } from "./lib.ts";
+import { madeOut$u8 } from "./cells.ts";
 import { thenSome$0ztng9q, then$1i9qaz4, then$1btzga3 } from "./core/bool.ts";
 import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, map$0600mq0 as option_map$0600mq0, map$18z3v8h as option_map$18z3v8h, mapOr$1a3irjf as option_mapOr$1a3irjf, mapOr$1t0muvr as option_mapOr$1t0muvr, mapOr$1ybqvup as option_mapOr$1ybqvup, mapOr$0rtdylj as option_mapOr$0rtdylj, mapOr$0aserv9 as option_mapOr$0aserv9, mapOr$1hjjwvv as option_mapOr$1hjjwvv, okOr$1vxk0yk as option_okOr$1vxk0yk } from "./core/option.ts";
 import { map$1dbyvzi as result_map$1dbyvzi, mapErr$0dzqwjy as result_mapErr$0dzqwjy } from "./core/result.ts";
@@ -372,9 +373,9 @@ export function shares(data: rt.ByteSlice, out: rt.ByteVec): void {
 	bump(copy5.slot);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(a, copy5.n)));
 	rt.byteVecPush(out, lensBumped(lens));
-	for (const _104 of Array.from({ length: 2 }, (): Lens.Lens => {
+	for (const _104 of rt.vecExact(Array.from({ length: 2 }, (): Lens.Lens => {
 		return copy$shapes_Lens(lens);
-	}).map(copy$shapes_Lens)) {
+	}).map(copy$shapes_Lens), 8)) {
 		bump(_104.slot);
 	}
 	const lenses: Lens.Lens[] = [];
@@ -1407,11 +1408,12 @@ export function patterns(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** `n`'s result: `Ok` for an even `n`. */
-export function parity(n: rt.u8): rt.Result<rt.u8, rt.u8> {
+export function parity(n: rt.u8): rt.u8 | undefined {
 	if (!(rt.u8Rem(n, 2) === 0)) {
-		return rt.Err(n);
+		madeOut$u8.err = n;
+		return undefined;
 	}
-	return rt.Ok(n);
+	return n;
 }
 
 /**
@@ -1427,7 +1429,8 @@ export function payloads(_dataData: Uint8Array, _dataStart: number, dataLen: num
 	let _143!: rt.u8;
 	let _149!: rt.u8;
 	const n: rt.u8 = dataLen & 0xff;
-	let res: rt.Result<rt.u8, rt.u8> = parity(n);
+	const part = parity(n);
+	let res: rt.Result<rt.u8, rt.u8> = part === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part);
 	const before: rt.Result<rt.u8, rt.u8> = res;
 	if (!res.ok) {
 		res = rt.Err(rt.u8WrappingAdd(res.error, 1));
@@ -1443,7 +1446,9 @@ export function payloads(_dataData: Uint8Array, _dataStart: number, dataLen: num
 	if (owned.ok) {
 		owned = rt.Ok(rt.u8WrappingAdd(owned.value, 2));
 	}
-	const slot: shapes_Slot.Slot = { res: parity(rt.u8WrappingAdd(n, 1)) };
+	const part2: rt.u8 | undefined = parity(rt.u8WrappingAdd(n, 1));
+	const err2: rt.u8 | undefined = part2 === undefined ? madeOut$u8.err as rt.u8 : undefined;
+	const slot: shapes_Slot.Slot = { res: (err2 !== undefined ? rt.Err(err2 as rt.u8) : rt.Ok(part2 as rt.u8)) as rt.Result<rt.u8, rt.u8> };
 	if (!slot.res.ok) {
 		const _33: rt.u8 = rt.u8WrappingSub(slot.res.error, 4);
 		slot.res = rt.Err(_33);
@@ -1460,7 +1465,9 @@ export function payloads(_dataData: Uint8Array, _dataStart: number, dataLen: num
 	if (poll !== rt.Pending) {
 		poll = rt.u8WrappingSub(poll, 1);
 	}
-	let nested = parity(rt.u8WrappingAdd(n, 2)) as rt.Poll<rt.Result<rt.u8, rt.u8> | undefined>;
+	const part3: rt.u8 | undefined = parity(rt.u8WrappingAdd(n, 2));
+	const err3: rt.u8 | undefined = part3 === undefined ? madeOut$u8.err as rt.u8 : undefined;
+	let nested = ((err3 !== undefined ? rt.Err(err3 as rt.u8) : rt.Ok(part3 as rt.u8)) as rt.Result<rt.u8, rt.u8>) as rt.Poll<rt.Result<rt.u8, rt.u8> | undefined>;
 	if (nested !== rt.Pending) {
 		if (nested !== undefined) {
 			if (!nested.ok) {
@@ -1468,7 +1475,8 @@ export function payloads(_dataData: Uint8Array, _dataStart: number, dataLen: num
 			}
 		}
 	}
-	let caught: rt.Result<rt.u8, rt.u8> = parity(rt.u8WrappingAdd(n, 3));
+	const part4 = parity(rt.u8WrappingAdd(n, 3));
+	let caught: rt.Result<rt.u8, rt.u8> = part4 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part4);
 	const bump: () => undefined = (): undefined => {
 		if (!caught.ok) {
 			caught = rt.Err(rt.u8WrappingAdd(caught.error, 5));
@@ -1476,7 +1484,8 @@ export function payloads(_dataData: Uint8Array, _dataStart: number, dataLen: num
 	};
 	bump();
 	bump();
-	let replaced: rt.Result<rt.u8, rt.u8> = parity(rt.u8WrappingAdd(n, 4));
+	const part5 = parity(rt.u8WrappingAdd(n, 4));
+	let replaced: rt.Result<rt.u8, rt.u8> = part5 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part5);
 	if (replaced.ok) {
 		const old = replaced.value;
 		replaced = rt.Ok(66);

@@ -518,20 +518,24 @@ export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			const _166: rt.u8 = rt.u8Rem(v2, 4);
 			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					return made$u64(make, v2);
+					const part4 = made$u64(make, v2);
+					return part4 === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part4);
 				});
 			} else if (_166 === 2) {
 				const _174: rt.OnceCell<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
 					rt.onceSet(_174, make(v2 ^ 1));
-					return made$u64(make, v2);
+					const part3 = made$u64(make, v2);
+					return part3 === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part3);
 				});
 			} else {
 				const _179: rt.OnceCell<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u64, rt.u8> => {
-						return made$u64(make, v2 ^ 1);
+					const part2 = made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u64, rt.u8> => {
+						const part = made$u64(make, v2 ^ 1);
+						return part === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part);
 					}), (_22: rt.u64): undefined => {})), v2));
+					return part2 === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part2);
 				});
 			}
 			if (result.ok) {
@@ -702,20 +706,24 @@ export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			const _166: rt.u8 = rt.u8Rem(v2, 4);
 			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					return made$u8(make, v2);
+					const part4 = made$u8(make, v2);
+					return part4 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part4);
 				});
 			} else if (_166 === 2) {
 				const _174: rt.OnceCell<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
 					rt.onceSet(_174, make(v2 ^ 1));
-					return made$u8(make, v2);
+					const part3 = made$u8(make, v2);
+					return part3 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part3);
 				});
 			} else {
 				const _179: rt.OnceCell<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8, rt.u8> => {
-						return made$u8(make, v2 ^ 1);
+					const part2 = made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8, rt.u8> => {
+						const part = made$u8(make, v2 ^ 1);
+						return part === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part);
 					}), (_22: rt.u8): undefined => {})), v2));
+					return part2 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part2);
 				});
 			}
 			if (result.ok) {
@@ -1646,20 +1654,24 @@ export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			const _166: rt.u8 = rt.u8Rem(v2, 4);
 			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					return made$u64(make, v2);
+					const part4 = made$u64(make, v2);
+					return part4 === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part4);
 				});
 			} else if (_166 === 2) {
 				const _174: rt.OnceLock<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
 					rt.onceSet(_174, make(v2 ^ 1));
-					return made$u64(make, v2);
+					const part3 = made$u64(make, v2);
+					return part3 === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part3);
 				});
 			} else {
 				const _179: rt.OnceLock<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u64, rt.u8> => {
-						return made$u64(make, v2 ^ 1);
+					const part2 = made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u64, rt.u8> => {
+						const part = made$u64(make, v2 ^ 1);
+						return part === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part);
 					}), (_22: rt.u64): undefined => {})), v2));
+					return part2 === undefined ? rt.Err(madeOut$u64.err as rt.u8) : rt.Ok(part2);
 				});
 			}
 			if (result.ok) {
@@ -1830,20 +1842,24 @@ export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			const _166: rt.u8 = rt.u8Rem(v2, 4);
 			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					return made$u8(make, v2);
+					const part4 = made$u8(make, v2);
+					return part4 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part4);
 				});
 			} else if (_166 === 2) {
 				const _174: rt.OnceLock<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
 					rt.onceSet(_174, make(v2 ^ 1));
-					return made$u8(make, v2);
+					const part3 = made$u8(make, v2);
+					return part3 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part3);
 				});
 			} else {
 				const _179: rt.OnceLock<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8, rt.u8> => {
-						return made$u8(make, v2 ^ 1);
+					const part2 = made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8, rt.u8> => {
+						const part = made$u8(make, v2 ^ 1);
+						return part === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part);
 					}), (_22: rt.u8): undefined => {})), v2));
+					return part2 === undefined ? rt.Err(madeOut$u8.err as rt.u8) : rt.Ok(part2);
 				});
 			}
 			if (result.ok) {
@@ -2316,19 +2332,21 @@ export function made$Vec_u8(make: (a0: rt.u8) => rt.ByteVec, v: rt.u8): rt.Resul
 }
 
 /** What `make` makes of `v`, or `v` back as an error for every third byte. */
-export function made$u64(make: (a0: rt.u8) => rt.u64, v: rt.u8): rt.Result<rt.u64, rt.u8> {
+export function made$u64(make: (a0: rt.u8) => rt.u64, v: rt.u8): rt.u64 | undefined {
 	if (rt.u8Rem(v, 3) === 0) {
-		return rt.Err(v);
+		madeOut$u64.err = v;
+		return undefined;
 	}
-	return rt.Ok(make(v));
+	return make(v);
 }
 
 /** What `make` makes of `v`, or `v` back as an error for every third byte. */
-export function made$u8(make: (a0: rt.u8) => rt.u8, v: rt.u8): rt.Result<rt.u8, rt.u8> {
+export function made$u8(make: (a0: rt.u8) => rt.u8, v: rt.u8): rt.u8 | undefined {
 	if (rt.u8Rem(v, 3) === 0) {
-		return rt.Err(v);
+		madeOut$u8.err = v;
+		return undefined;
 	}
-	return rt.Ok(make(v));
+	return make(v);
 }
 
 /** What `make` makes of `v`, or `v` back as an error for every third byte. */
@@ -2339,6 +2357,10 @@ export function made$unit(make: (a0: rt.u8) => undefined, v: rt.u8): rt.Result<u
 	make(v);
 	return rt.OK;
 }
+
+export const madeOut$u64: { err: unknown } = { err: undefined };
+
+export const madeOut$u8: { err: unknown } = { err: undefined };
 
 /** A `u64` past 2^53, from one byte. */
 export function wide(v: rt.u8): rt.u64 {
