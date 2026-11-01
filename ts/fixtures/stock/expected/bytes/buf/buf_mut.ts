@@ -3,57 +3,9 @@
 import * as rt from "../../rt.ts";
 
 /**
- * Returns true if there is space in `self` for more bytes.
+ * Writes a signed 16 bit integer to `self` in little-endian byte order.
  *
- * This is equivalent to `self.remaining_mut() != 0`.
- *
- * # Examples
- *
- * ```
- * use bytes::BufMut;
- *
- * let mut dst = [0; 5];
- * let mut buf = &mut dst[..];
- *
- * assert!(buf.has_remaining_mut());
- *
- * buf.put(&b"hello"[..]);
- *
- * assert!(!buf.has_remaining_mut());
- * ```
- */
-export function hasRemainingMut$bytes_BufMut_mut_mut_Vec_u8(self: rt.Place<rt.ByteVec>): boolean {
-	return remainingMut$bytes_BufMut_mut_mut_Vec_u8(self) > 0;
-}
-
-/**
- * Returns true if there is space in `self` for more bytes.
- *
- * This is equivalent to `self.remaining_mut() != 0`.
- *
- * # Examples
- *
- * ```
- * use bytes::BufMut;
- *
- * let mut dst = [0; 5];
- * let mut buf = &mut dst[..];
- *
- * assert!(buf.has_remaining_mut());
- *
- * buf.put(&b"hello"[..]);
- *
- * assert!(!buf.has_remaining_mut());
- * ```
- */
-export function hasRemainingMut$bytes_BufMut_mut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>): boolean {
-	return remainingMut$bytes_BufMut_mut_mut_bytes_BytesMut(self) > 0;
-}
-
-/**
- * Writes a signed 128 bit integer to `self` in little-endian byte order.
- *
- * The current position is advanced by 16.
+ * The current position is advanced by 2.
  *
  * # Examples
  *
@@ -61,8 +13,8 @@ export function hasRemainingMut$bytes_BufMut_mut_mut_bytes_BytesMut(self: rt.Pla
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_i128_le(0x01020304050607080910111213141516);
- * assert_eq!(buf, b"\x16\x15\x14\x13\x12\x11\x10\x09\x08\x07\x06\x05\x04\x03\x02\x01");
+ * buf.put_i16_le(0x0809);
+ * assert_eq!(buf, b"\x09\x08");
  * ```
  *
  * # Panics
@@ -70,14 +22,14 @@ export function hasRemainingMut$bytes_BufMut_mut_mut_bytes_BytesMut(self: rt.Pla
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putI128Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i128): void {
-	putSlice$bytes_BufMut_mut_Vec_u8(self, rt.byteSliceFrom(rt.i128ToBeBytes(n).reverse()));
+export function putI16Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i16): void {
+	rt.byteVecPutWord(self.v, n, 2, true);
 }
 
 /**
- * Writes a signed 128 bit integer to `self` in little-endian byte order.
+ * Writes a signed 16 bit integer to `self` in little-endian byte order.
  *
- * The current position is advanced by 16.
+ * The current position is advanced by 2.
  *
  * # Examples
  *
@@ -85,8 +37,8 @@ export function putI128Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n:
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_i128_le(0x01020304050607080910111213141516);
- * assert_eq!(buf, b"\x16\x15\x14\x13\x12\x11\x10\x09\x08\x07\x06\x05\x04\x03\x02\x01");
+ * buf.put_i16_le(0x0809);
+ * assert_eq!(buf, b"\x09\x08");
  * ```
  *
  * # Panics
@@ -94,62 +46,12 @@ export function putI128Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n:
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putI128Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i128): void {
-	putSlice$bytes_BufMut_mut_bytes_BytesMut(self, rt.byteSliceFrom(rt.i128ToBeBytes(n).reverse()));
+export function putI16Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i16): void {
+	rt.bytesMutPutWord(self.v, n, 2, true);
 }
 
 /**
- * Writes an IEEE754 double-precision (8 bytes) floating point number to
- * `self` in big-endian byte order.
- *
- * The current position is advanced by 8.
- *
- * # Examples
- *
- * ```
- * use bytes::BufMut;
- *
- * let mut buf = vec![];
- * buf.put_f64(1.2f64);
- * assert_eq!(buf, b"\x3F\xF3\x33\x33\x33\x33\x33\x33");
- * ```
- *
- * # Panics
- *
- * This function panics if there is not enough remaining capacity in
- * `self`.
- */
-export function putF64$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.f64): void {
-	putU64$bytes_BufMut_mut_Vec_u8(self, rt.f64ToBits(n));
-}
-
-/**
- * Writes an IEEE754 double-precision (8 bytes) floating point number to
- * `self` in big-endian byte order.
- *
- * The current position is advanced by 8.
- *
- * # Examples
- *
- * ```
- * use bytes::BufMut;
- *
- * let mut buf = vec![];
- * buf.put_f64(1.2f64);
- * assert_eq!(buf, b"\x3F\xF3\x33\x33\x33\x33\x33\x33");
- * ```
- *
- * # Panics
- *
- * This function panics if there is not enough remaining capacity in
- * `self`.
- */
-export function putF64$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.f64): void {
-	putU64$bytes_BufMut_mut_bytes_BytesMut(self, rt.f64ToBits(n));
-}
-
-/**
- * Writes a signed 32 bit integer to `self` in big-endian byte order.
+ * Writes a signed 32 bit integer to `self` in little-endian byte order.
  *
  * The current position is advanced by 4.
  *
@@ -159,8 +61,8 @@ export function putF64$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMu
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_i32(0x0809A0A1);
- * assert_eq!(buf, b"\x08\x09\xA0\xA1");
+ * buf.put_i32_le(0x0809A0A1);
+ * assert_eq!(buf, b"\xA1\xA0\x09\x08");
  * ```
  *
  * # Panics
@@ -168,12 +70,12 @@ export function putF64$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMu
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putI32$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i32): void {
-	rt.byteVecPutWord(self.v, n, 4, false);
+export function putI32Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i32): void {
+	rt.byteVecPutWord(self.v, n, 4, true);
 }
 
 /**
- * Writes a signed 32 bit integer to `self` in big-endian byte order.
+ * Writes a signed 32 bit integer to `self` in little-endian byte order.
  *
  * The current position is advanced by 4.
  *
@@ -183,8 +85,8 @@ export function putI32$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_i32(0x0809A0A1);
- * assert_eq!(buf, b"\x08\x09\xA0\xA1");
+ * buf.put_i32_le(0x0809A0A1);
+ * assert_eq!(buf, b"\xA1\xA0\x09\x08");
  * ```
  *
  * # Panics
@@ -192,8 +94,56 @@ export function putI32$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putI32$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i32): void {
-	rt.bytesMutPutWord(self.v, n, 4, false);
+export function putI32Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i32): void {
+	rt.bytesMutPutWord(self.v, n, 4, true);
+}
+
+/**
+ * Writes a signed 64 bit integer to `self` in the big-endian byte order.
+ *
+ * The current position is advanced by 8.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i64(0x0102030405060708);
+ * assert_eq!(buf, b"\x01\x02\x03\x04\x05\x06\x07\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI64$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i64): void {
+	rt.byteVecPutBytes(self.v, rt.i64ToBeBytes(n), false);
+}
+
+/**
+ * Writes a signed 64 bit integer to `self` in the big-endian byte order.
+ *
+ * The current position is advanced by 8.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i64(0x0102030405060708);
+ * assert_eq!(buf, b"\x01\x02\x03\x04\x05\x06\x07\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI64$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i64): void {
+	rt.bytesMutPutBytes(self.v, rt.i64ToBeBytes(n), false);
 }
 
 /**
@@ -295,7 +245,7 @@ export function putSlice$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.Bytes
 }
 
 /**
- * Writes an unsigned 16 bit integer to `self` in little-endian byte order.
+ * Writes an unsigned 16 bit integer to `self` in big-endian byte order.
  *
  * The current position is advanced by 2.
  *
@@ -305,8 +255,8 @@ export function putSlice$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.Bytes
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_u16_le(0x0809);
- * assert_eq!(buf, b"\x09\x08");
+ * buf.put_u16(0x0809);
+ * assert_eq!(buf, b"\x08\x09");
  * ```
  *
  * # Panics
@@ -314,12 +264,12 @@ export function putSlice$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.Bytes
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putU16Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u16): void {
-	rt.byteVecPutWord(self.v, n, 2, true);
+export function putU16$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u16): void {
+	rt.byteVecPutWord(self.v, n, 2, false);
 }
 
 /**
- * Writes an unsigned 16 bit integer to `self` in little-endian byte order.
+ * Writes an unsigned 16 bit integer to `self` in big-endian byte order.
  *
  * The current position is advanced by 2.
  *
@@ -329,8 +279,8 @@ export function putU16Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: 
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_u16_le(0x0809);
- * assert_eq!(buf, b"\x09\x08");
+ * buf.put_u16(0x0809);
+ * assert_eq!(buf, b"\x08\x09");
  * ```
  *
  * # Panics
@@ -338,12 +288,60 @@ export function putU16Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: 
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putU16Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u16): void {
-	rt.bytesMutPutWord(self.v, n, 2, true);
+export function putU16$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u16): void {
+	rt.bytesMutPutWord(self.v, n, 2, false);
 }
 
 /**
- * Writes an unsigned 64 bit integer to `self` in the big-endian byte order.
+ * Writes an unsigned 32 bit integer to `self` in big-endian byte order.
+ *
+ * The current position is advanced by 4.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u32(0x0809A0A1);
+ * assert_eq!(buf, b"\x08\x09\xA0\xA1");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU32$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u32): void {
+	rt.byteVecPutWord(self.v, n, 4, false);
+}
+
+/**
+ * Writes an unsigned 32 bit integer to `self` in big-endian byte order.
+ *
+ * The current position is advanced by 4.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u32(0x0809A0A1);
+ * assert_eq!(buf, b"\x08\x09\xA0\xA1");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU32$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u32): void {
+	rt.bytesMutPutWord(self.v, n, 4, false);
+}
+
+/**
+ * Writes an unsigned 64 bit integer to `self` in little-endian byte order.
  *
  * The current position is advanced by 8.
  *
@@ -353,8 +351,8 @@ export function putU16Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.Bytes
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_u64(0x0102030405060708);
- * assert_eq!(buf, b"\x01\x02\x03\x04\x05\x06\x07\x08");
+ * buf.put_u64_le(0x0102030405060708);
+ * assert_eq!(buf, b"\x08\x07\x06\x05\x04\x03\x02\x01");
  * ```
  *
  * # Panics
@@ -362,12 +360,12 @@ export function putU16Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.Bytes
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putU64$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u64): void {
-	rt.byteVecPutBytes(self.v, rt.u64ToBeBytes(n), false);
+export function putU64Le$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u64): void {
+	rt.byteVecPutBytes(self.v, rt.u64ToBeBytes(n), true);
 }
 
 /**
- * Writes an unsigned 64 bit integer to `self` in the big-endian byte order.
+ * Writes an unsigned 64 bit integer to `self` in little-endian byte order.
  *
  * The current position is advanced by 8.
  *
@@ -377,8 +375,8 @@ export function putU64$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt
  * use bytes::BufMut;
  *
  * let mut buf = vec![];
- * buf.put_u64(0x0102030405060708);
- * assert_eq!(buf, b"\x01\x02\x03\x04\x05\x06\x07\x08");
+ * buf.put_u64_le(0x0102030405060708);
+ * assert_eq!(buf, b"\x08\x07\x06\x05\x04\x03\x02\x01");
  * ```
  *
  * # Panics
@@ -386,8 +384,8 @@ export function putU64$bytes_BufMut_mut_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt
  * This function panics if there is not enough remaining capacity in
  * `self`.
  */
-export function putU64$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u64): void {
-	rt.bytesMutPutBytes(self.v, rt.u64ToBeBytes(n), false);
+export function putU64Le$bytes_BufMut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u64): void {
+	rt.bytesMutPutBytes(self.v, rt.u64ToBeBytes(n), true);
 }
 
 /**
@@ -512,6 +510,84 @@ export function remainingMut$bytes_BufMut_mut_Vec_u8(self: rt.ByteVec): rt.usize
  *
  * `remaining_mut` may return value smaller than actual available space.
  */
+export function remainingMut$bytes_BufMut_mut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>): rt.usize {
+	return remainingMut$bytes_BufMut_boxed_Box_Vec_u8(self.v);
+}
+
+/**
+ * Returns the number of bytes that can be written from the current
+ * position until the end of the buffer is reached.
+ *
+ * This value is greater than or equal to the length of the slice returned
+ * by `chunk_mut()`.
+ *
+ * Writing to a `BufMut` may involve allocating more memory on the fly.
+ * Implementations may fail before reaching the number of bytes indicated
+ * by this method if they encounter an allocation failure.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut dst = [0; 10];
+ * let mut buf = &mut dst[..];
+ *
+ * let original_remaining = buf.remaining_mut();
+ * buf.put(&b"hello"[..]);
+ *
+ * assert_eq!(original_remaining - 5, buf.remaining_mut());
+ * ```
+ *
+ * # Implementer notes
+ *
+ * Implementations of `remaining_mut` should ensure that the return value
+ * does not change unless a call is made to `advance_mut` or any other
+ * function that is documented to change the `BufMut`'s current position.
+ *
+ * # Note
+ *
+ * `remaining_mut` may return value smaller than actual available space.
+ */
+export function remainingMut$bytes_BufMut_mut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>): rt.usize {
+	return remainingMut$bytes_BufMut_boxed_Box_bytes_BytesMut(self.v);
+}
+
+/**
+ * Returns the number of bytes that can be written from the current
+ * position until the end of the buffer is reached.
+ *
+ * This value is greater than or equal to the length of the slice returned
+ * by `chunk_mut()`.
+ *
+ * Writing to a `BufMut` may involve allocating more memory on the fly.
+ * Implementations may fail before reaching the number of bytes indicated
+ * by this method if they encounter an allocation failure.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut dst = [0; 10];
+ * let mut buf = &mut dst[..];
+ *
+ * let original_remaining = buf.remaining_mut();
+ * buf.put(&b"hello"[..]);
+ *
+ * assert_eq!(original_remaining - 5, buf.remaining_mut());
+ * ```
+ *
+ * # Implementer notes
+ *
+ * Implementations of `remaining_mut` should ensure that the return value
+ * does not change unless a call is made to `advance_mut` or any other
+ * function that is documented to change the `BufMut`'s current position.
+ *
+ * # Note
+ *
+ * `remaining_mut` may return value smaller than actual available space.
+ */
 export function remainingMut$bytes_BufMut_mut_bytes_BytesMut(self: rt.BytesMut): rt.usize {
 	return 0x7fffffff - self.length as rt.usize;
 }
@@ -592,6 +668,518 @@ export function remainingMut$bytes_BufMut_mut_mut_Vec_u8(self: rt.Place<rt.ByteV
  */
 export function remainingMut$bytes_BufMut_mut_mut_bytes_BytesMut(self: rt.Place<rt.BytesMut>): rt.usize {
 	return remainingMut$bytes_BufMut_mut_bytes_BytesMut(self.v);
+}
+
+/**
+ * Writes a signed 16 bit integer to `self` in little-endian byte order.
+ *
+ * The current position is advanced by 2.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i16_le(0x0809);
+ * assert_eq!(buf, b"\x09\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI16Le$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i16): void {
+	rt.byteVecPutWord(self.v, n, 2, true);
+}
+
+/**
+ * Writes a signed 16 bit integer to `self` in little-endian byte order.
+ *
+ * The current position is advanced by 2.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i16_le(0x0809);
+ * assert_eq!(buf, b"\x09\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI16Le$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i16): void {
+	rt.bytesMutPutWord(self.v, n, 2, true);
+}
+
+/**
+ * Writes a signed 32 bit integer to `self` in little-endian byte order.
+ *
+ * The current position is advanced by 4.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i32_le(0x0809A0A1);
+ * assert_eq!(buf, b"\xA1\xA0\x09\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI32Le$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i32): void {
+	rt.byteVecPutWord(self.v, n, 4, true);
+}
+
+/**
+ * Writes a signed 32 bit integer to `self` in little-endian byte order.
+ *
+ * The current position is advanced by 4.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i32_le(0x0809A0A1);
+ * assert_eq!(buf, b"\xA1\xA0\x09\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI32Le$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i32): void {
+	rt.bytesMutPutWord(self.v, n, 4, true);
+}
+
+/**
+ * Writes a signed 64 bit integer to `self` in the big-endian byte order.
+ *
+ * The current position is advanced by 8.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i64(0x0102030405060708);
+ * assert_eq!(buf, b"\x01\x02\x03\x04\x05\x06\x07\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI64$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i64): void {
+	rt.byteVecPutBytes(self.v, rt.i64ToBeBytes(n), false);
+}
+
+/**
+ * Writes a signed 64 bit integer to `self` in the big-endian byte order.
+ *
+ * The current position is advanced by 8.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i64(0x0102030405060708);
+ * assert_eq!(buf, b"\x01\x02\x03\x04\x05\x06\x07\x08");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI64$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i64): void {
+	rt.bytesMutPutBytes(self.v, rt.i64ToBeBytes(n), false);
+}
+
+/**
+ * Writes a signed 8 bit integer to `self`.
+ *
+ * The current position is advanced by 1.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i8(0x01);
+ * assert_eq!(buf, b"\x01");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI8$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.i8): void {
+	rt.byteVecPutWord(self.v, n, 1, false);
+}
+
+/**
+ * Writes a signed 8 bit integer to `self`.
+ *
+ * The current position is advanced by 1.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_i8(0x01);
+ * assert_eq!(buf, b"\x01");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putI8$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.i8): void {
+	rt.bytesMutPutWord(self.v, n, 1, false);
+}
+
+/**
+ * Transfer bytes into `self` from `src` and advance the cursor by the
+ * number of bytes written.
+ *
+ * `self` must have enough remaining capacity to contain all of `src`.
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut dst = [0; 6];
+ *
+ * {
+ *     let mut buf = &mut dst[..];
+ *     buf.put_slice(b"hello");
+ *
+ *     assert_eq!(1, buf.remaining_mut());
+ * }
+ *
+ * assert_eq!(b"hello\0", &dst);
+ * ```
+ */
+export function putSlice$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, src: rt.ByteSlice): void {
+	rt.byteVecExtendFromSlice(self.v, src);
+}
+
+/**
+ * Transfer bytes into `self` from `src` and advance the cursor by the
+ * number of bytes written.
+ *
+ * `self` must have enough remaining capacity to contain all of `src`.
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut dst = [0; 6];
+ *
+ * {
+ *     let mut buf = &mut dst[..];
+ *     buf.put_slice(b"hello");
+ *
+ *     assert_eq!(1, buf.remaining_mut());
+ * }
+ *
+ * assert_eq!(b"hello\0", &dst);
+ * ```
+ */
+export function putSlice$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, src: rt.ByteSlice): void {
+	rt.bytesMutExtend(self.v, src);
+}
+
+/**
+ * Writes an unsigned 16 bit integer to `self` in big-endian byte order.
+ *
+ * The current position is advanced by 2.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u16(0x0809);
+ * assert_eq!(buf, b"\x08\x09");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU16$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u16): void {
+	rt.byteVecPutWord(self.v, n, 2, false);
+}
+
+/**
+ * Writes an unsigned 16 bit integer to `self` in big-endian byte order.
+ *
+ * The current position is advanced by 2.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u16(0x0809);
+ * assert_eq!(buf, b"\x08\x09");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU16$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u16): void {
+	rt.bytesMutPutWord(self.v, n, 2, false);
+}
+
+/**
+ * Writes an unsigned 32 bit integer to `self` in big-endian byte order.
+ *
+ * The current position is advanced by 4.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u32(0x0809A0A1);
+ * assert_eq!(buf, b"\x08\x09\xA0\xA1");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU32$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u32): void {
+	rt.byteVecPutWord(self.v, n, 4, false);
+}
+
+/**
+ * Writes an unsigned 32 bit integer to `self` in big-endian byte order.
+ *
+ * The current position is advanced by 4.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u32(0x0809A0A1);
+ * assert_eq!(buf, b"\x08\x09\xA0\xA1");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU32$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u32): void {
+	rt.bytesMutPutWord(self.v, n, 4, false);
+}
+
+/**
+ * Writes an unsigned 64 bit integer to `self` in little-endian byte order.
+ *
+ * The current position is advanced by 8.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u64_le(0x0102030405060708);
+ * assert_eq!(buf, b"\x08\x07\x06\x05\x04\x03\x02\x01");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU64Le$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u64): void {
+	rt.byteVecPutBytes(self.v, rt.u64ToBeBytes(n), true);
+}
+
+/**
+ * Writes an unsigned 64 bit integer to `self` in little-endian byte order.
+ *
+ * The current position is advanced by 8.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u64_le(0x0102030405060708);
+ * assert_eq!(buf, b"\x08\x07\x06\x05\x04\x03\x02\x01");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU64Le$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u64): void {
+	rt.bytesMutPutBytes(self.v, rt.u64ToBeBytes(n), true);
+}
+
+/**
+ * Writes an unsigned 8 bit integer to `self`.
+ *
+ * The current position is advanced by 1.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u8(0x01);
+ * assert_eq!(buf, b"\x01");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU8$bytes_BufMut_boxed_Box_Vec_u8(self: rt.Place<rt.ByteVec>, n: rt.u8): void {
+	rt.byteVecPutWord(self.v, n, 1, false);
+}
+
+/**
+ * Writes an unsigned 8 bit integer to `self`.
+ *
+ * The current position is advanced by 1.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut buf = vec![];
+ * buf.put_u8(0x01);
+ * assert_eq!(buf, b"\x01");
+ * ```
+ *
+ * # Panics
+ *
+ * This function panics if there is not enough remaining capacity in
+ * `self`.
+ */
+export function putU8$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.Place<rt.BytesMut>, n: rt.u8): void {
+	rt.bytesMutPutWord(self.v, n, 1, false);
+}
+
+/**
+ * Returns the number of bytes that can be written from the current
+ * position until the end of the buffer is reached.
+ *
+ * This value is greater than or equal to the length of the slice returned
+ * by `chunk_mut()`.
+ *
+ * Writing to a `BufMut` may involve allocating more memory on the fly.
+ * Implementations may fail before reaching the number of bytes indicated
+ * by this method if they encounter an allocation failure.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut dst = [0; 10];
+ * let mut buf = &mut dst[..];
+ *
+ * let original_remaining = buf.remaining_mut();
+ * buf.put(&b"hello"[..]);
+ *
+ * assert_eq!(original_remaining - 5, buf.remaining_mut());
+ * ```
+ *
+ * # Implementer notes
+ *
+ * Implementations of `remaining_mut` should ensure that the return value
+ * does not change unless a call is made to `advance_mut` or any other
+ * function that is documented to change the `BufMut`'s current position.
+ *
+ * # Note
+ *
+ * `remaining_mut` may return value smaller than actual available space.
+ */
+export function remainingMut$bytes_BufMut_boxed_Box_Vec_u8(self: rt.ByteVec): rt.usize {
+	return 0x7fffffff - self.length as rt.usize;
+}
+
+/**
+ * Returns the number of bytes that can be written from the current
+ * position until the end of the buffer is reached.
+ *
+ * This value is greater than or equal to the length of the slice returned
+ * by `chunk_mut()`.
+ *
+ * Writing to a `BufMut` may involve allocating more memory on the fly.
+ * Implementations may fail before reaching the number of bytes indicated
+ * by this method if they encounter an allocation failure.
+ *
+ * # Examples
+ *
+ * ```
+ * use bytes::BufMut;
+ *
+ * let mut dst = [0; 10];
+ * let mut buf = &mut dst[..];
+ *
+ * let original_remaining = buf.remaining_mut();
+ * buf.put(&b"hello"[..]);
+ *
+ * assert_eq!(original_remaining - 5, buf.remaining_mut());
+ * ```
+ *
+ * # Implementer notes
+ *
+ * Implementations of `remaining_mut` should ensure that the return value
+ * does not change unless a call is made to `advance_mut` or any other
+ * function that is documented to change the `BufMut`'s current position.
+ *
+ * # Note
+ *
+ * `remaining_mut` may return value smaller than actual available space.
+ */
+export function remainingMut$bytes_BufMut_boxed_Box_bytes_BytesMut(self: rt.BytesMut): rt.usize {
+	return 0x7fffffff - self.length as rt.usize;
 }
 
 //# sourceMappingURL=buf_mut.ts.map
