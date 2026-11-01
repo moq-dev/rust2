@@ -96,7 +96,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			ty::Tuple(tys) => tys.iter().any(|t| self.drops(t)),
 			// A slice, which a box owns.
 			ty::Array(elem, _) | ty::Slice(elem) => self.drops(*elem),
-			ty::Closure(_, args) => args.as_closure().upvar_tys().iter().any(|t| self.drops(t)),
+			ty::Closure(..) | ty::CoroutineClosure(..) => {
+				super::captured(ty).is_some_and(|tys| tys.iter().any(|t| self.drops(t)))
+			}
 			// Whatever it was made of may drop.
 			ty::Coroutine(..) | ty::Param(_) | ty::Dynamic(..) => true,
 			_ => false,
@@ -184,7 +186,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			},
 			// A closure's `[Symbol.dispose]` drops what it owns, a `dyn Future`'s what it is, and
 			// another trait object's what it wraps.
-			ty::Closure(..) | ty::Coroutine(..) | ty::Param(_) | ty::Dynamic(..) => true,
+			ty::Closure(..) | ty::CoroutineClosure(..) | ty::Coroutine(..) | ty::Param(_) | ty::Dynamic(..) => true,
 			_ => false,
 		}
 	}
@@ -229,7 +231,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		};
 		let holds = super::iter::holds_closure(self.tcx, adt.did());
 		args.types().all(|t| match t.kind() {
-			ty::Closure(..) => holds || !self.drops(t),
+			ty::Closure(..) | ty::CoroutineClosure(..) => holds || !self.drops(t),
 			_ => self.closures_held(t),
 		})
 	}
@@ -492,11 +494,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// each that drops, in order, as rustc's glue drops a closure. Its `[Symbol.dispose]`, and what ends an `FnOnce` body that drops
 	/// its closure whole.
 	pub fn closure_glue(&mut self, ty: Ty<'tcx>, captures: &[Capture], span: Span) -> Vec<Stmt> {
-		let ty::Closure(_, args) = ty.kind() else {
-			unreachable!("closure glue of a closure")
-		};
+		let upvars = super::captured(ty).expect("closure glue of a closure");
 		let mut steps = Vec::new();
-		for (capture, ty) in captures.iter().zip(args.as_closure().upvar_tys()) {
+		for (capture, ty) in captures.iter().zip(upvars) {
 			if let Some(dropped) = self.drop_value(capture.value.clone(), ty, span) {
 				steps.push(StmtKind::Expr(dropped).at(None));
 			}

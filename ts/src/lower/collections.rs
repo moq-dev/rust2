@@ -2549,7 +2549,7 @@ pub fn clone_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> E
 	if library::clone_copies(b.t, env, ty) || library::clone_shares(b.t, env, ty) {
 		return Expr::undefined();
 	}
-	if let ty::Closure(def_id, _) = ty.kind() {
+	if let ty::Closure(def_id, _) | ty::CoroutineClosure(def_id, _) = ty.kind() {
 		b.t.clone_closure(*def_id);
 		return Expr::Rt("closureClone".into());
 	}

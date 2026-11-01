@@ -1563,13 +1563,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		// A closure that captures nothing holds nothing, so MIR never assigns it: JS needs
 		// its function.
 		for local in self.mir.local_decls.indices() {
-			if let ty::Closure(def_id, args) = *self.mir.local_decls[local].ty.kind()
+			let ty = self.mir.local_decls[local].ty;
+			if matches!(ty.kind(), ty::Closure(..) | ty::CoroutineClosure(..))
 				&& self.defs[local] == 0
 				&& !self.is_arg(local)
 				&& self.uses[local] > 0
 				&& let Slot::Var(name) = self.slots[local].clone()
 			{
-				let f = self.bare_closure(def_id, args, self.span);
+				let f = self.bare_closure(ty, self.span);
 				self.assigned[local] = true;
 				entry.push(StmtKind::Expr(Expr::ident(&name).assign(f)).at(None));
 			}
@@ -2635,7 +2636,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				if let Env::Closure(captures) = &self.env
 					&& place.local.as_u32() == 1
 					&& place.projection.is_empty()
-					&& matches!(ty.kind(), ty::Closure(..))
+					&& matches!(ty.kind(), ty::Closure(..) | ty::CoroutineClosure(..))
 				{
 					let mut glue = self.b.t.closure_glue(ty, &captures.clone(), span);
 					// In a block of its own, whose variable no other drop's can clash with.
@@ -3092,7 +3093,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 					stack.extend(adt.all_fields().map(|field| self.b.t.field_ty(field.did, args)))
 				}
 				ty::Adt(_, args) => stack.extend(args.types()),
-				ty::Closure(_, args) => stack.extend(args.as_closure().upvar_tys()),
+				ty::Closure(..) | ty::CoroutineClosure(..) => {
+					stack.extend(crate::lower::captured(ty).unwrap_or_default())
+				}
 				_ => {}
 			}
 		}

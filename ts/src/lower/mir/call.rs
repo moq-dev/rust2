@@ -229,9 +229,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		out: &mut Vec<Stmt>,
 	) -> Expr {
 		let tcx = self.tcx;
-		// Calling a closure or function value: `FnOnce::call_once(f, (args,))`.
+		// Calling a closure or function value: `FnOnce::call_once(f, (args,))`, or
+		// `AsyncFnOnce::async_call_once`.
 		if let Some(trait_id) = tcx.trait_of_assoc(def_id)
-			&& tcx.is_fn_trait(trait_id)
+			&& let Some(kind) = tcx
+				.fn_trait_kind_from_def_id(trait_id)
+				.or_else(|| tcx.async_fn_trait_kind_from_def_id(trait_id))
 			&& let [callee, tupled] = args
 		{
 			let callee_ty = gargs.type_at(0);
@@ -272,10 +275,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					(None, None) => break,
 				};
 			}
+			// A call that consumes an async closure that `Fn` or `FnMut` call makes the future
+			// that owns what it captured.
+			if kind == ty::ClosureKind::FnOnce
+				&& let ty::CoroutineClosure(_, closure) = callee_ty.kind()
+				&& closure.as_coroutine_closure().kind() != ty::ClosureKind::FnOnce
+				&& self.b.t.drops(callee_ty)
+			{
+				return Expr::rt("callByMove", [vec![f], values].concat());
+			}
 			// `FnOnce::call_once` of a closure that `Fn` or `FnMut` call, or of a box of one,
 			// drops it after, as rustc's shim does, where an `FnOnce` closure's body drops
 			// what it owns.
-			if tcx.fn_trait_kind_from_def_id(trait_id) == Some(ty::ClosureKind::FnOnce)
+			if kind == ty::ClosureKind::FnOnce
 				&& self
 					.b
 					.t

@@ -67,6 +67,22 @@ export function dropAfter<T, R>(f: T, call: (f: T) => R, by: (f: T) => void = dr
 	return r;
 }
 
+/** What makes the future of a call that consumes an async closure. */
+const BY_MOVE: unique symbol = /* @__PURE__ */ Symbol("byMove");
+
+/**
+ * An async closure `f` that `Fn` or `FnMut` call and that owns what drops: a call that
+ * consumes it calls `once`, whose future owns what `f`'s would borrow.
+ */
+export function byMove<F extends (...args: never[]) => unknown>(f: F, once: F): F {
+	return Object.assign(f, { [BY_MOVE]: once });
+}
+
+/** `AsyncFnOnce::async_call_once` of an async closure `byMove` made. */
+export function callByMove<A extends unknown[], R>(f: (...args: A) => R, ...args: A): R {
+	return (f as ((...args: A) => R) & { [BY_MOVE]: (...args: A) => R })[BY_MOVE](...args);
+}
+
 /** A closure that `Fn` or `FnMut` call, as one `FnOnce` calls: a call drops it after. */
 export function once<A extends unknown[], R>(f: (...args: A) => R): ((...args: A) => R) & Disposable {
 	return closure((...args: A) => callOnce(f, ...args), () => drop(f));
@@ -1010,10 +1026,12 @@ export function asyncFnResumedPanic(): never {
 
 /**
  * Run `future` to completion on the microtask queue, as a promise of its output. A
- * panic rejects the promise with the `Panic`.
+ * panic rejects the promise with the `Panic`. Aborting `signal` cancels it: the future
+ * drops as Rust drops a future, at once, or as the poll it aborts in returns pending,
+ * and the promise rejects with the signal's reason. A future that is ready first wins.
  */
-export function spawn<T>(future: Future<T>): Promise<T> {
-	return new Promise((resolve, reject) => new Task(future, resolve, reject).schedule());
+export function spawn<T>(future: Future<T>, signal?: AbortSignal): Promise<T> {
+	return new Promise((resolve, reject) => new Task(future, resolve, reject, signal).schedule());
 }
 
 /** How many polls one microtask runs before it yields to a macrotask, so a task that keeps waking itself cannot starve I/O. */
@@ -1043,11 +1061,44 @@ class Task<T> implements Waker {
 	#resolve: (value: T) => void;
 	#reject: (err: unknown) => void;
 	#queued = false;
+	#signal: AbortSignal | undefined;
+	/** Whether a poll is running, which an abort waits out, as Rust can't drop a future it polls. */
+	#polling = false;
 
-	constructor(future: Future<T>, resolve: (value: T) => void, reject: (err: unknown) => void) {
+	constructor(future: Future<T>, resolve: (value: T) => void, reject: (err: unknown) => void, signal?: AbortSignal) {
 		this.#future = future;
 		this.#resolve = resolve;
 		this.#reject = reject;
+		if (signal === undefined) return;
+		this.#signal = signal;
+		if (signal.aborted) this.#cancel();
+		else signal.addEventListener("abort", this);
+	}
+
+	/** The signal's abort: cancel now, or once the running poll returns. */
+	handleEvent(): void {
+		if (!this.#polling) this.#cancel();
+	}
+
+	/** Drop the future and reject with the signal's reason, or with a panic its drop throws. */
+	#cancel(): void {
+		const future = this.#future;
+		if (future === undefined) return;
+		this.#finish();
+		try {
+			future[Symbol.dispose]();
+		} catch (err) {
+			this.#reject(err);
+			if (!(err instanceof Panic)) throw err;
+			return;
+		}
+		this.#reject(this.#signal!.reason);
+	}
+
+	/** Settle: no poll, wake, or abort reaches the future again. */
+	#finish(): void {
+		this.#future = undefined;
+		this.#signal?.removeEventListener("abort", this);
 	}
 
 	schedule(): void {
@@ -1066,17 +1117,22 @@ class Task<T> implements Waker {
 		if (future === undefined) return;
 		let output: Poll<T>;
 		try {
+			this.#polling = true;
 			output = future.poll(this);
-			if (output === Pending) return;
-			this.#future = undefined;
-			future[Symbol.dispose]();
+			this.#polling = false;
+			if (output !== Pending) {
+				this.#finish();
+				future[Symbol.dispose]();
+			}
 		} catch (err) {
-			this.#future = undefined;
+			this.#polling = false;
+			this.#finish();
 			this.#reject(err);
 			if (!(err instanceof Panic)) throw err;
 			return;
 		}
-		this.#resolve(output);
+		if (output !== Pending) this.#resolve(output);
+		else if (this.#signal?.aborted) this.#cancel();
 	}
 
 	wake(): void {
