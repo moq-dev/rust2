@@ -12,9 +12,10 @@ package and dev shell check it once per toolchain and pass it as `RUST2_TS_SYSRO
 that, each target directory checks it with `-Zbuild-std`, which needs the toolchain's `rust-src`. Where the
 package builds with getrandom or uuid, which refuse wasm32 until a binary picks their source of randomness, cargo checks it
 as a dependency of a root package that picks `crypto.getRandomValues` by the feature each documents, as a browser's binary
-would, in a workspace that resolves as the package's own: its lockfile, patches, and dev profile, and its paths, relative
-to its root as rustc reads a member's. `--features` and `--no-default-features` pass to that dependency, and
-`--all-features` is refused there. Every crate compiles as rustc
+would, in a workspace that resolves as the package's own: its lockfile, patches, and dev profile, whose `"*"` override
+still reaches none of its members, and its paths, relative to its root as rustc reads a member's. `--features` and
+`--no-default-features` pass to that dependency; `--all-features`, a feature of the package's dependency, and a `"*"`
+override in cargo's config, which would reach the members, are refused there. Every crate compiles as rustc
 would; the configured library is also translated, after type and borrow checking, starting from its roots and following
 what they reach. Every crate it depends on but std's translates with it as one program,
 as far as the roots reach: each compiles with every function's MIR, and its types and

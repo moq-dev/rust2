@@ -38,7 +38,7 @@ pub struct Root {
 /// for [`TARGET`] holds a crate that leaves the browser's randomness to the binary.
 pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Result<Option<Root>, String> {
 	let args = Args::parse(cargo);
-	let packages = tree(manifest, package, &args)?;
+	let packages = tree(manifest, package, "normal", &args)?;
 	let picks: Vec<_> = (packages.iter())
 		.filter_map(|p| {
 			let pick = PICKS
@@ -70,8 +70,15 @@ pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Res
 	}
 	let dir = dir.join("browser").join(package);
 	std::fs::create_dir_all(&dir).map_err(|err| format!("creating {}: {err}", dir.display()))?;
+	if config_overrides_all(manifest, &args)? {
+		return Err(format!(
+			"cargo's config overrides every package's dev profile with `\"*\"`, which would reach {package} through the root that picks the browser's randomness, as it never reaches a workspace member: set it in the workspace's Cargo.toml instead"
+		));
+	}
+	// What cargo compiles, build scripts' dependencies too, which the profile overrides.
+	let built = tree(manifest, package, "normal,build", &args)?;
 	let members = members(manifest, &args)?;
-	let text = manifest_text(package, package_dir, &workspace, &args, &picks, &packages, &members)?;
+	let text = manifest_text(package, package_dir, &workspace, &args, &picks, &built, &members)?;
 	write(&dir.join("Cargo.toml"), &text)?;
 	write(&dir.join("lib.rs"), "")?;
 	// The workspace's own versions, wherever the root needs no other.
@@ -170,18 +177,28 @@ impl Args {
 		parsed
 	}
 
-	/// The args that pick how `package` resolves, as `cargo tree` takes them.
-	fn resolution(&self) -> Vec<String> {
+	/// Each `--config` arg, with its value.
+	fn configs(&self) -> Vec<String> {
 		let mut args = Vec::new();
 		let mut rest = self.rest.iter();
 		while let Some(arg) = rest.next() {
 			match arg.as_str() {
-				"--all-features" | "--locked" | "--frozen" | "--offline" => args.push(arg.clone()),
 				"--config" => args.extend([Some(arg), rest.next()].into_iter().flatten().cloned()),
 				_ if arg.starts_with("--config=") => args.push(arg.clone()),
 				_ => {}
 			}
 		}
+		args
+	}
+
+	/// The args that pick how `package` resolves, as `cargo tree` takes them.
+	fn resolution(&self) -> Vec<String> {
+		let flags = ["--all-features", "--locked", "--frozen", "--offline"];
+		let mut args: Vec<String> = (self.rest.iter())
+			.filter(|arg| flags.contains(&arg.as_str()))
+			.cloned()
+			.collect();
+		args.extend(self.configs());
 		if self.no_default {
 			args.push("--no-default-features".into());
 		}
@@ -192,9 +209,9 @@ impl Args {
 	}
 }
 
-/// Each package `package` builds with for [`TARGET`], itself first.
-fn tree(manifest: &Path, package: &str, args: &Args) -> Result<Vec<Package>, String> {
-	let tree = ["--package", package, "--edges", "normal", "--target", TARGET];
+/// Each package `package` builds with for [`TARGET`] along `edges`, itself first.
+fn tree(manifest: &Path, package: &str, edges: &str, args: &Args) -> Result<Vec<Package>, String> {
+	let tree = ["--package", package, "--edges", edges, "--target", TARGET];
 	let output = cargo_tree(manifest, &tree, args)?;
 	let mut seen = std::collections::HashSet::new();
 	let mut packages = Vec::new();
@@ -232,6 +249,24 @@ fn tree(manifest: &Path, package: &str, args: &Args) -> Result<Vec<Package>, Str
 	Ok(packages)
 }
 
+/// Whether cargo's config, read as the check reads it, sets the dev profile's `"*"`
+/// override.
+fn config_overrides_all(manifest: &Path, args: &Args) -> Result<bool, String> {
+	let output = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
+		.current_dir(manifest.parent().expect("a manifest path has a parent"))
+		.arg("-Zunstable-options")
+		.args(args.configs())
+		.args(["config", "get", "profile.dev.package"])
+		.output()
+		.map_err(|err| format!("running cargo config: {err}"))?;
+	let stderr = String::from_utf8_lossy(&output.stderr);
+	match output.status.success() {
+		true => Ok(String::from_utf8_lossy(&output.stdout).contains(".\"*\".")),
+		false if stderr.contains("is not set") => Ok(false),
+		false => Err(stderr.into_owned()),
+	}
+}
+
 /// The names of the members of the workspace `manifest` belongs to.
 fn members(manifest: &Path, args: &Args) -> Result<Vec<String>, String> {
 	let output = cargo_tree(manifest, &["--workspace", "--depth", "0"], args)?;
@@ -263,14 +298,15 @@ fn cargo_tree(manifest: &Path, tree: &[&str], args: &Args) -> Result<String, Str
 }
 
 /// The root's `Cargo.toml`: a library on `package`, in `dir`, and on each pick, in a
-/// workspace that resolves and compiles `packages` as `workspace`, the package's own, does.
+/// workspace that resolves and compiles the `built` packages as `workspace`, the package's
+/// own, does.
 fn manifest_text(
 	package: &str,
 	dir: &Path,
 	workspace: &Path,
 	args: &Args,
 	picks: &[(&Package, &str)],
-	packages: &[Package],
+	built: &[Package],
 	members: &[String],
 ) -> Result<String, String> {
 	let mut dependencies = toml::Table::new();
@@ -354,32 +390,36 @@ fn manifest_text(
 		.and_then(|p| p.as_table_mut())
 		.and_then(|p| p.remove("dev"));
 	if let Some(toml::Value::Table(dev)) = dev {
-		let dev = dev_profile(dev, packages, members);
+		let dev = dev_profile(dev, built, members);
 		root.insert("profile".into(), toml::toml! { dev = dev }.into());
 	}
 	toml::to_string(&root).map_err(|err| format!("writing the root package: {err}"))
 }
 
-/// The workspace's dev profile `dev` as the root's, for `packages`, of which `members` were
-/// the workspace's own: `"*"` overrides every package but a member, which outside the
-/// workspace it would override too, so it becomes each other package's override, under the
-/// one the package names. Overrides of packages the check never builds go, which cargo
-/// would warn of.
-fn dev_profile(mut dev: toml::Table, packages: &[Package], members: &[String]) -> toml::Table {
+/// The workspace's dev profile `dev` as the root's, for the `built` packages, of which
+/// `members` were the workspace's own: `"*"` overrides every package but a member, which
+/// outside the workspace it would override too, so it becomes each other package's
+/// override, under the one that already matches it. An override of a package never built
+/// goes, which cargo would warn of.
+fn dev_profile(mut dev: toml::Table, built: &[Package], members: &[String]) -> toml::Table {
 	let Some(toml::Value::Table(mut overrides)) = dev.remove("package") else {
 		return dev;
 	};
 	let all = overrides.remove("*");
-	overrides.retain(|spec, _| {
-		let name = spec.split('@').next().unwrap_or(spec);
-		packages.iter().any(|built| built.name == name)
-	});
+	let matches = |spec: &str, p: &Package| {
+		spec_parts(spec).is_some_and(|(name, version)| {
+			p.name == name && version.is_none_or(|v| p.version == v || p.version.starts_with(&format!("{v}.")))
+		})
+	};
+	// A spec of another form, such as a URL, may match one.
+	overrides.retain(|spec, _| spec_parts(spec).is_none() || built.iter().any(|p| matches(spec, p)));
 	if let Some(toml::Value::Table(all)) = all {
-		for package in packages.iter().filter(|p| !members.contains(&p.name)) {
-			let named = overrides
-				.entry(package.name.clone())
-				.or_insert_with(|| toml::Table::new().into());
-			if let toml::Value::Table(named) = named {
+		for package in built.iter().filter(|p| !members.contains(&p.name)) {
+			let spec = (overrides.keys())
+				.find(|spec| matches(spec, package))
+				.cloned()
+				.unwrap_or_else(|| format!("{}@{}", package.name, package.version));
+			if let toml::Value::Table(named) = overrides.entry(spec).or_insert_with(|| toml::Table::new().into()) {
 				for (key, value) in &all {
 					named.entry(key.clone()).or_insert_with(|| value.clone());
 				}
@@ -388,6 +428,21 @@ fn dev_profile(mut dev: toml::Table, packages: &[Package], members: &[String]) -
 	}
 	dev.insert("package".into(), overrides.into());
 	dev
+}
+
+/// The name and version, if any, of a package spec of the form `name`, `name@version`, or
+/// `name:version`.
+fn spec_parts(spec: &str) -> Option<(&str, Option<&str>)> {
+	// A URL's scheme reads as a name before a `:`.
+	if spec.contains('/') {
+		return None;
+	}
+	let (name, version) = match spec.split_once(['@', ':']) {
+		Some((name, version)) => (name, Some(version)),
+		None => (spec, None),
+	};
+	let crate_name = !name.is_empty() && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+	crate_name.then_some((name, version))
 }
 
 /// The feature resolver a workspace's root manifest picks: its own, or its package's
@@ -463,7 +518,12 @@ mod tests {
 			version: "1.0.0".into(),
 			source: Source::Registry,
 		};
-		let packages = [package("member"), package("dep"), package("named")];
+		let packages = [
+			package("member"),
+			package("dep"),
+			package("named"),
+			package("versioned"),
+		];
 		let dev: toml::Table = toml::from_str(
 			r#"
 			debug = 1
@@ -474,18 +534,27 @@ mod tests {
 			opt-level = 3
 			[package.unbuilt]
 			opt-level = 3
+			[package."versioned@1"]
+			opt-level = 2
+			[package."https://example.com/index#other@1.0.0"]
+			opt-level = 2
 			"#,
 		)
 		.unwrap();
 		let expected: toml::Table = toml::from_str(
 			r#"
 			debug = 1
-			[package.dep]
+			[package."dep@1.0.0"]
 			debug-assertions = false
 			opt-level = 1
 			[package.named]
 			debug-assertions = false
 			opt-level = 3
+			[package."versioned@1"]
+			debug-assertions = false
+			opt-level = 2
+			[package."https://example.com/index#other@1.0.0"]
+			opt-level = 2
 			"#,
 		)
 		.unwrap();
