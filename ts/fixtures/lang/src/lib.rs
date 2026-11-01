@@ -26,6 +26,7 @@
 
 #![feature(
 	iter_order_by,
+	mapped_lock_guards,
 	once_cell_try,
 	split_as_slice,
 	wrapping_int_impl,

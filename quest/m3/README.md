@@ -31,6 +31,7 @@ generic std gap is planned here even when moq never calls it.
 - [Places through an adaptor's argument](/quest/m3/ts-adaptor-places.md) - `iter.zip(&mut v)` of values JS copies lends places as `for x in &mut v` does
 - [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
-- [The rest of a guard's maps](/quest/m3/ts-guard-maps.md) - `RefMut::map`, the guards' `filter_map` and `map_split`, and an `RwLock` guard's `map` translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
+- [The rest of a guard's methods](/quest/m3/ts-guard-rest.md) - `Debug` of `RefCell` and `RwLock` guards, `MutexGuard::map`, and the guards' `try_map` translate
+- [Aborts in the differential](/quest/m3/ts-abort-differential.md) - the lang differential compares wasm32's aborts, so an `RwLock` locked again while held is tested
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained

@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 217
-- Function instances: 273
+- Refusals: 218
+- Function instances: 274
 - Generic functions no instance reached, lowered over their type parameters: 13
 
 ## By construct
@@ -57,6 +57,7 @@
 | 1 | a constant of type `_`, a pointer into memory translation can't name | fixtures/reject/src/lib.rs:780:3 |
 | 1 | a dangling pointer to `_`, a value of no bytes made of more than structs and tuples | fixtures/reject/src/lib.rs:739:11 |
 | 1 | a future of `_`, which can be `rt.Pending`, as the future's own `Pending` is | fixtures/reject/src/lib.rs:84:34 |
+| 1 | a mapped guard of `_`, which JS can't write in place | fixtures/reject/src/lib.rs:2172:10 |
 | 1 | a mutable reference into a `Result`'s payload, passed on or kept | fixtures/reject/src/lib.rs:369:12 |
 | 1 | a mutable static, which any code may write | fixtures/reject/src/lib.rs:68:11 |
 | 1 | a pointer's address, which JS has no counterpart of | fixtures/reject/src/lib.rs:562:17 |
@@ -98,12 +99,12 @@ The type or module each refused type or path belongs to.
 | 4 | `Iterator` | fixtures/reject/src/lib.rs:37:4 |
 | 4 | `std::pin::Pin` | fixtures/reject/src/lib.rs:98:2 |
 | 4 | `std::str` | fixtures/reject/src/lib.rs:441:4 |
+| 4 | `{closure}` | fixtures/reject/src/lib.rs:326:13 |
 | 3 | `*const [u8; 4]` | fixtures/reject/src/lib.rs:1715:33 |
 | 3 | `Mid` | fixtures/reject/src/lib.rs:1357:34 |
 | 3 | `Outer` | fixtures/reject/src/lib.rs:1357:34 |
 | 3 | `std::ptr` | fixtures/reject/src/lib.rs:1712:3 |
 | 3 | `std::vec::Vec` | fixtures/reject/src/lib.rs:317:16 |
-| 3 | `{closure}` | fixtures/reject/src/lib.rs:326:13 |
 | 2 | `(u16, u16)` | fixtures/reject/src/lib.rs:1178:31 |
 | 2 | `InArray` | fixtures/reject/src/lib.rs:1304:9 |
 | 2 | `InPayload` | fixtures/reject/src/lib.rs:1316:9 |
@@ -302,6 +303,7 @@ The type or module each refused type or path belongs to.
 | 1 | a constant of type `_`, a pointer into memory translation can't name | `&u32` | fixtures/reject/src/lib.rs:780:3 |
 | 1 | a dangling pointer to `_`, a value of no bytes made of more than structs and tuples | `Only` | fixtures/reject/src/lib.rs:739:11 |
 | 1 | a future of `_`, which can be `rt.Pending`, as the future's own `Pending` is | `std::task::Poll` | fixtures/reject/src/lib.rs:84:34 |
+| 1 | a mapped guard of `_`, which JS can't write in place | `{closure}` | fixtures/reject/src/lib.rs:2172:10 |
 | 1 | a raw pointer to `_` behind a reference, which is the object and not where it is kept | `std::vec::Vec` | fixtures/reject/src/lib.rs:579:10 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u16, u16)`, `Copied` | fixtures/reject/src/lib.rs:1178:31 |
 | 1 | a raw pointer to `_` in `_`, which the crate may put another object in place of | `(u16, u16)`, `Pushed` | fixtures/reject/src/lib.rs:1250:22 |
@@ -858,6 +860,12 @@ The type or module each refused type or path belongs to.
 <details><summary>a future of `_`, which can be `rt.Pending`, as the future's own `Pending` is (1)</summary>
 
 - fixtures/reject/src/lib.rs:84:34: a future of `std::task::Poll<u8>`, which can be `rt.Pending`, as the future's own `Pending` is
+
+</details>
+
+<details><summary>a mapped guard of `_`, which JS can't write in place (1)</summary>
+
+- fixtures/reject/src/lib.rs:2172:10: a mapped guard of `{closure@fixtures/reject/src/lib.rs:2171:38: 2171:50}`, which JS can't write in place
 
 </details>
 

@@ -13,6 +13,7 @@ import { eq$1horntk as float_parse_eq$1horntk } from "../core/num/float_parse.ts
 import { eq$1v93ipo as str_error_eq$1v93ipo, eq$1f3e51k as str_error_eq$1f3e51k } from "../core/str/error.ts";
 import { cmp$175ka5q as poll_cmp$175ka5q } from "../core/task/poll.ts";
 import { eq$0dhyfbb as time_eq$0dhyfbb } from "../core/time.ts";
+import type * as locks_Tally from "../locks.Tally.ts";
 import * as Part from "../orders.Part.ts";
 import type * as returns_Error from "../returns.Error.ts";
 
@@ -638,6 +639,13 @@ export function map$1rffkv6(self: rt.Result<rt.u32, returns_Error.Error>, _: (a0
 		return rt.Ok(self.value as rt.u64);
 	}
 	return self as rt.Result<rt.u64, returns_Error.Error>;
+}
+
+export function map$1g6jln5(self: rt.Result<rt.RefCell<rt.u64>, rt.RefCell<locks_Tally.Tally>>, op: (a0: rt.RefCell<rt.u64>) => rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>): rt.Result<rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>, rt.RefCell<locks_Tally.Tally>> {
+	if (self.ok) {
+		return rt.Ok(op(self.value));
+	}
+	return self as rt.Result<rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>, rt.RefCell<locks_Tally.Tally>>;
 }
 
 export function map$0r57egs(self: rt.Result<rt.u8, rt.ParseIntError>, op: (a0: rt.u8) => rt.u8 | undefined): rt.Result<rt.u8 | undefined, rt.ParseIntError> {
