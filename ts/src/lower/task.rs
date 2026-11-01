@@ -134,6 +134,8 @@ pub fn call<'tcx>(
 	};
 	let self_ty = call.args.types().next();
 	let self_std = self_ty.and_then(std_of);
+	// A clone of a reference is that reference, not a clone of what it points at.
+	let owned_std = self_std.filter(|_| self_ty.is_some_and(|t| !t.is_ref()));
 	let e = match (owner, name) {
 		("Arc" | "Rc", "new") => Expr::New(Box::new(Expr::Rt("Arc".into())), args),
 		("Arc" | "Rc", "new_cyclic") => Expr::rt("arcNewCyclic", args),
@@ -202,13 +204,13 @@ pub fn call<'tcx>(
 			let [l, r] = two(args);
 			l.member("arc").binary("===", r.member("arc"))
 		}
-		("Clone", "clone") if self_std == Some(Std::Arc) => Expr::rt("arcClone", args),
-		("Clone", "clone") if self_std == Some(Std::Weak) => Expr::rt("weakClone", args),
+		("Clone", "clone") if owned_std == Some(Std::Arc) => Expr::rt("arcClone", args),
+		("Clone", "clone") if owned_std == Some(Std::Weak) => Expr::rt("weakClone", args),
 		// A `RefCell`'s clone borrows it, and a one-time cell's clones what it holds, if anything.
-		("Clone", "clone") if matches!(self_std, Some(Std::RefCell | Std::OnceCell | Std::OnceLock)) => {
+		("Clone", "clone") if matches!(owned_std, Some(Std::RefCell | Std::OnceCell | Std::OnceLock)) => {
 			let inner = held(self_ty);
 			let clone = super::collections::clone_fn(b, inner, call.span);
-			match self_std {
+			match owned_std {
 				Some(Std::RefCell) => Expr::rt("refCellClone", vec![first(args), clone]),
 				_ => {
 					let none = b.t.none_arg(inner);
@@ -217,7 +219,7 @@ pub fn call<'tcx>(
 			}
 		}
 		// A waker is the executor's, whose `clone` is its own.
-		("Clone", "clone") if self_std == Some(Std::Waker) => first(args).member("clone").call(vec![]),
+		("Clone", "clone") if owned_std == Some(Std::Waker) => first(args).member("clone").call(vec![]),
 		// A reference is the object it points at, which its own `Deref` gives: read out of a
 		// `&mut` that is an `rt.Place`, whose place `DerefMut` lends on.
 		("Deref", "deref") if let Some(ty) = self_ty.filter(|t| t.is_ref()) => b.t.pointee_value(ty, first(args)),
@@ -561,9 +563,9 @@ fn once<'tcx>(
 	Ok(Some(e))
 }
 
-/// The type a cell or lock of type `ty`, or a reference to one, holds.
+/// The type a cell or lock of type `ty` holds.
 fn held(ty: Option<Ty<'_>>) -> Ty<'_> {
-	match ty.map(|ty| ty.peel_refs().kind()) {
+	match ty.map(|ty| ty.kind()) {
 		Some(ty::Adt(_, args)) => args.type_at(0),
 		_ => unreachable!("a cell or lock is a struct"),
 	}

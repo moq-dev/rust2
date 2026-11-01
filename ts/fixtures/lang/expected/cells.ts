@@ -98,32 +98,34 @@ export function cellOption(dataData: Uint8Array, dataStart: number, dataLen: num
 				cell = new rt.OnceCell(rt.None);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceCell<rt.u8 | undefined, rt.None> = twin$ref_cell_OnceCell_Option_u8(cell);
 			const copy: rt.OnceCell<rt.u8 | undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
 			let inner2 = undefined as rt.OnceCell<rt.u8 | undefined, rt.None> | undefined;
-			const _92: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+			const _95: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
 			const t5: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
-				inner2 = rt.onceClone(_92, undefined, rt.None);
+				inner2 = rt.onceClone(_95, undefined, rt.None);
 				return make(v2);
 			}, undefined, rt.None);
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== rt.None ? 1 : 0);
 			const iter: rt.Iter<rt.OnceCell<rt.u8 | undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.u8 | undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceCell<rt.u8 | undefined, rt.None> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceCell<rt.u8 | undefined, rt.None> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.u8 | undefined | rt.None = _104.v;
-				if (_108 === rt.None) {
+				const _116: rt.u8 | undefined | rt.None = _112.v;
+				if (_116 === rt.None) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+			const _125: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
 			const t7: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceCell", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			}, undefined, rt.None);
@@ -137,31 +139,31 @@ export function cellOption(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<rt.u8 | undefined> | undefined = rt.optionAsMut(cell, rt.None);
-			if (_147 === undefined) {
+			const _155: rt.Place<rt.u8 | undefined> | undefined = rt.optionAsMut(cell, rt.None);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: rt.u8 | undefined = rt.optionUnwrap(cell.v, rt.None);
-				put(out, _154);
+				const _162: rt.u8 | undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
 					return made$Option_u8(make, v2);
 				}, undefined, rt.None);
-			} else if (_158 === 2) {
-				const _166: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1), rt.None);
+					rt.onceSet(_174, make(v2 ^ 1), rt.None);
 					return made$Option_u8(make, v2);
 				}, undefined, rt.None);
 			} else {
-				const _171: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+				const _179: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
-					return made$Option_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$1ma2nl9(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					return made$Option_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$1ma2nl9(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8 | undefined, rt.u8> => {
 						return made$Option_u8(make, v2 ^ 1);
 					}, undefined, rt.None), (_22: rt.u8 | undefined): undefined => {})), v2));
 				}, undefined, rt.None);
@@ -175,11 +177,11 @@ export function cellOption(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 		}
 	}
-	const _182: rt.u8 | undefined | rt.None = cell.v;
-	if (_182 === rt.None) {
+	const _190: rt.u8 | undefined | rt.None = cell.v;
+	if (_190 === rt.None) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -280,32 +282,34 @@ export function cellString(dataData: Uint8Array, dataStart: number, dataLen: num
 				cell = new rt.OnceCell(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceCell<string> = twin$ref_cell_OnceCell_String(cell);
 			const copy: rt.OnceCell<string> = rt.onceClone(cell, undefined);
 			let inner2 = undefined as rt.OnceCell<string> | undefined;
-			const _92: rt.OnceCell<string> = cell;
+			const _95: rt.OnceCell<string> = cell;
 			const t5: string = rt.onceGetOrInit(cell, (): string => {
-				inner2 = rt.onceClone(_92, undefined);
+				inner2 = rt.onceClone(_95, undefined);
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceCell<string>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<string> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceCell<string> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceCell<string> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: string | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: string | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceCell<string> = cell;
+			const _125: rt.OnceCell<string> = cell;
 			const t7: string = rt.onceGetOrInit(cell, (): string => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.fmtStr)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceCell", rt.fmtStr)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -319,31 +323,31 @@ export function cellString(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<string> | undefined = rt.optionAsMut(cell);
-			if (_147 === undefined) {
+			const _155: rt.Place<string> | undefined = rt.optionAsMut(cell);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: string = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: string = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
 					return made$String(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceCell<string> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceCell<string> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$String(make, v2);
 				});
 			} else {
-				const _171: rt.OnceCell<string> = cell;
+				const _179: rt.OnceCell<string> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
-					return made$String(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0l5uclx(rt.onceGetOrTryInit(_171, (): rt.Result<string, rt.u8> => {
+					return made$String(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0l5uclx(rt.onceGetOrTryInit(_179, (): rt.Result<string, rt.u8> => {
 						return made$String(make, v2 ^ 1);
 					}), (_22: string): undefined => {})), v2));
 				});
@@ -357,11 +361,11 @@ export function cellString(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 		}
 	}
-	const _182: string | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: string | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -460,32 +464,34 @@ export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number
 				cell = new rt.OnceCell(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceCell<rt.u64> = twin$ref_cell_OnceCell_u64(cell);
 			const copy: rt.OnceCell<rt.u64> = rt.onceClone(cell, undefined);
 			let inner2 = undefined as rt.OnceCell<rt.u64> | undefined;
-			const _92: rt.OnceCell<rt.u64> = cell;
+			const _95: rt.OnceCell<rt.u64> = cell;
 			const t5: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
-				inner2 = rt.onceClone(_92, undefined);
+				inner2 = rt.onceClone(_95, undefined);
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceCell<rt.u64>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.u64> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceCell<rt.u64> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceCell<rt.u64> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.u64 | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: rt.u64 | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceCell<rt.u64> = cell;
+			const _125: rt.OnceCell<rt.u64> = cell;
 			const t7: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.u64Debug)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceCell", rt.u64Debug)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -499,31 +505,31 @@ export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<rt.u64> | undefined = rt.optionAsMut(cell);
-			if (_147 === undefined) {
+			const _155: rt.Place<rt.u64> | undefined = rt.optionAsMut(cell);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: rt.u64 = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: rt.u64 = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
 					return made$u64(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceCell<rt.u64> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceCell<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$u64(make, v2);
 				});
 			} else {
-				const _171: rt.OnceCell<rt.u64> = cell;
+				const _179: rt.OnceCell<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u64, rt.u8> => {
+					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u64, rt.u8> => {
 						return made$u64(make, v2 ^ 1);
 					}), (_22: rt.u64): undefined => {})), v2));
 				});
@@ -537,11 +543,11 @@ export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 		}
 	}
-	const _182: rt.u64 | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: rt.u64 | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -642,32 +648,34 @@ export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 				cell = new rt.OnceCell(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceCell<rt.u8> = twin$ref_cell_OnceCell_u8(cell);
 			const copy: rt.OnceCell<rt.u8> = rt.onceClone(cell, undefined);
 			let inner2 = undefined as rt.OnceCell<rt.u8> | undefined;
-			const _92: rt.OnceCell<rt.u8> = cell;
+			const _95: rt.OnceCell<rt.u8> = cell;
 			const t5: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
-				inner2 = rt.onceClone(_92, undefined);
+				inner2 = rt.onceClone(_95, undefined);
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceCell<rt.u8>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.u8> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceCell<rt.u8> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceCell<rt.u8> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.u8 | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: rt.u8 | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceCell<rt.u8> = cell;
+			const _125: rt.OnceCell<rt.u8> = cell;
 			const t7: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.u8Debug)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceCell", rt.u8Debug)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -681,31 +689,31 @@ export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<rt.u8> | undefined = rt.optionAsMut(cell);
-			if (_147 === undefined) {
+			const _155: rt.Place<rt.u8> | undefined = rt.optionAsMut(cell);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: rt.u8 = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: rt.u8 = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
 					return made$u8(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceCell<rt.u8> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceCell<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$u8(make, v2);
 				});
 			} else {
-				const _171: rt.OnceCell<rt.u8> = cell;
+				const _179: rt.OnceCell<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8, rt.u8> => {
+					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8, rt.u8> => {
 						return made$u8(make, v2 ^ 1);
 					}), (_22: rt.u8): undefined => {})), v2));
 				});
@@ -719,11 +727,11 @@ export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			}
 		}
 	}
-	const _182: rt.u8 | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: rt.u8 | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -822,21 +830,23 @@ export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 				cell = new rt.OnceCell(rt.None);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceCell<undefined, rt.None> = twin$ref_cell_OnceCell_unit(cell);
 			const copy: rt.OnceCell<undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
 			let inner2 = undefined as rt.OnceCell<undefined, rt.None> | undefined;
-			const _92: rt.OnceCell<undefined, rt.None> = cell;
+			const _95: rt.OnceCell<undefined, rt.None> = cell;
 			const t3: undefined = rt.onceGetOrInit(cell, (): undefined => {
-				inner2 = rt.onceClone(_92, undefined, rt.None);
+				inner2 = rt.onceClone(_95, undefined, rt.None);
 				make(v2);
 			}, undefined, rt.None);
 			put(out, t3);
+			rt.byteVecPush(out, alias.v !== rt.None ? 1 : 0);
 			const iter: rt.Iter<rt.OnceCell<undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceCell<undefined, rt.None> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceCell<undefined, rt.None> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				if (_104.v === rt.None) {
+				if (_112.v === rt.None) {
 					rt.byteVecPush(out, 238);
 				} else {
 					put(out, undefined);
@@ -844,9 +854,9 @@ export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceCell<undefined, rt.None> = cell;
+			const _125: rt.OnceCell<undefined, rt.None> = cell;
 			const t4: undefined = rt.onceGetOrInit(cell, (): undefined => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.fmtUnit, rt.None)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceCell", rt.fmtUnit, rt.None)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				make(v2);
 			}, undefined, rt.None);
@@ -865,26 +875,26 @@ export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 			} else {
 				make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: undefined = rt.optionUnwrap(cell.v, rt.None);
-				put(out, _154);
+				const _162: undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
 					return made$unit(make, v2);
 				}, undefined, rt.None);
-			} else if (_158 === 2) {
-				const _166: rt.OnceCell<undefined, rt.None> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceCell<undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
 					make(v2 ^ 1);
-					rt.onceSet(_166, undefined, rt.None);
+					rt.onceSet(_174, undefined, rt.None);
 					return made$unit(make, v2);
 				}, undefined, rt.None);
 			} else {
-				const _171: rt.OnceCell<undefined, rt.None> = cell;
+				const _179: rt.OnceCell<undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
-					return made$unit(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0yqi183(rt.onceGetOrTryInit(_171, (): rt.Result<undefined, rt.u8> => {
+					return made$unit(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0yqi183(rt.onceGetOrTryInit(_179, (): rt.Result<undefined, rt.u8> => {
 						return made$unit(make, v2 ^ 1);
 					}, undefined, rt.None), (_23: undefined): undefined => {})), v2));
 				}, undefined, rt.None);
@@ -1002,36 +1012,38 @@ export function cellVec(dataData: Uint8Array, dataStart: number, dataLen: number
 				cell = new rt.OnceCell(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceCell<rt.ByteVec> = twin$ref_cell_OnceCell_Vec_u8(cell);
 			const copy: rt.OnceCell<rt.ByteVec> = rt.onceClone(cell, (a0: rt.ByteVec): rt.ByteVec => {
 				return rt.byteVecFrom(rt.byteVecView(a0));
 			});
 			let inner2 = undefined as rt.OnceCell<rt.ByteVec> | undefined;
-			const _92: rt.OnceCell<rt.ByteVec> = cell;
+			const _95: rt.OnceCell<rt.ByteVec> = cell;
 			const t5: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
-				inner2 = rt.onceClone(_92, (a02: rt.ByteVec): rt.ByteVec => {
+				inner2 = rt.onceClone(_95, (a02: rt.ByteVec): rt.ByteVec => {
 					return rt.byteVecFrom(rt.byteVecView(a02));
 				});
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceCell<rt.ByteVec>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.ByteVec> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceCell<rt.ByteVec> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceCell<rt.ByteVec> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.ByteVec | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: rt.ByteVec | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceCell<rt.ByteVec> = cell;
+			const _125: rt.OnceCell<rt.ByteVec> = cell;
 			const t7: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceCell", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -1045,31 +1057,31 @@ export function cellVec(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.ByteVec | undefined = cell.v;
-			if (_147 === undefined) {
+			const _155: rt.ByteVec | undefined = cell.v;
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				Object.assign(_147, make(v2));
+				Object.assign(_155, make(v2));
 				rt.byteVecPush(out, 1);
-				const _154: rt.ByteVec = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: rt.ByteVec = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
 					return made$Vec_u8(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceCell<rt.ByteVec> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceCell<rt.ByteVec> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$Vec_u8(make, v2);
 				});
 			} else {
-				const _171: rt.OnceCell<rt.ByteVec> = cell;
+				const _179: rt.OnceCell<rt.ByteVec> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
-					return made$Vec_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$14n87rz(rt.onceGetOrTryInit(_171, (): rt.Result<rt.ByteVec, rt.u8> => {
+					return made$Vec_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$14n87rz(rt.onceGetOrTryInit(_179, (): rt.Result<rt.ByteVec, rt.u8> => {
 						return made$Vec_u8(make, v2 ^ 1);
 					}), (_22: rt.ByteVec): undefined => {})), v2));
 				});
@@ -1083,11 +1095,11 @@ export function cellVec(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 		}
 	}
-	const _182: rt.ByteVec | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: rt.ByteVec | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -1214,32 +1226,34 @@ export function lockOption(dataData: Uint8Array, dataStart: number, dataLen: num
 				cell = new rt.OnceLock(rt.None);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceLock<rt.u8 | undefined, rt.None> = twin$ref_sync_OnceLock_Option_u8(cell);
 			const copy: rt.OnceLock<rt.u8 | undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
 			let inner2 = undefined as rt.OnceLock<rt.u8 | undefined, rt.None> | undefined;
-			const _92: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+			const _95: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
 			const t5: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
-				inner2 = rt.onceClone(_92, undefined, rt.None);
+				inner2 = rt.onceClone(_95, undefined, rt.None);
 				return make(v2);
 			}, undefined, rt.None);
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== rt.None ? 1 : 0);
 			const iter: rt.Iter<rt.OnceLock<rt.u8 | undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.u8 | undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceLock<rt.u8 | undefined, rt.None> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceLock<rt.u8 | undefined, rt.None> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.u8 | undefined | rt.None = _104.v;
-				if (_108 === rt.None) {
+				const _116: rt.u8 | undefined | rt.None = _112.v;
+				if (_116 === rt.None) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+			const _125: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
 			const t7: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceLock", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			}, undefined, rt.None);
@@ -1253,31 +1267,31 @@ export function lockOption(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<rt.u8 | undefined> | undefined = rt.optionAsMut(cell, rt.None);
-			if (_147 === undefined) {
+			const _155: rt.Place<rt.u8 | undefined> | undefined = rt.optionAsMut(cell, rt.None);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: rt.u8 | undefined = rt.optionUnwrap(cell.v, rt.None);
-				put(out, _154);
+				const _162: rt.u8 | undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
 					return made$Option_u8(make, v2);
 				}, undefined, rt.None);
-			} else if (_158 === 2) {
-				const _166: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1), rt.None);
+					rt.onceSet(_174, make(v2 ^ 1), rt.None);
 					return made$Option_u8(make, v2);
 				}, undefined, rt.None);
 			} else {
-				const _171: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+				const _179: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
-					return made$Option_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$1ma2nl9(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					return made$Option_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$1ma2nl9(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8 | undefined, rt.u8> => {
 						return made$Option_u8(make, v2 ^ 1);
 					}, undefined, rt.None), (_22: rt.u8 | undefined): undefined => {})), v2));
 				}, undefined, rt.None);
@@ -1291,11 +1305,11 @@ export function lockOption(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 		}
 	}
-	const _182: rt.u8 | undefined | rt.None = cell.v;
-	if (_182 === rt.None) {
+	const _190: rt.u8 | undefined | rt.None = cell.v;
+	if (_190 === rt.None) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -1396,32 +1410,34 @@ export function lockString(dataData: Uint8Array, dataStart: number, dataLen: num
 				cell = new rt.OnceLock(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceLock<string> = twin$ref_sync_OnceLock_String(cell);
 			const copy: rt.OnceLock<string> = rt.onceClone(cell, undefined);
 			let inner2 = undefined as rt.OnceLock<string> | undefined;
-			const _92: rt.OnceLock<string> = cell;
+			const _95: rt.OnceLock<string> = cell;
 			const t5: string = rt.onceGetOrInit(cell, (): string => {
-				inner2 = rt.onceClone(_92, undefined);
+				inner2 = rt.onceClone(_95, undefined);
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceLock<string>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<string> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceLock<string> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceLock<string> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: string | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: string | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceLock<string> = cell;
+			const _125: rt.OnceLock<string> = cell;
 			const t7: string = rt.onceGetOrInit(cell, (): string => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.fmtStr)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceLock", rt.fmtStr)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -1435,31 +1451,31 @@ export function lockString(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<string> | undefined = rt.optionAsMut(cell);
-			if (_147 === undefined) {
+			const _155: rt.Place<string> | undefined = rt.optionAsMut(cell);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: string = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: string = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
 					return made$String(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceLock<string> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceLock<string> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$String(make, v2);
 				});
 			} else {
-				const _171: rt.OnceLock<string> = cell;
+				const _179: rt.OnceLock<string> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
-					return made$String(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0l5uclx(rt.onceGetOrTryInit(_171, (): rt.Result<string, rt.u8> => {
+					return made$String(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0l5uclx(rt.onceGetOrTryInit(_179, (): rt.Result<string, rt.u8> => {
 						return made$String(make, v2 ^ 1);
 					}), (_22: string): undefined => {})), v2));
 				});
@@ -1473,11 +1489,11 @@ export function lockString(dataData: Uint8Array, dataStart: number, dataLen: num
 			}
 		}
 	}
-	const _182: string | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: string | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -1576,32 +1592,34 @@ export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number
 				cell = new rt.OnceLock(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceLock<rt.u64> = twin$ref_sync_OnceLock_u64(cell);
 			const copy: rt.OnceLock<rt.u64> = rt.onceClone(cell, undefined);
 			let inner2 = undefined as rt.OnceLock<rt.u64> | undefined;
-			const _92: rt.OnceLock<rt.u64> = cell;
+			const _95: rt.OnceLock<rt.u64> = cell;
 			const t5: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
-				inner2 = rt.onceClone(_92, undefined);
+				inner2 = rt.onceClone(_95, undefined);
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceLock<rt.u64>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.u64> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceLock<rt.u64> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceLock<rt.u64> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.u64 | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: rt.u64 | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceLock<rt.u64> = cell;
+			const _125: rt.OnceLock<rt.u64> = cell;
 			const t7: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.u64Debug)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceLock", rt.u64Debug)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -1615,31 +1633,31 @@ export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<rt.u64> | undefined = rt.optionAsMut(cell);
-			if (_147 === undefined) {
+			const _155: rt.Place<rt.u64> | undefined = rt.optionAsMut(cell);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: rt.u64 = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: rt.u64 = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
 					return made$u64(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceLock<rt.u64> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceLock<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$u64(make, v2);
 				});
 			} else {
-				const _171: rt.OnceLock<rt.u64> = cell;
+				const _179: rt.OnceLock<rt.u64> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
-					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u64, rt.u8> => {
+					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u64, rt.u8> => {
 						return made$u64(make, v2 ^ 1);
 					}), (_22: rt.u64): undefined => {})), v2));
 				});
@@ -1653,11 +1671,11 @@ export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 		}
 	}
-	const _182: rt.u64 | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: rt.u64 | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -1758,32 +1776,34 @@ export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 				cell = new rt.OnceLock(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceLock<rt.u8> = twin$ref_sync_OnceLock_u8(cell);
 			const copy: rt.OnceLock<rt.u8> = rt.onceClone(cell, undefined);
 			let inner2 = undefined as rt.OnceLock<rt.u8> | undefined;
-			const _92: rt.OnceLock<rt.u8> = cell;
+			const _95: rt.OnceLock<rt.u8> = cell;
 			const t5: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
-				inner2 = rt.onceClone(_92, undefined);
+				inner2 = rt.onceClone(_95, undefined);
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceLock<rt.u8>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.u8> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceLock<rt.u8> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceLock<rt.u8> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.u8 | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: rt.u8 | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceLock<rt.u8> = cell;
+			const _125: rt.OnceLock<rt.u8> = cell;
 			const t7: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.u8Debug)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceLock", rt.u8Debug)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -1797,31 +1817,31 @@ export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.Place<rt.u8> | undefined = rt.optionAsMut(cell);
-			if (_147 === undefined) {
+			const _155: rt.Place<rt.u8> | undefined = rt.optionAsMut(cell);
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				_147.v = make(v2);
+				_155.v = make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: rt.u8 = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: rt.u8 = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
 					return made$u8(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceLock<rt.u8> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceLock<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$u8(make, v2);
 				});
 			} else {
-				const _171: rt.OnceLock<rt.u8> = cell;
+				const _179: rt.OnceLock<rt.u8> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
-					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8, rt.u8> => {
+					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_179, (): rt.Result<rt.u8, rt.u8> => {
 						return made$u8(make, v2 ^ 1);
 					}), (_22: rt.u8): undefined => {})), v2));
 				});
@@ -1835,11 +1855,11 @@ export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			}
 		}
 	}
-	const _182: rt.u8 | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: rt.u8 | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
 }
 
@@ -1938,21 +1958,23 @@ export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 				cell = new rt.OnceLock(rt.None);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceLock<undefined, rt.None> = twin$ref_sync_OnceLock_unit(cell);
 			const copy: rt.OnceLock<undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
 			let inner2 = undefined as rt.OnceLock<undefined, rt.None> | undefined;
-			const _92: rt.OnceLock<undefined, rt.None> = cell;
+			const _95: rt.OnceLock<undefined, rt.None> = cell;
 			const t3: undefined = rt.onceGetOrInit(cell, (): undefined => {
-				inner2 = rt.onceClone(_92, undefined, rt.None);
+				inner2 = rt.onceClone(_95, undefined, rt.None);
 				make(v2);
 			}, undefined, rt.None);
 			put(out, t3);
+			rt.byteVecPush(out, alias.v !== rt.None ? 1 : 0);
 			const iter: rt.Iter<rt.OnceLock<undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceLock<undefined, rt.None> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceLock<undefined, rt.None> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				if (_104.v === rt.None) {
+				if (_112.v === rt.None) {
 					rt.byteVecPush(out, 238);
 				} else {
 					put(out, undefined);
@@ -1960,9 +1982,9 @@ export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceLock<undefined, rt.None> = cell;
+			const _125: rt.OnceLock<undefined, rt.None> = cell;
 			const t4: undefined = rt.onceGetOrInit(cell, (): undefined => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.fmtUnit, rt.None)];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceLock", rt.fmtUnit, rt.None)];
 				inner3 = rt.fmtFormat([args6[0]]);
 				make(v2);
 			}, undefined, rt.None);
@@ -1981,26 +2003,26 @@ export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 			} else {
 				make(v2);
 				rt.byteVecPush(out, 1);
-				const _154: undefined = rt.optionUnwrap(cell.v, rt.None);
-				put(out, _154);
+				const _162: undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
 					return made$unit(make, v2);
 				}, undefined, rt.None);
-			} else if (_158 === 2) {
-				const _166: rt.OnceLock<undefined, rt.None> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceLock<undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
 					make(v2 ^ 1);
-					rt.onceSet(_166, undefined, rt.None);
+					rt.onceSet(_174, undefined, rt.None);
 					return made$unit(make, v2);
 				}, undefined, rt.None);
 			} else {
-				const _171: rt.OnceLock<undefined, rt.None> = cell;
+				const _179: rt.OnceLock<undefined, rt.None> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
-					return made$unit(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0yqi183(rt.onceGetOrTryInit(_171, (): rt.Result<undefined, rt.u8> => {
+					return made$unit(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0yqi183(rt.onceGetOrTryInit(_179, (): rt.Result<undefined, rt.u8> => {
 						return made$unit(make, v2 ^ 1);
 					}, undefined, rt.None), (_23: undefined): undefined => {})), v2));
 				}, undefined, rt.None);
@@ -2118,36 +2140,38 @@ export function lockVec(dataData: Uint8Array, dataStart: number, dataLen: number
 				cell = new rt.OnceLock(undefined);
 			}
 		} else if (_18 === 9) {
+			const alias: rt.OnceLock<rt.ByteVec> = twin$ref_sync_OnceLock_Vec_u8(cell);
 			const copy: rt.OnceLock<rt.ByteVec> = rt.onceClone(cell, (a0: rt.ByteVec): rt.ByteVec => {
 				return rt.byteVecFrom(rt.byteVecView(a0));
 			});
 			let inner2 = undefined as rt.OnceLock<rt.ByteVec> | undefined;
-			const _92: rt.OnceLock<rt.ByteVec> = cell;
+			const _95: rt.OnceLock<rt.ByteVec> = cell;
 			const t5: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
-				inner2 = rt.onceClone(_92, (a02: rt.ByteVec): rt.ByteVec => {
+				inner2 = rt.onceClone(_95, (a02: rt.ByteVec): rt.ByteVec => {
 					return rt.byteVecFrom(rt.byteVecView(a02));
 				});
 				return make(v2);
 			});
 			put(out, t5);
+			rt.byteVecPush(out, alias.v !== undefined ? 1 : 0);
 			const iter: rt.Iter<rt.OnceLock<rt.ByteVec>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.ByteVec> | undefined) => rt.iterOption(value), false, undefined, true);
 			while (true) {
-				const _104: rt.OnceLock<rt.ByteVec> | rt.Done = iter.next();
-				if (_104 === rt.DONE) {
+				const _112: rt.OnceLock<rt.ByteVec> | rt.Done = iter.next();
+				if (_112 === rt.DONE) {
 					break;
 				}
-				const _108: rt.ByteVec | undefined = _104.v;
-				if (_108 === undefined) {
+				const _116: rt.ByteVec | undefined = _112.v;
+				if (_116 === undefined) {
 					rt.byteVecPush(out, 238);
 				} else {
-					put(out, _108);
+					put(out, _116);
 				}
 			}
 		} else if (_18 === 10) {
 			let inner3: string = "";
-			const _117: rt.OnceLock<rt.ByteVec> = cell;
+			const _125: rt.OnceLock<rt.ByteVec> = cell;
 			const t7: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
-				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_125, f, "OnceLock", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
 				inner3 = rt.fmtFormat([args6[0]]);
 				return make(v2);
 			});
@@ -2161,31 +2185,31 @@ export function lockVec(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
 		} else if (_18 === 11) {
-			const _147: rt.ByteVec | undefined = cell.v;
-			if (_147 === undefined) {
+			const _155: rt.ByteVec | undefined = cell.v;
+			if (_155 === undefined) {
 				rt.byteVecPush(out, 0);
 			} else {
-				Object.assign(_147, make(v2));
+				Object.assign(_155, make(v2));
 				rt.byteVecPush(out, 1);
-				const _154: rt.ByteVec = rt.optionUnwrap(cell.v);
-				put(out, _154);
+				const _162: rt.ByteVec = rt.optionUnwrap(cell.v);
+				put(out, _162);
 			}
 		} else {
-			const _158: rt.u8 = rt.u8Rem(v2, 4);
-			if (_158 === 0 || _158 === 1) {
+			const _166: rt.u8 = rt.u8Rem(v2, 4);
+			if (_166 === 0 || _166 === 1) {
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
 					return made$Vec_u8(make, v2);
 				});
-			} else if (_158 === 2) {
-				const _166: rt.OnceLock<rt.ByteVec> = cell;
+			} else if (_166 === 2) {
+				const _174: rt.OnceLock<rt.ByteVec> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
-					rt.onceSet(_166, make(v2 ^ 1));
+					rt.onceSet(_174, make(v2 ^ 1));
 					return made$Vec_u8(make, v2);
 				});
 			} else {
-				const _171: rt.OnceLock<rt.ByteVec> = cell;
+				const _179: rt.OnceLock<rt.ByteVec> = cell;
 				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
-					return made$Vec_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$14n87rz(rt.onceGetOrTryInit(_171, (): rt.Result<rt.ByteVec, rt.u8> => {
+					return made$Vec_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$14n87rz(rt.onceGetOrTryInit(_179, (): rt.Result<rt.ByteVec, rt.u8> => {
 						return made$Vec_u8(make, v2 ^ 1);
 					}), (_22: rt.ByteVec): undefined => {})), v2));
 				});
@@ -2199,12 +2223,72 @@ export function lockVec(dataData: Uint8Array, dataStart: number, dataLen: number
 			}
 		}
 	}
-	const _182: rt.ByteVec | undefined = cell.v;
-	if (_182 === undefined) {
+	const _190: rt.ByteVec | undefined = cell.v;
+	if (_190 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _182);
+		put(out, _190);
 	}
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_cell_OnceCell_Option_u8(t: rt.OnceCell<rt.u8 | undefined, rt.None>): rt.OnceCell<rt.u8 | undefined, rt.None> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_cell_OnceCell_String(t: rt.OnceCell<string>): rt.OnceCell<string> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_cell_OnceCell_Vec_u8(t: rt.OnceCell<rt.ByteVec>): rt.OnceCell<rt.ByteVec> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_cell_OnceCell_u64(t: rt.OnceCell<rt.u64>): rt.OnceCell<rt.u64> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_cell_OnceCell_u8(t: rt.OnceCell<rt.u8>): rt.OnceCell<rt.u8> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_cell_OnceCell_unit(t: rt.OnceCell<undefined, rt.None>): rt.OnceCell<undefined, rt.None> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_sync_OnceLock_Option_u8(t: rt.OnceLock<rt.u8 | undefined, rt.None>): rt.OnceLock<rt.u8 | undefined, rt.None> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_sync_OnceLock_String(t: rt.OnceLock<string>): rt.OnceLock<string> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_sync_OnceLock_Vec_u8(t: rt.OnceLock<rt.ByteVec>): rt.OnceLock<rt.ByteVec> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_sync_OnceLock_u64(t: rt.OnceLock<rt.u64>): rt.OnceLock<rt.u64> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_sync_OnceLock_u8(t: rt.OnceLock<rt.u8>): rt.OnceLock<rt.u8> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_sync_OnceLock_unit(t: rt.OnceLock<undefined, rt.None>): rt.OnceLock<undefined, rt.None> {
+	return t;
 }
 
 /** What `make` makes of `v`, or `v` back as an error for every third byte. */

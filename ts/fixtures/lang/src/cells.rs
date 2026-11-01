@@ -74,6 +74,7 @@ macro_rules! cells {
 					},
 					// A clone holds a clone of what it holds, and nothing while it initializes.
 					9 => {
+						let alias = twin(&&cell);
 						let copy = cell.clone();
 						let mut inner = None;
 						let t = cell.get_or_init(|| {
@@ -81,6 +82,7 @@ macro_rules! cells {
 							make(v)
 						});
 						put(out, t);
+						out.push(alias.get().is_some() as u8);
 						for copy in [Some(copy), inner].into_iter().flatten() {
 							match copy.into_inner() {
 								Some(t) => put(out, &t),
@@ -161,6 +163,11 @@ cells! {
 	lock_string: OnceLock<String>, |v| v.to_string(), |out, t| out.extend_from_slice(t.as_bytes());
 	cell_vec: OnceCell<Vec<u8>>, |v| vec![v; usize::from(v % 4)], |out, t| out.extend_from_slice(t);
 	lock_vec: OnceLock<Vec<u8>>, |v| vec![v; usize::from(v % 4)], |out, t| out.extend_from_slice(t);
+}
+
+/// A clone of `t`, which for a reference is that reference.
+fn twin<T: Clone>(t: &T) -> T {
+	t.clone()
 }
 
 /// What `make` makes of `v`, or `v` back as an error for every third byte.

@@ -162,8 +162,13 @@ pub fn guards(data: &[u8], out: &mut Vec<u8>) {
 				tagged.get_mut().n += 1;
 				out.push(*number.borrow() as u8);
 			}
-			// A clone borrows what it clones, which panics while it is mutably borrowed.
+			// A clone borrows what it clones, which panics while it is mutably borrowed, and a
+			// clone of a reference to it, or to an `Arc`, is that reference.
 			1 => {
+				let alias = twin(&&number);
+				*alias.borrow_mut() += 1;
+				out.push(*number.borrow() as u8);
+				out.push(Arc::strong_count(twin(&&log)) as u8);
 				let held = (op >> 4 == 0xe).then(|| tagged.borrow());
 				let held_mut = (op >> 4 == 0xf).then(|| tagged.borrow_mut());
 				let copy = tagged.clone();
@@ -263,6 +268,11 @@ pub fn guards(data: &[u8], out: &mut Vec<u8>) {
 	flush(&log, out);
 	drop(last);
 	flush(&log, out);
+}
+
+/// A clone of `t`, which for a reference is that reference.
+fn twin<T: Clone>(t: &T) -> T {
+	t.clone()
 }
 
 /// Puts what dropped since the last flush.

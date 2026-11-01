@@ -137,6 +137,13 @@ export function guards(data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecPush(out, _39.value & 0xff);
 			rt.refRelease(_39);
 		} else if (_22 === 1) {
+			const _46: rt.RefCell<rt.u32> = rt.refCellBorrowMut(twin$ref_cell_RefCell_u32(number));
+			_46.value = rt.u32Add(_46.value, 1);
+			rt.refMutRelease(_46);
+			const _53: rt.RefCell<rt.u32> = rt.refCellBorrow(number);
+			rt.byteVecPush(out, _53.value & 0xff);
+			rt.refRelease(_53);
+			rt.byteVecPush(out, twin$ref_sync_Arc_sync_Mutex_Vec_u8(log).strong & 0xff);
 			const held: rt.RefCell<borrows_Tagged.Tagged> | undefined = then$1jgls7y((op >> 4) === 14, (): rt.RefCell<borrows_Tagged.Tagged> => {
 				return rt.refCellBorrow(tagged);
 			});
@@ -144,9 +151,9 @@ export function guards(data: rt.ByteSlice, out: rt.ByteVec): void {
 				return rt.refCellBorrowMut(tagged);
 			});
 			const copy: rt.RefCell<borrows_Tagged.Tagged> = rt.refCellClone(tagged, borrows_Tagged.clone$Clone);
-			const _61: rt.RefCell<borrows_Tagged.Tagged> = rt.refCellBorrow(copy);
-			rt.byteVecPush(out, _61.value.id);
-			rt.refRelease(_61);
+			const _81: rt.RefCell<borrows_Tagged.Tagged> = rt.refCellBorrow(copy);
+			rt.byteVecPush(out, _81.value.id);
+			rt.refRelease(_81);
 			drop$tuple2_Option_cell_Ref_borrows_Tagged_Option_cell_RefMut_borrows_Tagged([held, heldMut] as [rt.RefCell<borrows_Tagged.Tagged> | undefined, rt.RefCell<borrows_Tagged.Tagged> | undefined]);
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(rt.refCellClone(bytes, (a02: rt.ByteVec): rt.ByteVec => {
 				return rt.byteVecFrom(rt.byteVecView(a02));
@@ -162,30 +169,30 @@ export function guards(data: rt.ByteSlice, out: rt.ByteVec): void {
 			const shared: rt.RefCell<rt.ByteVec> = rt.refCellBorrow(bytes);
 			const read: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowError> = rt.refCellTryBorrow(bytes);
 			rt.byteVecPush(out, read.ok ? 1 : 0);
-			const _96: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
-			if (_96.ok) {
+			const _116: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
+			if (_116.ok) {
 				rt.byteVecPush(out, 254);
 			} else {
 				const part3 = new rt.BorrowMutError();
 				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.borrowMutErrorDisplay(part3, f), (f: rt.Formatter) => rt.borrowMutErrorDebug(part3, f)];
 				rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args2[0], " ", args2[1]])));
 			}
-			if (_96.ok) {
-				drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_96);
+			if (_116.ok) {
+				drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_116);
 			}
 			drop$tuple2_Result_cell_Ref_Vec_u8_cell_BorrowError_cell_Ref_Vec_u8([read, shared] as [rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowError>, rt.RefCell<rt.ByteVec>]);
 			const write: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
 			rt.byteVecPush(out, write.ok ? 1 : 0);
-			const _121: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowError> = rt.refCellTryBorrow(bytes);
-			if (_121.ok) {
+			const _141: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowError> = rt.refCellTryBorrow(bytes);
+			if (_141.ok) {
 				rt.byteVecPush(out, 254);
 			} else {
 				const part4 = new rt.BorrowError();
 				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.borrowErrorDisplay(part4, f), (f: rt.Formatter) => rt.borrowErrorDebug(part4, f)];
 				rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args4[0], " ", args4[1]])));
 			}
-			if (_121.ok) {
-				drop$Result_cell_Ref_Vec_u8_cell_BorrowError(_121);
+			if (_141.ok) {
+				drop$Result_cell_Ref_Vec_u8_cell_BorrowError(_141);
 			}
 			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(write);
 			rt.byteVecPush(out, result_unwrapOr$0k9nfhn(result_map$0n1xnuw(rt.refCellTryBorrowMut(bytes), (b3: rt.RefCell<rt.ByteVec>): rt.u8 => {
@@ -202,17 +209,17 @@ export function guards(data: rt.ByteSlice, out: rt.ByteVec): void {
 				return t3.id;
 			});
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(n.value & 0xff, id.value)));
-			const _166: rt.Result<rt.RefCell<borrows_Tagged.Tagged>, rt.BorrowMutError> = rt.refCellTryBorrowMut(tagged);
-			rt.byteVecPush(out, !_166.ok ? 1 : 0);
-			drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_166);
+			const _186: rt.Result<rt.RefCell<borrows_Tagged.Tagged>, rt.BorrowMutError> = rt.refCellTryBorrowMut(tagged);
+			rt.byteVecPush(out, !_186.ok ? 1 : 0);
+			drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_186);
 			rt.refRelease(n);
-			const _173: rt.Result<rt.RefCell<borrows_Tagged.Tagged>, rt.BorrowMutError> = rt.refCellTryBorrowMut(tagged);
-			rt.byteVecPush(out, !_173.ok ? 1 : 0);
-			drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_173);
+			const _193: rt.Result<rt.RefCell<borrows_Tagged.Tagged>, rt.BorrowMutError> = rt.refCellTryBorrowMut(tagged);
+			rt.byteVecPush(out, !_193.ok ? 1 : 0);
+			drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_193);
 			rt.refRelease(id);
-			const _180: rt.Result<rt.RefCell<borrows_Tagged.Tagged>, rt.BorrowMutError> = rt.refCellTryBorrowMut(tagged);
-			rt.byteVecPush(out, !_180.ok ? 1 : 0);
-			drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_180);
+			const _200: rt.Result<rt.RefCell<borrows_Tagged.Tagged>, rt.BorrowMutError> = rt.refCellTryBorrowMut(tagged);
+			rt.byteVecPush(out, !_200.ok ? 1 : 0);
+			drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_200);
 			const half: rt.RefCell<rt.ByteSlice> = rt.refMap(rt.refCellBorrow(bytes), (b2: rt.ByteVec): rt.ByteSlice => {
 				const part2 = rt.usizeDiv(b2.length, 2);
 				return rt.byteSliceRange(rt.byteVecSlice(b2), part2);
@@ -222,59 +229,59 @@ export function guards(data: rt.ByteSlice, out: rt.ByteVec): void {
 				return option_unwrapOr$0r2bmpr(rt.byteSliceLast(s), 253);
 			});
 			rt.byteVecPush(out, last.value);
-			const _199: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
-			rt.byteVecPush(out, !_199.ok ? 1 : 0);
-			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_199);
+			const _219: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
+			rt.byteVecPush(out, !_219.ok ? 1 : 0);
+			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_219);
 			rt.refRelease(last);
-			const _206: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
-			rt.byteVecPush(out, !_206.ok ? 1 : 0);
-			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_206);
+			const _226: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
+			rt.byteVecPush(out, !_226.ok ? 1 : 0);
+			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_226);
 		} else if (_22 === 5) {
 			const a: rt.RefCell<rt.ByteVec> = rt.refCellBorrow(bytes);
 			const b: rt.RefCell<rt.ByteVec> = rt.refClone(a);
 			rt.refRelease(a);
-			const _217: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
-			rt.byteVecPush(out, !_217.ok ? 1 : 0);
-			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_217);
+			const _237: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
+			rt.byteVecPush(out, !_237.ok ? 1 : 0);
+			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_237);
 			const c: rt.RefCell<rt.u8> = rt.refMap(rt.refClone(b), (v: rt.ByteVec): rt.u8 => {
 				return option_unwrapOr$0r2bmpr(rt.byteSliceFirst(rt.byteVecSlice(v)), 253);
 			});
 			const d: rt.RefCell<rt.u8> = rt.refClone(c);
 			drop$tuple2_cell_Ref_Vec_u8_cell_Ref_u8([b, c] as [rt.RefCell<rt.ByteVec>, rt.RefCell<rt.u8>]);
 			rt.byteVecPush(out, d.value);
-			const _234: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
-			rt.byteVecPush(out, !_234.ok ? 1 : 0);
-			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_234);
+			const _254: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
+			rt.byteVecPush(out, !_254.ok ? 1 : 0);
+			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_254);
 			rt.refRelease(d);
-			const _241: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
-			rt.byteVecPush(out, !_241.ok ? 1 : 0);
-			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_241);
+			const _261: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError> = rt.refCellTryBorrowMut(bytes);
+			rt.byteVecPush(out, !_261.ok ? 1 : 0);
+			drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_261);
 		} else if (_22 === 6) {
-			const _243: rt.u8 = op >> 4;
-			if (_243 === 14) {
+			const _263: rt.u8 = op >> 4;
+			if (_263 === 14) {
 				const _n: rt.RefCell<rt.u32> = rt.refMap(rt.refCellBorrow(tagged), (t: borrows_Tagged.Tagged): rt.u32 => {
 					return t.n;
 				});
 				rt.refMutRelease(rt.refCellBorrowMut(tagged));
 				rt.refRelease(_n);
-			} else if (_243 === 15) {
+			} else if (_263 === 15) {
 				const a2: rt.RefCell<borrows_Tagged.Tagged> = rt.refCellBorrow(tagged);
 				const _b: rt.RefCell<borrows_Tagged.Tagged> = rt.refClone(a2);
 				rt.refRelease(a2);
 				rt.refMutRelease(rt.refCellBorrowMut(tagged));
 				rt.refRelease(_b);
 			} else {
-				const _261: rt.RefCell<borrows_Tagged.Tagged> = rt.refCellBorrowMut(tagged);
-				rt.byteVecPush(out, _261.value.id);
-				rt.refMutRelease(_261);
+				const _281: rt.RefCell<borrows_Tagged.Tagged> = rt.refCellBorrowMut(tagged);
+				rt.byteVecPush(out, _281.value.id);
+				rt.refMutRelease(_281);
 			}
 		} else {
-			const _265: rt.RefCell<borrows_Tagged.Tagged> = new rt.RefCell(tag(op));
+			const _285: rt.RefCell<borrows_Tagged.Tagged> = new rt.RefCell(tag(op));
 			const old2 = tagged;
-			tagged = _265;
-			const _271: borrows_Tagged.Tagged = old2.value;
-			rt.byteVecPush(out, _271.id);
-			_271[Symbol.dispose]();
+			tagged = _285;
+			const _291: borrows_Tagged.Tagged = old2.value;
+			rt.byteVecPush(out, _291.id);
+			_291[Symbol.dispose]();
 		}
 		flush(log.value, out);
 	}
@@ -286,6 +293,16 @@ export function guards(data: rt.ByteSlice, out: rt.ByteVec): void {
 	last2[Symbol.dispose]();
 	flush(log.value, out);
 	log[Symbol.dispose]();
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_cell_RefCell_u32(t: rt.RefCell<rt.u32>): rt.RefCell<rt.u32> {
+	return t;
+}
+
+/** A clone of `t`, which for a reference is that reference. */
+export function twin$ref_sync_Arc_sync_Mutex_Vec_u8(t: rt.Arc<rt.Mutex<rt.ByteVec>>): rt.Arc<rt.Mutex<rt.ByteVec>> {
+	return t;
 }
 
 /** Puts what dropped since the last flush. */
