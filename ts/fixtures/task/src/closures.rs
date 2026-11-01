@@ -15,8 +15,10 @@ use crate::model::Guard;
 /// that only borrows is called through `AsyncFn` and through `Fn`, a future of its own
 /// each call, and so is one that captures nothing; one that moves its guard out is called
 /// once; one made by a function holds a copy of its argument; one that owns a guard,
-/// called through `AsyncFn`, is then consumed through `FnOnce`; and a box of one that owns
-/// a guard is consumed through `AsyncFnOnce`. A clone of the one that owns a count changes its own. A
+/// called through `AsyncFn`, is then consumed through `FnOnce`; a box of one that owns
+/// a guard is consumed through `AsyncFnOnce`; and ones that own guards are consumed by
+/// `Option::get_or_insert_with` and through a `dyn FnOnce`, their futures awaited or
+/// dropped before their first poll. A clone of the one that owns a count changes its own. A
 /// cancel drops what the future in flight holds, then the closures, in reverse.
 pub async fn closures(mut rx: Consumer, guard: Guard) -> u64 {
 	let (id, log) = (guard.id(), guard.log().clone());
@@ -77,6 +79,20 @@ pub async fn closures(mut rx: Consumer, guard: Guard) -> u64 {
 		value.unwrap_or(0)
 	});
 	let sixth = call_once(wait, &mut rx).await;
+	let (made, erased, unpolled) = (
+		Guard::new(id + 1000, log.clone()),
+		Guard::new(id + 1100, log.clone()),
+		Guard::new(id + 1200, log.clone()),
+	);
+	let make = async move || made.note("made");
+	let mut slot = None;
+	slot.get_or_insert_with(make);
+	drop(slot);
+	let read = async move || erased.id();
+	let seventh = erase(read)().await;
+	let skip = async move || unpolled.id();
+	drop(erase(skip)());
+	guard.note(&format!("sixth {sixth} seventh {seventh}"));
 	first.unwrap_or(0) + second.unwrap_or(0) + third + fourth + fifth + sixth
 }
 
@@ -103,6 +119,11 @@ async fn through_fn<F: Fn(u64) -> R, R: Future<Output = u64>>(f: F, value: u64) 
 /// One call of `f`, through `FnOnce` returning a future.
 async fn through_fn_once<F: FnOnce(u64) -> R, R: Future<Output = u64>>(f: F, value: u64) -> u64 {
 	f(value).await
+}
+
+/// `f` as a `dyn FnOnce`.
+fn erase<'a, F: FnOnce() -> R + 'a, R>(f: F) -> Box<dyn FnOnce() -> R + 'a> {
+	Box::new(f)
 }
 
 /// An async closure adding `n`.

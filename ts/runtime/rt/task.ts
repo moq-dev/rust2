@@ -50,8 +50,24 @@ export function closureClone<F>(f: F): F {
 	return (f as F & { [CLONE]: () => F })[CLONE]();
 }
 
-/** `FnOnce::call_once` of a closure that `Fn` or `FnMut` call: `f(...args)`, then `f` drops. */
+/** What makes the future of a call that consumes an async closure. */
+const BY_MOVE: unique symbol = /* @__PURE__ */ Symbol("byMove");
+
+/**
+ * An async closure `f` that `Fn` or `FnMut` call and that owns what drops: a call that
+ * consumes it calls `once`, whose future owns what `f`'s would borrow.
+ */
+export function byMove<F extends (...args: never[]) => unknown>(f: F, once: F): F {
+	return Object.assign(f, { [BY_MOVE]: once });
+}
+
+/**
+ * `FnOnce::call_once` of a closure that `Fn` or `FnMut` call: `f(...args)`, then `f`
+ * drops; or, of an async closure `byMove` made, the future that owns what it captured.
+ */
 export function callOnce<A extends unknown[], R>(f: (...args: A) => R, ...args: A): R {
+	const once = (f as { [BY_MOVE]?: (...args: A) => R })[BY_MOVE];
+	if (once !== undefined) return once(...args);
 	const r = f(...args);
 	drop(f);
 	return r;
@@ -65,22 +81,6 @@ export function dropAfter<T, R>(f: T, call: (f: T) => R, by: (f: T) => void = dr
 	const r = call(f);
 	by(f);
 	return r;
-}
-
-/** What makes the future of a call that consumes an async closure. */
-const BY_MOVE: unique symbol = /* @__PURE__ */ Symbol("byMove");
-
-/**
- * An async closure `f` that `Fn` or `FnMut` call and that owns what drops: a call that
- * consumes it calls `once`, whose future owns what `f`'s would borrow.
- */
-export function byMove<F extends (...args: never[]) => unknown>(f: F, once: F): F {
-	return Object.assign(f, { [BY_MOVE]: once });
-}
-
-/** `AsyncFnOnce::async_call_once` of an async closure `byMove` made. */
-export function callByMove<A extends unknown[], R>(f: (...args: A) => R, ...args: A): R {
-	return (f as ((...args: A) => R) & { [BY_MOVE]: (...args: A) => R })[BY_MOVE](...args);
 }
 
 /** A closure that `Fn` or `FnMut` call, as one `FnOnce` calls: a call drops it after. */

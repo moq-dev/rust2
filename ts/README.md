@@ -458,7 +458,8 @@ stopped in. A poll after the future returned panics, and dropping it cancels it,
 dropping what its state holds. An async closure's future borrows what the closure
 captured, and that of a call that consumes it owns it, as rustc's by-move body does: a
 class of its own (`closuresFuture$closure2_closure0_once`), which a closure that `Fn` or
-`FnMut` call and that owns what drops makes through `rt.callByMove`.
+`FnMut` call and that owns what drops makes through `rt.callOnce`, as std's functions and
+a `dyn FnOnce` call it.
 `rt.spawn(future, signal?)` runs one as a promise, polling woken tasks in a batch from a
 microtask and yielding to a macrotask after 128 polls. Aborting `signal` drops the future
 at once, or as the poll it aborts in returns pending, and rejects the promise with the

@@ -275,22 +275,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					(None, None) => break,
 				};
 			}
-			// A call that consumes an async closure that `Fn` or `FnMut` call, or a box of one,
-			// makes the future that owns what it captured.
-			let mut owned = callee_ty;
-			while let Some(inner) = owned.boxed_ty() {
-				owned = inner;
-			}
-			if kind == ty::ClosureKind::FnOnce
-				&& let ty::CoroutineClosure(_, closure) = owned.kind()
-				&& closure.as_coroutine_closure().kind() != ty::ClosureKind::FnOnce
-				&& self.b.t.drops(owned)
-			{
-				return Expr::rt("callByMove", [vec![f], values].concat());
-			}
 			// `FnOnce::call_once` of a closure that `Fn` or `FnMut` call, or of a box of one,
 			// drops it after, as rustc's shim does, where an `FnOnce` closure's body drops
-			// what it owns.
+			// what it owns; of an async closure, it makes the future of rustc's by-move body,
+			// which owns what the closure captured.
 			if kind == ty::ClosureKind::FnOnce
 				&& self
 					.b
