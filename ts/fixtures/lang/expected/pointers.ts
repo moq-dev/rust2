@@ -33,7 +33,7 @@ import type * as Viewed from "./pointers.Viewed.ts";
 import type * as Waiter from "./pointers.Waiter.ts";
 import * as Waiters from "./pointers.Waiters.ts";
 import type * as pointers_Window from "./pointers.Window.ts";
-import * as Wrapped from "./pointers.Wrapped.ts";
+import * as pointers_Wrapped from "./pointers.Wrapped.ts";
 import type * as Written from "./pointers.Written.ts";
 
 /** Put `node` in the list just before `at`. */
@@ -388,7 +388,7 @@ export function cells(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let num: rt.Cell<rt.u32> = new rt.Cell(4294967295 - 1);
 	const pair: rt.Cell<Duo.Duo> = new rt.Cell({ _0: 0, _1: 255 });
 	let text: rt.Cell<string> = new rt.Cell("");
-	const held: Wrapped.Wrapped<pointers_Held.Held> = Wrapped.new$pointers_Held(new pointers_Held.Held(0, rt.arcClone(count)));
+	const held: pointers_Wrapped.Wrapped<pointers_Held.Held> = pointers_Wrapped.new$pointers_Held(new pointers_Held.Held(0, rt.arcClone(count)));
 	for (const op of rt.byteSliceView(data)) {
 		const n: rt.u8 = rt.u8Div(op, 8);
 		const _23: rt.u8 = rt.u8Rem(op, 8);
@@ -423,7 +423,7 @@ export function cells(data: rt.ByteSlice, out: rt.ByteVec): void {
 			const fresh: pointers_Held.Held = new pointers_Held.Held(n, _99);
 			if (rt.u8Rem(n, 2) === 0) {
 				const captured2 = fresh;
-				Wrapped.withMut$pointers_Held_unit_pointers_cells_closure0(held, rt.closure((p6: pointers_Held.Held): undefined => {
+				pointers_Wrapped.withMut$pointers_Held_unit_pointers_cells_closure0(held, rt.closure((p6: pointers_Held.Held): undefined => {
 					const _311: pointers_Held.Held = captured2;
 					p6[Symbol.dispose]();
 					rt.ptrWrite(p6, _311);
@@ -432,22 +432,22 @@ export function cells(data: rt.ByteSlice, out: rt.ByteVec): void {
 				}));
 			} else {
 				const captured = fresh;
-				Wrapped.withMut$pointers_Held_unit_pointers_cells_closure1(held, rt.closure((p5: pointers_Held.Held): undefined => {
+				pointers_Wrapped.withMut$pointers_Held_unit_pointers_cells_closure1(held, rt.closure((p5: pointers_Held.Held): undefined => {
 					rt.ptrWrite(p5, captured);
 				}, (): void => {
 					captured[Symbol.dispose]();
 				}));
 			}
-			rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(Wrapped.with$pointers_Held_u8_pointers_cells_closure2(held, (p7: pointers_Held.Held): rt.u8 => {
+			rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(pointers_Wrapped.with$pointers_Held_u8_pointers_cells_closure2(held, (p7: pointers_Held.Held): rt.u8 => {
 				return p7.n;
 			}), count.strong & 0xff)), undefined, true);
 		} else if (_23 === 5) {
-			Wrapped.withMut$pointers_Held_unit_pointers_cells_closure3(held, (p3: pointers_Held.Held): undefined => {
+			pointers_Wrapped.withMut$pointers_Held_unit_pointers_cells_closure3(held, (p3: pointers_Held.Held): undefined => {
 				p3.n = rt.u8WrappingAdd(p3.n, n);
 			});
 			const _119: pointers_Held.Held = held._0.v;
 			_119.n = _119.n ^ 1;
-			rt.byteVecPush(out, Wrapped.with$pointers_Held_u8_pointers_cells_closure4(held, (p4: pointers_Held.Held): rt.u8 => {
+			rt.byteVecPush(out, pointers_Wrapped.with$pointers_Held_u8_pointers_cells_closure4(held, (p4: pointers_Held.Held): rt.u8 => {
 				return p4.n;
 			}));
 		} else if (_23 === 6) {
@@ -463,8 +463,8 @@ export function cells(data: rt.ByteSlice, out: rt.ByteVec): void {
 			Object.assign(pair.v, _140);
 		} else {
 			const _146: rt.Arc<undefined> = rt.arcClone(count);
-			const made: Wrapped.Wrapped<pointers_Held.Held> = Wrapped.new$pointers_Held(new pointers_Held.Held(n, _146));
-			Wrapped.withMut$pointers_Held_unit_pointers_cells_closure5(made, (p2: pointers_Held.Held): undefined => {
+			const made: pointers_Wrapped.Wrapped<pointers_Held.Held> = pointers_Wrapped.new$pointers_Held(new pointers_Held.Held(n, _146));
+			pointers_Wrapped.withMut$pointers_Held_unit_pointers_cells_closure5(made, (p2: pointers_Held.Held): undefined => {
 				p2.n = p2.n ^ 85;
 			});
 			rt.byteVecPush(out, count.strong & 0xff);

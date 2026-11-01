@@ -151,8 +151,41 @@ fn push_number(out: &mut Vec<u8>, r: Result<(u64, &[u8]), Error>) {
 	}
 }
 
+/// A slice that takes no argument.
+#[inline(never)]
+fn fixed() -> Result<&'static [u8], Error> {
+	Ok(b"abc")
+}
+
+/// Takes `fixed`'s result apart, so it is held as parts.
+fn after_fixed(data: &[u8]) -> Result<&[u8], Error> {
+	let s = fixed()?;
+	Ok(&s[..data.len().min(s.len())])
+}
+
+/// An error converted from a residual of a slice and a byte.
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Wrapped(u8, u8);
+
+impl From<(&[u8], u8)> for Wrapped {
+	fn from((s, n): (&[u8], u8)) -> Self {
+		Wrapped(s.len() as u8 ^ s.first().copied().unwrap_or(0x5a), n)
+	}
+}
+
+/// `?` on a residual whose error is a slice and a byte, converted.
+fn wrapped(data: &[u8]) -> Result<(u8, &[u8]), Wrapped> {
+	let r: Result<u8, (&[u8], u8)> = match data.split_first() {
+		Some((&b, _)) if b % 2 == 0 => Ok(b),
+		Some((&b, rest)) => Err((rest, b)),
+		None => Err((data, 0)),
+	};
+	let v = r?;
+	Ok((v, data))
+}
+
 pub fn returns(kind: u8, data: &[u8], out: &mut Vec<u8>) {
-	match kind % 6 {
+	match kind % 7 {
 		0 => {
 			push(out, take(data, kind as usize % 7));
 			push(out, take(data, 201));
@@ -220,6 +253,16 @@ pub fn returns(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 					out.push(rest.len() as u8);
 				}
 				(a, b) => out.extend_from_slice(&[a.is_ok() as u8, b.is_ok() as u8]),
+			}
+		}
+		5 => {
+			match after_fixed(data) {
+				Ok(s) => out.extend_from_slice(s),
+				Err(e) => out.push(e.code()),
+			}
+			match wrapped(data) {
+				Ok((v, rest)) => out.extend_from_slice(&[v, rest.len() as u8]),
+				Err(Wrapped(a, b)) => out.extend_from_slice(&[0xee, a, b]),
 			}
 		}
 		_ => {

@@ -1071,7 +1071,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 							parted.insert(local);
 							let size = shapes[&local].size();
 							for part in 0..size {
-								copies.push((local, part, self.produced_copy(producer, part, &args[0].node, shapes)));
+								copies.push((local, part, self.produced_copy(producer, part, args, shapes)));
 							}
 						}
 						None => {
@@ -1304,10 +1304,11 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		&self,
 		producer: Producer,
 		part: usize,
-		arg: &Operand<'tcx>,
+		args: &[Spanned<Operand<'tcx>>],
 		shapes: &FxHashMap<Local, Shape<'tcx>>,
 	) -> Option<(Local, usize)> {
-		let (Operand::Copy(p) | Operand::Move(p)) = arg else {
+		// A slotted call may take no argument, and copies none.
+		let (Operand::Copy(p) | Operand::Move(p)) = &args.first()?.node else {
 			return None;
 		};
 		let (node, _) = walk(shapes.get(&p.local)?, p.projection);
@@ -1673,8 +1674,23 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				};
 				let (from, to) = (from.type_at(1), to.type_at(1));
 				let error = match &args[0].node {
+					// Held as its parts: its `Err`'s, made whole.
 					Operand::Copy(p) | Operand::Move(p) if self.scalar_enum(*p) => {
-						self.held_arg(&args[0].node, span, out).remove(0).0
+						let shape = self.scalars[&p.local].shape.clone();
+						let node = walk(&shape, p.projection).0.shape;
+						let Shape::Enum(_, [_, Some(fields)]) = node else {
+							unreachable!("checked by producer")
+						};
+						let [field] = fields.as_slice() else {
+							unreachable!("a residual holds one error")
+						};
+						let at = node.variant_at(1);
+						let parts: Vec<Expr> = self
+							.held_arg(&args[0].node, span, out)
+							.into_iter()
+							.map(|(e, _)| e)
+							.collect();
+						self.build(field, None, &parts[at..at + field.size()], span)
 					}
 					op => match self.operand(op, span, out) {
 						// Held back, and read here, where folding it would read it.
