@@ -430,23 +430,21 @@ export function refRelease<T>(r: RefCell<T>): void {
 	refCellOf(r).borrows--;
 }
 
-/** `Ref::map`: a `Ref` of the part of `r`'s value `f` lends, which takes over `r`'s borrow. */
-export function refMap<T, U>(r: RefCell<T>, f: (value: T) => U): RefCell<U> {
-	return new RefMap({ v: f(r.value) }, refCellOf(r));
+/** `Ref::map`: a `Ref` of `part` of `r`'s value, which takes over `r`'s borrow. */
+export function refMap<U>(r: RefCell<unknown>, part: U): RefCell<U> {
+	return new RefMap({ v: part }, refCellOf(r));
 }
 
-/** `Ref::filter_map`: `refMap` of the part `f` lends, or `r` back if it lends none. */
-export function refFilterMap<T, U>(r: RefCell<T>, f: (value: T) => U | undefined): Result<RefCell<U>, RefCell<T>> {
-	const part = f(r.value);
+/** `Ref::filter_map`: `refMap` of `part`, or `r` back if there is none. */
+export function refFilterMap<T, U>(r: RefCell<T>, part: U | undefined): Result<RefCell<U>, RefCell<T>> {
 	return part === undefined ? Err(r) : Ok(new RefMap({ v: part }, refCellOf(r)));
 }
 
-/** `Ref::map_split`: `Ref`s of the two parts of `r`'s value `f` lends, which share `r`'s borrow. */
-export function refMapSplit<T, U, V>(r: RefCell<T>, f: (value: T) => [U, V]): [RefCell<U>, RefCell<V>] {
-	const [u, v] = f(r.value);
+/** `Ref::map_split`: `Ref`s of the two `parts` of `r`'s value, which share `r`'s borrow. */
+export function refMapSplit<U, V>(r: RefCell<unknown>, [u, v]: [U, V]): [RefCell<U>, RefCell<V>] {
 	const cell = refCellOf(r);
 	cell.borrows++;
-	return [new RefMap({ v: u }, cell), new RefMap({ v: v }, cell)];
+	return [new RefMap({ v: u }, cell), new RefMap({ v }, cell)];
 }
 
 /** `Ref::clone`: `r` again, a shared borrow of its own, which never conflicts. */
@@ -480,7 +478,7 @@ export function refMutFilterMap<T, U>(r: RefCell<T>, at: Place<U> | undefined): 
 }
 
 /** `RefMut::map_split`: `RefMut`s of the parts of `r`'s value at `a` and `b`, which share `r`'s borrow. */
-export function refMutMapSplit<U, V>(r: RefCell<unknown>, a: Place<U>, b: Place<V>): [RefCell<U>, RefCell<V>] {
+export function refMutMapSplit<U, V>(r: RefCell<unknown>, [a, b]: [Place<U>, Place<V>]): [RefCell<U>, RefCell<V>] {
 	const cell = refCellOf(r);
 	cell.borrows--;
 	return [new RefMap(a, cell), new RefMap(b, cell)];

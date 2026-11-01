@@ -271,14 +271,15 @@ pub fn guards(data: &[u8], out: &mut Vec<u8>) {
 	flush(&log, out);
 }
 
-/// What mapped guards lend parts of: a number and a `String`, which JS copies, and a `Vec`
-/// and a value that logs as it drops, which it doesn't.
+/// What mapped guards lend parts of: a number and a `String`, which JS copies, a `Vec` and
+/// a value that logs as it drops, which it doesn't, and bytes, which a reference views.
 struct Parts {
 	n: u32,
 	text: String,
 	bytes: Vec<u8>,
 	tagged: Tagged,
 	maybe: Option<u16>,
+	quad: [u8; 4],
 }
 
 /// Each byte an operation on `RefCell`s through guards mapped, filtered, and split to their
@@ -297,8 +298,10 @@ pub fn maps(data: &[u8], out: &mut Vec<u8>) {
 		bytes: Vec::new(),
 		tagged: tag(1),
 		maybe: None,
+		quad: [0; 4],
 	});
 	let number = RefCell::new(0u32);
+	let bytes4 = RefCell::new([1u8, 2, 3, 4]);
 	let slot: RefCell<Option<Tagged>> = RefCell::new(None);
 	for &op in data {
 		match op % 8 {
@@ -438,6 +441,21 @@ pub fn maps(data: &[u8], out: &mut Vec<u8>) {
 				let n = RefMut::map(number.borrow_mut(), |n| n);
 				out.extend_from_slice(format!("{} {}", &*text, *n + 1).as_bytes());
 				out.extend_from_slice(&[borrowed(&parts), borrowed(&number)]);
+				drop((text, n));
+				let mut quad = RefMut::map(parts.borrow_mut(), |p| &mut p.quad);
+				quad[usize::from(op >> 4 & 3)] ^= op;
+				if op & 0x40 != 0 {
+					*quad = [op; 4];
+				}
+				drop(quad);
+				let quad = Ref::map(parts.borrow(), |p| &p.quad);
+				out.extend_from_slice(&*quad);
+				drop(quad);
+				let mut byte = RefMut::map(bytes4.borrow_mut(), |b| &mut b[usize::from(op & 3)]);
+				*byte = byte.wrapping_add(op);
+				drop(byte);
+				let (low, high) = Ref::map_split(bytes4.borrow(), |b| b.split_at(2));
+				out.extend_from_slice(&[low[0] ^ high[1], borrowed(&bytes4)]);
 			}
 		}
 		flush(&log, out);

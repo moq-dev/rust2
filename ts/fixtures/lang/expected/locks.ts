@@ -258,13 +258,14 @@ export function mapped(data: rt.ByteSlice, out: rt.ByteVec): void {
 			rt.byteVecPush(out, rt.u64Low(_44.value.n) & 0xff);
 			rt.refRelease(_44);
 		} else if (_13 === 1) {
-			const seen: rt.RefCell<rt.ByteVec> = rt.refMap(rt.rwLockRead(lock), (t6: locks_Tally.Tally): rt.ByteVec => {
+			const _48: rt.RefCell<locks_Tally.Tally> = rt.rwLockRead(lock);
+			const seen: rt.RefCell<rt.ByteVec> = rt.refMap(_48, ((t6: locks_Tally.Tally): rt.ByteVec => {
 				return t6.seen;
-			});
+			})(_48.value));
 			rt.byteVecPush(out, seen.value.length & 0xff);
-			const last: rt.RefCell<rt.u8> = rt.refMap(seen, (s: rt.ByteVec): rt.u8 => {
+			const last: rt.RefCell<rt.u8> = rt.refMap(seen, ((s: rt.ByteVec): rt.u8 => {
 				return option_unwrapOr$0r2bmpr(rt.byteSliceLast(rt.byteVecSlice(s)), 253);
-			});
+			})(seen.value));
 			rt.byteVecPush(out, last.value);
 			locked(out);
 			rt.refRelease(last);
@@ -285,13 +286,15 @@ export function mapped(data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.refMutRelease(whole);
 			}
 			locked(out);
-			const _89: rt.Result<rt.RefCell<rt.u8>, rt.RefCell<locks_Tally.Tally>> = rt.refFilterMap(rt.rwLockRead(lock), (t4: locks_Tally.Tally): rt.u8 | undefined => {
+			const _90: rt.RefCell<locks_Tally.Tally> = rt.rwLockRead(lock);
+			const _89: rt.Result<rt.RefCell<rt.u8>, rt.RefCell<locks_Tally.Tally>> = rt.refFilterMap(_90, ((t4: locks_Tally.Tally): rt.u8 | undefined => {
 				return rt.byteSliceFirst(rt.byteVecSlice(t4.seen));
-			});
+			})(_90.value));
 			if (_89.ok) {
-				const _95: rt.Result<rt.RefCell<rt.u8>, rt.RefCell<rt.u8>> = rt.refFilterMap(_89.value, (b2: rt.u8): rt.u8 | undefined => {
+				const first: rt.RefCell<rt.u8> = _89.value;
+				const _95: rt.Result<rt.RefCell<rt.u8>, rt.RefCell<rt.u8>> = rt.refFilterMap(first, ((b2: rt.u8): rt.u8 | undefined => {
 					return thenSome$0d5am30(b2 > 128, b2);
-				});
+				})(first.value));
 				if (_95.ok) {
 					const b: rt.RefCell<rt.u8> = _95.value;
 					rt.byteVecPush(out, b.value);
@@ -344,9 +347,10 @@ export function mapped(data: rt.ByteSlice, out: rt.ByteVec): void {
 			})(_149.value));
 			locked(out);
 			rt.refMutRelease(n5);
-			const n6: rt.RefCell<rt.u64> = rt.refMap(rt.rwLockRead(lock), (t2: locks_Tally.Tally): rt.u64 => {
+			const _157: rt.RefCell<locks_Tally.Tally> = rt.rwLockRead(lock);
+			const n6: rt.RefCell<rt.u64> = rt.refMap(_157, ((t2: locks_Tally.Tally): rt.u64 => {
 				return t2.n;
-			});
+			})(_157.value));
 			locked(out);
 			rt.byteVecPush(out, rt.u64Low(n6.value) & 0xff);
 			rt.refRelease(n6);

@@ -805,6 +805,12 @@ export function drop$Result_cell_RefMut_Vec_u8_cell_BorrowMutError(_1: rt.Result
 	}
 }
 
+export function drop$Result_cell_RefMut_array4_u8_cell_BorrowMutError(_1: rt.Result<rt.RefCell<Uint8Array>, rt.BorrowMutError>): void {
+	if (_1.ok) {
+		rt.refMutRelease(_1.value);
+	}
+}
+
 export function drop$Result_cell_RefMut_borrows_Parts_cell_BorrowMutError(_1: rt.Result<rt.RefCell<borrows_Parts.Parts>, rt.BorrowMutError>): void {
 	if (_1.ok) {
 		rt.refMutRelease(_1.value);
@@ -824,6 +830,12 @@ export function drop$Result_cell_RefMut_u32_cell_BorrowMutError(_1: rt.Result<rt
 }
 
 export function drop$Result_cell_Ref_Vec_u8_cell_BorrowError(_1: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowError>): void {
+	if (_1.ok) {
+		rt.refRelease(_1.value);
+	}
+}
+
+export function drop$Result_cell_Ref_array4_u8_cell_BorrowError(_1: rt.Result<rt.RefCell<Uint8Array>, rt.BorrowError>): void {
 	if (_1.ok) {
 		rt.refRelease(_1.value);
 	}
@@ -995,6 +1007,11 @@ export function drop$tuple2_cell_RefMut_slice_u8_cell_RefMut_slice_u8(_1: [rt.Re
 export function drop$tuple2_cell_Ref_Vec_u8_cell_Ref_u8(_1: [rt.RefCell<rt.ByteVec>, rt.RefCell<rt.u8>]): void {
 	rt.refRelease(_1[0]);
 	rt.refRelease(_1[1]);
+}
+
+export function drop$tuple2_cell_Ref_str_cell_RefMut_u32(_1: [rt.RefCell<string>, rt.RefCell<rt.u32>]): void {
+	rt.refRelease(_1[0]);
+	rt.refMutRelease(_1[1]);
 }
 
 export function drop$tuple2_sync_Arc_collections_Picky_u8(_1: [rt.Arc<collections_Picky.Picky>, rt.u8]): void {

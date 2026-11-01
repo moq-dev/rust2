@@ -4,8 +4,8 @@ import * as rt from "./rt.ts";
 import type * as borrows_Tagged from "./borrows.Tagged.ts";
 
 /**
- * What mapped guards lend parts of: a number and a `String`, which JS copies, and a `Vec`
- * and a value that logs as it drops, which it doesn't.
+ * What mapped guards lend parts of: a number and a `String`, which JS copies, a `Vec` and
+ * a value that logs as it drops, which it doesn't, and bytes, which a reference views.
  */
 export class Parts {
 	n: rt.u32;
@@ -13,13 +13,15 @@ export class Parts {
 	bytes: rt.ByteVec;
 	tagged: borrows_Tagged.Tagged;
 	maybe: rt.u16 | undefined;
+	quad: Uint8Array;
 
-	constructor(n: rt.u32, text: string, bytes: rt.ByteVec, tagged: borrows_Tagged.Tagged, maybe: rt.u16 | undefined) {
+	constructor(n: rt.u32, text: string, bytes: rt.ByteVec, tagged: borrows_Tagged.Tagged, maybe: rt.u16 | undefined, quad: Uint8Array) {
 		this.n = n;
 		this.text = text;
 		this.bytes = bytes;
 		this.tagged = tagged;
 		this.maybe = maybe;
+		this.quad = quad;
 	}
 
 	[Symbol.dispose](): void {
