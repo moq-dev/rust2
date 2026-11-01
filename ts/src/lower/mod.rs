@@ -312,13 +312,22 @@ pub struct Adt {
 #[derive(Clone)]
 pub enum AdtRepr {
 	/// A struct: a plain object, or a class if it may drop, whose fields are named at print time.
-	Struct { ctor: Ctor, fields: Vec<FieldId> },
+	Struct { ctor: Ctor, fields: Vec<StructField> },
 	/// An enum whose variants carry no data: a string per variant.
 	Tags,
 	/// An enum: an object per variant, tagged by its name.
 	Union,
 	/// A union: an object of slots, and each field's parts in them, as `unions` has it.
 	Slots(unions::Fields),
+}
+
+/// The JS fields of a struct's field.
+#[derive(Clone, Copy, Debug)]
+pub enum StructField {
+	Whole(FieldId),
+	/// A private `&[u8]` or `&[u8; N]`: its bytes, start, and length, so a cursor moving
+	/// through it makes no object.
+	Slice([FieldId; 3]),
 }
 
 /// A JS object that a `&mut` can change in place.
@@ -487,20 +496,46 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		self.program.plain.contains(&sym)
 	}
 
-	/// A struct's value, from its fields' values in declaration order.
-	pub fn construct(&self, sym: SymId, ctor: &Ctor, fields: &[FieldId], values: Vec<ts::Expr>) -> ts::Expr {
+	/// A struct's value, from its fields' values in declaration order: a byte slice's held
+	/// as its parts is made of them, or read from a path or `undefined`.
+	pub fn construct(&self, sym: SymId, ctor: &Ctor, fields: &[StructField], values: Vec<ts::Expr>) -> ts::Expr {
+		let mut props = Vec::with_capacity(values.len());
+		for (field, value) in fields.iter().zip(values) {
+			match *field {
+				StructField::Whole(id) => props.push((id, value)),
+				StructField::Slice(ids) => {
+					let parts = slice_parts(value).expect("a byte slice field's value made of its parts or a path");
+					props.extend(ids.into_iter().zip(parts));
+				}
+			}
+		}
 		let class = Box::new(ts::Expr::Sym(sym));
 		match ctor {
-			_ if self.plain(sym) => ts::Expr::Object(
-				fields
-					.iter()
-					.zip(values)
-					.map(|(f, v)| (ts::Key::Field(*f), v))
-					.collect(),
-			),
+			_ if self.plain(sym) => ts::Expr::Object(props.into_iter().map(|(f, v)| (ts::Key::Field(f), v)).collect()),
 			Ctor::Unit => ts::Expr::New(class, Vec::new()),
-			Ctor::Positional => ts::Expr::New(class, values),
+			Ctor::Positional => ts::Expr::New(class, props.into_iter().map(|(_, v)| v).collect()),
 		}
+	}
+
+	/// The value of field `field` of `base`, a path: a byte slice's held as its parts made
+	/// of them.
+	pub fn read_field(base: ts::Expr, field: StructField) -> ts::Expr {
+		match field {
+			StructField::Whole(id) => base.field(id),
+			StructField::Slice(ids) => ts::Expr::New(
+				Box::new(ts::Expr::Rt("ByteSlice".into())),
+				ids.map(|id| base.clone().field(id)).to_vec(),
+			),
+		}
+	}
+
+	/// Whether a struct's `field` is held as a byte slice's parts: a `&[u8]` or `&[u8; N]`
+	/// that only the crate's own code can name.
+	pub fn split(&self, field: &ty::FieldDef) -> bool {
+		let ty = self.tcx.type_of(field.did).instantiate_identity().skip_norm_wip();
+		matches!(ty.kind(), ty::Ref(_, inner, rustc_ast::Mutability::Not)
+			if (matches!(inner.kind(), ty::Slice(e) if matches!(e.kind(), ty::Uint(ty::UintTy::U8))) || byte_array(*inner)))
+			&& !self.tcx.visibility(field.did).is_public()
 	}
 
 	/// Translate every queued function instance, and those they reach.
@@ -1042,7 +1077,13 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		let mut info = Adt { sym, repr };
 		if let AdtRepr::Struct { fields, .. } = &mut info.repr {
 			for (i, field) in adt.non_enum_variant().fields.iter().enumerate() {
-				fields.push(self.program.field(sym, field_name(field.name.as_str(), i)));
+				let name = field_name(field.name.as_str(), i);
+				fields.push(match self.split(field) {
+					true => StructField::Slice(
+						["Data", "Start", "Len"].map(|key| self.program.field(sym, format!("{name}{key}"))),
+					),
+					false => StructField::Whole(self.program.field(sym, name)),
+				});
 			}
 		}
 		self.adts.insert(did, info.clone());
@@ -1067,17 +1108,36 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		let item = match &info.repr {
 			AdtRepr::Struct { ctor, fields } => {
 				let variant = adt.non_enum_variant();
-				let fields = (variant.fields.iter().zip(fields))
-					.map(|(field, &id)| {
-						let span = tcx.def_span(field.did);
-						ts::Field {
+				let mut defined = Vec::with_capacity(fields.len());
+				for (field, &held) in variant.fields.iter().zip(fields) {
+					let span = tcx.def_span(field.did);
+					let doc = self.doc(field.did);
+					match held {
+						StructField::Whole(id) => defined.push(ts::Field {
 							id,
 							ty: self.defined_field_ty(field, identity, span),
-							doc: self.doc(field.did),
+							doc,
 							init: ts::FieldInit::Ctor,
+						}),
+						StructField::Slice(ids) => {
+							let tys = [
+								Type::Builtin("Uint8Array"),
+								Type::Builtin("number"),
+								Type::Builtin("number"),
+							];
+							let docs = [doc, None, None];
+							for ((id, ty), doc) in ids.into_iter().zip(tys).zip(docs) {
+								defined.push(ts::Field {
+									id,
+									ty,
+									doc,
+									init: ts::FieldInit::Ctor,
+								});
+							}
 						}
-					})
-					.collect();
+					}
+				}
+				let fields = defined;
 				Item::Struct {
 					sym,
 					params,
@@ -1925,6 +1985,42 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 /// Whether `ty` is `[u8; N]`, which is a `Uint8Array`.
 pub fn byte_array(ty: Ty<'_>) -> bool {
 	matches!(ty.kind(), ty::Array(elem, _) if matches!(elem.kind(), ty::Uint(ty::UintTy::U8)))
+}
+
+/// The parts of `slice`, an `rt.ByteSlice`, each read once: those it is made of, or those of a
+/// path or a slice made from a view of known length, or `undefined`'s, as a value not yet
+/// written. `None` for what must be held in a path first.
+pub fn slice_parts(slice: ts::Expr) -> Option<[ts::Expr; 3]> {
+	use ts::Expr;
+	let mut slice = slice;
+	while let Expr::Located(_, e) | Expr::As(e, _) = slice {
+		slice = *e;
+	}
+	if let Some(parts) = mir::made_slice(&slice) {
+		return Some(parts.clone());
+	}
+	match slice {
+		Expr::Lit(text) if text == "undefined" => Some([(); 3].map(|()| Expr::undefined())),
+		e if e.is_path() => Some(["data", "start", "length"].map(|key| e.clone().member(key))),
+		Expr::Call(f, mut args) if matches!(&*f, Expr::Rt(name) if name == "byteSliceFrom") && args.len() == 1 => {
+			let bytes = args.pop().expect("one argument");
+			let length = match &bytes {
+				e if e.is_path() => e.clone().member("length"),
+				Expr::Call(of, items) if matches!(&**of, Expr::Member(base, ts::Key::Name(k)) if k == "of" && matches!(&**base, Expr::Ident(n) if n == "Uint8Array")) => {
+					Expr::lit(items.len().to_string())
+				}
+				Expr::New(class, len)
+					if matches!(&**class, Expr::Ident(n) if n == "Uint8Array")
+						&& matches!(len.as_slice(), [Expr::Lit(_)]) =>
+				{
+					len[0].clone()
+				}
+				_ => return None,
+			};
+			Some([bytes, Expr::lit("0"), length])
+		}
+		_ => None,
+	}
 }
 
 /// Whether `ty` is a reference to a `[u8; N]`, which is an `rt.ByteSlice` of its bytes, as a

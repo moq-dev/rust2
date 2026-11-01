@@ -826,24 +826,37 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	/// flag stands for one, a subslice, or a copy of a local held as its parts, alone or
 	/// in a tuple. A tuple of objects alone already folds into its reads.
 	fn parts_def(&self, rvalue: &Rvalue<'tcx>, shapes: &FxHashMap<Local, Shape<'tcx>>) -> bool {
-		let held = |p: &Place<'tcx>| {
+		let held = |fx: &Self, p: &Place<'tcx>| {
 			shapes
 				.get(&p.local)
 				.is_some_and(|s| walk(s, p.projection).1 == p.projection.len())
+				|| fx.split_field(*p)
 		};
 		match rvalue {
-			Rvalue::Use(Operand::Copy(p) | Operand::Move(p), _) | Rvalue::CopyForDeref(p) => held(p),
+			Rvalue::Use(Operand::Copy(p) | Operand::Move(p), _) | Rvalue::CopyForDeref(p) => held(self, p),
 			Rvalue::Ref(_, _, p) => self
 				.reborrow(*p)
-				.is_some_and(|(base, range)| range.is_some() || held(&base)),
+				.is_some_and(|(base, range)| range.is_some() || held(self, &base)),
 			Rvalue::Aggregate(kind, ops) => {
 				matches!(**kind, AggregateKind::Adt(..))
 					|| ops
 						.iter()
-						.any(|op| matches!(op, Operand::Copy(p) | Operand::Move(p) if held(p)))
+						.any(|op| matches!(op, Operand::Copy(p) | Operand::Move(p) if held(self, p)))
 			}
 			_ => false,
 		}
+	}
+
+	/// Whether `place` is a struct's byte slice field that its struct holds as its parts.
+	fn split_field(&self, place: Place<'tcx>) -> bool {
+		let [base @ .., ProjectionElem::Field(field, _)] = place.projection.as_slice() else {
+			return false;
+		};
+		let ty = Place::ty_from(place.local, base, &self.mir.local_decls, self.tcx).ty;
+		matches!(ty.kind(), ty::Adt(adt, _) if adt.is_struct()
+			&& library::Std::of(self.tcx, adt.did()).is_none()
+			&& self.b.t.own(adt.did())
+			&& self.b.t.split(&adt.non_enum_variant().fields[*field]))
 	}
 
 	/// What a shared borrow of bytes through a reference to them borrows: the reference,
@@ -2022,6 +2035,12 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		match shape {
 			Shape::Unit => Vec::new(),
 			Shape::Leaf(_) => vec![self.leaf(value)],
+			// Each part a struct's fields hold may change, so it reads the same later only
+			// if it is held.
+			Shape::Slice if let Some(parts) = super::place::made_slice(&value) => parts
+				.iter()
+				.map(|part| (part.clone(), self.steady_expr(part)))
+				.collect(),
 			Shape::Slice => {
 				let (slice, _) = self.steady_value(value, "slice", Type::Rt("ByteSlice", Vec::new()), out);
 				["data", "start", "length"]
@@ -2132,7 +2151,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	/// Whether `e` reads the same wherever it is read later, and does nothing: a constant,
 	/// a name assigned once and not held back, or what is made of those without reading
 	/// memory, as a cast, a comparison, or an object literal.
-	fn steady_expr(&self, e: &Expr) -> bool {
+	pub(super) fn steady_expr(&self, e: &Expr) -> bool {
 		match e {
 			Expr::Lit(_) | Expr::Str(_) | Expr::Rt(_) => true,
 			Expr::Ident(name) => {
