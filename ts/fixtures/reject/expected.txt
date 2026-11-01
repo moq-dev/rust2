@@ -173,8 +173,9 @@ a raw pointer to `ByRefTake` in `(u16, ByRefTake)`, which the crate may put anot
 a raw pointer to `ByKeySet` in `(u16, ByKeySet)`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1622:51
 a raw pointer to `ByKeyReplace` in `(u16, ByKeyReplace)`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1630:55
 a raw pointer to `ByKeyTake` in `(u16, ByKeyTake)`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1637:52
-`std::ops::DerefMut::deref_mut` of a value JS copies, which is no path at fixtures/reject/src/lib.rs:1646:2
-`std::ops::IndexMut::index_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1652:3
+unsupported call to `core::str::<impl str>::as_bytes_mut` at fixtures/reject/src/lib.rs:1645:13
+`core::str::<impl str>::get_unchecked_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1646:13
+`std::str::from_utf8_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1651:20
 unsupported call to `std::ptr::copy::<[u8; 4]>` at fixtures/reject/src/lib.rs:1719:3
 unsupported call to `std::ptr::copy_nonoverlapping::<[u8; 4]>` at fixtures/reject/src/lib.rs:1720:3
 unsupported call to `std::ptr::addr_eq::<[u8; 4], [u8; 4]>` at fixtures/reject/src/lib.rs:1721:14

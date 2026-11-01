@@ -171,8 +171,7 @@ the width and sign, which computes on the value's `bigint`.
 The stable ASCII methods of `u8` and `char`, and of `[u8]` and `str`, so of a `Vec<u8>`
 and a `String`, are std's. A `u8` and a `char` share each runtime function, `rt.isAsciiDigit(c)`.
 `make_ascii_uppercase` and `make_ascii_lowercase` of a byte, a char, or a string write
-the other case where the `&mut` borrows it; of a part of a `String`, or of a `String`
-that a tuple, an array, or a `Vec` holds, they are refused. `escape_ascii`'s iterators read from either
+the other case where the `&mut` borrows it, a part of a `String` included. `escape_ascii`'s iterators read from either
 end, size themselves as std's do, and write what they have left by `Display`, unpadded.
 
 An `f64` is a JS number, so its operators are JS's, which round as Rust's do. Where
@@ -286,7 +285,11 @@ returns, from `rfind` or `match_indices`, counts UTF-8 bytes, as Rust's does, an
 one `&s[a..b]` takes, which reads the string up to it and panics as std does inside a
 char. A JS string can't change in place, so `String`'s edits, `push_str`, `truncate`,
 `insert`, `retain`, `replace_range`, and the rest, assign the edited one to the local or
-field the `&mut` borrows, taking and checking byte offsets as std does. `extend` and
+field the `&mut` borrows, taking and checking byte offsets as std does. A `&mut str` is
+the `rt.Place` of its `String` wherever that is, and a part of one, from `&mut s[a..b]`,
+`get_mut`, or `split_at_mut`, is `rt.strPart(p, a, b)`, a place of its own that writes the
+whole string anew, checking its offsets as `&s[a..b]` does. `as_bytes_mut`,
+`get_unchecked_mut`, and `str::from_utf8_mut` are refused. `extend` and
 `collect` read their iterator by `for_each`, as std's do, and of chars first reserve its
 size hint's lower bound, which panics past `isize::MAX`. A `drain` holds the `&mut`'s
 place and writes the string without the drained text as it drops, so one that
