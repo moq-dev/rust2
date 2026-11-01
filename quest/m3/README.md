@@ -35,4 +35,5 @@ generic std gap is planned here even when moq never calls it.
 - [A &mut into a Box of a value JS copies](/quest/m3/ts-box-places.md) - a write through `&mut *b` of a `Box<u32>`, a `Box<String>`, or a `Box<str>` reaches the box's place
 - [A str's checked and inclusive parts](/quest/m3/ts-str-get.md) - `str::get` and indexing a `str` by `a..=b` or `..=b` translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
+- [The rest of a vector's methods](/quest/m3/ts-vec-rest.md) - `clone_from`, `append`, `resize`, `split_off`, `try_reserve`, and `Vec::from(VecDeque)` translate with std's capacity
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained
