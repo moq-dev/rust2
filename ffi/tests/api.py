@@ -2,9 +2,10 @@
 # natively, through the generated Python. tests/fixtures.rs compares the transcripts.
 #
 # With an argument, it instead checks the futures' semantics, what frees what nobody
-# closed, or a path's bytes, or breaks a contract, which must fail.
+# closed, or the values only Python's types bound, or breaks a contract, which must fail.
 
 import asyncio
+import datetime
 import gc
 import os
 import sys
@@ -611,13 +612,34 @@ def unclosed():
 	api.token_bytes(4, 1025)
 
 
-def stray():
-	"""A Unix path whose bytes are not UTF-8 crosses as `os.fsdecode` decodes it, and back
-	as it came."""
-	path = api.stray()
-	check(os.fsencode(path) == b"\xff", "a path that is not UTF-8 keeps its bytes")
-	check(api.parents([path, os.fsdecode(b"\xfe/\xff")])[1] == os.fsdecode(b"\xfe"), "and crosses back")
-	print("stray ok")
+def values():
+	"""The values Python's types bound: integers checked against their Rust type's range,
+	durations truncated to the microsecond up to `timedelta.max`, which stands for longer,
+	and on Unix, a path whose bytes are not UTF-8, which crosses as `os.fsdecode` decodes it,
+	and back as it came."""
+
+	def raises(error, f, what):
+		try:
+			f()
+			check(False, what)
+		except error:
+			pass
+
+	raises(OverflowError, lambda: api.widths(2**64), "an int past u64 raises")
+	raises(OverflowError, lambda: api.widths(-1), "a negative int for a u64 raises")
+	raises(TypeError, lambda: api.title(1), "an int is no bool")
+
+	td = datetime.timedelta
+	check(api.doubled_ttl(td(seconds=1, microseconds=5)) == td(seconds=2, microseconds=10), "a duration crosses")
+	check(api.doubled_ttl(td(days=600_000_000)) == td.max, "a duration past timedelta's is its max")
+	check(api.doubled_ttl(td.max) == td.max, "timedelta's max is Duration::MAX")
+	raises(ValueError, lambda: api.doubled_ttl(td(seconds=-1)), "a negative duration raises")
+
+	if os.name == "posix":
+		path = api.stray()
+		check(os.fsencode(path) == b"\xff", "a path that is not UTF-8 keeps its bytes")
+		check(api.parents([path, os.fsdecode(b"\xfe/\xff")])[1] == os.fsdecode(b"\xfe"), "and crosses back")
+	print("values ok")
 
 
 def broken(which):
@@ -658,7 +680,7 @@ match sys.argv[1:]:
 		futures()
 	case ["owned"]:
 		owned()
-	case ["stray"]:
-		stray()
+	case ["values"]:
+		values()
 	case [which]:
 		broken(which)

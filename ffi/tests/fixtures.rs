@@ -493,7 +493,7 @@ const PYTHON_LIB: &str = match (cfg!(windows), cfg!(target_os = "macos")) {
 };
 
 /// `tests/api.py`'s script prints the native transcript; then its futures, what frees
-/// what nobody closed, a path that is not UTF-8, and each contract it fails loud on.
+/// what nobody closed, the values Python's types bound, and each contract it fails loud on.
 #[test]
 fn api_python() {
 	let api = api();
@@ -514,7 +514,7 @@ fn api_python() {
 		api.transcript,
 		"the Python transcript differs from the native one"
 	);
-	for case in ["futures", "owned"].into_iter().chain(cfg!(unix).then_some("stray")) {
+	for case in ["futures", "owned", "values"] {
 		run(&mut python(&dir, &[case]));
 	}
 	for (case, message) in [

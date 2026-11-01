@@ -548,7 +548,11 @@ static SECONDS: Key = Key::new(c"seconds");
 static MICROSECONDS: Key = Key::new(c"microseconds");
 static MAX: Key = Key::new(c"max");
 
-/// A `Duration`, from a `datetime.timedelta` that is not negative.
+/// The days in `timedelta.max`, past which [`duration_out`] gives it.
+const MAX_DAYS: u64 = 999_999_999;
+
+/// A `Duration`, from a `datetime.timedelta` that is not negative: `timedelta.max`, which
+/// [`duration_out`] gives for any longer one, is `Duration::MAX`.
 pub fn duration_in(obj: *mut PyObject) -> R<rt::Duration> {
 	if !is(obj, T_TIMEDELTA) {
 		return expected(obj, T_TIMEDELTA);
@@ -560,6 +564,9 @@ pub fn duration_in(obj: *mut PyObject) -> R<rt::Duration> {
 	};
 	let seconds: u64 = int_in(attr(obj, &SECONDS, &mut s)?)?;
 	let micros: u32 = int_in(attr(obj, &MICROSECONDS, &mut s)?)?;
+	if (days, seconds, micros) == (MAX_DAYS, 86_399, 999_999) {
+		return Ok(rt::Duration::lower(std::time::Duration::MAX));
+	}
 	Ok(rt::Duration {
 		secs: days * 86_400 + seconds,
 		nanos: micros * 1_000,
@@ -568,12 +575,12 @@ pub fn duration_in(obj: *mut PyObject) -> R<rt::Duration> {
 
 /// A `datetime.timedelta`, which holds whole microseconds up to 999,999,999 days: Rust's
 /// nanoseconds are truncated, and a longer one is `timedelta.max`, as Rust's
-/// `Duration::MAX` stands for forever.
+/// `Duration::MAX` stands for forever, which [`duration_in`] gives back.
 pub fn duration_out(duration: rt::Duration) -> R<Obj> {
 	let class = ty(T_TIMEDELTA);
 	// SAFETY: the GIL is held.
 	unsafe {
-		if duration.secs / 86_400 > 999_999_999 {
+		if duration.secs / 86_400 > MAX_DAYS {
 			return Obj::new(PyObject_GetAttr(class, MAX.get()?));
 		}
 		let args = tuple(vec![

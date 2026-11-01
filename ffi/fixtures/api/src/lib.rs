@@ -1292,6 +1292,11 @@ pub fn ports(addrs: Vec<std::net::SocketAddr>) -> Vec<u16> {
 	addrs.iter().map(std::net::SocketAddr::port).collect()
 }
 
+/// `ttl` doubled, saturating, so `Duration::MAX` stays forever.
+pub fn doubled_ttl(ttl: Duration) -> Duration {
+	ttl.saturating_mul(2)
+}
+
 /// `name` in `dir`.
 pub fn file(dir: &std::path::Path, name: &str) -> std::path::PathBuf {
 	dir.join(name)

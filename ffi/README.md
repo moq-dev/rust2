@@ -27,7 +27,8 @@ A `[replace]` from the source it replaces, which no `[patch]` can carry, is an e
 Beside the C header, `include/<prefix>.hpp` holds the same API in C++, and
 `kotlin/<prefix>.kt` holds it in Kotlin, over JNI functions the crate builds with
 `--features kotlin`, and `kotlin/<prefix>.pro` the R8 and ProGuard rules keeping what
-those functions look up by name.
+those functions look up by name. `python/<prefix>.py` holds it in Python, over a CPython
+extension the crate builds with `--features python`.
 
 ```toml
 # ffi.toml, beside the package's Cargo.toml unless --manifest-path says otherwise.
@@ -272,6 +273,58 @@ in as a `ByteArray`, bytes returned as their owner, and anything else encoded in
   Android library ships it as a consumer rule (`consumerProguardFiles`), which its AAR
   carries to each app that shrinks it.
 
+## Python
+
+`<prefix>.py` is Python over a CPython extension that `--features python` builds into the
+same library on the stable ABI, so one build loads in CPython 3.11 and later. The module
+loads the library from beside itself: `lib<prefix>.so`, `lib<prefix>.dylib`, or
+`<prefix>.dll`. Its glue converts each Python value to the C value and calls the C ABI
+function in-process, so a call is one crossing, which releases the GIL while Rust runs.
+
+- **Names** are in the module: types in PascalCase without the prefix, members in
+  snake_case without their type's name (`moq.TrackProducer.append_group`). A keyword, a
+  member Python gives every such class, or a method named as a field takes a trailing `_`.
+  Constructors such as `new` stay static methods: `Counter.new(1)`.
+- **Objects** are classes owning their handle, freed once their last reference goes, or
+  sooner by `close()` or a `with` block once no call holds it; a call after it raises
+  `ValueError`. A `self` method, or passing the object by value, closes it once the call
+  returns. `Clone` is `clone()`, and `PartialEq` is `==`, unhashable. A field is a
+  property, and its setter a method, `set_first(value)`, since setting an object moves it
+  in and closes it, which an assignment would hide.
+- **Records** are slotted dataclasses, compared by their fields, and **enums** an `Enum`
+  of upper-case members, or for one with data a class of a dataclass per variant,
+  `Event.Moved(p)`. `Display` is `str()`, `Debug` `repr()`, and `Default` a static
+  `default()`. Constants are module or class attributes, made anew on each read unless a
+  literal.
+- **Bytes** passed in are any buffer, such as `bytes`, read in place. Bytes Rust returns,
+  or a record holds, are a read-only `memoryview` lending Rust's buffer until it and its
+  views are released. Those Rust lends a closure or trait method are copied into `bytes`.
+  Strings are `str`, `Option<T>` `T | None`, a tuple a `tuple`, `Duration`
+  `datetime.timedelta`, truncated to the microsecond, with `timedelta.max` for any longer and
+for `Duration::MAX`, a `Range` a `range`, and an `Err` a raised
+  `<E>Exception` holding it in `error`, whose `str` is its `Display`.
+- A **path** is a `str`, or any path passed in, which crosses as `os.fsencode` encodes it, so
+  one that is not UTF-8 keeps its bytes. A `SocketAddr` is the `socket` module's tuple,
+  `(host, port)` or `(host, port, flowinfo, scope_id)`, of that family for `V4` or `V6`.
+  A `Vec<T>` or `&[T]` is a `list`, and passing a `Vec` by value closes each object in it.
+  An integer out of its Rust type's range raises `OverflowError`.
+- **Traits** are abstract classes an implementation subclasses; once Rust drops one, its
+  `close()` is called if it has one.
+- **Closures** lent for a call are any callable, which Rust calls only during the call,
+  from any thread. An object it lends is closed once the call returns. An exception a
+  closure or trait method raises prints its traceback and aborts, since Rust has nowhere
+  to unwind it to.
+- **Futures** are `async def`s, which run nothing until awaited, or for a function that is
+  not `async`, an awaitable the call returns. They resume on the running event loop and
+  never inside a wake: a wake from any thread queues the future's token and writes a byte
+  to a socket the loop reads, without the GIL. Cancelling the task frees the future and
+  loses nothing. The call polls it once before suspending, and a future is awaited once,
+  as a coroutine is.
+- A **waker** is a `Waker(callback)`, which Rust may wake from any thread, calling
+  `callback` on its event loop.
+- **The contract** is checked when the module imports, before any other call: a Python
+  file and a library from different builds raise `ImportError`.
+
 ## IR
 
 [`src/ir.rs`](src/ir.rs) is the API as each generator reads it, with no language decided:
@@ -280,10 +333,13 @@ its Rust path, its span, and its docs. A type is in the exact form Rust takes or
 (`&str` apart from `String`, `Box<dyn Trait>` apart from `impl Trait`), so a generator can
 borrow where Rust borrows. [`src/abi.rs`](src/abi.rs) decides the C ABI from it once,
 names and signatures, so [`src/c.rs`](src/c.rs), [`src/cpp.rs`](src/cpp.rs),
-[`src/kotlin.rs`](src/kotlin.rs), and [`src/glue.rs`](src/glue.rs) agree; the runtime the
-glue includes is [`runtime/rt.rs`](runtime/rt.rs), the one the C++ header includes
-[`runtime/rt.hpp`](runtime/rt.hpp), and the ones Kotlin and its JNI glue include
-[`runtime/rt.kt`](runtime/rt.kt) and [`runtime/jni.rs`](runtime/jni.rs).
+[`src/kotlin.rs`](src/kotlin.rs), [`src/python.rs`](src/python.rs), and
+[`src/glue.rs`](src/glue.rs) agree; the runtime the glue includes is
+[`runtime/rt.rs`](runtime/rt.rs), the one the C++ header includes
+[`runtime/rt.hpp`](runtime/rt.hpp), the ones Kotlin and its JNI glue include
+[`runtime/rt.kt`](runtime/rt.kt) and [`runtime/jni.rs`](runtime/jni.rs), and the ones
+Python and its extension include [`runtime/rt.py`](runtime/rt.py) and
+[`runtime/python.rs`](runtime/python.rs).
 
 ## Census
 
@@ -296,12 +352,12 @@ refusal, which is a bug in the exporter's inference rather than in the crate.
 ## Tests
 
 ```bash
-just ffi test     # export the fixtures, build them, and drive api from C, C++, and Kotlin
-just ffi moq      # export moq's crates at the pinned revision, build them, and run moq/moq.c, moq/moq.cpp, and moq/moq.kt
+just ffi test     # export the fixtures, build them, and drive api from C, C++, Kotlin, and Python
+just ffi moq      # export moq's crates at the pinned revision, build them, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.py
 just ffi moq-cpp  # the same export, running only moq/moq.cpp
 just ffi census   # census each into target/census
 nix develop .#android --command just ffi android  # the Kotlin test, shrunk by R8, on the Android device adb reaches
-nix develop .#bench --command just ffi bench  # frame writes and reads, through the export from C, C++, and Kotlin, and moq's rs/moq-c
+nix develop .#bench --command just ffi bench  # frame writes and reads, through the export from C, C++, Kotlin, and Python, and moq's rs/moq-c
 ```
 
 The `api` fixture covers each rule once, and names the `dep` fixture's types, which
@@ -316,7 +372,11 @@ each runtime check, which must throw or abort with its message. `just ffi androi
 same on ART: the Kotlin and `tests/api.kt`, shrunk by R8 into an app's dex with only the
 generated rules keeping what JNI looks up, against the library built by the NDK for the
 device's ABI, which ANDROID_HOME and ANDROID_NDK_HOME locate. Nightly runs it on an
-x86_64 emulator at API 24, the oldest moq's Android library supports, and at API 35. The `reject`
+x86_64 emulator at API 24, the oldest moq's Android library supports, and at API 35.
+`tests/api.py` runs the script through the Python, in CPython's development mode with
+warnings as errors, checks its futures the same way, what frees an object or bytes nobody
+closed, and the values Python's types bound, and breaks each runtime check, which must raise or
+abort with its message; the Python with another contract must refuse the library. The `reject`
 fixture's expected errors, each with its notes, are `fixtures/reject/expected.txt`.
 moq's crates export through `target/moq-ffi`, an empty library on each that `just ffi moq`
 writes in place of moq-ffi's remainder. `moq/moq.c` publishes and subscribes to a moq-net
@@ -327,7 +387,9 @@ serves a broadcast from a moq-tokio server bound to port 0 to a client that read
 QUIC, both on moq-tokio's fallback runtime, whose threads wake C's. `moq/moq.cpp` does the
 same through the C++ header, short of the catalog's field, at C++17 without exceptions or
 RTTI, as OBS builds it, serving on an executor's thread and blocking on each read, and
-`moq/moq.kt` through the Kotlin, serving in a coroutine and suspending on each read.
+`moq/moq.kt` through the Kotlin, serving in a coroutine and suspending on each read, and
+`moq/moq.py` through the Python, running the origin's driver and the server as asyncio
+tasks and awaiting each read.
 
 The C++ builds take `CXX`, or `c++`, with every warning an error and `-Wshadow`, which
 stands in for MSVC's warnings that a name hides another. On Windows they take MSVC's `cl`
