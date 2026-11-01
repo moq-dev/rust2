@@ -169,5 +169,8 @@ roots = [
     "slice_of_object",
     "vec_clone_from",
     "dyn_size",
+    "variable_cloned_from",
+    "variable_cloned_into",
+    "variable_celled",
 ]
 printable = ["Meters"]

@@ -2052,7 +2052,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	}
 
 	/// Whether `local` is read once, as the reference std makes a raw pointer of, or as
-	/// one `mem::replace`, `swap`, or `take` gives what it points at another value through.
+	/// one that [`rebinds`] says std may give what it points at another value through.
 	fn read_by_std(&self, local: Local) -> bool {
 		use crate::lower::pointer::{from_reference, rebinds};
 		self.uses[local] == 1
@@ -2066,8 +2066,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				let given = args
 					.iter()
 					.position(|a| a.node.place().and_then(|p| p.as_local()) == Some(local));
-				given
-					.is_some_and(|i| i == 0 && from_reference(self.tcx, def_id, gargs) || i < rebinds(self.tcx, def_id))
+				given.is_some_and(|i| {
+					i == 0 && from_reference(self.tcx, def_id, gargs) || rebinds(self.tcx, def_id).contains(&i)
+				})
 			})
 	}
 
@@ -2270,11 +2271,11 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 			{
 				let rebound = func
 					.const_fn_def()
-					.map_or(0, |(def_id, _)| crate::lower::pointer::rebinds(tcx, def_id));
+					.map_or(&[][..], |(def_id, _)| crate::lower::pointer::rebinds(tcx, def_id));
 				if (assigns(*destination)
-					|| args[..rebound]
+					|| rebound
 						.iter()
-						.filter_map(|a| a.node.place())
+						.filter_map(|&i| args.get(i)?.node.place())
 						.any(|r| assigns(tcx.mk_place_deref(r))))
 					&& read_after(self.mir.terminator_loc(bb))
 				{

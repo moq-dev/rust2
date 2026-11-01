@@ -537,6 +537,13 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				}
 				done(Expr::undefined(), false)
 			}
+			// `&raw mut *r`, of the place `r` names where it is an alias of one.
+			("ptr", "from_mut") => {
+				let place = args[0].node.place()?;
+				let target = self.through_aliases(tcx.mk_place_deref(place));
+				let raw = rustc_middle::mir::Rvalue::RawPtr(rustc_middle::mir::RawPtrKind::Mut, target);
+				done(self.rvalue(&raw, dest, span, out)?, false)
+			}
 			// A slice or an array of the one value, or a cell of it, read and written where the
 			// `&mut` points.
 			("raw" | "array", "from_mut") | ("Cell", "from_mut")

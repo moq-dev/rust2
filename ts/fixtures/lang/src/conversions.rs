@@ -4,7 +4,7 @@
 //! `align_of_val`; slices, arrays, and cells of one value, written through; arrays as
 //! slices by `AsRef`, `AsMut`, `Borrow`, and `BorrowMut`; and raw pointers of references.
 //! Each is generic over the value, run for numbers JS copies, strings, `Option`s, arrays
-//! of bytes and of numbers, a struct, and one that logs its clones and drops.
+//! and `Vec`s of bytes and of numbers, a struct, and one that logs its clones and drops.
 
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{Cell, RefCell};
@@ -102,6 +102,36 @@ impl Value for [u32; 2] {
 	}
 }
 
+/// Of up to three elements, so a write shrinks, clears, and grows it.
+impl Value for Vec<u32> {
+	fn make(data: &[u8], at: usize) -> Self {
+		(0..usize::from(byte(data, at) % 4))
+			.map(|i| u32::from(byte(data, at + i + 1)))
+			.collect()
+	}
+
+	fn put(&self, out: &mut Vec<u8>) {
+		out.push(self.len() as u8);
+		for x in self {
+			out.extend(x.to_be_bytes());
+		}
+	}
+}
+
+/// Of up to three bytes, as [`Vec<u32>`]'s.
+impl Value for Vec<u8> {
+	fn make(data: &[u8], at: usize) -> Self {
+		(0..usize::from(byte(data, at) % 4))
+			.map(|i| byte(data, at + i + 1))
+			.collect()
+	}
+
+	fn put(&self, out: &mut Vec<u8>) {
+		out.push(self.len() as u8);
+		out.extend_from_slice(self);
+	}
+}
+
 /// A struct, which JS holds as an object.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 struct Named {
@@ -177,7 +207,7 @@ struct Held<T> {
 /// Runs each conversion of the type `kind` picks, but for `u8`, whose `&mut` no slice can
 /// view, and [`searched`] of those that order.
 pub fn conversions(kind: u8, data: &[u8], out: &mut Vec<u8>) {
-	match kind % 12 {
+	match kind % 14 {
 		0 => {
 			ordered::<u32>(data, out);
 			lent_through::<u32>(data, out);
@@ -200,7 +230,9 @@ pub fn conversions(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 		7 => ordered::<[u8; 40]>(data, out),
 		8 => ordered::<[u32; 2]>(data, out),
 		9 => ordered::<Named>(data, out),
-		10 => {
+		10 => ordered::<Vec<u32>>(data, out),
+		11 => ordered::<Vec<u8>>(data, out),
+		12 => {
 			converted::<u8>(data, out);
 			searched::<u8>(data, out);
 		}

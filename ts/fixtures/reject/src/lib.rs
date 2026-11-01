@@ -2185,3 +2185,27 @@ pub fn vec_clone_from(v: &mut Vec<Reused>, from: &Vec<Reused>) {
 pub fn dyn_size(d: &dyn std::fmt::Debug) -> usize {
 	size_of_val(d)
 }
+
+/// A pointer to a variable's object, which `clone_from` of the whole variable replaces.
+pub fn variable_cloned_from(n: u32) -> u32 {
+	let mut pair = (n, n);
+	let p = &raw mut pair;
+	pair.clone_from(&(0, 0));
+	unsafe { (*p).0 + pair.1 }
+}
+
+/// A pointer to a variable's object, which `clone_into` the whole variable replaces.
+pub fn variable_cloned_into(n: u32) -> u32 {
+	let mut pair = (n, n);
+	let p = &raw mut pair;
+	(0, 0).clone_into(&mut pair);
+	unsafe { (*p).0 + pair.1 }
+}
+
+/// A pointer to a variable's object, which a cell of the whole variable replaces.
+pub fn variable_celled(n: u32) -> u32 {
+	let mut pair = (n, n);
+	let p = &raw mut pair;
+	std::cell::Cell::from_mut(&mut pair).set((0, 0));
+	unsafe { (*p).0 + pair.1 }
+}

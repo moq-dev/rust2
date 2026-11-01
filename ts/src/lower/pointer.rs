@@ -315,19 +315,20 @@ pub fn allocates(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> bool 
 		)
 }
 
-/// How many of std's `def_id`'s first arguments are `&mut`s whose lowering gives what
-/// they borrow another value, rather than writing into it, where one is an alias of a
-/// borrowed place: the place is assigned again, as `mem::replace` and a whole write of
-/// what `slice::from_mut` or `array::from_mut` makes assign it. `mem::replace`'s value is
-/// no such one.
-pub fn rebinds(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> usize {
+/// Which of std's `def_id`'s arguments are `&mut`s whose lowering may give what they
+/// borrow another value, rather than writing into it, where one is an alias of a borrowed
+/// place: the place is assigned again, as `mem::replace`, `clone_from`, and `clone_into`
+/// assign it, and a whole write of what `slice::from_mut`, `array::from_mut`, or
+/// `Cell::from_mut` makes does. `mem::replace`'s value is no such one.
+pub fn rebinds(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> &'static [usize] {
 	match super::library::key(tcx, def_id) {
 		Some((owner, name)) => match (owner.as_str(), name.as_str()) {
-			("mem", "replace" | "take") | ("raw" | "array", "from_mut") => 1,
-			("mem", "swap") => 2,
-			_ => 0,
+			("mem", "replace" | "take") | ("Clone", "clone_from") | ("raw" | "array" | "Cell", "from_mut") => &[0],
+			("ToOwned", "clone_into") => &[1],
+			("mem", "swap") => &[0, 1],
+			_ => &[],
 		},
-		_ => 0,
+		_ => &[],
 	}
 }
 
@@ -376,8 +377,7 @@ pub fn keeps<'tcx>(tcx: ty::TyCtxt<'tcx>, def_id: rustc_hir::def_id::DefId, args
 /// rather than what it points at: a `MaybeUninit`'s, which it points into, an `Arc`'s that
 /// `make_mut` replaces, a `String`'s that a drain edits as it drops, a `Result`'s whose
 /// payload JS copies, which `iter_mut` lends as a place that writes the whole `Result`,
-/// one `ptr::from_mut` makes a pointer of, and a well-known crate's, such as a `Bytes`
-/// that `Buf::advance` moves past its front.
+/// and a well-known crate's, such as a `Bytes` that `Buf::advance` moves past its front.
 fn takes_place<'tcx>(
 	t: &Translator<'_, 'tcx>,
 	def_id: rustc_hir::def_id::DefId,
@@ -387,7 +387,7 @@ fn takes_place<'tcx>(
 		super::library::key(t.tcx, def_id),
 		Some((owner, name)) if owner == "MaybeUninit"
 			|| matches!(owner.as_str(), "Arc" | "Rc") && name == "make_mut"
-			|| matches!((owner.as_str(), name.as_str()), ("String", "drain") | ("ptr", "from_mut"))
+			|| (owner.as_str(), name.as_str()) == ("String", "drain")
 			|| (owner.as_str(), name.as_str()) == ("Result", "iter_mut") && t.needs_place(args.type_at(0))
 	) || super::stock::is_stock(t.tcx, def_id)
 }
@@ -440,7 +440,7 @@ pub fn call<'tcx>(
 			span,
 			"a raw pointer to a place of `()`, which has no address of its own",
 		),
-		("ptr", "from_ref" | "from_mut") if b.t.identity_pointee(pointee()) => b.err(
+		("ptr", "from_ref") if b.t.identity_pointee(pointee()) => b.err(
 			span,
 			"a raw pointer to a place of `()`, which has no address of its own",
 		),
@@ -510,8 +510,8 @@ pub fn call<'tcx>(
 			}
 		}
 		// As `NonNull::from` makes one, of a `[u8; N]` given as the view of its bytes.
-		("ptr", "from_ref" | "from_mut") => match kind(b, pointee()) {
-			Some(Pointee::Place) if name == "from_ref" => Expr::Object(vec![(crate::ts::Key::Name("v".into()), arg())]),
+		("ptr", "from_ref") => match kind(b, pointee()) {
+			Some(Pointee::Place) => Expr::Object(vec![(crate::ts::Key::Name("v".into()), arg())]),
 			Some(Pointee::Bytes) => to_pointer(arg()),
 			_ => arg(),
 		},
