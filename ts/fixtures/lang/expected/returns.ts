@@ -182,7 +182,7 @@ export function guarded(dataData: Uint8Array, dataStart: number, dataLen: number
 	const part2: Uint8Array = wideOut.p_1Data;
 	const part3: number = wideOut.p_1Start;
 	const part4: number = wideOut.p_1Len;
-	new Guard.Guard(other, dataLen & 0xff)[Symbol.dispose]();
+	new Guard.Guard(other.data, other.start, other.length, dataLen & 0xff)[Symbol.dispose]();
 	if (err !== undefined) {
 		wideOut.err = err as returns_Error.Error;
 		return undefined;

@@ -438,6 +438,13 @@ export function isErrAnd$0b01a39(self: rt.Result<rt.u8, rt.u16>, f: (a0: rt.u16)
 	return f(self.error);
 }
 
+export function ok$04yj0hm(self: rt.Result<rt.ByteSlice, rt.usize>): rt.ByteSlice | undefined {
+	if (self.ok) {
+		return self.value;
+	}
+	return undefined;
+}
+
 export function ok$0lceojf(self: rt.Result<[rt.usize, rt.u8], rt.Arc<Any.Any>>): [rt.usize, rt.u8] | undefined {
 	let _0!: [rt.usize, rt.u8] | undefined;
 	if (self.ok) {
@@ -714,6 +721,13 @@ export function mapErr$1whfgss(self: rt.Result<rt.u8, undefined>, op: (a0: undef
 export function inspect$16o3gle(self: rt.Result<rt.u8, rt.u16>, f: (a0: rt.u8) => undefined): rt.Result<rt.u8, rt.u16> {
 	if (self.ok) {
 		f(self.value);
+	}
+	return self;
+}
+
+export function inspectErr$0g3nypv(self: rt.Result<rt.ByteSlice, rt.usize>, f: (a0: rt.usize) => undefined): rt.Result<rt.ByteSlice, rt.usize> {
+	if (!self.ok) {
+		f(self.error);
 	}
 	return self;
 }
