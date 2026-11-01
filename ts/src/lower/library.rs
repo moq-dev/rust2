@@ -316,7 +316,8 @@ impl Std {
 			["cell", "BorrowError"] => Some(Self::BorrowError),
 			["cell", "BorrowMutError"] => Some(Self::BorrowMutError),
 			["sync", "once_lock", "OnceLock"] => Some(Self::OnceLock),
-			// What a read-write lock's guards map to, which guard as they do.
+			// What a lock's guards map to, which guard as they do.
+			["sync", "poison", "mutex", "MappedMutexGuard"] => Some(Self::MutexGuard),
 			["sync", "poison", "rwlock", "MappedRwLockReadGuard"] => Some(Self::Ref),
 			["sync", "poison", "rwlock", "MappedRwLockWriteGuard"] => Some(Self::RefMut),
 			["sync", "once", "Once"] => Some(Self::Once),
@@ -907,8 +908,9 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		("OnceCell" | "OnceLock", "get_or_init" | "get_or_try_init") => &[1],
 		// A guard's map calls its function, filtered or not.
 		(
-			"Ref" | "RefMut" | "RwLockReadGuard" | "RwLockWriteGuard" | "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
-			"map" | "filter_map" | "map_split",
+			"Ref" | "RefMut" | "MutexGuard" | "MappedMutexGuard" | "RwLockReadGuard" | "RwLockWriteGuard"
+			| "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
+			"map" | "filter_map" | "try_map" | "map_split",
 		) => &[],
 		("Once", "call_once" | "call_once_force") => &[0],
 		("Arc" | "Rc", "new_cyclic") => &[1],

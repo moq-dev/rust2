@@ -30,6 +30,7 @@
 	iter_order_by,
 	mapped_lock_guards,
 	once_cell_try,
+	refcell_try_map,
 	split_as_slice,
 	wrapping_int_impl,
 	wrapping_next_power_of_two
