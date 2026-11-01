@@ -660,8 +660,8 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
 	Last.put(last, out);
 	rt.byteVecPush(out, t4.sum);
 	calls(out);
-	const _97: rt.Iter<[rt.u8, [rt.u8]]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_213: rt.u8): [rt.u8, [rt.u8]] => {
-		const b13: rt.u8 = _213;
+	const _97: rt.Iter<[rt.u8, [rt.u8]]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_214: rt.u8): [rt.u8, [rt.u8]] => {
+		const b13: rt.u8 = _214;
 		return [b13, [b13] as [rt.u8]] as [rt.u8, [rt.u8]];
 	});
 	const _96: [rt.ByteVec, [tuples_Tally.Tally]] = rt.tupleExtend([new rt.ByteVec(), [tuples_Tally.default$Default()]] as [rt.ByteVec, [tuples_Tally.Tally]], _97, [rt.byteVecPart(), rt.tuplePart([rt.ownPart(tuples_Tally.extend$iter_Extend_u8_Option_u8 as (a0: tuples_Tally.Tally, a1: rt.u8 | undefined) => undefined)])]);
@@ -670,8 +670,8 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(v2)), undefined, true);
 	rt.byteVecPush(out, t5.sum);
 	calls(out);
-	const _107: rt.Iter<[rt.char]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_214: rt.u8): [rt.char] => {
-		return [_214 as rt.char] as [rt.char];
+	const _107: rt.Iter<[rt.char]> = rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_216: rt.u8): [rt.char] => {
+		return [_216 as rt.char] as [rt.char];
 	});
 	Last.put(rt.tupleExtendOne([Last.default$Default()] as [Last.Last], _107, (c3, items3) => rt.ownExtend(c3, items3, Last.extend$iter_Extend_char_iter_Map_iter_Map_slice_Iter_u8_tuples_own_closure13_iter_FromIterator_tuple1_T_tuple1_ExtendT_from_iter_closure0_char_tuples_Last_iter_Map_slice_Iter_u8_tuples_own_closure13 as (a0: rt.Place<Last.Last>, a1: rt.Iter<rt.char>) => undefined, true))[0], out);
 	const t6: [tuples_Tally.Tally, rt.ByteVec, Last.Last] = [tuples_Tally.default$Default(), rt.byteVecFrom(Uint8Array.of(7)), { tag: "Seen", _0: 113, _1: 9 } as Last.Last];
@@ -688,8 +688,8 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.iterExtendBytes(out, rt.iterSlice(rt.byteVecView(t6[1])), undefined, true);
 	Last.put(t6[2], out);
 	calls(out);
-	const parsed: rt.Result<[tuples_Tally.Tally, rt.ByteVec], rt.u8> = rt.iterCollectResult(rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_215: rt.u8): rt.Result<[rt.u8, rt.u8], rt.u8> => {
-		const b15: rt.u8 = _215;
+	const parsed: rt.Result<[tuples_Tally.Tally, rt.ByteVec], rt.u8> = rt.iterCollectResult(rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_217: rt.u8): rt.Result<[rt.u8, rt.u8], rt.u8> => {
+		const b15: rt.u8 = _217;
 		if (!(b15 === 0)) {
 			return rt.Ok([b15, b15] as [rt.u8, rt.u8]);
 		}
@@ -704,8 +704,8 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(250, parsed.error)), undefined, true);
 	}
 	calls(out);
-	const found: [rt.ByteVec, tuples_Tally.Tally] | undefined = rt.iterCollectOption(rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_216: rt.u8): [rt.u8, rt.u8] | undefined => {
-		const b16: rt.u8 = _216;
+	const found: [rt.ByteVec, tuples_Tally.Tally] | undefined = rt.iterCollectOption(rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_218: rt.u8): [rt.u8, rt.u8] | undefined => {
+		const b16: rt.u8 = _218;
 		return option_map$1fmzefe(rt.u8CheckedSub(b16, 4), (n2: rt.u8): [rt.u8, rt.u8] => {
 			return [n2, b16] as [rt.u8, rt.u8];
 		});
@@ -720,9 +720,9 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 	calls(out);
 	const log: rt.Arc<rt.RefCell<rt.ByteVec>> = new rt.Arc(new rt.RefCell(new rt.ByteVec()));
-	const held: rt.Result<[tuples_Logged.Logged[], tuples_Tally.Tally], rt.u8> = rt.iterCollectResult(rt.iterSlice(rt.iterToArray(rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2)))), (_217: [rt.usize, rt.u8]): rt.Result<[tuples_Logged.Logged, rt.u8], rt.u8> => {
-		const i: rt.usize = _217[0];
-		const b17: rt.u8 = _217[1];
+	const held: rt.Result<[tuples_Logged.Logged[], tuples_Tally.Tally], rt.u8> = rt.iterCollectResult(rt.iterSlice(rt.iterToArray(rt.iterMap(rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2)))), (_219: [rt.usize, rt.u8]): rt.Result<[tuples_Logged.Logged, rt.u8], rt.u8> => {
+		const i: rt.usize = _219[0];
+		const b17: rt.u8 = _219[1];
 		if (!(128 <= b17)) {
 			return rt.Ok([new tuples_Logged.Logged(i & 0xff, b17, rt.arcClone(log)), b17] as [tuples_Logged.Logged, rt.u8]);
 		}
@@ -742,13 +742,33 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
 	}
 	flush(log.value, out);
 	calls(out);
-	const alone: rt.Result<[tuples_Tally.Tally], rt.u8> = rt.iterCollectResult(rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_218: rt.u8): rt.Result<[rt.u8], rt.u8> => {
-		const b18: rt.u8 = _218;
-		if (!(b18 === 255)) {
-			return rt.Ok([b18] as [rt.u8]);
+	const nested: rt.Result<[tuples_Tally.Tally] | undefined, rt.u8> = rt.iterCollectResult(rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_221: rt.u8): rt.Result<[rt.u8] | undefined, rt.u8> => {
+		const b18: rt.u8 = _221;
+		if (!(240 <= b18)) {
+			if (!(224 <= b18)) {
+				return rt.Ok([b18] as [rt.u8]);
+			}
+			return rt.OK;
 		}
 		return rt.Err(b18);
-	}), (values: rt.Iter<[rt.u8]>) => rt.tupleExtendOne([tuples_Tally.default$Default()] as [tuples_Tally.Tally], values, (c5, items4) => rt.ownExtend(c5, items4, tuples_Tally.extend$iter_Extend_u8_iter_Map_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8_iter_FromIterator_tuple1_T_tuple1_ExtendT_from_iter_closure0_u8_tuples_Tally_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8 as (a0: tuples_Tally.Tally, a1: rt.Iter<rt.u8>) => undefined)));
+	}), (values: rt.Iter<[rt.u8] | undefined>) => rt.iterCollectOption(values, (values: rt.Iter<[rt.u8]>) => rt.tupleExtendOne([tuples_Tally.default$Default()] as [tuples_Tally.Tally], values, (c5, items4) => rt.ownExtend(c5, items4, tuples_Tally.extend$iter_Extend_u8_iter_Map_iter_adapters_GenericShunt_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8_Option_never_iter_FromIterator_tuple1_T_tuple1_ExtendT_from_iter_closure0_u8_tuples_Tally_iter_adapters_GenericShunt_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8_Option_never as (a0: tuples_Tally.Tally, a1: rt.Iter<rt.u8>) => undefined))));
+	if (nested.ok) {
+		if (nested.value === undefined) {
+			rt.byteVecPush(out, 249);
+		} else {
+			rt.byteVecPush(out, nested.value[0].sum);
+		}
+	} else {
+		rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(250, nested.error)), undefined, true);
+	}
+	calls(out);
+	const alone: rt.Result<[tuples_Tally.Tally], rt.u8> = rt.iterCollectResult(rt.iterMap(rt.iterSlice(rt.byteSliceView(rt.byteVecSlice(data2))), (_222: rt.u8): rt.Result<[rt.u8], rt.u8> => {
+		const b19: rt.u8 = _222;
+		if (!(b19 === 255)) {
+			return rt.Ok([b19] as [rt.u8]);
+		}
+		return rt.Err(b19);
+	}), (values: rt.Iter<[rt.u8]>) => rt.tupleExtendOne([tuples_Tally.default$Default()] as [tuples_Tally.Tally], values, (c6, items5) => rt.ownExtend(c6, items5, tuples_Tally.extend$iter_Extend_u8_iter_Map_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure20_Result_never_u8_iter_FromIterator_tuple1_T_tuple1_ExtendT_from_iter_closure0_u8_tuples_Tally_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure20_Result_never_u8 as (a0: tuples_Tally.Tally, a1: rt.Iter<rt.u8>) => undefined)));
 	if (alone.ok) {
 		rt.byteVecPush(out, alone.value[0].sum);
 	} else {

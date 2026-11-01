@@ -1235,9 +1235,9 @@ fn collect<'tcx>(
 			// the length of.
 			// A tuple's `Extend` is given the `GenericShunt` std's reads `from` through, which a
 			// 1-tuple's collection's own `extend` sees as it is.
-			let values_from = match args.type_at(0).kind() {
-				ty::Tuple(_) => shunt(b.t, ty, item, from)?,
-				_ => from,
+			let values_from = match sees_shunt(b.t, args.type_at(0)) {
+				true => shunt(b.t, ty, item, from)?,
+				false => from,
 			};
 			let values = collect(
 				b,
@@ -1279,6 +1279,16 @@ fn collect<'tcx>(
 			}
 		}
 		_ => super::collections::collect(b, ty, iter, from, trusted, span),
+	}
+}
+
+/// Whether `ty`, collected through a `GenericShunt`, is given it: a tuple, whose `Extend`
+/// is, or a `Result` or `Option` of one, which shunts it again.
+fn sees_shunt<'tcx>(t: &Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
+	match ty.kind() {
+		ty::Tuple(_) => true,
+		ty::Adt(_, args) if matches!(t.std_of(ty), Some(Std::Result | Std::Option)) => sees_shunt(t, args.type_at(0)),
+		_ => false,
 	}
 }
 

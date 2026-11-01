@@ -129,7 +129,34 @@ export function extend$iter_Extend_u8_iter_Map_iter_Map_iter_Map_iter_Enumerate_
 	}), n)));
 }
 
-export function extend$iter_Extend_u8_iter_Map_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8_iter_FromIterator_tuple1_T_tuple1_ExtendT_from_iter_closure0_u8_tuples_Tally_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8(self: Tally, iter: rt.Iter<rt.u8>): void {
+export function extend$iter_Extend_u8_iter_Map_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure20_Result_never_u8_iter_FromIterator_tuple1_T_tuple1_ExtendT_from_iter_closure0_u8_tuples_Tally_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure20_Result_never_u8(self: Tally, iter: rt.Iter<rt.u8>): void {
+	const iter2: rt.Iter<rt.u8> = iter;
+	const _6: [rt.usize, rt.usize | undefined] = iter2.sizeHint();
+	const lower: rt.usize = _6[0];
+	const upper: rt.usize | undefined = _6[1];
+	let n: rt.u8 = 0;
+	const iter3: rt.Iter<rt.u8> = iter2;
+	while (true) {
+		const _12: rt.u8 | rt.Done = iter3.next();
+		if (_12 === rt.DONE) {
+			break;
+		}
+		const b: rt.u8 = _12;
+		if (!(b !== 238)) {
+			const arg = self.id;
+			const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(arg, f), (f: rt.Formatter) => rt.u8Display(n, f)];
+			rt.panicFmt(["tally ", args2[0], " at its item ", args2[1]]);
+		} else {
+			self.sum = rt.u8WrappingAdd(self.sum, b);
+			n = rt.u8Add(n, 1);
+		}
+	}
+	call(rt.byteSliceFrom(Uint8Array.of(224, self.id, lower & 0xff, option_mapOr$02k4ito(upper, 255, (u: rt.usize): rt.u8 => {
+		return u & 0xff;
+	}), n)));
+}
+
+export function extend$iter_Extend_u8_iter_Map_iter_adapters_GenericShunt_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8_Option_never_iter_FromIterator_tuple1_T_tuple1_ExtendT_from_iter_closure0_u8_tuples_Tally_iter_adapters_GenericShunt_iter_adapters_GenericShunt_iter_Map_slice_Iter_u8_tuples_own_closure19_Result_never_u8_Option_never(self: Tally, iter: rt.Iter<rt.u8>): void {
 	const iter2: rt.Iter<rt.u8> = iter;
 	const _6: [rt.usize, rt.usize | undefined] = iter2.sizeHint();
 	const lower: rt.usize = _6[0];

@@ -570,6 +570,21 @@ fn own(data: &[u8], out: &mut Vec<u8>) {
 	}
 	flush(&log, out);
 	calls(out);
+	// A shunt within a shunt.
+	let nested: Result<Option<(Tally,)>, u8> = data
+		.iter()
+		.map(|&b| match b {
+			0xf0.. => Err(b),
+			0xe0.. => Ok(None),
+			_ => Ok(Some((b,))),
+		})
+		.collect();
+	match nested {
+		Ok(Some((t,))) => out.push(t.sum),
+		Ok(None) => out.push(0xf9),
+		Err(e) => out.extend([0xfa, e]),
+	}
+	calls(out);
 	let alone: Result<(Tally,), u8> = data
 		.iter()
 		.map(|&b| if b == 0xff { Err(b) } else { Ok((b,)) })

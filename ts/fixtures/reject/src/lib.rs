@@ -2,7 +2,7 @@
 //! output is written.
 
 #![allow(dead_code, reason = "each item is a translation root, not called from Rust")]
-#![feature(cow_is_borrowed, f16, is_ascii_octdigit, linked_list_retain)]
+#![feature(cow_is_borrowed, extend_one, f16, is_ascii_octdigit, linked_list_retain)]
 
 pub fn float(a: f16) -> f16 {
 	a * 2.0
@@ -1257,6 +1257,28 @@ pub fn pushed_part_kept(n: u16) -> u16 {
 	let part = unsafe { &raw mut (*p).part };
 	unsafe { p.write(Pushed { part: (0, 0) }) };
 	unsafe { (*part).0 }
+}
+
+/// A collection of the crate's own that overrides `extend_one`, which a tuple's `Extend`
+/// calls, as only a nightly crate can.
+#[derive(Default)]
+pub struct Tens(pub u8);
+
+impl Extend<u8> for Tens {
+	fn extend<I: IntoIterator<Item = u8>>(&mut self, iter: I) {
+		for b in iter {
+			self.0 = self.0.wrapping_add(b);
+		}
+	}
+
+	fn extend_one(&mut self, item: u8) {
+		self.0 = self.0.wrapping_add(item).wrapping_mul(10);
+	}
+}
+
+/// A tuple of collections, one of them the crate's own that overrides `extend_one`.
+pub fn tens(data: &[u8]) -> (Vec<u8>, Tens) {
+	data.iter().map(|&b| (b, b)).collect()
 }
 
 /// `u8`'s unstable ASCII methods are not translated.

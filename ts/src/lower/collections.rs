@@ -1621,6 +1621,9 @@ fn part<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, item: Ty<'tcx>, span: 
 	}
 	// The crate's own, whose `extend_one` is `extend` of `Some(item)`.
 	let Some(std) = b.t.std_of(coll) else {
+		if overrides_defaults(b.t, coll, item) {
+			return None;
+		}
 		let (f, place) = own_extend(b, coll, item, Ty::new_option(b.t.tcx, item), span)?;
 		return Some(Expr::rt(
 			"ownPart",
@@ -1690,6 +1693,22 @@ fn own_extend<'tcx>(
 		return None;
 	}
 	Some((b.fn_value(extend, args, span), b.t.needs_place(coll)))
+}
+
+/// Whether `coll`'s own `Extend<item>` overrides what a tuple's `Extend` calls of it, as
+/// only a nightly crate can: `extend_one`, `extend_reserve`, or `extend_one_unchecked`.
+fn overrides_defaults<'tcx>(t: &Translator<'_, 'tcx>, coll: Ty<'tcx>, item: Ty<'tcx>) -> bool {
+	let tcx = t.tcx;
+	let Some(extend) = super::iter::core_trait(tcx, "Extend") else {
+		return true;
+	};
+	let args = tcx.mk_args(&[coll.into(), item.into()]);
+	["extend_one", "extend_reserve", "extend_one_unchecked"]
+		.into_iter()
+		.any(|name| {
+			let f = trait_fn_of(tcx, extend, name);
+			!matches!(Instance::try_resolve(tcx, t.typing_env_pub(), f, args), Ok(Some(i)) if i.def_id() == f)
+		})
 }
 
 /// The iterator std's `Extend` of a 1-tuple of type `tuple`, or its `FromIterator` if
