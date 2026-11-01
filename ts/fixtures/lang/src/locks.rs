@@ -4,7 +4,8 @@
 //! while held, which panics as wasm32's does; and read-write locks, read and written,
 //! tried while read and while written, written through `get_mut`, taken apart, and read
 //! and written through guards mapped and filtered to parts of their values, a mutex's
-//! included; and each lock's guards printed.
+//! included; write guards downgraded, which keep the lock read; guards mapped to the whole
+//! of the bytes a lock holds; and each lock's guards printed.
 
 use std::fmt;
 use std::sync::{
@@ -368,4 +369,101 @@ pub fn printed(data: &[u8], out: &mut Vec<u8>) {
 	out.extend_from_slice(format!("{text} {text:?}").as_bytes());
 	let text = MappedRwLockWriteGuard::map(text, |t| t);
 	out.extend_from_slice(format!("{text:>12}").as_bytes());
+}
+
+/// Each byte an operation on read-write locks through write guards downgraded, which keep
+/// the lock read, and guards mapped to the whole of the bytes a lock holds, its value the
+/// operand; each puts what it read through them and whether each lock is still held.
+pub fn downgraded(data: &[u8], out: &mut Vec<u8>) {
+	let lock = RwLock::new(Tally::default());
+	let number = RwLock::new(0u32);
+	let quad = RwLock::new([1u8, 2, 3, 4]);
+	let mutex = Mutex::new([5u8, 6, 7, 8]);
+	for &op in data {
+		match op % 4 {
+			// Written, then downgraded, so a write still fails while a read shares it.
+			0 => {
+				let mut write = lock.write().unwrap();
+				write.n += u64::from(op);
+				write.seen.push(op);
+				let read = RwLockWriteGuard::downgrade(write);
+				out.push(held(&lock));
+				out.push(lock.try_read().map_or(0xfe, |t| t.seen.len() as u8));
+				out.push(read.n as u8);
+				drop(read);
+				out.push(held(&lock));
+			}
+			// A number JS copies, downgraded while another read waits, and released as the
+			// last read drops in either order.
+			1 => {
+				let mut write = number.write().unwrap();
+				*write += u32::from(op);
+				let read = RwLockWriteGuard::downgrade(write);
+				let other = number.read().unwrap();
+				out.extend_from_slice(&[*read as u8 ^ *other as u8, held(&number)]);
+				if op & 0x10 == 0 {
+					drop(read);
+					out.push(held(&number));
+					drop(other);
+				} else {
+					drop(other);
+					out.push(held(&number));
+					drop(read);
+				}
+				out.push(held(&number));
+			}
+			// The whole of the bytes a lock holds, written through a write guard mapped to
+			// them and that one's map, written whole, and read through a read guard's map.
+			2 => {
+				let mut bytes = RwLockWriteGuard::map(quad.write().unwrap(), |q| q);
+				bytes[usize::from(op & 3)] ^= op;
+				out.push(held(&quad));
+				let mut again = MappedRwLockWriteGuard::map(bytes, |q| q);
+				if op >> 4 == 0xf {
+					*again = [op; 4];
+				}
+				drop(again);
+				out.push(held(&quad));
+				let read = RwLockReadGuard::map(quad.read().unwrap(), |q| q);
+				out.extend_from_slice(&*read);
+				out.push(held(&quad));
+				drop(read);
+				let mut bytes = MutexGuard::map(mutex.lock().unwrap(), |q| q);
+				bytes.rotate_left(1);
+				if op >> 4 == 0xe {
+					*bytes = [op; 4];
+				}
+				out.push(mutex.try_lock().is_err() as u8);
+				drop(bytes);
+				out.extend_from_slice(&*mutex.lock().unwrap());
+			}
+			// Downgraded, then mapped to a part, whose drop releases the lock.
+			_ => {
+				let write = lock.write().unwrap();
+				let seen = RwLockReadGuard::map(RwLockWriteGuard::downgrade(write), |t| &t.seen);
+				out.push(held(&lock));
+				out.push(seen.len() as u8);
+				drop(seen);
+				out.push(held(&lock));
+				let mut write = quad.write().unwrap();
+				write[0] = write[0].wrapping_add(op);
+				let read = RwLockWriteGuard::downgrade(write);
+				out.extend_from_slice(&[read[0], held(&quad)]);
+			}
+		}
+	}
+	out.push(held(&lock));
+	let last = lock.into_inner().unwrap();
+	out.push(last.n as u8);
+	out.extend_from_slice(&last.seen);
+	out.push(number.into_inner().unwrap() as u8);
+	out.extend_from_slice(&quad.into_inner().unwrap());
+	out.extend_from_slice(&mutex.into_inner().unwrap());
+}
+
+/// Whether a read of `lock` would block, as 2, and whether a write would, as 1.
+fn held<T>(lock: &RwLock<T>) -> u8 {
+	let read = matches!(lock.try_read(), Err(TryLockError::WouldBlock));
+	let write = matches!(lock.try_write(), Err(TryLockError::WouldBlock));
+	u8::from(read) << 1 | u8::from(write)
 }

@@ -63,6 +63,13 @@ export function thenSome$1d6toqn(self: boolean, t: undefined): undefined | rt.No
 	return t;
 }
 
+export function thenSome$0zrlsto(self: boolean, t: rt.ByteSlice): rt.ByteSlice | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return t;
+}
+
 export function thenSome$0xksuo2(self: boolean, t: rt.Place<rt.u32>): rt.Place<rt.u32> | undefined {
 	if (!self) {
 		return undefined;
