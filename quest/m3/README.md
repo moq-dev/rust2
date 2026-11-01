@@ -23,7 +23,7 @@ generic std gap is planned here even when moq never calls it.
 - [Waiting: type-check in process with tsrs](/quest/m3/ts-tsrs.md) - rust2-ts checks bindings through tsrs instead of `tsc` once it is a stable library
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
 - [Fresh writes in a body generic over a type](/quest/m3/ts-fresh-type-params.md) - a whole write into fresh memory holding a type parameter's values fills it, as one generic over a length alone does
-- [Arrays of bytes a flattened Option reference lends](/quest/m3/ts-flatten-byte-options.md) - `iter().flatten()` over `&[Option<[u8; N]>]` yields `rt.ByteSlice`s
+- [Result's iterators](/quest/m3/ts-result-iters.md) - `Result::iter`, `iter_mut`, `into_iter`, and `flatten` over `Result`s translate
 - [Raw pointers to a type parameter in a struct](/quest/m3/ts-generic-pointer-fields.md) - a `*mut T` field of a generic struct is typed as each instance stores it, or refuses
 - [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
@@ -35,5 +35,4 @@ generic std gap is planned here even when moq never calls it.
 - [A &mut into a Box of a value JS copies](/quest/m3/ts-box-places.md) - a write through `&mut *b` of a `Box<u32>`, a `Box<String>`, or a `Box<str>` reaches the box's place
 - [A str's checked and inclusive parts](/quest/m3/ts-str-get.md) - `str::get` and indexing a `str` by `a..=b` or `..=b` translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
-- [A crate's own Extend in a tuple](/quest/m3/ts-tuple-own-extend.md) - `collect` and `extend` into a tuple holding a crate's `Extend` type translate
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained

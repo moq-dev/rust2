@@ -263,7 +263,9 @@ an `extend` starts from is taken as full. A tuple of these, of `String`s, `()`, 
 tuples, collects, unzips, and extends as std's tuple impls do: a 1-tuple's collection by
 its own `extend`, and a longer one's each reserving the lower bound, in field order, before
 each item's fields go into them in order, as `rt.tupleExtend(t, it, [rt.vecPart(2),
-rt.STRING_PART])`. Any other collection in one is refused.
+rt.STRING_PART])`. The crate's own `Default + Extend` collection keeps the defaults stable
+Rust can't override: it reserves nothing, and takes each item by its `extend` of `Some(item)`,
+through `rt.ownPart`. Any other collection in one is refused.
 
 `clone` of one of std's iterators or adaptors is its `rt.Iter`'s `clone`, which reads on
 from where the original was, independently of it, as std's `Clone` does; one over a hash
