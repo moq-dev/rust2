@@ -16,4 +16,7 @@ already read as its instance's type through a cast; a union of the element array
 the byte form, cast on read the same way, may fit, as may refusing the `u8` instance as
 `generic_erasure` refuses an `Option` of a type parameter that can be `undefined`.
 
+The `reject` fixture's `mistyped` case tests the output's type check through this gap,
+so the fix moves it to another typing gap translation has, if any is left.
+
 Public API: the translator's output.

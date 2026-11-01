@@ -6,13 +6,17 @@ use std::path::{Component, Path, PathBuf};
 
 use oxc_sourcemap::SourceMapBuilder;
 
-use crate::program::{HEADER, ModPath, Program, SymKind, module_file, unique};
+use crate::program::{HEADER, ModPath, Program, SymKind, item_sym, module_file, unique};
 use crate::ts::{Ctor, Expr, FieldInit, Function, Item, Key, Loc, Param, Stmt, StmtKind, SymId, Type};
 
 pub struct Printed {
 	pub code: String,
 	/// The source map, as JSON.
 	pub map: String,
+	/// Its mappings: each zero-based line and UTF-16 column of `code` and the Rust it maps to.
+	pub tokens: Vec<(u32, u32, Loc)>,
+	/// Each item's symbol by the zero-based line of `code` it starts on.
+	pub items: Vec<(u32, SymId)>,
 }
 
 /// Print one module's items to the file at `path`.
@@ -30,10 +34,12 @@ pub fn module(program: &Program, module: &ModPath, items: &[&Item], path: &Path)
 		renames: HashMap::new(),
 		aliases: Vec::new(),
 	};
+	let mut starts = Vec::new();
 	for (i, item) in items.iter().enumerate() {
 		if i > 0 {
 			p.newline();
 		}
+		starts.push((p.line, item_sym(item)));
 		p.item(item);
 	}
 	if !p.aliases.is_empty() {
@@ -112,16 +118,23 @@ pub fn module(program: &Program, module: &ModPath, items: &[&Item], path: &Path)
 	let mut map = SourceMapBuilder::default();
 	map.set_file(&file_name);
 	let mut ids = HashMap::new();
-	for (line, col, loc) in &p.tokens {
+	let tokens: Vec<(u32, u32, Loc)> = p
+		.tokens
+		.into_iter()
+		.map(|(line, col, loc)| (line + offset, col, loc))
+		.collect();
+	for (line, col, loc) in &tokens {
 		let id = *ids.entry(loc.file).or_insert_with(|| {
 			let source = &program.sources[loc.file as usize];
 			map.add_source_and_content(&source_names[loc.file as usize], &source.text)
 		});
-		map.add_token(line + offset, *col, loc.line, loc.col, Some(id), None);
+		map.add_token(*line, *col, loc.line, loc.col, Some(id), None);
 	}
 	Ok(Printed {
 		code,
 		map: map.into_sourcemap().to_json_string(),
+		tokens,
+		items: starts.into_iter().map(|(line, sym)| (line + offset, sym)).collect(),
 	})
 }
 
