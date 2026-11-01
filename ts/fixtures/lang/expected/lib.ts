@@ -259,6 +259,10 @@ export function copy$array_keys_Hop(v: Hop.Hop[]): Hop.Hop[] {
 	return v.map(copy$keys_Hop);
 }
 
+export function copy$array_lengths_Tagged_u32(v: lengths_Tagged.Tagged<rt.u32>[]): lengths_Tagged.Tagged<rt.u32>[] {
+	return v.slice();
+}
+
 export function copy$array_ptr_array4_u8(v: rt.ByteSlice[]): rt.ByteSlice[] {
 	return v.slice();
 }
@@ -417,6 +421,13 @@ export function copy$mem_MaybeUninit_array_array3_u8(v: Uint8Array[]): Uint8Arra
 	return v.map(copy$mem_MaybeUninit_array_u8);
 }
 
+export function copy$mem_MaybeUninit_array_lengths_Tagged_u32(v: lengths_Tagged.Tagged<rt.u32>[]): lengths_Tagged.Tagged<rt.u32>[] {
+	if (v === undefined) {
+		return v;
+	}
+	return v.slice();
+}
+
 export function copy$mem_MaybeUninit_array_u32(v: rt.u32[]): rt.u32[] {
 	if (v === undefined) {
 		return v;
@@ -436,6 +447,13 @@ export function copy$mem_MaybeUninit_tuple2_array0_array0_u8_tuple2_u8_u8(v: [Ui
 		return v;
 	}
 	return [copy$mem_MaybeUninit_array_array0_u8(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
+}
+
+export function copy$mem_MaybeUninit_tuple2_array0_lengths_Tagged_u32_tuple2_u8_u8(v: [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]]): [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]] {
+	if (v === undefined) {
+		return v;
+	}
+	return [copy$mem_MaybeUninit_array_lengths_Tagged_u32(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
 }
 
 export function copy$mem_MaybeUninit_tuple2_array0_u32_tuple2_u8_u8(v: [rt.u32[], [rt.u8, rt.u8]]): [rt.u32[], [rt.u8, rt.u8]] {
@@ -459,6 +477,13 @@ export function copy$mem_MaybeUninit_tuple2_array17_array17_u8_tuple2_u8_u8(v: [
 	return [copy$mem_MaybeUninit_array_array17_u8(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
 }
 
+export function copy$mem_MaybeUninit_tuple2_array17_lengths_Tagged_u32_tuple2_u8_u8(v: [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]]): [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]] {
+	if (v === undefined) {
+		return v;
+	}
+	return [copy$mem_MaybeUninit_array_lengths_Tagged_u32(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
+}
+
 export function copy$mem_MaybeUninit_tuple2_array17_u32_tuple2_u8_u8(v: [rt.u32[], [rt.u8, rt.u8]]): [rt.u32[], [rt.u8, rt.u8]] {
 	if (v === undefined) {
 		return v;
@@ -480,6 +505,13 @@ export function copy$mem_MaybeUninit_tuple2_array1_array1_u8_tuple2_u8_u8(v: [Ui
 	return [copy$mem_MaybeUninit_array_array1_u8(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
 }
 
+export function copy$mem_MaybeUninit_tuple2_array1_lengths_Tagged_u32_tuple2_u8_u8(v: [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]]): [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]] {
+	if (v === undefined) {
+		return v;
+	}
+	return [copy$mem_MaybeUninit_array_lengths_Tagged_u32(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
+}
+
 export function copy$mem_MaybeUninit_tuple2_array1_u32_tuple2_u8_u8(v: [rt.u32[], [rt.u8, rt.u8]]): [rt.u32[], [rt.u8, rt.u8]] {
 	if (v === undefined) {
 		return v;
@@ -499,6 +531,13 @@ export function copy$mem_MaybeUninit_tuple2_array3_array3_u8_tuple2_u8_u8(v: [Ui
 		return v;
 	}
 	return [copy$mem_MaybeUninit_array_array3_u8(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
+}
+
+export function copy$mem_MaybeUninit_tuple2_array3_lengths_Tagged_u32_tuple2_u8_u8(v: [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]]): [lengths_Tagged.Tagged<rt.u32>[], [rt.u8, rt.u8]] {
+	if (v === undefined) {
+		return v;
+	}
+	return [copy$mem_MaybeUninit_array_lengths_Tagged_u32(v[0]), copy$mem_MaybeUninit_tuple2_u8_u8(v[1])];
 }
 
 export function copy$mem_MaybeUninit_tuple2_array3_u32_tuple2_u8_u8(v: [rt.u32[], [rt.u8, rt.u8]]): [rt.u32[], [rt.u8, rt.u8]] {

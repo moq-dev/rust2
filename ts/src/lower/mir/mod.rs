@@ -3154,20 +3154,28 @@ pub(super) fn whole(value: Expr, ty: Type) -> Result<Expr, Expr> {
 }
 
 impl<'tcx> Translator<'_, 'tcx> {
-	/// Whether a value of `ty` reaches somewhere that could take a `part` in: a raw
-	/// pointer, or a mutable reference to or interior mutability around what could hold one.
-	/// `env` holds the bounds of the body naming `ty`.
+	/// Whether a value of `ty` reaches somewhere that std's code could take a `part` in: a
+	/// raw pointer, or a mutable reference to or interior mutability around what could hold
+	/// one. Std's code generic over a type parameter puts in its place only a whole value of
+	/// it. `env` holds the bounds of the body naming `ty`.
 	pub(crate) fn stores(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
 		use rustc_middle::ty::TypeVisitableExt;
+		let holds = |t| self.holds_as(env, t, part, false);
 		self.reaches(env, ty, |t| match t.kind() {
 			ty::RawPtr(..) => true,
-			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => self.holds(env, *inner, part),
-			_ => !t.has_escaping_bound_vars() && !t.is_freeze(self.tcx, env) && self.holds(env, t, part),
+			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => holds(*inner),
+			_ => !t.has_escaping_bound_vars() && !t.is_freeze(self.tcx, env) && holds(t),
 		})
 	}
 
 	/// Whether a value of `ty` could hold a `part`: holds its type, or hides what it holds.
 	pub(crate) fn holds(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
+		self.holds_as(env, ty, part, true)
+	}
+
+	/// [`Self::holds`], where a type parameter's value hides what it holds only with
+	/// `params`, and is otherwise a `part` only as its whole.
+	fn holds_as(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, part: Ty<'tcx>, params: bool) -> bool {
 		// An array and a slice of its element share storage through an unsizing coercion.
 		let storage = |t: Ty<'tcx>| match t.kind() {
 			ty::Array(elem, _) => Ty::new_slice(self.tcx, *elem),
@@ -3178,8 +3186,9 @@ impl<'tcx> Translator<'_, 'tcx> {
 			storage(t) == part
 				|| matches!(
 					t.kind(),
-					ty::Dynamic(..) | ty::Alias(..) | ty::Param(_) | ty::Closure(..) | ty::Coroutine(..)
+					ty::Dynamic(..) | ty::Alias(..) | ty::Closure(..) | ty::Coroutine(..)
 				)
+				|| params && matches!(t.kind(), ty::Param(_))
 		})
 	}
 

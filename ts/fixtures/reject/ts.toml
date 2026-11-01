@@ -166,5 +166,9 @@ roots = [
     "block_cloned",
     "lists",
     "mapped_closure",
+    "cloned_slots",
+    "dropped_slots",
+    "ranked_slots",
+    "touched_slots",
 ]
 printable = ["Meters"]

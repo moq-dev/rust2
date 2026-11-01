@@ -25,11 +25,16 @@ fn each<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
 	joined(data, vec![[0xa5; N], std::array::from_fn(|i| i as u8)], out);
 	retagged(&rows, out);
 	recloned(&wide, out);
-	filled_bytes::<N>(data, std::array::from_fn(|i| i as u8), out);
-	filled_words::<N>(data, std::array::from_fn(|i| 0x0102_0304 * i as u32), out);
-	filled_rows::<N>(
+	filled::<u8, N>(data, std::array::from_fn(|i| i as u8), out);
+	filled::<u32, N>(data, std::array::from_fn(|i| 0x0102_0304 * i as u32), out);
+	filled::<[u8; N], N>(
 		data,
 		std::array::from_fn(|i| std::array::from_fn(|j| (i * N + j) as u8)),
+		out,
+	);
+	filled::<Tagged<u32>, N>(
+		data,
+		std::array::from_fn(|i| Tagged(i as u32 * 0x0101, !(i as u8))),
 		out,
 	);
 	swapped(data, &rows, out);
@@ -77,39 +82,37 @@ fn recloned<T: Copy + Into<u32>, const N: usize>(rows: &[[T; N]], out: &mut Vec<
 	}
 }
 
-/// Slots of `MaybeUninit` arrays of `$elem`, each written whole through an iterator
-/// while nothing points into them, then changed in place, a pair of tags through a pointer
-/// to it, and read back. Over the length alone: a type parameter's values would be types
-/// std's iterators may run the crate's code on.
-macro_rules! filled {
-	($name:ident, $elem:ty) => {
-		fn $name<const N: usize>(data: &[u8], fill: [$elem; N], out: &mut Vec<u8>) {
-			let mut slots: [MaybeUninit<([$elem; N], (u8, u8))>; 3] = [const { MaybeUninit::uninit() }; 3];
-			for (slot, at) in slots.iter_mut().zip(0u8..) {
-				slot.write((fill, (at, !at)));
-			}
-			for &byte in data {
-				let slot = unsafe { slots[usize::from(byte) % 3].assume_init_mut() };
-				slot.0.rotate_left(usize::from(byte) % N.max(1));
-				let tags = &raw mut slot.1;
-				unsafe {
-					(*tags).0 ^= byte;
-					(*tags).1 = (*tags).1.wrapping_add(byte);
-					out.extend([(*tags).0, (*tags).1]);
-				}
-			}
-			for slot in &slots {
-				let (values, (a, b)) = unsafe { slot.assume_init_ref() };
-				values.iter().for_each(|v| v.put(out));
-				out.extend([*a, *b]);
-			}
+/// Slots of `MaybeUninit` arrays of `T`, each written whole through an iterator while
+/// nothing points into them, the last two again beside a vector's iterator, which std
+/// drops, then changed in place, a pair of tags through a pointer to it, and read back.
+fn filled<T: Copy + Put, const N: usize>(data: &[u8], fill: [T; N], out: &mut Vec<u8>) {
+	let mut slots: [MaybeUninit<([T; N], (u8, u8))>; 3] = [const { MaybeUninit::uninit() }; 3];
+	for (slot, at) in slots.iter_mut().zip(0u8..) {
+		slot.write((fill, (at, !at)));
+	}
+	let mut picks = Vec::new();
+	for &v in &fill {
+		picks.push(Some(v));
+	}
+	for (slot, _) in slots.iter_mut().skip(1).zip(picks) {
+		slot.write((fill, (N as u8, 0x5a)));
+	}
+	for &byte in data {
+		let slot = unsafe { slots[usize::from(byte) % 3].assume_init_mut() };
+		slot.0.rotate_left(usize::from(byte) % N.max(1));
+		let tags = &raw mut slot.1;
+		unsafe {
+			(*tags).0 ^= byte;
+			(*tags).1 = (*tags).1.wrapping_add(byte);
+			out.extend([(*tags).0, (*tags).1]);
 		}
-	};
+	}
+	for slot in &slots {
+		let (values, (a, b)) = unsafe { slot.assume_init_ref() };
+		values.iter().for_each(|v| v.put(out));
+		out.extend([*a, *b]);
+	}
 }
-
-filled!(filled_bytes, u8);
-filled!(filled_words, u32);
-filled!(filled_rows, [u8; N]);
 
 /// A value's bytes.
 trait Put {
@@ -131,6 +134,13 @@ impl Put for u32 {
 impl<const N: usize> Put for [u8; N] {
 	fn put(&self, out: &mut Vec<u8>) {
 		out.extend_from_slice(self);
+	}
+}
+
+impl<T: Put> Put for Tagged<T> {
+	fn put(&self, out: &mut Vec<u8>) {
+		self.0.put(out);
+		out.push(self.1);
 	}
 }
 
