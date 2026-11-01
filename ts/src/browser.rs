@@ -40,11 +40,11 @@ pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Res
 	let args = Args::parse(cargo);
 	let packages = tree(manifest, package, &args)?;
 	let picks: Vec<_> = (packages.iter())
-		.filter_map(|(name, version)| {
+		.filter_map(|p| {
 			let pick = PICKS
 				.iter()
-				.find(|(krate, prefix, _)| krate == name && version.starts_with(prefix));
-			pick.map(|&(_, _, feature)| (name.as_str(), version.as_str(), feature))
+				.find(|(krate, prefix, _)| *krate == p.name && p.version.starts_with(prefix));
+			pick.map(|&(_, _, feature)| (p, feature))
 		})
 		.collect();
 	if picks.is_empty() {
@@ -55,6 +55,12 @@ pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Res
 			"--all-features: the browser's randomness checks {package} as a dependency, which takes only the features --features names"
 		));
 	}
+	// `cargo tree` lists the package first, wherever its directory is.
+	let Some(Source::Path(package_dir)) = packages.first().map(|p| &p.source) else {
+		return Err(format!(
+			"{package} is not a path package, which the browser's randomness can depend on"
+		));
+	};
 	let workspace = rust2_driver::cargo::workspace_root(Some(manifest))?;
 	// Cargo cleans only a target directory it made, which it tags as a cache, as it
 	// would here had it run first.
@@ -64,7 +70,7 @@ pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Res
 	}
 	let dir = dir.join("browser").join(package);
 	std::fs::create_dir_all(&dir).map_err(|err| format!("creating {}: {err}", dir.display()))?;
-	let text = manifest_text(manifest, package, &workspace, &args, &picks, &packages)?;
+	let text = manifest_text(package, package_dir, &workspace, &args, &picks, &packages)?;
 	write(&dir.join("Cargo.toml"), &text)?;
 	write(&dir.join("lib.rs"), "")?;
 	// The workspace's own versions, wherever the root needs no other.
@@ -85,10 +91,41 @@ pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Res
 	// `file!()` and the census read as they would there.
 	let remap = toml::Value::from(format!("--remap-path-prefix={}/=", workspace.display()));
 	cargo.extend(["--config".into(), format!("profile.dev.rustflags=[{remap}]")]);
+	// getrandom 0.3 before 0.3.4 takes its backend from a cfg beside the feature, which
+	// the others ignore.
+	if picks
+		.iter()
+		.any(|(p, _)| p.name == "getrandom" && p.version.starts_with("0.3."))
+	{
+		let cfg = r#"profile.dev.package.getrandom.rustflags=["--cfg", 'getrandom_backend="wasm_js"']"#;
+		cargo.extend(["--config".into(), cfg.into()]);
+	}
 	Ok(Some(Root {
 		manifest: dir.join("Cargo.toml"),
 		cargo,
 	}))
+}
+
+/// A package `cargo tree` lists.
+struct Package {
+	name: String,
+	version: String,
+	source: Source,
+}
+
+/// Where a package comes from.
+enum Source {
+	/// crates.io, which a dependency names by its version alone.
+	Registry,
+	/// This directory.
+	Path(PathBuf),
+	/// A Git repository at a branch, tag, or revision, if its URL names one.
+	Git {
+		url: String,
+		reference: Option<(String, String)>,
+	},
+	/// Another, as `cargo tree` prints it.
+	Other(String),
 }
 
 /// The cargo args, with the package's features apart.
@@ -154,15 +191,16 @@ impl Args {
 	}
 }
 
-/// Each package `package` builds with for [`TARGET`], by name and version.
-fn tree(manifest: &Path, package: &str, args: &Args) -> Result<Vec<(String, String)>, String> {
+/// Each package `package` builds with for [`TARGET`], itself first.
+fn tree(manifest: &Path, package: &str, args: &Args) -> Result<Vec<Package>, String> {
 	let output = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()))
 		// Cargo reads its config from where it runs, as the check does.
 		.current_dir(manifest.parent().expect("a manifest path has a parent"))
 		.args(["tree", "--manifest-path"])
 		.arg(manifest)
 		.args(["--package", package, "--edges", "normal", "--target", TARGET])
-		// Each package as `<name> v<version>`, plain, so a repeat's `(*)` reads as one.
+		// Each package as `<name> v<version>`, then its source in parentheses unless it
+		// is crates.io, plain, so a repeat's `(*)` reads as one.
 		.args(["--prefix", "none", "--format", "{p}", "--color", "never"])
 		.args(args.resolution())
 		.output()
@@ -171,51 +209,99 @@ fn tree(manifest: &Path, package: &str, args: &Args) -> Result<Vec<(String, Stri
 		return Err(String::from_utf8_lossy(&output.stderr).into_owned());
 	}
 	let output = String::from_utf8(output.stdout).map_err(|err| format!("reading cargo tree: {err}"))?;
-	let mut packages = Vec::new();
+	let mut packages: Vec<Package> = Vec::new();
 	for line in output.lines() {
-		let mut words = line.split(' ');
-		if let (Some(name), Some(version)) = (words.next(), words.next().and_then(|v| v.strip_prefix('v'))) {
-			let package = (name.to_string(), version.to_string());
-			if !packages.contains(&package) {
-				packages.push(package);
-			}
+		let line = line.trim_end_matches(" (*)").replace(" (proc-macro)", "");
+		let Some((name, rest)) = line.split_once(' ') else {
+			continue;
+		};
+		let (version, source) = rest.split_once(' ').unwrap_or((rest, ""));
+		let version = version.strip_prefix('v').unwrap_or(version);
+		if packages.iter().any(|p| p.name == name && p.version == version) {
+			continue;
 		}
+		let source = match source.strip_prefix('(').and_then(|s| s.strip_suffix(')')) {
+			None => Source::Registry,
+			Some(dir) if Path::new(dir).is_absolute() => Source::Path(dir.into()),
+			Some(git) if git.contains("://") => {
+				let url = git.split('#').next().unwrap_or(git);
+				let (url, query) = url.split_once('?').unwrap_or((url, ""));
+				let reference = query.split_once('=').map(|(k, v)| (k.to_string(), v.to_string()));
+				Source::Git {
+					url: url.to_string(),
+					reference,
+				}
+			}
+			Some(other) => Source::Other(other.to_string()),
+		};
+		packages.push(Package {
+			name: name.to_string(),
+			version: version.to_string(),
+			source,
+		});
 	}
 	Ok(packages)
 }
 
-/// The root's `Cargo.toml`: a library on `package` and each pick, in a workspace that
-/// resolves and compiles `packages` as `workspace`, the package's own, does.
+/// The root's `Cargo.toml`: a library on `package`, in `dir`, and on each pick, in a
+/// workspace that resolves and compiles `packages` as `workspace`, the package's own, does.
 fn manifest_text(
-	manifest: &Path,
 	package: &str,
+	dir: &Path,
 	workspace: &Path,
 	args: &Args,
-	picks: &[(&str, &str, &str)],
-	packages: &[(String, String)],
+	picks: &[(&Package, &str)],
+	packages: &[Package],
 ) -> Result<String, String> {
-	let dir = manifest.parent().expect("a manifest path has a parent");
 	let mut dependencies = toml::Table::new();
 	// A feature named as the package's own, `<package>/<feature>`, by its name there.
 	let own = format!("{package}/");
 	let features: Vec<&str> = (args.features.iter())
 		.map(|f| f.strip_prefix(&own).unwrap_or(f))
 		.collect();
+	// Cargo takes none of a dependency's own dependencies' features.
+	if let Some(feature) = features.iter().find(|f| f.contains('/')) {
+		return Err(format!(
+			"--features {feature}: the browser's randomness checks {package} as a dependency, which takes only its own features"
+		));
+	}
 	let dependency = toml::toml! {
 		path = (dir.display().to_string())
 		default-features = (!args.no_default)
 		features = features
 	};
 	dependencies.insert(package.to_string(), dependency.into());
-	for (name, version, feature) in picks {
-		// Its feature alone, so the crate builds as the package has it otherwise.
-		let dependency = toml::toml! {
-			package = (name.to_string())
-			version = (format!("={version}"))
+	for (pick, feature) in picks {
+		// Its feature alone, so the crate builds as the package has it otherwise, from the
+		// source it resolved to, which a version alone would name another of.
+		let mut dependency = toml::toml! {
+			package = (pick.name.clone())
+			version = (format!("={}", pick.version))
 			default-features = false
 			features = (vec![feature.to_string()])
 		};
-		dependencies.insert(format!("{name}-{}", version.replace('.', "_")), dependency.into());
+		match &pick.source {
+			Source::Registry => {}
+			// Another registry, which the root would have to name by the key cargo's config
+			// gives it.
+			Source::Other(source) => {
+				return Err(format!(
+					"{} {} is from {source}, which the browser's randomness can't depend on",
+					pick.name, pick.version
+				));
+			}
+			Source::Path(dir) => {
+				dependency.insert("path".into(), dir.display().to_string().into());
+			}
+			Source::Git { url, reference } => {
+				dependency.insert("git".into(), url.clone().into());
+				if let Some((key, value)) = reference {
+					dependency.insert(key.clone(), value.clone().into());
+				}
+			}
+		}
+		let key = format!("{}-{}", pick.name, pick.version.replace(['.', '+'], "_"));
+		dependencies.insert(key, dependency.into());
 	}
 	let mut root = toml::toml! {
 		[package]
@@ -252,7 +338,7 @@ fn manifest_text(
 		if let Some(overrides) = dev.get_mut("package").and_then(toml::Value::as_table_mut) {
 			overrides.retain(|spec, _| {
 				let name = spec.split('@').next().unwrap_or(spec);
-				spec == "*" || packages.iter().any(|(built, _)| built == name)
+				spec == "*" || packages.iter().any(|built| built.name == name)
 			});
 		}
 		root.insert("profile".into(), toml::toml! { dev = dev }.into());
