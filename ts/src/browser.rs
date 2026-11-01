@@ -72,10 +72,18 @@ pub fn root(manifest: &Path, package: &str, dir: &Path, cargo: &[String]) -> Res
 	if lock.exists() {
 		std::fs::copy(&lock, dir.join("Cargo.lock")).map_err(|err| format!("copying {}: {err}", lock.display()))?;
 	}
+	// The lockfile gains the root and what its picks build with, so `--locked` holds the
+	// workspace's own lockfile to account in `cargo tree` above, not the root's.
+	let mut cargo: Vec<String> = (args.rest.into_iter())
+		.filter(|arg| arg != "--locked")
+		.map(|arg| match arg.as_str() {
+			"--frozen" => "--offline".to_string(),
+			_ => arg,
+		})
+		.collect();
 	// The workspace's paths, as rustc reads its members': relative to its root, so
 	// `file!()` and the census read as they would there.
 	let remap = toml::Value::from(format!("--remap-path-prefix={}/=", workspace.display()));
-	let mut cargo = args.rest;
 	cargo.extend(["--config".into(), format!("profile.dev.rustflags=[{remap}]")]);
 	Ok(Some(Root {
 		manifest: dir.join("Cargo.toml"),
@@ -188,7 +196,11 @@ fn manifest_text(
 ) -> Result<String, String> {
 	let dir = manifest.parent().expect("a manifest path has a parent");
 	let mut dependencies = toml::Table::new();
-	let features = args.features.clone();
+	// A feature named as the package's own, `<package>/<feature>`, by its name there.
+	let own = format!("{package}/");
+	let features: Vec<&str> = (args.features.iter())
+		.map(|f| f.strip_prefix(&own).unwrap_or(f))
+		.collect();
 	let dependency = toml::toml! {
 		path = (dir.display().to_string())
 		default-features = (!args.no_default)
@@ -281,4 +293,36 @@ fn absolute(value: &mut toml::Value, dir: &Path) {
 
 fn write(path: &Path, text: &str) -> Result<(), String> {
 	std::fs::write(path, text).map_err(|err| format!("writing {}: {err}", path.display()))
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn takes_the_features_apart() {
+		for spelling in [
+			&["--features", "a,dep/b"][..],
+			&["--features=a dep/b"],
+			&["-F", "a", "-F", "dep/b"],
+			&["-Fa,dep/b"],
+			&["-F=a", "--features", "dep/b"],
+		] {
+			let cargo: Vec<String> = spelling.iter().map(|s| s.to_string()).collect();
+			let args = Args::parse(&cargo);
+			assert_eq!(
+				(args.features, args.rest),
+				(vec!["a".into(), "dep/b".into()], vec![]),
+				"{spelling:?}"
+			);
+		}
+		let cargo = ["--no-default-features", "--locked", "--config", "a=1", "--quiet"];
+		let args = Args::parse(&cargo.map(String::from));
+		assert!(args.no_default);
+		assert_eq!(args.rest, ["--locked", "--config", "a=1", "--quiet"]);
+		assert_eq!(
+			args.resolution(),
+			["--locked", "--config", "a=1", "--no-default-features"]
+		);
+	}
 }
