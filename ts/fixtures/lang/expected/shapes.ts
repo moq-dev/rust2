@@ -19,7 +19,7 @@ import * as Meters from "./shapes.Meters.ts";
 import * as Moved from "./shapes.Moved.ts";
 import type * as Mover from "./shapes.Mover.ts";
 import type * as Partial from "./shapes.Partial.ts";
-import type * as Parts from "./shapes.Parts.ts";
+import type * as shapes_Parts from "./shapes.Parts.ts";
 import * as Point from "./shapes.Point.ts";
 import * as shapes_Shape from "./shapes.Shape.ts";
 import type * as Signed from "./shapes.Signed.ts";
@@ -2177,7 +2177,7 @@ export function uninhabited(data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, calls);
 	const pair: [rt.Result<rt.u8, never>, Partial.Partial] = [counted(rt.place(() => calls, (value9) => calls = value9), a), { tag: "Real", _0: b } as Partial.Partial];
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of((pair[0] as { ok: true; value: rt.u8 }).value, (pair[1] as { tag: "Real"; _0: rt.u8 })._0)));
-	const held: Parts.Parts = { left: rt.Ok(a), right: thenSome$0ztng9q(rt.u8Rem(b, 2) === 0, rt.Ok((((b as rt.u16)) << 4) & 0xffff)) };
+	const held: shapes_Parts.Parts = { left: rt.Ok(a), right: thenSome$0ztng9q(rt.u8Rem(b, 2) === 0, rt.Ok((((b as rt.u16)) << 4) & 0xffff)) };
 	const l: rt.u8 = (held.left as { ok: true; value: rt.u8 }).value;
 	const right: rt.Result<rt.u16, Void.Void> | undefined = held.right;
 	if (right === undefined) {
