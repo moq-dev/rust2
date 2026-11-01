@@ -631,9 +631,9 @@ pub fn clone_copies<'tcx>(t: &super::Translator<'_, 'tcx>, env: TypingEnv<'tcx>,
 pub fn clone_shares<'tcx>(t: &super::Translator<'_, 'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>) -> bool {
 	match ty.kind() {
 		ty::FnDef(..) => true,
-		ty::Closure(_, args) => {
+		ty::Closure(..) | ty::CoroutineClosure(..) => {
 			!super::mir::writes_captures(t.tcx, ty)
-				&& (args.as_closure().upvar_tys().iter())
+				&& (super::captured(ty).unwrap_or_default().iter())
 					.all(|capture| clone_copies(t, env, capture) || clone_shares(t, env, capture))
 		}
 		_ => string(t.tcx, ty),
@@ -1536,7 +1536,9 @@ fn mapping<'tcx>(
 				// Through the reference, a slice of the bytes.
 				_ if super::byte_array(ty) => Expr::rt("byteSliceToArray", vec![value]),
 				_ if b.t.std_iter(ty) => return super::iter::clone(b, ty, value, span),
-				ty::Closure(def_id, _) if !clone_shares(b.t, b.t.typing_env_pub(), ty) => {
+				ty::Closure(def_id, _) | ty::CoroutineClosure(def_id, _)
+					if !clone_shares(b.t, b.t.typing_env_pub(), ty) =>
+				{
 					b.t.clone_closure(*def_id);
 					Expr::rt("closureClone", vec![value])
 				}

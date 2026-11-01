@@ -6,7 +6,8 @@
 //! The `kio` dependency trims moq's kio to what its futures hinge on: a `Waiter` holding
 //! the task's waker behind an `Arc` that `WaiterList`s hold weakly, `Task`, `Pending`,
 //! `wait`, and a channel whose last producer closes it on drop. `model` holds the async
-//! functions, and `futures` one over std's future helpers. `exec` is a deterministic FIFO executor that logs every
+//! functions, `futures` one over std's future helpers, and `closures` one over async
+//! closures. `exec` is a deterministic FIFO executor that logs every
 //! poll, wake, and waker clone and drop, and `harness` runs a script of executor steps
 //! through it; `tests/task.ts` runs the same script on the translation with its own
 //! executor. `bench` holds the handoff `just ts bench` times. None of `exec`, `harness`,
@@ -15,6 +16,7 @@
 #![feature(iter_order_by)]
 
 pub mod bench;
+pub mod closures;
 pub mod drops;
 pub mod exec;
 pub mod futures;
