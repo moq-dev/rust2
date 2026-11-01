@@ -184,6 +184,9 @@ a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable
 a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1721:26
 a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1722:10
 const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:1932:21
+`std::collections::LinkedList::<T, A>::retain` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1948:4
+`clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:1949:4
+`std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1950:2
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:132:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:152:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:180:2

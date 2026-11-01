@@ -30,7 +30,6 @@ generic std gap is planned here even when moq never calls it.
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are
 - [ptr::replace whose result nothing reads](/quest/m3/ts-ptr-replace-unread.md) - `ptr::replace` with its result discarded type-checks
-- [LinkedList](/quest/m3/ts-linked-list.md) - `LinkedList` and its methods translate
 - [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
 - [A &mut str to any String](/quest/m3/ts-str-places.md) - `make_ascii_*` of a `String` a tuple, an array, or a `Vec` holds, and of a part of one, translate

@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 202
-- Function instances: 245
+- Refusals: 205
+- Function instances: 246
 - Generic functions no instance reached, lowered over their type parameters: 10
 
 ## By construct
@@ -12,9 +12,9 @@
 | 25 | unsupported call to `_` | fixtures/reject/src/lib.rs:167:8 |
 | 20 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | fixtures/reject/src/lib.rs:1324:33 |
 | 19 | a raw pointer to `_` in a variable assigned again while it may point there | fixtures/reject/src/lib.rs:625:10 |
+| 5 | `_` with a mutable reference to a value JS copies, which its mapping would copy | fixtures/reject/src/lib.rs:523:12 |
 | 5 | a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet | fixtures/reject/src/lib.rs:688:10 |
 | 4 | a variant of `_`, which is not supported: either is the same JS string | fixtures/reject/src/lib.rs:338:2 |
-| 3 | `_` with a mutable reference to a value JS copies, which its mapping would copy | fixtures/reject/src/lib.rs:523:12 |
 | 3 | a copy of a closure that changes what it captured | fixtures/reject/src/lib.rs:231:14 |
 | 3 | an assignment through a reference to `_` | fixtures/reject/src/lib.rs:90:2 |
 | 3 | replacing the value behind a reference to `_` | fixtures/reject/src/lib.rs:98:2 |
@@ -43,6 +43,7 @@
 | 1 | `_` of a value JS copies, which is no path | fixtures/reject/src/lib.rs:1624:2 |
 | 1 | `_`, which is not supported yet | fixtures/reject/src/lib.rs:268:9 |
 | 1 | `_`, which reads a capacity that depends on whether the other handles of its storage dropped, which is not supported | fixtures/reject/src/lib.rs:390:6 |
+| 1 | `clone_from` of `_`, whose items' `clone_from` is their own, which is not supported yet | fixtures/reject/src/lib.rs:1949:4 |
 | 1 | `collect` of `_`, which sorts by `_`'s own `Ord`, of entries that drop, which is not supported yet | fixtures/reject/src/lib.rs:964:22 |
 | 1 | `fmt::Arguments` with a placeholder, or not made in place, written to `_`'s own `fmt::Write`, which is not supported yet: std splits what a placeholder writes into `write_str` calls the runtime does not make | fixtures/reject/src/lib.rs:62:10 |
 | 1 | a `collect` in place of `_`, a zip std reads by index, holding values that drop, which is not supported yet | fixtures/reject/src/lib.rs:216:40 |
@@ -117,6 +118,7 @@ The type or module each refused type or path belongs to.
 | 2 | `slice` | fixtures/reject/src/lib.rs:21:4 |
 | 2 | `std::any::TypeId` | fixtures/reject/src/lib.rs:547:2 |
 | 2 | `std::collections::BTreeSet` | fixtures/reject/src/lib.rs:242:75 |
+| 2 | `std::collections::LinkedList` | fixtures/reject/src/lib.rs:1948:4 |
 | 2 | `std::mem::MaybeUninit` | fixtures/reject/src/lib.rs:931:19 |
 | 2 | `std::ops::Range` | fixtures/reject/src/lib.rs:167:8 |
 | 2 | `std::ptr::const_ptr` | fixtures/reject/src/lib.rs:1700:73 |
@@ -202,6 +204,7 @@ The type or module each refused type or path belongs to.
 | 1 | `std::cell::Cell` | fixtures/reject/src/lib.rs:964:22 |
 | 1 | `std::collections::BTreeMap` | fixtures/reject/src/lib.rs:964:22 |
 | 1 | `std::collections::HashMap` | fixtures/reject/src/lib.rs:260:6 |
+| 1 | `std::default::Default` | fixtures/reject/src/lib.rs:1950:2 |
 | 1 | `std::iter::Map` | fixtures/reject/src/lib.rs:216:40 |
 | 1 | `std::iter::Zip` | fixtures/reject/src/lib.rs:209:8 |
 | 1 | `std::iter` | fixtures/reject/src/lib.rs:1244:22 |
@@ -258,11 +261,14 @@ The type or module each refused type or path belongs to.
 | 1 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | `slice::clone_from_slice`, `Reused` | fixtures/reject/src/lib.rs:293:4 |
 | 1 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | `slice::fill`, `Reused` | fixtures/reject/src/lib.rs:21:4 |
 | 1 | `_` of a value JS copies, which is no path | `std::ops::DerefMut::deref_mut` | fixtures/reject/src/lib.rs:1624:2 |
+| 1 | `_` with a mutable reference to a value JS copies, which its mapping would copy | `std::collections::LinkedList::retain` | fixtures/reject/src/lib.rs:1948:4 |
+| 1 | `_` with a mutable reference to a value JS copies, which its mapping would copy | `std::default::Default::default` | fixtures/reject/src/lib.rs:1950:2 |
 | 1 | `_` with a mutable reference to a value JS copies, which its mapping would copy | `std::iter::once` | fixtures/reject/src/lib.rs:1244:22 |
 | 1 | `_` with a mutable reference to a value JS copies, which its mapping would copy | `std::ops::IndexMut::index_mut` | fixtures/reject/src/lib.rs:1630:3 |
 | 1 | `_` with a mutable reference to a value JS copies, which its mapping would copy | `std::sync::Mutex::get_mut` | fixtures/reject/src/lib.rs:523:12 |
 | 1 | `_`, which is not supported yet | `Hasher::write` | fixtures/reject/src/lib.rs:268:9 |
 | 1 | `_`, which reads a capacity that depends on whether the other handles of its storage dropped, which is not supported | `BytesMut::capacity` | fixtures/reject/src/lib.rs:390:6 |
+| 1 | `clone_from` of `_`, whose items' `clone_from` is their own, which is not supported yet | `std::collections::LinkedList` | fixtures/reject/src/lib.rs:1949:4 |
 | 1 | `collect` of `_`, which sorts by `_`'s own `Ord`, of entries that drop, which is not supported yet | `std::collections::BTreeMap`, `std::cell::Cell` | fixtures/reject/src/lib.rs:964:22 |
 | 1 | `fmt::Arguments` with a placeholder, or not made in place, written to `_`'s own `fmt::Write`, which is not supported yet: std splits what a placeholder writes into `write_str` calls the runtime does not make | `Sink` | fixtures/reject/src/lib.rs:62:10 |
 | 1 | a `collect` in place of `_`, a zip std reads by index, holding values that drop, which is not supported yet | `std::iter::Map` | fixtures/reject/src/lib.rs:216:40 |
@@ -517,6 +523,16 @@ The type or module each refused type or path belongs to.
 
 </details>
 
+<details><summary>`_` with a mutable reference to a value JS copies, which its mapping would copy (5)</summary>
+
+- fixtures/reject/src/lib.rs:523:12: `std::sync::Mutex::<T>::get_mut` with a mutable reference to a value JS copies, which its mapping would copy
+- fixtures/reject/src/lib.rs:1244:22: `std::iter::once` with a mutable reference to a value JS copies, which its mapping would copy
+- fixtures/reject/src/lib.rs:1630:3: `std::ops::IndexMut::index_mut` with a mutable reference to a value JS copies, which its mapping would copy
+- fixtures/reject/src/lib.rs:1948:4: `std::collections::LinkedList::<T, A>::retain` with a mutable reference to a value JS copies, which its mapping would copy
+- fixtures/reject/src/lib.rs:1950:2: `std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy
+
+</details>
+
 <details><summary>a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet (5)</summary>
 
 - fixtures/reject/src/lib.rs:688:10: a raw pointer to `(u32, u32)` in an element, a payload, or a union field, which is not supported yet
@@ -533,14 +549,6 @@ The type or module each refused type or path belongs to.
 - fixtures/reject/src/lib.rs:339:30: a variant of `std::borrow::Cow<'_, str>`, which is not supported: either is the same JS string
 - fixtures/reject/src/lib.rs:340:27: a variant of `std::borrow::Cow<'_, str>`, which is not supported: either is the same JS string
 - fixtures/reject/src/lib.rs:345:2: a variant of `std::borrow::Cow<'_, str>`, which is not supported: either is the same JS string
-
-</details>
-
-<details><summary>`_` with a mutable reference to a value JS copies, which its mapping would copy (3)</summary>
-
-- fixtures/reject/src/lib.rs:523:12: `std::sync::Mutex::<T>::get_mut` with a mutable reference to a value JS copies, which its mapping would copy
-- fixtures/reject/src/lib.rs:1244:22: `std::iter::once` with a mutable reference to a value JS copies, which its mapping would copy
-- fixtures/reject/src/lib.rs:1630:3: `std::ops::IndexMut::index_mut` with a mutable reference to a value JS copies, which its mapping would copy
 
 </details>
 
@@ -729,6 +737,12 @@ The type or module each refused type or path belongs to.
 <details><summary>`_`, which reads a capacity that depends on whether the other handles of its storage dropped, which is not supported (1)</summary>
 
 - fixtures/reject/src/lib.rs:390:6: `BytesMut::capacity`, which reads a capacity that depends on whether the other handles of its storage dropped, which is not supported
+
+</details>
+
+<details><summary>`clone_from` of `_`, whose items' `clone_from` is their own, which is not supported yet (1)</summary>
+
+- fixtures/reject/src/lib.rs:1949:4: `clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet
 
 </details>
 

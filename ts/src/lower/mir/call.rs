@@ -348,7 +348,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 							ty::Slice(_) | ty::Array(..) => true,
 							_ => matches!(
 								t.std_of(ty.peel_refs()),
-								Some(Std::Vec | Std::Option | Std::HashMap | Std::BTreeMap | Std::VecDeque)
+								Some(
+									Std::Vec
+										| Std::Option
+										| Std::HashMap
+										| Std::BTreeMap
+										| Std::VecDeque
+										| Std::LinkedList
+								)
 							),
 						}
 				}),

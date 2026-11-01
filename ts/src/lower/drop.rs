@@ -58,6 +58,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					| Std::BTreeMap
 					| Std::BTreeSet
 					| Std::VecDeque
+					| Std::LinkedList
 					| Std::BinaryHeap
 					| Std::Bound
 					| Std::TryLockError
@@ -331,6 +332,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				Std::HashSet => ("hashDrop", vec![value, each(self, 0)?]),
 				Std::BTreeSet => ("btreeDrop", vec![value, each(self, 0)?]),
 				Std::VecDeque => ("dequeDrop", vec![value, each(self, 0)?]),
+				Std::LinkedList => ("listDrop", vec![value, each(self, 0)?]),
 				Std::BinaryHeap => ("heapDrop", vec![value, each(self, 0)?]),
 				Std::PeekMut => ("peekMutDrop", vec![value]),
 				// What it owns, and nothing it borrows.

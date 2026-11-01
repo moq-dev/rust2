@@ -1,5 +1,5 @@
 //! Collections, as `rt/collections.ts` gives them: `HashMap`, `HashSet`, `BTreeMap`,
-//! `BTreeSet`, and `VecDeque`, with `Ordering` and `DefaultHasher`, which their keys need.
+//! `BTreeSet`, `VecDeque`, `LinkedList`, and `BinaryHeap`, with `Ordering` and `DefaultHasher`, which their keys need.
 //!
 //! A hash collection holds a key that is a JS primitive as its own JS map key, which JS
 //! compares as Rust's `Eq` does for numbers, strings, and booleans, and finds any other
@@ -37,6 +37,7 @@ pub fn call<'tcx>(
 		None => match (owner, name, self_std, self_ty) {
 			("Default", "default", Some(std), Some(t))
 			| ("Clone", "clone", Some(std), Some(t))
+			| ("Clone", "clone_from", Some(std @ Std::LinkedList), Some(t))
 			| ("Index" | "IndexMut", "index" | "index_mut", Some(std), Some(t))
 			| ("Extend", "extend", Some(std), Some(t))
 			| ("From", "from", Some(std), Some(t))
@@ -208,6 +209,7 @@ pub fn call<'tcx>(
 		Std::HashMap | Std::HashSet => hash(b, coll, call, owner, name, args, out),
 		Std::BTreeMap | Std::BTreeSet => btree(b, coll, call, owner, name, args),
 		Std::VecDeque => deque(b, coll, call, owner, name, args, out),
+		Std::LinkedList => list(b, coll, call, owner, name, args),
 		Std::BinaryHeap => heap(b, coll, call, owner, name, args, out),
 		Std::PeekMut if name == "pop" => Some(Expr::rt("peekMutPop", args)),
 		Std::Entry => entry(b, coll, name, args, span),
@@ -247,7 +249,14 @@ pub fn call<'tcx>(
 pub fn lending(std: Std) -> bool {
 	matches!(
 		std,
-		Std::HashMap | Std::HashSet | Std::BTreeMap | Std::BTreeSet | Std::Entry | Std::VecDeque | Std::BinaryHeap
+		Std::HashMap
+			| Std::HashSet
+			| Std::BTreeMap
+			| Std::BTreeSet
+			| Std::Entry
+			| Std::VecDeque
+			| Std::LinkedList
+			| Std::BinaryHeap
 	)
 }
 
@@ -268,6 +277,7 @@ fn discarded(std: Std, owner: &str, name: &str) -> Option<&'static [usize]> {
 		(_, "clear" | "retain" | "retain_mut") if map => &[0, 1],
 		(_, "clear" | "retain" | "retain_mut") if set => &[0],
 		(_, "clear" | "retain" | "retain_mut" | "truncate") if std == Std::VecDeque => &[0],
+		(_, "clear") if std == Std::LinkedList => &[0],
 		(_, "clear" | "retain") if std == Std::BinaryHeap => &[0],
 		_ => return None,
 	})
@@ -364,6 +374,17 @@ pub fn place_call<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>) -> bool {
 	let (methods, value): (&[&str], usize) = match std {
 		Std::Vec => (&["retain_mut", "dedup_by", "dedup_by_key", "pop_if"], 0),
 		Std::VecDeque => (&["get_mut", "front_mut", "back_mut", "iter_mut", "retain_mut"], 0),
+		Std::LinkedList => (
+			&[
+				"front_mut",
+				"back_mut",
+				"push_front_mut",
+				"push_back_mut",
+				"iter_mut",
+				"extract_if",
+			],
+			0,
+		),
 		Std::HashMap => (&["get_mut", "iter_mut", "values_mut", "retain"], 1),
 		Std::BTreeMap => (&["get_mut", "iter_mut", "values_mut", "range_mut", "retain"], 1),
 		Std::Entry if is_vacant(b, coll) => (&["insert"], 1),
@@ -1189,6 +1210,87 @@ fn deque<'tcx>(
 	Some(e)
 }
 
+/// An empty `LinkedList` of type `coll`.
+fn list_new<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, span: Span) -> Expr {
+	empty(b, Expr::rt("listNew", vec![]), coll, span)
+}
+
+/// A method of `LinkedList`, or of a trait it implements. Its node is the place of the
+/// item it holds, which `_mut` methods lend of items JS copies.
+fn list<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	coll: Ty<'tcx>,
+	call: &Call<'tcx>,
+	owner: &str,
+	name: &str,
+	args: Vec<Expr>,
+) -> Option<Expr> {
+	let span = call.span;
+	let item = arg(coll, 0);
+	let places = b.t.needs_place(item);
+	let mut values = args;
+	let none = library::sentinel_option(b.t, call).is_some();
+	let e = match (owner, name) {
+		(_, "new") | ("Default", "default") => list_new(b, coll, span),
+		(_, "len") => values.pop()?.member("n"),
+		(_, "is_empty") => values.pop()?.member("n").binary("===", Expr::lit("0")),
+		(_, "clear") => Expr::rt("listClear", values),
+		(_, "push_back" | "push_back_mut") => Expr::rt("listPushBack", values),
+		(_, "push_front" | "push_front_mut") => Expr::rt("listPushFront", values),
+		(_, "pop_back") => Expr::rt("listPopBack", values),
+		(_, "pop_front") => Expr::rt("listPopFront", values),
+		(_, "front_mut") if places => Expr::rt("listEndMut", values),
+		(_, "back_mut") if places => Expr::rt("listEndMut", flagged(values, true, false)),
+		(_, "front" | "front_mut") => Expr::rt("listEnd", flagged(values, false, none)),
+		(_, "back" | "back_mut") => Expr::rt("listEnd", flagged(values, true, none)),
+		(_, "contains") => {
+			values.push(eq_fn(b, item, span));
+			Expr::rt("listContains", values)
+		}
+		(_, "iter_mut") if places => Expr::rt("listIterMut", values),
+		(_, "iter" | "iter_mut") => Expr::rt("listIter", values),
+		(_, "append") => Expr::rt("listAppend", values),
+		(_, "split_off") => Expr::rt("listSplitOff", values),
+		(_, "extract_if") if places => Expr::rt("listExtractIfMut", values),
+		(_, "extract_if") => Expr::rt("listExtractIf", values),
+		("Clone", "clone") => {
+			values.push(clone_fn(b, item, span));
+			Expr::rt("listClone", values)
+		}
+		// Each item by its `clone_from`, as `*item = source.clone()` does, which drops what
+		// it writes over.
+		("Clone", "clone_from") => {
+			if !library::clone_from_clones(b.t, item) {
+				let msg = format!(
+					"`clone_from` of `{coll}`, whose items' `clone_from` is their own, which is not supported yet"
+				);
+				return Some(b.err(span, msg));
+			}
+			let clone = clone_fn(b, item, span);
+			let Some(drop) = b.t.droppers([item], span) else {
+				return Some(Expr::undefined());
+			};
+			Expr::rt("listCloneFrom", super::iter::tail(values, [vec![clone], drop].concat()))
+		}
+		// std's specializes `extend` by another list to `append`.
+		("Extend", "extend") if library::targ(call.args, 2) == coll => Expr::rt("listAppend", values),
+		("Extend", "extend") | ("From", "from") => {
+			let (source, iter) = extend_source(b, coll, call, owner, values.pop()?)?;
+			let target = match owner {
+				"From" => list_new(b, coll, span),
+				_ => values.pop()?,
+			};
+			extend(b, coll, library::targ(call.args, 1), target, source, iter, span)?
+		}
+		_ => return None,
+	};
+	Some(match name {
+		// What a `_mut` method of an item JS doesn't copy lends is the item itself.
+		"push_back_mut" | "push_front_mut" if !places => e.member("v"),
+		_ => e,
+	})
+}
+
 /// `PartialOrd`'s tests of `item` that std's heap sifts make: `le` up, and `le`, `ge`, and
 /// `lt` down.
 fn heap_tests<'tcx>(b: &mut Body<'_, '_, 'tcx>, item: Ty<'tcx>, down: bool, span: Span) -> Vec<Expr> {
@@ -1385,6 +1487,11 @@ pub fn extend<'tcx>(
 		}
 		Std::Vec => Expr::rt("iterExtend", super::iter::tail(vec![target, items], vec_reserve(b))),
 		Std::VecDeque => Expr::rt("dequeExtend", super::iter::tail(vec![target, items], vec_reserve(b))),
+		// By `for_each`, reserving nothing.
+		Std::LinkedList => {
+			let take = super::iter::iter_take(b, iter, true, span);
+			Expr::rt("listExtend", super::iter::tail(vec![target, items], vec![take]))
+		}
 		// Into its vector, and then sifted.
 		Std::BinaryHeap => {
 			let mut args = vec![target, items];
@@ -1412,8 +1519,16 @@ pub fn extend<'tcx>(
 /// `Extend<&T>` and `Extend<(&K, &V)>` store a copy: `None` where `item` is what it stores,
 /// a copy is the value itself, or `coll` is no collection of items.
 pub fn copy_borrowed<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, item: Ty<'tcx>, span: Span) -> Option<Expr> {
-	let Some(Std::Vec | Std::VecDeque | Std::BinaryHeap | Std::HashMap | Std::HashSet | Std::BTreeMap | Std::BTreeSet) =
-		b.t.std_of(coll)
+	let Some(
+		Std::Vec
+		| Std::VecDeque
+		| Std::LinkedList
+		| Std::BinaryHeap
+		| Std::HashMap
+		| Std::HashSet
+		| Std::BTreeMap
+		| Std::BTreeSet,
+	) = b.t.std_of(coll)
 	else {
 		return None;
 	};
@@ -1521,6 +1636,7 @@ fn part<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, item: Ty<'tcx>, span: 
 		Std::Vec if matches!(arg(coll, 0).kind(), ty::Uint(ty::UintTy::U8)) => Expr::rt("byteVecPart", Vec::new()),
 		Std::Vec => Expr::rt("vecPart", super::iter::tail(Vec::new(), size(b))),
 		Std::VecDeque => Expr::rt("dequePart", super::iter::tail(Vec::new(), size(b))),
+		Std::LinkedList => Expr::rt("listPart", Vec::new()),
 		Std::BinaryHeap => {
 			let le = heap_tests(b, arg(coll, 0), false, span);
 			Expr::rt("heapPart", super::iter::tail(le, size(b)))
@@ -1623,6 +1739,7 @@ fn default<'tcx>(b: &mut Body<'_, '_, 'tcx>, coll: Ty<'tcx>, span: Span) -> Opti
 		}
 		Std::Vec => Expr::Array(Vec::new()),
 		Std::VecDeque => deque_new(b, coll, span),
+		Std::LinkedList => list_new(b, coll, span),
 		Std::BinaryHeap => empty(b, Expr::rt("heapNew", Vec::new()), coll, span),
 		Std::HashMap | Std::HashSet => hash_new(b, coll, span)?,
 		Std::BTreeMap | Std::BTreeSet => btree_new(b, coll, span),
@@ -1817,7 +1934,8 @@ fn std_key<'tcx>(b: &Body<'_, '_, 'tcx>, ty: Ty<'tcx>) -> bool {
 				.or_else(|| reverse_of(b, ty))
 				.or_else(|| overflowing_of(b, ty))
 				.or_else(|| cow_of(b, ty))
-				.or_else(|| deque_of(b, ty)) =>
+				.or_else(|| deque_of(b, ty))
+				.or_else(|| list_of(b, ty)) =>
 		{
 			held(inner)
 		}
@@ -1844,6 +1962,11 @@ fn option_of<'tcx>(b: &Body<'_, '_, 'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
 /// What `ty` holds if it is a `VecDeque`.
 fn deque_of<'tcx>(b: &Body<'_, '_, 'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
 	(b.t.std_of(ty) == Some(Std::VecDeque)).then(|| arg(ty, 0))
+}
+
+/// What `ty` holds if it is a `LinkedList`.
+fn list_of<'tcx>(b: &Body<'_, '_, 'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
+	(b.t.std_of(ty) == Some(Std::LinkedList)).then(|| arg(ty, 0))
 }
 
 /// What `ty`'s bounds are if it is one of std's ranges that holds any.
@@ -2074,6 +2197,8 @@ pub fn cmp_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, partial: bool, spa
 		_ if let Some(elem) = elements_of(b, ty) => Expr::rt("cmpSlice", vec![cmp_fn(b, elem, partial, span)]),
 		// A deque's is its iterator's, which compares each item by its own impls, as a slice's does.
 		ty::Adt(..) if let Some(item) = deque_of(b, ty) => Expr::rt("cmpDeque", vec![cmp_fn(b, item, partial, span)]),
+		// A list's is its iterator's too.
+		ty::Adt(..) if let Some(item) = list_of(b, ty) => Expr::rt("cmpList", vec![cmp_fn(b, item, partial, span)]),
 		// Whichever form it has, as the key it is or the operand a reference passes.
 		_ if bytes(b, ty) => Expr::Rt("cmpBytes".into()),
 		// A `Result`'s or a `Poll`'s derived impls lower from its MIR, by variant and then by
@@ -2136,6 +2261,8 @@ pub fn eq_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Expr
 		// A slice compares its elements by `!=`, as a deque does each of its halves.
 		_ if let Some(elem) = elements_of(b, ty) => Expr::rt("eqSlice", vec![not_ne_fn(b, elem, span)]),
 		ty::Adt(..) if let Some(item) = deque_of(b, ty) => Expr::rt("eqSeq", vec![not_ne_fn(b, item, span)]),
+		// A list's iterator compares its items by `==`.
+		ty::Adt(..) if let Some(item) = list_of(b, ty) => Expr::rt("eqList", vec![eq_fn(b, item, span)]),
 		_ if bytes(b, ty) => Expr::Rt("eqBytes".into()),
 		ty::Adt(..) if let Some(inner) = arc_of(b, ty) => {
 			let eq = eq_fn(b, inner, span);
@@ -2362,6 +2489,8 @@ fn hash_fn<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, hasher: Ty<'tcx>, spa
 			}
 			Expr::rt("hashSlice", vec![hash_fn(b, elem, hasher, span)])
 		}
+		// Its length, then each item's, never by `hash_slice`.
+		ty::Adt(..) if let Some(item) = list_of(b, ty) => Expr::rt("hashList", vec![hash_fn(b, item, hasher, span)]),
 		// Its length, then its bytes, whichever form it is: a `[u8; N]` hashes as a slice.
 		_ if bytes(b, ty) => Expr::Rt("hashBytes".into()),
 		_ if by_own(b, ty) => {
@@ -2436,12 +2565,14 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 		Std::HashMap if places(1) => "hashIterMut",
 		Std::BTreeMap if places(1) => "btreeIterMut",
 		Std::VecDeque if places(0) => "dequeIterMut",
+		Std::LinkedList if places(0) => "listIterMut",
 		Std::BinaryHeap => "heapIter",
 		Std::HashMap => "hashIter",
 		Std::HashSet => "hashKeys",
 		Std::BTreeMap => "btreeIter",
 		Std::BTreeSet => "btreeKeys",
 		Std::VecDeque => "dequeIter",
+		Std::LinkedList => "listIter",
 		_ => return None,
 	};
 	if !ty.is_ref() {
@@ -2478,6 +2609,10 @@ pub fn collect<'tcx>(
 			let item = arg(ty, 0);
 			let d = super::iter::to_array(b, iter, from, item, trusted, span);
 			Expr::rt("heapFrom", [vec![d], heap_tests(b, item, true, span)].concat())
+		}
+		Std::LinkedList => {
+			let target = list_new(b, ty, span);
+			extend(b, ty, arg(ty, 0), target, iter, from, span)?
 		}
 		// std's collects into a `Vec` first.
 		Std::VecDeque => {
