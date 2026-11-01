@@ -297,8 +297,10 @@
               typescript
               bun
               esbuild
-              # rust2-ffi's tests compile its generated Kotlin and run it on the JVM.
+              # rust2-ffi's tests compile its generated Kotlin and run it on the JVM, and run
+              # its generated Python.
               kotlin
+              python3
             ];
             RUST2_TS_TOOLCHAIN = tsToolchain;
             RUST2_TS_SYSROOT = rust2-ts-std;
@@ -334,7 +336,6 @@
           # Every foreign toolchain the UniFFI fixture suite runs, apart for their size.
           devShells.uniffi = self.devShells.${system}.default.overrideAttrs (old: {
             nativeBuildInputs = old.nativeBuildInputs ++ [
-              pkgs.python3
               pkgs.kotlin
               pkgs.swift
               pkgs.go
