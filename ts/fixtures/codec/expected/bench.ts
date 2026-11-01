@@ -92,12 +92,13 @@ export function decodeVarints(wire: rt.ByteSlice, form: Form.Form, out: rt.ByteV
 	let count: rt.usize = 0;
 	let last: rt.u64 = 0;
 	while (!Decoder.isEmpty(r)) {
-		const _9: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-		if (_9.ok) {
-			last = _9.value;
+		const part: rt.u64 | undefined = Decoder.varint(r);
+		const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+		if (err === undefined) {
+			last = part as rt.u64;
 			count = rt.usizeAdd(count, 1);
 		} else {
-			return _9;
+			return rt.Err(err as DecodeError.DecodeError);
 		}
 	}
 	putUsize(out, count);
@@ -169,18 +170,20 @@ export function decodeFrames(wire: rt.ByteSlice, version: lite_version_Version.V
 	let total: rt.u64 = 0;
 	let last: rt.i64 = 0;
 	while (!Decoder.isEmpty(r)) {
-		const _12: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-		if (_12.ok) {
-			last = unzigzag(_12.value);
-			const _18: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-			if (_18.ok) {
-				total = rt.u64Add(total, _18.value);
+		const part: rt.u64 | undefined = Decoder.varint(r);
+		const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+		if (err === undefined) {
+			last = unzigzag(part as rt.u64);
+			const part2: rt.u64 | undefined = Decoder.varint(r);
+			const err2: DecodeError.DecodeError | undefined = part2 === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+			if (err2 === undefined) {
+				total = rt.u64Add(total, part2 as rt.u64);
 				count = rt.usizeAdd(count, 1);
 			} else {
-				return _18;
+				return rt.Err(err2 as DecodeError.DecodeError);
 			}
 		} else {
-			return _12;
+			return rt.Err(err as DecodeError.DecodeError);
 		}
 	}
 	putUsize(out, count);
@@ -212,20 +215,22 @@ export function decodeSplit(data: rt.ByteSlice, version: lite_version_Version.Ve
 				continue l2;
 			}
 			const r: Decoder.Decoder = Decoder.new(rt.byteSliceRange(_6[1], start, end), Form.from$convert_From_lite_version_Version(version));
-			const _32: rt.Result<[rt.i64, rt.u64], DecodeError.DecodeError> = frameHeader(r);
-			if (_32.ok) {
-				const delta: rt.i64 = _32.value[0];
-				const size: rt.u64 = _32.value[1];
+			const part: rt.i64 | undefined = frameHeader(r);
+			const err2: DecodeError.DecodeError | undefined = part === undefined ? frameHeaderOut.err as DecodeError.DecodeError : undefined;
+			const part2: rt.u64 = frameHeaderOut.p_1;
+			if (err2 === undefined) {
+				const delta: rt.i64 = part as rt.i64;
+				const size: rt.u64 = part2;
 				start = rt.usizeSub(end, Decoder.remaining(r));
 				last = delta;
 				total = rt.u64Add(total, size);
 				count = rt.usizeAdd(count, 1);
 			} else {
-				if (_32.error.tag === "Short") {
+				if ((err2 as DecodeError.DecodeError).tag === "Short") {
 					short = rt.usizeAdd(short, 1);
 					continue l2;
 				}
-				return _32 as rt.Result<undefined, DecodeError.DecodeError>;
+				return rt.Err(err2 as DecodeError.DecodeError);
 			}
 		}
 	}
@@ -240,18 +245,25 @@ export function decodeSplit(data: rt.ByteSlice, version: lite_version_Version.Ve
 }
 
 /** One FRAME header: the zigzag timestamp delta, then the size. */
-export function frameHeader(r: Decoder.Decoder): rt.Result<[rt.i64, rt.u64], DecodeError.DecodeError> {
-	const _3: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-	if (_3.ok) {
-		const delta: rt.i64 = unzigzag(_3.value);
-		const _9: rt.Result<rt.u64, DecodeError.DecodeError> = Decoder.varint(r);
-		if (_9.ok) {
-			return rt.Ok([delta, _9.value] as [rt.i64, rt.u64]);
+export function frameHeader(r: Decoder.Decoder): rt.i64 | undefined {
+	const part: rt.u64 | undefined = Decoder.varint(r);
+	const err: DecodeError.DecodeError | undefined = part === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+	if (err === undefined) {
+		const delta: rt.i64 = unzigzag(part as rt.u64);
+		const part2: rt.u64 | undefined = Decoder.varint(r);
+		const err2: DecodeError.DecodeError | undefined = part2 === undefined ? Decoder.varintOut.err as DecodeError.DecodeError : undefined;
+		if (err2 === undefined) {
+			frameHeaderOut.p_1 = part2 as rt.u64;
+			return delta;
 		}
-		return _9;
+		frameHeaderOut.err = err2 as DecodeError.DecodeError;
+		return undefined;
 	}
-	return _3;
+	frameHeaderOut.err = err as DecodeError.DecodeError;
+	return undefined;
 }
+
+export const frameHeaderOut: { err: unknown; p_1: rt.u64 } = { err: undefined, p_1: undefined as never };
 
 /** One size-prefixed GROUP header, starting at the first frame. */
 export function encodeGroup(data: rt.ByteSlice, version: lite_version_Version.Version, out: rt.ByteVec): rt.Result<undefined, EncodeError.EncodeError> {

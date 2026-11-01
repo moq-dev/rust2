@@ -25,6 +25,7 @@ import type * as cycles_Logged from "../cycles.Logged.ts";
 import * as defaults_Made from "../defaults.Made.ts";
 import type * as dyns_Shape from "../dyns.Shape.ts";
 import * as edits_Named from "../edits.Named.ts";
+import type * as Ticked from "../generics.Ticked.ts";
 import type * as hints_Unit from "../hints.Unit.ts";
 import type * as Badge from "../iters.Badge.ts";
 import type * as Quarter from "../iters.Quarter.ts";
@@ -244,6 +245,13 @@ export function unwrapOrDefault$0wx44sw(self: rt.ByteVec | undefined): rt.ByteVe
 export function unwrapOrDefault$0k1p6nh(self: [rt.u64 | undefined, defaults_Made.Made] | undefined): [rt.u64 | undefined, defaults_Made.Made] {
 	if (self === undefined) {
 		return [undefined, defaults_Made.default$Default()];
+	}
+	return self;
+}
+
+export function unwrapOrDefault$001fvl5(self: rt.u16 | undefined): rt.u16 {
+	if (self === undefined) {
+		return 0;
 	}
 	return self;
 }
@@ -617,6 +625,13 @@ export function map$1xk4yz1(self: rt.ByteSlice | undefined, _: (a0: rt.ByteSlice
 export function map$0rbsrz6(self: rt.u8 | undefined, f: (a0: rt.u8) => rt.u8 | undefined): rt.u8 | undefined | rt.None {
 	if (self === undefined) {
 		return rt.None;
+	}
+	return f(self);
+}
+
+export function map$12l9avg(self: rt.u8 | undefined, f: (a0: rt.u8) => Ticked.Ticked[]): Ticked.Ticked[] | undefined {
+	if (self === undefined) {
+		return undefined;
 	}
 	return f(self);
 }
@@ -1518,6 +1533,13 @@ export function okOr$07zal2e(self: rt.u32[] | undefined, err: rt.u8): rt.Result<
 	return rt.Ok(self);
 }
 
+export function okOr$1b6nkwr(self: rt.char | undefined, err: rt.u8): rt.Result<rt.char, rt.u8> {
+	if (self === undefined) {
+		return rt.Err(err);
+	}
+	return rt.Ok(self);
+}
+
 export function okOr$0gtm15y(self: rt.ByteSlice | undefined, err: rt.u8 | undefined): rt.Result<rt.ByteSlice, rt.u8 | undefined> {
 	if (self === undefined) {
 		return rt.Err(err);
@@ -1861,6 +1883,20 @@ export function clone$14nprly(self: string | undefined): string | undefined {
 		return undefined;
 	}
 	return self;
+}
+
+export function clone$096c3ul(self: rt.u16[] | undefined): rt.u16[] | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return self.slice();
+}
+
+export function clone$1grnave(self: rt.ByteVec | undefined): rt.ByteVec | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return rt.byteVecFrom(rt.byteVecView(self));
 }
 
 export function clone$0vcwlo5(self: edits_Named.Named | undefined): edits_Named.Named | undefined {
