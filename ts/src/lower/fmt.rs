@@ -195,10 +195,11 @@ fn mentions(e: &Expr, name: &str) -> bool {
 }
 
 /// Whether reading `e` again gives the same value and does nothing else: a path, or an
-/// element of one.
+/// element or a field of one, such as what a tuple's guard lends.
 fn pure(e: &Expr) -> bool {
 	match e {
 		Expr::Index(base, index) => pure(base) && index.is_constant(),
+		Expr::Member(base, _) | Expr::Located(_, base) => pure(base),
 		e => e.is_path(),
 	}
 }
@@ -327,6 +328,11 @@ pub fn std_impl<'tcx>(
 			}
 			(Std::Arc, Trait::Display | Trait::Debug) => {
 				b.fmt_call(tr, args.type_at(0), value.member("value"), f, span)
+			}
+			// A guard writes what it lends; its first argument is its lifetime.
+			(Std::MutexGuard | Std::Ref | Std::RefMut, Trait::Display | Trait::Debug) => {
+				let held = args.types().next()?;
+				b.fmt_call(tr, held, value.member("value"), f, span)
 			}
 			// Each bound is written with the range's options.
 			(
