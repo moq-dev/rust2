@@ -79,11 +79,11 @@ export function make(kind: rt.u8, n: rt.u8): dyns_Named.Named {
 	return new dyns_Named.of$dyns_Tri(_10);
 }
 
-export function dyns(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function dyns(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let tri!: Tri.Tri;
 	let _109!: rt.usize;
-	if (data.length >= 3) {
-		const _12: [rt.u8, rt.u8, rt.u8] = [data.data[data.start], data.data[data.start + 1], data.data[data.start + 2]];
+	if (dataLen >= 3) {
+		const _12: [rt.u8, rt.u8, rt.u8] = [dataData[dataStart], dataData[dataStart + 1], dataData[dataStart + 2]];
 		const a: rt.u8 = _12[0];
 		const b: rt.u8 = _12[1];
 		const c: rt.u8 = _12[2];
@@ -108,7 +108,7 @@ export function dyns(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(_78, f), (f: rt.Formatter) => rt.u8Display(_82, f)];
 		fmt_put(out, rt.fmtFormat([args6[0], " ", args6[1], " "]));
 		const shapes: dyns_Named.Named[] = [];
-		const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(data.data, data.start + 3, data.length - 3))));
+		const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart + 3, dataLen - 3))));
 		while (true) {
 			const _94: [rt.usize, rt.u8] | rt.Done = iter.next();
 			if (_94 === rt.DONE) {
@@ -184,9 +184,9 @@ export function counts$dyns_Square(arcs: rt.Arc<Square.Square>[]): string {
 	}), undefined, 12, true), ",");
 }
 
-export function shared(data: rt.ByteSlice, out: rt.ByteVec): void {
-	if (data.length >= 2) {
-		const sq: rt.Arc<Square.Square> = new rt.Arc({ side: data.data[data.start] as rt.u16 });
+export function shared(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	if (dataLen >= 2) {
+		const sq: rt.Arc<Square.Square> = new rt.Arc({ side: dataData[dataStart] as rt.u16 });
 		const _13: rt.Arc<Square.Square> = rt.arcClone(sq);
 		const named: rt.Arc<dyns_Named.Named> = new rt.ArcDyn(_13, new dyns_Named.of$dyns_Square(_13.value));
 		const _16: rt.Arc<Square.Square> = rt.arcClone(sq);
@@ -241,7 +241,7 @@ export function shared(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const _178: string = rt.fmtFormat([args14[0], " ", args14[1], " "]);
 		rt.drop(_184);
 		fmt_put(out, _178);
-		const hits: rt.Arc<Hits.Hits> = new rt.Arc({ _0: new rt.Atomic(data.data[data.start + 1] as rt.u32) });
+		const hits: rt.Arc<Hits.Hits> = new rt.Arc({ _0: new rt.Atomic(dataData[dataStart + 1] as rt.u32) });
 		const objects: rt.Arc<dyns_Shape.Shape>[] = rt.iterToArray(rt.iterMap(new rt.Range(0, 3), (_2: rt.i32): rt.Arc<dyns_Shape.Shape> => {
 			const _34: rt.Arc<Hits.Hits> = rt.arcClone(hits);
 			return new rt.ArcDyn(_34, new dyns_Shape.of$dyns_Hits(_34.value));
@@ -257,15 +257,15 @@ export function shared(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const part3 = counts$dyns_Hits([hits]);
 		const args18: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, part3)];
 		fmt_put(out, rt.fmtFormat([args18[0], " "]));
-		const _253: rt.Arc<rt.u32> = new rt.Arc(data.data[data.start + 1] as rt.u32);
+		const _253: rt.Arc<rt.u32> = new rt.Arc(dataData[dataStart + 1] as rt.u32);
 		const n: rt.Arc<dyns_Shape.Shape> = new rt.ArcDyn(_253, new dyns_Shape.of$u32(_253.value));
-		const _257: rt.Arc<rt.u32> = new rt.Arc(data.data[data.start + 1] as rt.u32);
+		const _257: rt.Arc<rt.u32> = new rt.Arc(dataData[dataStart + 1] as rt.u32);
 		const m: rt.Arc<dyns_Shape.Shape> = new rt.ArcDyn(_257, new dyns_Shape.of$u32(_257.value));
 		const _268: rt.u32 = n.value.area$Shape();
 		const _272: boolean = rt.arcPtrEq(n, m);
 		const args20: rt.Fmt[] = [(f: rt.Formatter) => rt.u32Display(_268, f), (f: rt.Formatter) => rt.fmtBool(_272, f)];
 		fmt_put(out, rt.fmtFormat([args20[0], " ", args20[1], " "]));
-		const tris: rt.Arc<dyns_Named.Named>[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(data.data, data.start + 2, data.length - 2))), (_23: rt.u8): rt.Arc<dyns_Named.Named> => {
+		const tris: rt.Arc<dyns_Named.Named>[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart + 2, dataLen - 2))), (_23: rt.u8): rt.Arc<dyns_Named.Named> => {
 			const x: rt.u8 = _23;
 			const _43: rt.u8 = rt.u8Rem(x, 3);
 			if (_43 === 0) {
@@ -370,11 +370,11 @@ export function isA$u32(e: dyns_Erased.Erased): boolean {
 	return ((_4 instanceof Any.of$u32 ? _4.v : _4 instanceof Any.ofPlace$u32 ? _4.v.v : undefined)) !== undefined;
 }
 
-export function anys(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function anys(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let tri!: Tri.Tri;
 	let _237!: Any.Any;
-	if (data.length >= 2) {
-		const _10: [rt.u8, rt.u8] = [data.data[data.start], data.data[data.start + 1]];
+	if (dataLen >= 2) {
+		const _10: [rt.u8, rt.u8] = [dataData[dataStart], dataData[dataStart + 1]];
 		const a: rt.u8 = _10[0];
 		const b: rt.u8 = _10[1];
 		const sq: Square.Square = { side: a as rt.u16 };
@@ -451,7 +451,7 @@ export function anys(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const args16: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtOption(some, f, rt.u8Debug), (f: rt.Formatter) => rt.fmtOption(none, f, rt.u8Debug)];
 		fmt_put(out, rt.fmtFormat([args16[0], " ", args16[1], " "]));
 		const boxes: Any.Any[] = [];
-		const iter4: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(data.data, data.start + 2, data.length - 2))));
+		const iter4: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(new rt.ByteSlice(dataData, dataStart + 2, dataLen - 2))));
 		while (true) {
 			const _229: [rt.usize, rt.u8] | rt.Done = iter4.next();
 			if (_229 === rt.DONE) {

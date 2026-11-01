@@ -230,6 +230,13 @@ export function then$18np55d(self: boolean, f: () => Way.Way | undefined): Way.W
 	return f();
 }
 
+export function then$0w2ymju(self: boolean, f: () => rt.ByteSlice): rt.ByteSlice | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return f();
+}
+
 export function then$0havnzo(self: boolean, f: () => string): string | undefined {
 	if (!self) {
 		return undefined;

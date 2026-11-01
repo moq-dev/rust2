@@ -677,8 +677,35 @@ they need.
   often than before stays one. `just ts bench` measured the codec's varint decode at 0.49
   times the objects' time in Chrome, 0.57 in Firefox, 0.64 in Node, and 0.56 in Bun at
   the geometric mean, and frame decode at 0.61, 0.56, 0.70, and 0.61, with the A/A route
-  within 0.04 and encode no slower. A parameter, a return, and a field are still a
-  `ByteSlice` ([byte slices without objects](/quest/m2/ts-byte-views/README.md)).
+  within 0.04 and encode no slower. A field is still a `ByteSlice`, as is a return but
+  for the `Result`s below ([byte slices without objects](/quest/m2/ts-byte-views/README.md)).
+- A function only translated code calls takes each `&[u8]` or `&[u8; N]` parameter as
+  three, its `data`, `start`, and `length`, which its body holds as that local's parts:
+  not a root, which the outside calls, a closure, or an `async fn`. One whose object the
+  body would make anyway, to borrow it, to pass it to a function taking it whole, or at
+  all, it takes whole: as parts, the callee would just make the object instead of the caller.
+  That made Chrome's `btree/` workloads 1.06x `main`'s time through a helper that
+  rebuilt the slice it was passed. What a body makes depends on what its callees take, so
+  the functions a call reaches settle together, recursion included, each dropping the
+  slices it would make until none does. The function as a value is an arrow that takes
+  the slice whole. `just ts bench` measured parts
+  no faster than passing the slice whole, since V8 already removes what an inlined call
+  doesn't keep: Chrome's varint decode at 0.98-0.99 times the time and frame decode at
+  1.01-1.05 over two runs, with the A/A route within 0.05, Firefox and Bun within their
+  noise, and Node's varint decode at 1.11-1.15.
+- A function of the crate's that only translated code calls and that returns a `Result`
+  of byte slices and scalars, such as `Result<(u64, &[u8]), E>`, whose error is one JS
+  value that is never `undefined`, writes the `Ok`'s parts into a module-level slot and returns the error or
+  `undefined`. The slot is shared by every function returning that payload type, named
+  for the first of them in source order with its suffix, as `readOut` or `leadOut$u16`.
+  The function writes it at its JS `return`, after its drops, and its caller reads it at
+  once, so one that returns another's result as is returns the call. The slot's fields
+  start as `undefined`, so V8 keeps them tagged. When the `Ok`'s first part is a number,
+  the function returns that, or `undefined` for an error, and writes the error into the
+  slot instead: V8 boxes a number past 2^31 that a function too big to inline writes into
+  the long-lived slot, which made Chrome's 8-byte leading-ones varints 1.06-1.09x `main`'s
+  time. A slice's bytes stay in the slot, since returning them gave back frame decode. The
+  function as a value is an arrow that rebuilds the `Result`.
 - A `BTreeMap` is a B+ tree of up to 64 keys a node, O(log n) as std's B-tree is: its
   leaves hold the keys and values and link to their neighbors, which iterators walk from
   either end, and its branches hold each child's lower bound. A node's slots shift in a

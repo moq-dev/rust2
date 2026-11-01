@@ -30,7 +30,7 @@ export function holds(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	} else if (_10 === 5) {
 		parts(a, b, data, out);
 	} else {
-		ranges(data, out);
+		ranges(data.data, data.start, data.length, out);
 	}
 }
 
@@ -298,16 +298,16 @@ export function parts(a: rt.u8, b: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): 
 }
 
 /** A range's start read, then the range stepped, once and in a loop. */
-export function ranges(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function ranges(_dataData: Uint8Array, _dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let _16!: rt.usize;
-	const range: rt.Range<rt.usize> = new rt.Range(0, data.length);
+	const range: rt.Range<rt.usize> = new rt.Range(0, dataLen);
 	const before: rt.usize = range.start;
 	const first: rt.usize | undefined = range.start < range.end ? range.start++ : undefined;
 	rt.byteVecPush(out, before & 0xff);
 	rt.byteVecPush(out, option_mapOr$02k4ito(first, 255, (f: rt.usize): rt.u8 => {
 		return f & 0xff;
 	}));
-	const range2: rt.Range<rt.usize> = new rt.Range(0, data.length);
+	const range2: rt.Range<rt.usize> = new rt.Range(0, dataLen);
 	while (true) {
 		const before2: rt.usize = range2.start;
 		const _16Some: boolean = range2.start < range2.end;

@@ -1683,7 +1683,7 @@ export function own(data: rt.ByteSlice, out: rt.ByteVec): void {
  * The last two bytes of `data`, as a `slice::Iter` made from the second argument: a
  * `for` must iterate it, not the first.
  */
-export function tail(_head: rt.ByteSlice, data: rt.ByteSlice): rt.Iter<rt.u8> {
+export function tail(_headData: Uint8Array, _headStart: number, _headLen: number, data: rt.ByteSlice): rt.Iter<rt.u8> {
 	return rt.iterSlice(rt.byteSliceView(rt.byteSliceRange(data, rt.usizeSaturatingSub(data.length, 2))));
 }
 
@@ -1696,7 +1696,8 @@ export function odds(data: rt.ByteSlice): rt.Iter<rt.u8> {
 
 /** Iterators as values: returned, stored, and printed. */
 export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
-	const iter: rt.Iter<rt.u8> = tail(rt.byteSliceFrom(Uint8Array.of(1, 2, 3)), data);
+	const _5: rt.ByteSlice = rt.byteSliceFrom(Uint8Array.of(1, 2, 3));
+	const iter: rt.Iter<rt.u8> = tail(_5.data, _5.start, _5.length, data);
 	while (true) {
 		const _8: rt.u8 | rt.Done = iter.next();
 		if (_8 === rt.DONE) {
@@ -3741,7 +3742,7 @@ export function rangeFroms(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): vo
 	} else if (_12 === 14) {
 		adapted(a, data, out);
 	} else {
-		overflowed(a, data, out);
+		overflowed(a, data.data, data.start, data.length, out);
 	}
 }
 
@@ -4669,9 +4670,9 @@ export function adapted(a: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
  * Consumers that step `start..` past its type's last value, which panics in std's
  * debug build, as the fixture is built.
  */
-export function overflowed(a: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function overflowed(a: rt.u8, _dataData: Uint8Array, _dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const top: rt.u8 = rt.max(a, 250);
-	const _5: rt.usize = rt.usizeRem(data.length, 8);
+	const _5: rt.usize = rt.usizeRem(dataLen, 8);
 	if (_5 === 0) {
 		rt.iterExtendBytes(out, new rt.RangeFrom(top, rt.u8Step), undefined, true);
 	} else if (_5 === 1) {

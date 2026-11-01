@@ -26,4 +26,4 @@ three `#private` fields.
 
 ## Required
 
-- [Byte slices returned](/quest/m2/ts-byte-views/returns.md) - the measurement this one builds on
+- [Byte slices passed and returned as parts](/quest/m2/ts-byte-views/returns.md) - the measurement this one builds on

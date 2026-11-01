@@ -9,7 +9,21 @@ import * as Owner from "./harness.Owner.ts";
  * case added at the end moves no other.
  */
 export function cases(): [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined][] {
-	return [["slices", slices as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["made", made as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["events", events as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["random", random as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::bytes_mut", bytesMut as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::reads", reads as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::writes", writes as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::edits", edits as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::reserves", reserves as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined]];
+	return [["slices", (a0: rt.ByteSlice, a1: rt.ByteVec): undefined => {
+		slices(a0.data, a0.start, a0.length, a1);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["made", (a02: rt.ByteSlice, a12: rt.ByteVec): undefined => {
+		made(a02.data, a02.start, a02.length, a12);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["events", events as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["random", (a04: rt.ByteSlice, a14: rt.ByteVec): undefined => {
+		random(a04.data, a04.start, a04.length, a14);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::bytes_mut", bytesMut as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::reads", (a06: rt.ByteSlice, a16: rt.ByteVec): undefined => {
+		reads(a06.data, a06.start, a06.length, a16);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::writes", (a07: rt.ByteSlice, a17: rt.ByteVec): undefined => {
+		writes(a07.data, a07.start, a07.length, a17);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::edits", (a08: rt.ByteSlice, a18: rt.ByteVec): undefined => {
+		edits(a08.data, a08.start, a08.length, a18);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined], ["buf::reserves", (a09: rt.ByteSlice, a19: rt.ByteVec): undefined => {
+		reserves(a09.data, a09.start, a09.length, a19);
+	}] as [string, (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined]];
 }
 
 /** Run one case. */
@@ -41,19 +55,19 @@ export function op(name: string): rt.u8 {
  * `Bytes`'s slices by every kind of range, out of bounds included, which panic as
  * `bytes` does, and what they compare equal to.
  */
-export function slices(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function slices(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let part!: rt.ByteSlice;
 	let range!: rt.RangeInclusive<rt.usize>;
-	if (data.length >= 3) {
-		const bytes: rt.ByteSlice = rt.bytesCopyFromSlice(new rt.ByteSlice(data.data, data.start + 3, data.length - 3));
-		const past: boolean = data.data[data.start + 2] === 255;
-		const _14: [rt.usize, rt.usize] = [rt.usizeRem(data.data[data.start + 1] as rt.usize, rt.usizeAdd(data.length - 3, 2)), rt.usizeRem(data.data[data.start + 2] as rt.usize, rt.usizeAdd(data.length - 3, 2))];
+	if (dataLen >= 3) {
+		const bytes: rt.ByteSlice = rt.bytesCopyFromSlice(new rt.ByteSlice(dataData, dataStart + 3, dataLen - 3));
+		const past: boolean = dataData[dataStart + 2] === 255;
+		const _14: [rt.usize, rt.usize] = [rt.usizeRem(dataData[dataStart + 1] as rt.usize, rt.usizeAdd(dataLen - 3, 2)), rt.usizeRem(dataData[dataStart + 2] as rt.usize, rt.usizeAdd(dataLen - 3, 2))];
 		const a: rt.usize = _14[0];
 		const b: rt.usize = _14[1];
-		if ((data.data[data.start] & 128) !== 0) {
+		if ((dataData[dataStart] & 128) !== 0) {
 			rt.bytesSlice(bytes, b);
 		}
-		const _35: rt.u8 = rt.u8Rem(data.data[data.start], 7);
+		const _35: rt.u8 = rt.u8Rem(dataData[dataStart], 7);
 		if (_35 === 0) {
 			part = rt.bytesSlice(bytes, a, b);
 		} else if (_35 === 1) {
@@ -91,16 +105,16 @@ export function slices(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecExtendFromSlice(out, part);
 		rt.byteVecPush(out, rt.byteSliceEq(part, bytes) ? 1 : 0);
 		rt.byteVecPush(out, rt.byteSliceEq(part, rt.byteSliceRange(part, 0)) ? 1 : 0);
-		rt.byteVecPush(out, rt.byteSliceEq(rt.bytesSlice(rt.bytesSlice(bytes, rt.min(a, data.length - 3)), 0, 0), rt.bytesNew()) ? 1 : 0);
-		rt.byteVecExtendFromSlice(out, rt.byteVecSlice(rt.bytesToByteVec(part)));
+		rt.byteVecPush(out, rt.byteSliceEq(rt.bytesSlice(rt.bytesSlice(bytes, rt.min(a, dataLen - 3)), 0, 0), rt.bytesNew()) ? 1 : 0);
+		rt.byteVecExtendFromSlice(out, rt.byteVecSlice(rt.byteSliceToByteVec(part)));
 	}
 }
 
 /** `Bytes` made each way, printed with `Debug`. */
-export function made(data: rt.ByteSlice, out: rt.ByteVec): void {
-	if (data.length !== 0) {
-		const skip: rt.u8 = data.data[data.start];
-		const rest: rt.ByteSlice = new rt.ByteSlice(data.data, data.start + 1, data.length - 1);
+export function made(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	if (dataLen !== 0) {
+		const skip: rt.u8 = dataData[dataStart];
+		const rest: rt.ByteSlice = new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1);
 		const made: rt.ByteSlice[] = [rt.byteVecSlice(rt.byteSliceToByteVec(rest)), rt.byteSliceFrom(Uint8Array.of(0, 9, 13, 10, 92, 34, 39, 126, 127, 128, 255)), rt.stringAsBytes("string"), rt.stringAsBytes("text"), rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of(115, 116, 97, 116, 105, 99)), 0), rt.bytesNew(), Owner.asRef$convert_AsRef_slice_u8({ data: rt.byteSliceToByteVec(rest), skip: skip as rt.usize })];
 		const source: rt.ByteVec = rt.byteSliceToByteVec(rest);
 		const copied: rt.ByteSlice = rt.bytesCopyFromSlice(rt.byteVecSlice(source));
@@ -134,12 +148,12 @@ export function events(data: rt.ByteSlice, out: rt.ByteVec): void {
  * `rand::rng()`'s values: each in its range, an empty range panicking as `rand`'s does,
  * and every value of a small range drawn.
  */
-export function random(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function random(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let inRange!: boolean;
-	if (data.length >= 3) {
-		const kind: rt.u8 = data.data[data.start];
-		const a: rt.u8 = data.data[data.start + 1];
-		const b: rt.u8 = data.data[data.start + 2];
+	if (dataLen >= 3) {
+		const kind: rt.u8 = dataData[dataStart];
+		const a: rt.u8 = dataData[dataStart + 1];
+		const b: rt.u8 = dataData[dataStart + 2];
 		rt.randRng();
 		b1: {
 			const _10: rt.u8 = rt.u8Rem(kind, 10);

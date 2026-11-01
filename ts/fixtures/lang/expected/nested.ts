@@ -18,7 +18,7 @@ export function nested(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	if (_4 === 0) {
 		made(data, out);
 	} else if (_4 === 1) {
-		keys(data, out);
+		keys(data.data, data.start, data.length, out);
 	} else if (_4 === 2) {
 		iters(data, out);
 	} else if (_4 === 3) {
@@ -147,32 +147,42 @@ export function order(o: rt.Ordering): rt.u8 {
  * Compared, ordered, and hashed: `None` orders before `Some(None)`, which orders before
  * each `Some(Some(_))`.
  */
-export function keys(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function keys(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	let _9!: rt.usize;
 	const hashed: rt.HashMap<[rt.u8, rt.u8 | undefined | rt.None], rt.u8> = rt.hashNew(rt.hashing(rt.hashTuple([rt.hash8, rt.hashOption(rt.hashOption(rt.hash8), rt.None)]), rt.eqTuple([rt.same, rt.same]))) as rt.HashMap<[rt.u8, rt.u8 | undefined | rt.None], rt.u8>;
 	const sorted: rt.BTreeMap<[rt.u8 | undefined | rt.None, rt.u8], rt.u8> = rt.btreeNew(rt.cmpTuple<[rt.u8 | undefined | rt.None, rt.u8], rt.Ordering>([rt.cmpOption(rt.cmpOption(rt.cmp), rt.None), rt.cmp])) as rt.BTreeMap<[rt.u8 | undefined | rt.None, rt.u8], rt.u8>;
 	let iterStart: rt.usize = 1;
-	const iterEnd: rt.usize = data.length;
+	const iterEnd: rt.usize = dataLen;
 	while ((_9 = iterStart++) < iterEnd) {
 		const i: rt.usize = _9;
 		const _18: rt.usize = rt.usizeSub(i, 1);
-		rt.idx(data, _18);
-		const _16: rt.u8 | undefined | rt.None = pick(data.data[data.start + _18]);
-		rt.idx(data, i);
-		const _15: [rt.u8 | undefined | rt.None, rt.u8 | undefined | rt.None] = [_16, pick(data.data[data.start + i])];
+		if (_18 >= dataLen) {
+			rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + _18);
+		}
+		const _16: rt.u8 | undefined | rt.None = pick(dataData[dataStart + _18]);
+		if (i >= dataLen) {
+			rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + i);
+		}
+		const _15: [rt.u8 | undefined | rt.None, rt.u8 | undefined | rt.None] = [_16, pick(dataData[dataStart + i])];
 		const a: rt.u8 | undefined | rt.None = _16;
 		const b: rt.u8 | undefined | rt.None = _15[1];
 		rt.byteVecPush(out, (a === b ? 1 : 0) | (((a !== b ? 1 : 0) << 1) & 0xff) | (((rt.cmpOption(rt.cmpOption(rt.cmp), rt.None)(a, b) === -1 ? 1 : 0) << 2) & 0xff) | ((order(rt.cmpOption(rt.cmpOption(rt.cmp), rt.None)(a, b)) << 3) & 0xff));
 		rt.byteVecPush(out, (rt.ordMax(a, b, rt.cmpLt(rt.cmpOption(rt.cmpOption(rt.cmp), rt.None))) === b ? 1 : 0) | (((rt.u64Eq(hashOf$Option_Option_u8(a), hashOf$Option_Option_u8(b)) ? 1 : 0) << 1) & 0xff));
-		rt.idx(data, i);
-		const _75: [rt.u8, rt.u8 | undefined | rt.None] = [rt.u8Rem(data.data[data.start + i], 2), a];
+		if (i >= dataLen) {
+			rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + i);
+		}
+		const _75: [rt.u8, rt.u8 | undefined | rt.None] = [rt.u8Rem(dataData[dataStart + i], 2), a];
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.hashInsert(hashed, _75, i & 0xff), 204));
-		rt.idx(data, i);
-		const _86: [rt.u8 | undefined | rt.None, rt.u8] = [a, rt.u8Rem(data.data[data.start + i], 2)];
+		if (i >= dataLen) {
+			rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + i);
+		}
+		const _86: [rt.u8 | undefined | rt.None, rt.u8] = [a, rt.u8Rem(dataData[dataStart + i], 2)];
 		rt.byteVecPush(out, option_unwrapOr$0r2bmpr(rt.btreeInsert(sorted, _86, i & 0xff), 204));
 		const _101: rt.usize = rt.usizeSub(i, 1);
-		rt.idx(data, _101);
-		const _98: [rt.u8, rt.u8 | undefined | rt.None] = [rt.u8Rem(data.data[data.start + _101], 2), b];
+		if (_101 >= dataLen) {
+			rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + _101);
+		}
+		const _98: [rt.u8, rt.u8 | undefined | rt.None] = [rt.u8Rem(dataData[dataStart + _101], 2), b];
 		rt.byteVecPush(out, rt.hashContains(hashed, _98) ? 1 : 0);
 	}
 	const iter2: rt.Iter<[[rt.u8 | undefined | rt.None, rt.u8], rt.u8]> = rt.btreeIter(sorted);

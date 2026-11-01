@@ -340,14 +340,18 @@ export function note(log: rt.ByteVec, v: rt.u8): rt.u8 {
 }
 
 /** Arguments that read `log` before and after one changes it, through a reference. */
-export function logged(log: rt.ByteVec, data: rt.ByteSlice): string {
+export function logged(log: rt.ByteVec, dataData: Uint8Array, dataStart: number, dataLen: number): string {
 	const _7: rt.usize = log.length;
-	rt.idx(data, 0);
-	const _10: rt.u8 = note(log, data.data[data.start]);
-	const _16: rt.usize = rt.usizeRem(log.length, data.length);
-	rt.idx(data, _16);
+	if (0 >= dataLen) {
+		rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + 0);
+	}
+	const _10: rt.u8 = note(log, dataData[dataStart]);
+	const _16: rt.usize = rt.usizeRem(log.length, dataLen);
+	if (_16 >= dataLen) {
+		rt.panic("index out of bounds: the len is " + dataLen + " but the index is " + _16);
+	}
 	const _24: rt.usize = log.length;
-	const part = data.data[data.start + _16];
+	const part = dataData[dataStart + _16];
 	const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.usizeDisplay(_7, f), (f: rt.Formatter) => rt.u8Display(_10, f), (f: rt.Formatter) => rt.u8Display(part, f), (f: rt.Formatter) => rt.usizeDisplay(_24, f)];
 	return rt.fmtFormat([args2[0], " ", args2[1], " ", args2[2], " ", args2[3]]);
 }
@@ -406,7 +410,7 @@ export function written(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const args20: rt.Fmt[] = [(f: rt.Formatter) => Noted.fmt$fmt_Display(_218, f), (f: rt.Formatter) => Noted.fmt$fmt_Display(_222, f)];
 	put(out, rt.fmtFormat([args20[0], "|", rt.fmtSpec({ align: ">", width: 6 }, args20[1])]));
 	if (!((data.length === 0))) {
-		put(out, logged(log, data));
+		put(out, logged(log, data.data, data.start, data.length));
 	}
 	const _241: rt.u8 = at(13);
 	const part2 = note(log, _241);
