@@ -3,9 +3,10 @@
 ## Goal
 
 [rust2-ts](/ts/README.md) translates `BytesMut::capacity`, `split_off`, `try_reclaim`,
-`try_unsplit`, and `spare_capacity_mut` with `bytes`' values, and `rt.BytesMut` drops its
-512 MiB limit on `reserve` for storage that was shared, proven by differential tests
-against native Rust.
+`try_unsplit`, and `spare_capacity_mut` with `bytes`' values, and `BufMut::put` of the
+crate's own `Buf` into a `BytesMut`, directly and through a `&mut` or a `Box`, and
+`rt.BytesMut` drops its 512 MiB limit on `reserve` for storage that was shared, proven
+by differential tests against native Rust.
 
 ## Plan
 

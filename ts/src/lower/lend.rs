@@ -95,6 +95,8 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 			return Plan::Untouched;
 		}
 	}
+	// A guard's map views each `&[u8; N]` part its closure returns, as `task::guard_map` does.
+	let views_parts = library::key(tcx, def_id).is_some_and(|(owner, name)| library::maps_guard(&owner, &name));
 	let sig = Sig::of(t, def_id, args);
 	let mut lent = Lent {
 		closures: Vec::new(),
@@ -115,7 +117,7 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 			// What the closure returns std holds as it is given it, and a closure std takes by
 			// reference is no value to wrap.
 			let returned = match output {
-				Some((g, out)) => lends(t, g, out) == Some(false),
+				Some((g, out)) => views_parts || lends(t, g, out) == Some(false),
 				None => false,
 			};
 			if !returned || by_ref {
