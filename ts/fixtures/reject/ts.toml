@@ -173,5 +173,7 @@ roots = [
     "variable_cloned_from",
     "variable_cloned_into",
     "variable_celled",
+    "lazy_celled",
+    "lazy_assigned",
 ]
 printable = ["Meters"]
