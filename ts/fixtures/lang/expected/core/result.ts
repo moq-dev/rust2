@@ -487,6 +487,13 @@ export function err$05f656d(self: rt.Result<rt.u8, rt.u16>): rt.u16 | undefined 
 	return self.error;
 }
 
+export function err$1nbmqmx(self: rt.Result<undefined, rt.u8>): rt.u8 | undefined {
+	if (self.ok) {
+		return undefined;
+	}
+	return self.error;
+}
+
 export function asRef$1glrxiq(self: rt.Result<rt.u8, rt.u16>): rt.Result<rt.u8, rt.u16> {
 	if (self.ok) {
 		return rt.Ok(self.value);
@@ -522,6 +529,61 @@ export function map$0fm1w6u(self: rt.Result<boolean, rt.ParseBoolError>, op: (a0
 	return self as rt.Result<rt.Result<rt.char, rt.ParseCharError>, rt.ParseBoolError>;
 }
 
+export function map$0n1xnuw(self: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowMutError>, op: (a0: rt.RefCell<rt.ByteVec>) => rt.u8): rt.Result<rt.u8, rt.BorrowMutError> {
+	if (self.ok) {
+		return rt.Ok(op(self.value));
+	}
+	return self as rt.Result<rt.u8, rt.BorrowMutError>;
+}
+
+export function map$1ma2nl9(self: rt.Result<rt.u8 | undefined, rt.u8>, op: (a0: rt.u8 | undefined) => undefined): rt.Result<undefined, rt.u8> {
+	if (self.ok) {
+		op(self.value);
+		return rt.OK;
+	}
+	return self as rt.Result<undefined, rt.u8>;
+}
+
+export function map$0l5uclx(self: rt.Result<string, rt.u8>, op: (a0: string) => undefined): rt.Result<undefined, rt.u8> {
+	if (self.ok) {
+		op(self.value);
+		return rt.OK;
+	}
+	return self as rt.Result<undefined, rt.u8>;
+}
+
+export function map$14n87rz(self: rt.Result<rt.ByteVec, rt.u8>, op: (a0: rt.ByteVec) => undefined): rt.Result<undefined, rt.u8> {
+	if (self.ok) {
+		op(self.value);
+		return rt.OK;
+	}
+	return self as rt.Result<undefined, rt.u8>;
+}
+
+export function map$0h1vl84(self: rt.Result<rt.u64, rt.u8>, op: (a0: rt.u64) => undefined): rt.Result<undefined, rt.u8> {
+	if (self.ok) {
+		op(self.value);
+		return rt.OK;
+	}
+	return self as rt.Result<undefined, rt.u8>;
+}
+
+export function map$03hz3l7(self: rt.Result<rt.u8, rt.u8>, op: (a0: rt.u8) => undefined): rt.Result<undefined, rt.u8> {
+	if (self.ok) {
+		op(self.value);
+		return rt.OK;
+	}
+	return self as rt.Result<undefined, rt.u8>;
+}
+
+export function map$0yqi183(self: rt.Result<undefined, rt.u8>, op: (a0: undefined) => undefined): rt.Result<undefined, rt.u8> {
+	if (self.ok) {
+		op(self.value);
+		return rt.OK;
+	}
+	return self;
+}
+
 export function map$0zzqmaz(self: rt.Result<rt.Arc<[rt.u8, rt.u8]>, rt.Arc<Any.Any>>, op: (a0: rt.Arc<[rt.u8, rt.u8]>) => [rt.usize, rt.u8]): rt.Result<[rt.usize, rt.u8], rt.Arc<Any.Any>> {
 	if (self.ok) {
 		return rt.Ok(op(self.value));
@@ -548,14 +610,6 @@ export function map$132mdj8(self: rt.Result<rt.u8, rt.u16>, op: (a0: rt.u8) => r
 		return rt.Ok(op(self.value));
 	}
 	return self;
-}
-
-export function map$03hz3l7(self: rt.Result<rt.u8, rt.u8>, op: (a0: rt.u8) => undefined): rt.Result<undefined, rt.u8> {
-	if (self.ok) {
-		op(self.value);
-		return rt.OK;
-	}
-	return self as rt.Result<undefined, rt.u8>;
 }
 
 export function mapOr$0fbyajt(self: rt.Result<rt.ByteSlice, returns_Error.Error>, default_: rt.usize, _: (a0: rt.ByteSlice) => rt.usize): rt.usize {
@@ -756,6 +810,13 @@ export function unwrapOr$09i71ei(self: rt.Result<rt.u64, rt.TryFromIntError>, de
 }
 
 export function unwrapOr$1k2j44a(self: rt.Result<rt.u64, rt.u64>, default_: rt.u64): rt.u64 {
+	if (self.ok) {
+		return self.value;
+	}
+	return default_;
+}
+
+export function unwrapOr$0k9nfhn(self: rt.Result<rt.u8, rt.BorrowMutError>, default_: rt.u8): rt.u8 {
 	if (self.ok) {
 		return self.value;
 	}

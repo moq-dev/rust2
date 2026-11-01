@@ -18,7 +18,7 @@ or taken from a `Bytes`, `reserve` throws a `rust2-ts:` error past 512 MiB, coun
 the handle read past, where `bytes`' panic, or its growing instead, depends on which
 handles dropped. Exact capacity removes that limit.
 
-- Count the live handles of a storage, as [shared ownership](/quest/m2/ts-shared.md) counts
+- Count the live handles of a storage, as `rt.Arc` counts
   an `Arc`'s, which makes a `Bytes` a value that drops.
 - Measure the count's cost on the codec's [TS benchmark](/ts/README.md#bench).
 

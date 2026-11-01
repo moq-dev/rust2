@@ -2,9 +2,13 @@
 
 import * as rt from "./rt.ts";
 import { thenSome$0d5am30 } from "./core/bool.ts";
+import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr } from "./core/option.ts";
+import { err$1nbmqmx, map$1ma2nl9 as result_map$1ma2nl9, map$0l5uclx as result_map$0l5uclx, map$14n87rz as result_map$14n87rz, map$0h1vl84 as result_map$0h1vl84, map$03hz3l7 as result_map$03hz3l7, map$0yqi183 as result_map$0yqi183 } from "./core/result.ts";
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function cellOption(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.u8 | undefined, rt.u8>;
 	const make: (a0: rt.u8) => rt.u8 | undefined = maybe;
 	const put: (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined = putMaybe as (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined;
 	let cell: rt.OnceCell<rt.u8 | undefined, rt.None> = new rt.OnceCell(rt.None);
@@ -22,7 +26,7 @@ export function cellOption(dataData: Uint8Array, dataStart: number, dataLen: num
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: rt.u8 | undefined | rt.None = cell.v;
 			if (_20 === rt.None) {
@@ -83,31 +87,111 @@ export function cellOption(dataData: Uint8Array, dataStart: number, dataLen: num
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			}, undefined, rt.None);
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceCell(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceCell(make(v2));
+			} else {
+				cell = new rt.OnceCell(rt.None);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceCell<rt.u8 | undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
+			let inner2 = undefined as rt.OnceCell<rt.u8 | undefined, rt.None> | undefined;
+			const _92: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+			const t5: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
+				inner2 = rt.onceClone(_92, undefined, rt.None);
+				return make(v2);
+			}, undefined, rt.None);
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceCell<rt.u8 | undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.u8 | undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceCell<rt.u8 | undefined, rt.None> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.u8 | undefined | rt.None = _104.v;
+				if (_108 === rt.None) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+			const t7: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			}, undefined, rt.None);
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<rt.u8 | undefined> | undefined = rt.optionAsMut(cell, rt.None);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: rt.u8 | undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceCell(rt.None);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					return made$Option_u8(make, v2);
+				}, undefined, rt.None);
+			} else if (_158 === 2) {
+				const _166: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1), rt.None);
+					return made$Option_u8(make, v2);
+				}, undefined, rt.None);
+			} else {
+				const _171: rt.OnceCell<rt.u8 | undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					return made$Option_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$1ma2nl9(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+						return made$Option_u8(make, v2 ^ 1);
+					}, undefined, rt.None), (_22: rt.u8 | undefined): undefined => {})), v2));
+				}, undefined, rt.None);
+			}
+			if (result.ok) {
+				const t8: rt.u8 | undefined = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: rt.u8 | undefined | rt.None = cell.v;
-	if (_85 === rt.None) {
+	const _182: rt.u8 | undefined | rt.None = cell.v;
+	if (_182 === rt.None) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function cellString(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<string, rt.u8>;
 	const make: (a0: rt.u8) => string = (v3: rt.u8): string => {
 		return rt.fmtToString((f: rt.Formatter) => rt.u8Display(v3, f));
 	};
-	const put: (a0: rt.ByteVec, a1: string) => undefined = (out2: rt.ByteVec, t6: string): undefined => {
-		rt.byteVecExtendFromSlice(out2, rt.stringAsBytes(t6));
+	const put: (a0: rt.ByteVec, a1: string) => undefined = (out2: rt.ByteVec, t10: string): undefined => {
+		rt.byteVecExtendFromSlice(out2, rt.stringAsBytes(t10));
 	};
 	let cell: rt.OnceCell<string> = new rt.OnceCell(undefined);
 	let dataData2: Uint8Array = dataData;
@@ -124,7 +208,7 @@ export function cellString(dataData: Uint8Array, dataStart: number, dataLen: num
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: string | undefined = cell.v;
 			if (_20 === undefined) {
@@ -185,29 +269,109 @@ export function cellString(dataData: Uint8Array, dataStart: number, dataLen: num
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: string = rt.onceGetOrInit(cell, (): string => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			});
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceCell(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceCell(make(v2));
+			} else {
+				cell = new rt.OnceCell(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceCell<string> = rt.onceClone(cell, undefined);
+			let inner2 = undefined as rt.OnceCell<string> | undefined;
+			const _92: rt.OnceCell<string> = cell;
+			const t5: string = rt.onceGetOrInit(cell, (): string => {
+				inner2 = rt.onceClone(_92, undefined);
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceCell<string>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<string> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceCell<string> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: string | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceCell<string> = cell;
+			const t7: string = rt.onceGetOrInit(cell, (): string => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.fmtStr)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.fmtStr)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.fmtStr)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<string> | undefined = rt.optionAsMut(cell);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: string = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceCell(undefined);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
+					return made$String(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceCell<string> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$String(make, v2);
+				});
+			} else {
+				const _171: rt.OnceCell<string> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
+					return made$String(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0l5uclx(rt.onceGetOrTryInit(_171, (): rt.Result<string, rt.u8> => {
+						return made$String(make, v2 ^ 1);
+					}), (_22: string): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: string = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: string | undefined = cell.v;
-	if (_85 === undefined) {
+	const _182: string | undefined = cell.v;
+	if (_182 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.u64, rt.u8>;
 	const make: (a0: rt.u8) => rt.u64 = wide;
-	const put: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, t6: rt.u64): undefined => {
-		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u64ToBeBytes(t6)));
+	const put: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, t10: rt.u64): undefined => {
+		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u64ToBeBytes(t10)));
 	};
 	let cell: rt.OnceCell<rt.u64> = new rt.OnceCell(undefined);
 	let dataData2: Uint8Array = dataData;
@@ -224,7 +388,7 @@ export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: rt.u64 | undefined = cell.v;
 			if (_20 === undefined) {
@@ -285,31 +449,111 @@ export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			});
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceCell(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceCell(make(v2));
+			} else {
+				cell = new rt.OnceCell(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceCell<rt.u64> = rt.onceClone(cell, undefined);
+			let inner2 = undefined as rt.OnceCell<rt.u64> | undefined;
+			const _92: rt.OnceCell<rt.u64> = cell;
+			const t5: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
+				inner2 = rt.onceClone(_92, undefined);
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceCell<rt.u64>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.u64> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceCell<rt.u64> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.u64 | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceCell<rt.u64> = cell;
+			const t7: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.u64Debug)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.u64Debug)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.u64Debug)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<rt.u64> | undefined = rt.optionAsMut(cell);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: rt.u64 = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceCell(undefined);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
+					return made$u64(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceCell<rt.u64> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$u64(make, v2);
+				});
+			} else {
+				const _171: rt.OnceCell<rt.u64> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
+					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u64, rt.u8> => {
+						return made$u64(make, v2 ^ 1);
+					}), (_22: rt.u64): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: rt.u64 = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: rt.u64 | undefined = cell.v;
-	if (_85 === undefined) {
+	const _182: rt.u64 | undefined = cell.v;
+	if (_182 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.u8, rt.u8>;
 	const make: (a0: rt.u8) => rt.u8 = (v3: rt.u8): rt.u8 => {
 		return v3;
 	};
-	const put: (a0: rt.ByteVec, a1: rt.u8) => undefined = (out2: rt.ByteVec, t6: rt.u8): undefined => {
-		rt.byteVecPush(out2, t6);
+	const put: (a0: rt.ByteVec, a1: rt.u8) => undefined = (out2: rt.ByteVec, t10: rt.u8): undefined => {
+		rt.byteVecPush(out2, t10);
 	};
 	let cell: rt.OnceCell<rt.u8> = new rt.OnceCell(undefined);
 	let dataData2: Uint8Array = dataData;
@@ -326,7 +570,7 @@ export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: rt.u8 | undefined = cell.v;
 			if (_20 === undefined) {
@@ -387,26 +631,106 @@ export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			});
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceCell(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceCell(make(v2));
+			} else {
+				cell = new rt.OnceCell(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceCell<rt.u8> = rt.onceClone(cell, undefined);
+			let inner2 = undefined as rt.OnceCell<rt.u8> | undefined;
+			const _92: rt.OnceCell<rt.u8> = cell;
+			const t5: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
+				inner2 = rt.onceClone(_92, undefined);
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceCell<rt.u8>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.u8> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceCell<rt.u8> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.u8 | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceCell<rt.u8> = cell;
+			const t7: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.u8Debug)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.u8Debug)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.u8Debug)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<rt.u8> | undefined = rt.optionAsMut(cell);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: rt.u8 = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceCell(undefined);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
+					return made$u8(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceCell<rt.u8> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$u8(make, v2);
+				});
+			} else {
+				const _171: rt.OnceCell<rt.u8> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
+					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8, rt.u8> => {
+						return made$u8(make, v2 ^ 1);
+					}), (_22: rt.u8): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: rt.u8 = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: rt.u8 | undefined = cell.v;
-	if (_85 === undefined) {
+	const _182: rt.u8 | undefined = cell.v;
+	if (_182 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<undefined, rt.u8>;
 	const make: (a0: rt.u8) => undefined = (_2: rt.u8): undefined => {};
 	const put: (a0: rt.ByteVec, a1: undefined) => undefined = (out2: rt.ByteVec, _3: undefined): undefined => {
 		rt.byteVecPush(out2, 170);
@@ -426,7 +750,7 @@ export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: undefined | rt.None = cell.v;
 			if (_20 === rt.None) {
@@ -486,21 +810,284 @@ export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: undefined = rt.onceGetOrInit(cell, (): undefined => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			}, undefined, rt.None);
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			make(v2);
-			cell = new rt.OnceCell(undefined);
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				make(v2);
+				cell = new rt.OnceCell(undefined);
+			} else {
+				cell = new rt.OnceCell(rt.None);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceCell<undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
+			let inner2 = undefined as rt.OnceCell<undefined, rt.None> | undefined;
+			const _92: rt.OnceCell<undefined, rt.None> = cell;
+			const t3: undefined = rt.onceGetOrInit(cell, (): undefined => {
+				inner2 = rt.onceClone(_92, undefined, rt.None);
+				make(v2);
+			}, undefined, rt.None);
+			put(out, t3);
+			const iter: rt.Iter<rt.OnceCell<undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceCell<undefined, rt.None> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				if (_104.v === rt.None) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, undefined);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceCell<undefined, rt.None> = cell;
+			const t4: undefined = rt.onceGetOrInit(cell, (): undefined => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", rt.fmtUnit, rt.None)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				make(v2);
+			}, undefined, rt.None);
+			put(out, t4);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.fmtUnit, rt.None)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", rt.fmtUnit, rt.None)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			if (rt.optionAsMut(cell, rt.None) === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceCell(rt.None);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
+					return made$unit(make, v2);
+				}, undefined, rt.None);
+			} else if (_158 === 2) {
+				const _166: rt.OnceCell<undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
+					make(v2 ^ 1);
+					rt.onceSet(_166, undefined, rt.None);
+					return made$unit(make, v2);
+				}, undefined, rt.None);
+			} else {
+				const _171: rt.OnceCell<undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
+					return made$unit(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0yqi183(rt.onceGetOrTryInit(_171, (): rt.Result<undefined, rt.u8> => {
+						return made$unit(make, v2 ^ 1);
+					}, undefined, rt.None), (_23: undefined): undefined => {})), v2));
+				}, undefined, rt.None);
+			}
+			if (result.ok) {
+				const t5: undefined = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t5);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
 	if (cell.v === rt.None) {
 		rt.byteVecPush(out, 238);
 	} else {
 		put(out, undefined);
+	}
+}
+
+/** Steps of an operation and an operand on one cell, each putting what it read. */
+export function cellVec(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.ByteVec, rt.u8>;
+	const make: (a0: rt.u8) => rt.ByteVec = (v3: rt.u8): rt.ByteVec => {
+		return rt.byteVecOf(v3, rt.u8Rem(v3, 4) as rt.usize);
+	};
+	const put: (a0: rt.ByteVec, a1: rt.ByteVec) => undefined = (out2: rt.ByteVec, t10: rt.ByteVec): undefined => {
+		rt.byteVecExtendFromSlice(out2, rt.byteVecSlice(t10));
+	};
+	let cell: rt.OnceCell<rt.ByteVec> = new rt.OnceCell(undefined);
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
+		const op2: rt.u8 = op;
+		const v2: rt.u8 = v;
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
+		if (_18 === 0) {
+			const _20: rt.ByteVec | undefined = cell.v;
+			if (_20 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				rt.byteVecPush(out, 1);
+				put(out, _20);
+			}
+		} else if (_18 === 1) {
+			const _26: rt.Result<undefined, rt.ByteVec> = rt.onceSet(cell, make(v2));
+			if (_26.ok) {
+				rt.byteVecPush(out, 1);
+			} else {
+				const t: rt.ByteVec = _26.error;
+				rt.byteVecPush(out, 0);
+				put(out, t);
+			}
+		} else if (_18 === 2) {
+			const _34: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				return make(v2);
+			});
+			put(out, _34);
+		} else if (_18 === 3) {
+			let seen: rt.u8 = 2;
+			const _44: rt.OnceCell<rt.ByteVec> = cell;
+			const t2: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				seen = _44.v !== undefined ? 1 : 0;
+				return make(v2);
+			});
+			put(out, t2);
+			rt.byteVecPush(out, seen);
+		} else if (_18 === 4) {
+			const _50: rt.ByteVec | undefined = rt.onceTake(cell);
+			if (_50 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				const t3: rt.ByteVec = _50;
+				rt.byteVecPush(out, 1);
+				put(out, t3);
+			}
+		} else if (_18 === 5) {
+			const _60: rt.OnceCell<rt.ByteVec> = cell;
+			const _57: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				rt.onceSet(_60, make(v2 ^ 1));
+				return make(v2);
+			});
+			put(out, _57);
+		} else if (_18 === 6) {
+			const inner: rt.ByteVec = new rt.ByteVec();
+			const _69: rt.OnceCell<rt.ByteVec> = cell;
+			const t4: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				put(inner, rt.onceGetOrInit(_69, (): rt.ByteVec => {
+					return make(v2 ^ 1);
+				}));
+				return make(v2);
+			});
+			put(out, t4);
+			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
+		} else if (_18 === 7) {
+			const _76: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
+			});
+			put(out, _76);
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceCell(make(v2));
+			} else {
+				cell = new rt.OnceCell(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceCell<rt.ByteVec> = rt.onceClone(cell, (a0: rt.ByteVec): rt.ByteVec => {
+				return rt.byteVecFrom(rt.byteVecView(a0));
+			});
+			let inner2 = undefined as rt.OnceCell<rt.ByteVec> | undefined;
+			const _92: rt.OnceCell<rt.ByteVec> = cell;
+			const t5: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				inner2 = rt.onceClone(_92, (a02: rt.ByteVec): rt.ByteVec => {
+					return rt.byteVecFrom(rt.byteVecView(a02));
+				});
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceCell<rt.ByteVec>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceCell<rt.ByteVec> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceCell<rt.ByteVec> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.ByteVec | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceCell<rt.ByteVec> = cell;
+			const t7: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceCell", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceCell", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.ByteVec | undefined = cell.v;
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				Object.assign(_147, make(v2));
+				rt.byteVecPush(out, 1);
+				const _154: rt.ByteVec = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
+		} else {
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
+					return made$Vec_u8(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceCell<rt.ByteVec> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$Vec_u8(make, v2);
+				});
+			} else {
+				const _171: rt.OnceCell<rt.ByteVec> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
+					return made$Vec_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$14n87rz(rt.onceGetOrTryInit(_171, (): rt.Result<rt.ByteVec, rt.u8> => {
+						return made$Vec_u8(make, v2 ^ 1);
+					}), (_22: rt.ByteVec): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: rt.ByteVec = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
+		}
+	}
+	const _182: rt.ByteVec | undefined = cell.v;
+	if (_182 === undefined) {
+		rt.byteVecPush(out, 238);
+	} else {
+		put(out, _182);
 	}
 }
 
@@ -526,12 +1113,18 @@ export function cells(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		cellString(a09.data, a09.start, a09.length, a19);
 	}, (a010: rt.ByteSlice, a110: rt.ByteVec): undefined => {
 		lockString(a010.data, a010.start, a010.length, a110);
+	}, (a011: rt.ByteSlice, a111: rt.ByteVec): undefined => {
+		cellVec(a011.data, a011.start, a011.length, a111);
+	}, (a012: rt.ByteSlice, a112: rt.ByteVec): undefined => {
+		lockVec(a012.data, a012.start, a012.length, a112);
 	}];
 	cases[rt.idx(cases, rt.usizeRem(kind as rt.usize, cases.length))](data, out);
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function lockOption(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.u8 | undefined, rt.u8>;
 	const make: (a0: rt.u8) => rt.u8 | undefined = maybe;
 	const put: (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined = putMaybe as (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined;
 	let cell: rt.OnceLock<rt.u8 | undefined, rt.None> = new rt.OnceLock(rt.None);
@@ -549,7 +1142,7 @@ export function lockOption(dataData: Uint8Array, dataStart: number, dataLen: num
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: rt.u8 | undefined | rt.None = cell.v;
 			if (_20 === rt.None) {
@@ -610,31 +1203,111 @@ export function lockOption(dataData: Uint8Array, dataStart: number, dataLen: num
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			}, undefined, rt.None);
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceLock(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceLock(make(v2));
+			} else {
+				cell = new rt.OnceLock(rt.None);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceLock<rt.u8 | undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
+			let inner2 = undefined as rt.OnceLock<rt.u8 | undefined, rt.None> | undefined;
+			const _92: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+			const t5: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
+				inner2 = rt.onceClone(_92, undefined, rt.None);
+				return make(v2);
+			}, undefined, rt.None);
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceLock<rt.u8 | undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.u8 | undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceLock<rt.u8 | undefined, rt.None> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.u8 | undefined | rt.None = _104.v;
+				if (_108 === rt.None) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+			const t7: rt.u8 | undefined = rt.onceGetOrInit(cell, (): rt.u8 | undefined => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			}, undefined, rt.None);
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", (value: rt.u8 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u8Debug), rt.None)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<rt.u8 | undefined> | undefined = rt.optionAsMut(cell, rt.None);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: rt.u8 | undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceLock(rt.None);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					return made$Option_u8(make, v2);
+				}, undefined, rt.None);
+			} else if (_158 === 2) {
+				const _166: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1), rt.None);
+					return made$Option_u8(make, v2);
+				}, undefined, rt.None);
+			} else {
+				const _171: rt.OnceLock<rt.u8 | undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+					return made$Option_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$1ma2nl9(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8 | undefined, rt.u8> => {
+						return made$Option_u8(make, v2 ^ 1);
+					}, undefined, rt.None), (_22: rt.u8 | undefined): undefined => {})), v2));
+				}, undefined, rt.None);
+			}
+			if (result.ok) {
+				const t8: rt.u8 | undefined = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: rt.u8 | undefined | rt.None = cell.v;
-	if (_85 === rt.None) {
+	const _182: rt.u8 | undefined | rt.None = cell.v;
+	if (_182 === rt.None) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function lockString(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<string, rt.u8>;
 	const make: (a0: rt.u8) => string = (v3: rt.u8): string => {
 		return rt.fmtToString((f: rt.Formatter) => rt.u8Display(v3, f));
 	};
-	const put: (a0: rt.ByteVec, a1: string) => undefined = (out2: rt.ByteVec, t6: string): undefined => {
-		rt.byteVecExtendFromSlice(out2, rt.stringAsBytes(t6));
+	const put: (a0: rt.ByteVec, a1: string) => undefined = (out2: rt.ByteVec, t10: string): undefined => {
+		rt.byteVecExtendFromSlice(out2, rt.stringAsBytes(t10));
 	};
 	let cell: rt.OnceLock<string> = new rt.OnceLock(undefined);
 	let dataData2: Uint8Array = dataData;
@@ -651,7 +1324,7 @@ export function lockString(dataData: Uint8Array, dataStart: number, dataLen: num
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: string | undefined = cell.v;
 			if (_20 === undefined) {
@@ -712,29 +1385,109 @@ export function lockString(dataData: Uint8Array, dataStart: number, dataLen: num
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: string = rt.onceGetOrInit(cell, (): string => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			});
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceLock(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceLock(make(v2));
+			} else {
+				cell = new rt.OnceLock(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceLock<string> = rt.onceClone(cell, undefined);
+			let inner2 = undefined as rt.OnceLock<string> | undefined;
+			const _92: rt.OnceLock<string> = cell;
+			const t5: string = rt.onceGetOrInit(cell, (): string => {
+				inner2 = rt.onceClone(_92, undefined);
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceLock<string>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<string> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceLock<string> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: string | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceLock<string> = cell;
+			const t7: string = rt.onceGetOrInit(cell, (): string => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.fmtStr)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.fmtStr)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.fmtStr)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<string> | undefined = rt.optionAsMut(cell);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: string = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceLock(undefined);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
+					return made$String(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceLock<string> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$String(make, v2);
+				});
+			} else {
+				const _171: rt.OnceLock<string> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<string, rt.u8> => {
+					return made$String(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0l5uclx(rt.onceGetOrTryInit(_171, (): rt.Result<string, rt.u8> => {
+						return made$String(make, v2 ^ 1);
+					}), (_22: string): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: string = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: string | undefined = cell.v;
-	if (_85 === undefined) {
+	const _182: string | undefined = cell.v;
+	if (_182 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.u64, rt.u8>;
 	const make: (a0: rt.u8) => rt.u64 = wide;
-	const put: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, t6: rt.u64): undefined => {
-		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u64ToBeBytes(t6)));
+	const put: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, t10: rt.u64): undefined => {
+		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u64ToBeBytes(t10)));
 	};
 	let cell: rt.OnceLock<rt.u64> = new rt.OnceLock(undefined);
 	let dataData2: Uint8Array = dataData;
@@ -751,7 +1504,7 @@ export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: rt.u64 | undefined = cell.v;
 			if (_20 === undefined) {
@@ -812,31 +1565,111 @@ export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			});
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceLock(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceLock(make(v2));
+			} else {
+				cell = new rt.OnceLock(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceLock<rt.u64> = rt.onceClone(cell, undefined);
+			let inner2 = undefined as rt.OnceLock<rt.u64> | undefined;
+			const _92: rt.OnceLock<rt.u64> = cell;
+			const t5: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
+				inner2 = rt.onceClone(_92, undefined);
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceLock<rt.u64>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.u64> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceLock<rt.u64> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.u64 | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceLock<rt.u64> = cell;
+			const t7: rt.u64 = rt.onceGetOrInit(cell, (): rt.u64 => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.u64Debug)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.u64Debug)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.u64Debug)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<rt.u64> | undefined = rt.optionAsMut(cell);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: rt.u64 = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceLock(undefined);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
+					return made$u64(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceLock<rt.u64> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$u64(make, v2);
+				});
+			} else {
+				const _171: rt.OnceLock<rt.u64> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u64, rt.u8> => {
+					return made$u64(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0h1vl84(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u64, rt.u8> => {
+						return made$u64(make, v2 ^ 1);
+					}), (_22: rt.u64): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: rt.u64 = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: rt.u64 | undefined = cell.v;
-	if (_85 === undefined) {
+	const _182: rt.u64 | undefined = cell.v;
+	if (_182 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.u8, rt.u8>;
 	const make: (a0: rt.u8) => rt.u8 = (v3: rt.u8): rt.u8 => {
 		return v3;
 	};
-	const put: (a0: rt.ByteVec, a1: rt.u8) => undefined = (out2: rt.ByteVec, t6: rt.u8): undefined => {
-		rt.byteVecPush(out2, t6);
+	const put: (a0: rt.ByteVec, a1: rt.u8) => undefined = (out2: rt.ByteVec, t10: rt.u8): undefined => {
+		rt.byteVecPush(out2, t10);
 	};
 	let cell: rt.OnceLock<rt.u8> = new rt.OnceLock(undefined);
 	let dataData2: Uint8Array = dataData;
@@ -853,7 +1686,7 @@ export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: rt.u8 | undefined = cell.v;
 			if (_20 === undefined) {
@@ -914,26 +1747,106 @@ export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number,
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			});
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			cell = new rt.OnceLock(make(v2));
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceLock(make(v2));
+			} else {
+				cell = new rt.OnceLock(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceLock<rt.u8> = rt.onceClone(cell, undefined);
+			let inner2 = undefined as rt.OnceLock<rt.u8> | undefined;
+			const _92: rt.OnceLock<rt.u8> = cell;
+			const t5: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
+				inner2 = rt.onceClone(_92, undefined);
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceLock<rt.u8>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.u8> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceLock<rt.u8> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.u8 | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceLock<rt.u8> = cell;
+			const t7: rt.u8 = rt.onceGetOrInit(cell, (): rt.u8 => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.u8Debug)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.u8Debug)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.u8Debug)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.Place<rt.u8> | undefined = rt.optionAsMut(cell);
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				_147.v = make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: rt.u8 = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceLock(undefined);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
+					return made$u8(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceLock<rt.u8> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$u8(make, v2);
+				});
+			} else {
+				const _171: rt.OnceLock<rt.u8> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.u8, rt.u8> => {
+					return made$u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$03hz3l7(rt.onceGetOrTryInit(_171, (): rt.Result<rt.u8, rt.u8> => {
+						return made$u8(make, v2 ^ 1);
+					}), (_22: rt.u8): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: rt.u8 = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
-	const _85: rt.u8 | undefined = cell.v;
-	if (_85 === undefined) {
+	const _182: rt.u8 | undefined = cell.v;
+	if (_182 === undefined) {
 		rt.byteVecPush(out, 238);
 	} else {
-		put(out, _85);
+		put(out, _182);
 	}
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
 export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<undefined, rt.u8>;
 	const make: (a0: rt.u8) => undefined = (_2: rt.u8): undefined => {};
 	const put: (a0: rt.ByteVec, a1: undefined) => undefined = (out2: rt.ByteVec, _3: undefined): undefined => {
 		rt.byteVecPush(out2, 170);
@@ -953,7 +1866,7 @@ export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
-		const _18: rt.u8 = rt.u8Rem(op2, 9);
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
 		if (_18 === 0) {
 			const _20: undefined | rt.None = cell.v;
 			if (_20 === rt.None) {
@@ -1013,15 +1926,92 @@ export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
 		} else if (_18 === 7) {
 			const _76: undefined = rt.onceGetOrInit(cell, (): undefined => {
-				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
-				rt.panicFmt(["init ", args2[0]]);
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
 			}, undefined, rt.None);
 			put(out, _76);
-		} else if (rt.u8Rem(v2, 2) === 0) {
-			make(v2);
-			cell = new rt.OnceLock(undefined);
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				make(v2);
+				cell = new rt.OnceLock(undefined);
+			} else {
+				cell = new rt.OnceLock(rt.None);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceLock<undefined, rt.None> = rt.onceClone(cell, undefined, rt.None);
+			let inner2 = undefined as rt.OnceLock<undefined, rt.None> | undefined;
+			const _92: rt.OnceLock<undefined, rt.None> = cell;
+			const t3: undefined = rt.onceGetOrInit(cell, (): undefined => {
+				inner2 = rt.onceClone(_92, undefined, rt.None);
+				make(v2);
+			}, undefined, rt.None);
+			put(out, t3);
+			const iter: rt.Iter<rt.OnceLock<undefined, rt.None>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<undefined, rt.None> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceLock<undefined, rt.None> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				if (_104.v === rt.None) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, undefined);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceLock<undefined, rt.None> = cell;
+			const t4: undefined = rt.onceGetOrInit(cell, (): undefined => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", rt.fmtUnit, rt.None)];
+				inner3 = rt.fmtFormat([args6[0]]);
+				make(v2);
+			}, undefined, rt.None);
+			put(out, t4);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.fmtUnit, rt.None)];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", rt.fmtUnit, rt.None)];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			if (rt.optionAsMut(cell, rt.None) === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				make(v2);
+				rt.byteVecPush(out, 1);
+				const _154: undefined = rt.optionUnwrap(cell.v, rt.None);
+				put(out, _154);
+			}
 		} else {
-			cell = new rt.OnceLock(rt.None);
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
+					return made$unit(make, v2);
+				}, undefined, rt.None);
+			} else if (_158 === 2) {
+				const _166: rt.OnceLock<undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
+					make(v2 ^ 1);
+					rt.onceSet(_166, undefined, rt.None);
+					return made$unit(make, v2);
+				}, undefined, rt.None);
+			} else {
+				const _171: rt.OnceLock<undefined, rt.None> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<undefined, rt.u8> => {
+					return made$unit(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$0yqi183(rt.onceGetOrTryInit(_171, (): rt.Result<undefined, rt.u8> => {
+						return made$unit(make, v2 ^ 1);
+					}, undefined, rt.None), (_23: undefined): undefined => {})), v2));
+				}, undefined, rt.None);
+			}
+			if (result.ok) {
+				const t5: undefined = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t5);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
 		}
 	}
 	if (cell.v === rt.None) {
@@ -1029,6 +2019,241 @@ export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: numbe
 	} else {
 		put(out, undefined);
 	}
+}
+
+/** Steps of an operation and an operand on one cell, each putting what it read. */
+export function lockVec(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
+	let text!: string;
+	let result!: rt.Result<rt.ByteVec, rt.u8>;
+	const make: (a0: rt.u8) => rt.ByteVec = (v3: rt.u8): rt.ByteVec => {
+		return rt.byteVecOf(v3, rt.u8Rem(v3, 4) as rt.usize);
+	};
+	const put: (a0: rt.ByteVec, a1: rt.ByteVec) => undefined = (out2: rt.ByteVec, t10: rt.ByteVec): undefined => {
+		rt.byteVecExtendFromSlice(out2, rt.byteVecSlice(t10));
+	};
+	let cell: rt.OnceLock<rt.ByteVec> = new rt.OnceLock(undefined);
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
+		const op2: rt.u8 = op;
+		const v2: rt.u8 = v;
+		const _18: rt.u8 = rt.u8Rem(op2, 13);
+		if (_18 === 0) {
+			const _20: rt.ByteVec | undefined = cell.v;
+			if (_20 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				rt.byteVecPush(out, 1);
+				put(out, _20);
+			}
+		} else if (_18 === 1) {
+			const _26: rt.Result<undefined, rt.ByteVec> = rt.onceSet(cell, make(v2));
+			if (_26.ok) {
+				rt.byteVecPush(out, 1);
+			} else {
+				const t: rt.ByteVec = _26.error;
+				rt.byteVecPush(out, 0);
+				put(out, t);
+			}
+		} else if (_18 === 2) {
+			const _34: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				return make(v2);
+			});
+			put(out, _34);
+		} else if (_18 === 3) {
+			let seen: rt.u8 = 2;
+			const _44: rt.OnceLock<rt.ByteVec> = cell;
+			const t2: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				seen = _44.v !== undefined ? 1 : 0;
+				return make(v2);
+			});
+			put(out, t2);
+			rt.byteVecPush(out, seen);
+		} else if (_18 === 4) {
+			const _50: rt.ByteVec | undefined = rt.onceTake(cell);
+			if (_50 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				const t3: rt.ByteVec = _50;
+				rt.byteVecPush(out, 1);
+				put(out, t3);
+			}
+		} else if (_18 === 5) {
+			const _60: rt.OnceLock<rt.ByteVec> = cell;
+			const _57: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				rt.onceSet(_60, make(v2 ^ 1));
+				return make(v2);
+			});
+			put(out, _57);
+		} else if (_18 === 6) {
+			const inner: rt.ByteVec = new rt.ByteVec();
+			const _69: rt.OnceLock<rt.ByteVec> = cell;
+			const t4: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				put(inner, rt.onceGetOrInit(_69, (): rt.ByteVec => {
+					return make(v2 ^ 1);
+				}));
+				return make(v2);
+			});
+			put(out, t4);
+			rt.byteVecExtendFromSlice(out, rt.byteVecSlice(inner));
+		} else if (_18 === 7) {
+			const _76: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				const args8: rt.Fmt[] = [(f: rt.Formatter) => rt.u8Display(v2, f)];
+				rt.panicFmt(["init ", args8[0]]);
+			});
+			put(out, _76);
+		} else if (_18 === 8) {
+			if (rt.u8Rem(v2, 2) === 0) {
+				cell = new rt.OnceLock(make(v2));
+			} else {
+				cell = new rt.OnceLock(undefined);
+			}
+		} else if (_18 === 9) {
+			const copy: rt.OnceLock<rt.ByteVec> = rt.onceClone(cell, (a0: rt.ByteVec): rt.ByteVec => {
+				return rt.byteVecFrom(rt.byteVecView(a0));
+			});
+			let inner2 = undefined as rt.OnceLock<rt.ByteVec> | undefined;
+			const _92: rt.OnceLock<rt.ByteVec> = cell;
+			const t5: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				inner2 = rt.onceClone(_92, (a02: rt.ByteVec): rt.ByteVec => {
+					return rt.byteVecFrom(rt.byteVecView(a02));
+				});
+				return make(v2);
+			});
+			put(out, t5);
+			const iter: rt.Iter<rt.OnceLock<rt.ByteVec>> = rt.iterFlatten(rt.iterSlice([copy, inner2]), (value: rt.OnceLock<rt.ByteVec> | undefined) => rt.iterOption(value), false, undefined, true);
+			while (true) {
+				const _104: rt.OnceLock<rt.ByteVec> | rt.Done = iter.next();
+				if (_104 === rt.DONE) {
+					break;
+				}
+				const _108: rt.ByteVec | undefined = _104.v;
+				if (_108 === undefined) {
+					rt.byteVecPush(out, 238);
+				} else {
+					put(out, _108);
+				}
+			}
+		} else if (_18 === 10) {
+			let inner3: string = "";
+			const _117: rt.OnceLock<rt.ByteVec> = cell;
+			const t7: rt.ByteVec = rt.onceGetOrInit(cell, (): rt.ByteVec => {
+				const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.onceDebug(_117, f, "OnceLock", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				inner3 = rt.fmtFormat([args6[0]]);
+				return make(v2);
+			});
+			put(out, t7);
+			if (rt.u8Rem(v2, 2) === 0) {
+				const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				text = rt.fmtFormat([args2[0], " ", args2[1]]);
+			} else {
+				const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, inner3), (f: rt.Formatter) => rt.onceDebug(cell, f, "OnceLock", (value: rt.ByteVec, f: rt.Formatter) => rt.fmtList(rt.byteVecView(value), f, rt.u8Debug))];
+				text = rt.fmtFormat([args4[0], " ", rt.fmtSpec({ alternate: true }, args4[1])]);
+			}
+			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(text));
+		} else if (_18 === 11) {
+			const _147: rt.ByteVec | undefined = cell.v;
+			if (_147 === undefined) {
+				rt.byteVecPush(out, 0);
+			} else {
+				Object.assign(_147, make(v2));
+				rt.byteVecPush(out, 1);
+				const _154: rt.ByteVec = rt.optionUnwrap(cell.v);
+				put(out, _154);
+			}
+		} else {
+			const _158: rt.u8 = rt.u8Rem(v2, 4);
+			if (_158 === 0 || _158 === 1) {
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
+					return made$Vec_u8(make, v2);
+				});
+			} else if (_158 === 2) {
+				const _166: rt.OnceLock<rt.ByteVec> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
+					rt.onceSet(_166, make(v2 ^ 1));
+					return made$Vec_u8(make, v2);
+				});
+			} else {
+				const _171: rt.OnceLock<rt.ByteVec> = cell;
+				result = rt.onceGetOrTryInit(cell, (): rt.Result<rt.ByteVec, rt.u8> => {
+					return made$Vec_u8(make, option_unwrapOr$0r2bmpr(err$1nbmqmx(result_map$14n87rz(rt.onceGetOrTryInit(_171, (): rt.Result<rt.ByteVec, rt.u8> => {
+						return made$Vec_u8(make, v2 ^ 1);
+					}), (_22: rt.ByteVec): undefined => {})), v2));
+				});
+			}
+			if (result.ok) {
+				const t8: rt.ByteVec = result.value;
+				rt.byteVecPush(out, 1);
+				put(out, t8);
+			} else {
+				rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(0, result.error)));
+			}
+		}
+	}
+	const _182: rt.ByteVec | undefined = cell.v;
+	if (_182 === undefined) {
+		rt.byteVecPush(out, 238);
+	} else {
+		put(out, _182);
+	}
+}
+
+/** What `make` makes of `v`, or `v` back as an error for every third byte. */
+export function made$Option_u8(make: (a0: rt.u8) => rt.u8 | undefined, v: rt.u8): rt.Result<rt.u8 | undefined, rt.u8> {
+	if (rt.u8Rem(v, 3) === 0) {
+		return rt.Err(v);
+	}
+	return rt.Ok(make(v));
+}
+
+/** What `make` makes of `v`, or `v` back as an error for every third byte. */
+export function made$String(make: (a0: rt.u8) => string, v: rt.u8): rt.Result<string, rt.u8> {
+	if (rt.u8Rem(v, 3) === 0) {
+		return rt.Err(v);
+	}
+	return rt.Ok(make(v));
+}
+
+/** What `make` makes of `v`, or `v` back as an error for every third byte. */
+export function made$Vec_u8(make: (a0: rt.u8) => rt.ByteVec, v: rt.u8): rt.Result<rt.ByteVec, rt.u8> {
+	if (rt.u8Rem(v, 3) === 0) {
+		return rt.Err(v);
+	}
+	return rt.Ok(make(v));
+}
+
+/** What `make` makes of `v`, or `v` back as an error for every third byte. */
+export function made$u64(make: (a0: rt.u8) => rt.u64, v: rt.u8): rt.Result<rt.u64, rt.u8> {
+	if (rt.u8Rem(v, 3) === 0) {
+		return rt.Err(v);
+	}
+	return rt.Ok(make(v));
+}
+
+/** What `make` makes of `v`, or `v` back as an error for every third byte. */
+export function made$u8(make: (a0: rt.u8) => rt.u8, v: rt.u8): rt.Result<rt.u8, rt.u8> {
+	if (rt.u8Rem(v, 3) === 0) {
+		return rt.Err(v);
+	}
+	return rt.Ok(make(v));
+}
+
+/** What `make` makes of `v`, or `v` back as an error for every third byte. */
+export function made$unit(make: (a0: rt.u8) => undefined, v: rt.u8): rt.Result<undefined, rt.u8> {
+	if (rt.u8Rem(v, 3) === 0) {
+		return rt.Err(v);
+	}
+	make(v);
+	return rt.OK;
 }
 
 /** A `u64` past 2^53, from one byte. */

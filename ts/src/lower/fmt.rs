@@ -422,6 +422,20 @@ pub fn std_impl<'tcx>(
 			(Std::ErrorKind, Trait::Debug) => rt("writeStr", vec![f, value]),
 			(Std::ParseBoolError, Trait::Debug) => rt("parseBoolErrorDebug", vec![value, f]),
 			(Std::ParseBoolError, Trait::Display) => rt("parseBoolErrorDisplay", vec![value, f]),
+			(Std::BorrowError, Trait::Debug) => Expr::rt("borrowErrorDebug", vec![value, f]),
+			(Std::BorrowError, Trait::Display) => Expr::rt("borrowErrorDisplay", vec![value, f]),
+			(Std::BorrowMutError, Trait::Debug) => Expr::rt("borrowMutErrorDebug", vec![value, f]),
+			(Std::BorrowMutError, Trait::Display) => Expr::rt("borrowMutErrorDisplay", vec![value, f]),
+			// What it holds, or `<uninit>`.
+			(std @ (Std::OnceCell | Std::OnceLock), Trait::Debug) => {
+				let held = b.fmt_fn(tr, args.type_at(0), span);
+				let none = b.t.none_arg(args.type_at(0));
+				let name = Expr::Str(format!("{std:?}"));
+				Expr::rt(
+					"onceDebug",
+					[vec![value, f, name, held], none.into_iter().collect()].concat(),
+				)
+			}
 			(Std::ParseCharError, Trait::Debug) => rt("parseCharErrorDebug", vec![value, f]),
 			(Std::ParseCharError, Trait::Display) => rt("parseCharErrorDisplay", vec![value, f]),
 			(Std::ParseFloatError, Trait::Debug) => rt("parseFloatErrorDebug", vec![value, f]),

@@ -1,5 +1,6 @@
 //! One-time cells, `OnceCell` and `OnceLock`, of values that are numbers, wide integers,
-//! `Option`s whose `None` is `rt.None`, `()`, and strings: read, set, initialized, taken,
+//! `Option`s whose `None` is `rt.None`, `()`, strings, and vectors: read, set, initialized, taken,
+//! cloned, debugged, written through `get_mut`, initialized by a function that may fail,
 //! and initialized again from within their own initialization, which panics.
 
 use std::cell::OnceCell;
@@ -16,7 +17,7 @@ macro_rules! cells {
 			while let [op, v, rest @ ..] = data {
 				data = rest;
 				let (op, v) = (*op, *v);
-				match op % 9 {
+				match op % 13 {
 					0 => match cell.get() {
 						Some(t) => {
 							out.push(1);
@@ -67,10 +68,69 @@ macro_rules! cells {
 						out.extend_from_slice(&inner);
 					}
 					7 => put(out, cell.get_or_init(|| panic!("init {v}"))),
-					_ => match v % 2 {
+					8 => match v % 2 {
 						0 => cell = $cell::from(make(v)),
 						_ => cell = Default::default(),
 					},
+					// A clone holds a clone of what it holds, and nothing while it initializes.
+					9 => {
+						let copy = cell.clone();
+						let mut inner = None;
+						let t = cell.get_or_init(|| {
+							inner = Some(cell.clone());
+							make(v)
+						});
+						put(out, t);
+						for copy in [Some(copy), inner].into_iter().flatten() {
+							match copy.into_inner() {
+								Some(t) => put(out, &t),
+								None => out.push(0xee),
+							}
+						}
+					}
+					// Debugged, and debugged while it initializes.
+					10 => {
+						let mut inner = String::new();
+						let t = cell.get_or_init(|| {
+							inner = format!("{cell:?}");
+							make(v)
+						});
+						put(out, t);
+						let text = match v % 2 {
+							0 => format!("{inner} {cell:?}"),
+							_ => format!("{inner} {cell:#?}"),
+						};
+						out.extend_from_slice(text.as_bytes());
+					}
+					11 => match cell.get_mut() {
+						Some(t) => {
+							*t = make(v);
+							out.push(1);
+							put(out, cell.get().unwrap());
+						}
+						None => out.push(0),
+					},
+					// Fails, or not, and is set from within its own initialization.
+					_ => {
+						let result = match v % 4 {
+							0 | 1 => cell.get_or_try_init(|| made(make, v)),
+							2 => cell.get_or_try_init(|| {
+								_ = cell.set(make(v ^ 1));
+								made(make, v)
+							}),
+							_ => cell.get_or_try_init(|| {
+								let inner = cell.get_or_try_init(|| made(make, v ^ 1)).map(|_| ()).err();
+								made(make, inner.unwrap_or(v))
+							}),
+						};
+						match result {
+							Ok(t) => {
+								out.push(1);
+								put(out, t);
+							}
+							Err(e) => out.extend_from_slice(&[0, e]),
+						}
+					}
 				}
 			}
 			match cell.into_inner() {
@@ -99,6 +159,16 @@ cells! {
 	lock_unit: OnceLock<()>, |_| (), |out, _| out.push(0xaa);
 	cell_string: OnceCell<String>, |v| v.to_string(), |out, t| out.extend_from_slice(t.as_bytes());
 	lock_string: OnceLock<String>, |v| v.to_string(), |out, t| out.extend_from_slice(t.as_bytes());
+	cell_vec: OnceCell<Vec<u8>>, |v| vec![v; usize::from(v % 4)], |out, t| out.extend_from_slice(t);
+	lock_vec: OnceLock<Vec<u8>>, |v| vec![v; usize::from(v % 4)], |out, t| out.extend_from_slice(t);
+}
+
+/// What `make` makes of `v`, or `v` back as an error for every third byte.
+fn made<T>(make: fn(u8) -> T, v: u8) -> Result<T, u8> {
+	match v % 3 {
+		0 => Err(v),
+		_ => Ok(make(v)),
+	}
 }
 
 /// A `u64` past 2^53, from one byte.

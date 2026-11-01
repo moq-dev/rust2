@@ -204,6 +204,18 @@ pub fn call<'tcx>(
 		}
 		("Clone", "clone") if self_std == Some(Std::Arc) => Expr::rt("arcClone", args),
 		("Clone", "clone") if self_std == Some(Std::Weak) => Expr::rt("weakClone", args),
+		// A `RefCell`'s clone borrows it, and a one-time cell's clones what it holds, if anything.
+		("Clone", "clone") if matches!(self_std, Some(Std::RefCell | Std::OnceCell | Std::OnceLock)) => {
+			let inner = held(self_ty);
+			let clone = super::collections::clone_fn(b, inner, call.span);
+			match self_std {
+				Some(Std::RefCell) => Expr::rt("refCellClone", vec![first(args), clone]),
+				_ => {
+					let none = b.t.none_arg(inner);
+					Expr::rt("onceClone", [first(args), clone].into_iter().chain(none).collect())
+				}
+			}
+		}
 		// A waker is the executor's, whose `clone` is its own.
 		("Clone", "clone") if self_std == Some(Std::Waker) => first(args).member("clone").call(vec![]),
 		// A reference is the object it points at, which its own `Deref` gives: read out of a
@@ -229,7 +241,11 @@ pub fn call<'tcx>(
 		// The mutex is its own guard, and a panic aborts, so nothing poisons it.
 		("Mutex", "lock") => Expr::result(true, Expr::rt("mutexLock", args)),
 		("Mutex", "try_lock") => Expr::rt("mutexTryLock", args),
-		("Mutex", "get_mut") => Expr::result(true, first(args).member("value")),
+		// What it holds, lent as where it is where JS copies it.
+		("Mutex" | "RwLock", "get_mut") => Expr::result(true, lend_value(b, call, first(args))),
+		("RefCell", "get_mut") => lend_value(b, call, first(args)),
+		("Mutex" | "RwLock", "into_inner") => Expr::result(true, first(args).member("value")),
+		("RefCell", "into_inner") => first(args).member("value"),
 		// A `PoisonError` is what it holds.
 		("PoisonError", "into_inner" | "get_ref" | "get_mut") => first(args),
 		// Mapped rather than lowered from core's MIR, so one of a lock unwraps its guard in place.
@@ -240,6 +256,10 @@ pub fn call<'tcx>(
 		("RefCell" | "RwLock", "new") => Expr::New(Box::new(Expr::Rt("RefCell".into())), args),
 		("RefCell", "borrow") => Expr::rt("refCellBorrow", args),
 		("RefCell", "borrow_mut") => Expr::rt("refCellBorrowMut", args),
+		("RefCell", "try_borrow") => Expr::rt("refCellTryBorrow", args),
+		("RefCell", "try_borrow_mut") => Expr::rt("refCellTryBorrowMut", args),
+		("Ref", "map") => Expr::rt("refMap", args),
+		("Ref", "clone") => Expr::rt("refClone", args),
 		("RefCell", "replace") => Expr::rt("refCellReplace", args),
 		("RefCell", "take") => {
 			let ty = call.args.type_at(0);
@@ -519,19 +539,43 @@ fn once<'tcx>(
 		"get" | "into_inner" => first(args).member("v"),
 		"take" => Expr::rt("onceTake", args.into_iter().chain(none).collect()),
 		"set" => Expr::rt("onceSet", args.into_iter().chain(none).collect()),
+		// The place of what it holds where JS copies that, which is the cell's own.
+		"get_mut" if b.t.needs_place(inner) => Expr::rt("optionAsMut", args.into_iter().chain(none).collect()),
+		"get_mut" => first(args).member("v"),
 		// With what drops `f`, as `discards` says, uncalled if the cell is set.
-		"get_or_init" => {
+		"get_or_init" | "get_or_try_init" => {
 			let Some(mut droppers) = b.t.droppers([call.args.type_at(1)], call.span) else {
 				return Ok(Some(Expr::undefined()));
 			};
 			if none.is_some() {
 				droppers.resize(1, Expr::undefined());
 			}
-			Expr::rt("onceGetOrInit", args.into_iter().chain(droppers).chain(none).collect())
+			let f = match name {
+				"get_or_init" => "onceGetOrInit",
+				_ => "onceGetOrTryInit",
+			};
+			Expr::rt(f, args.into_iter().chain(droppers).chain(none).collect())
 		}
 		_ => return Ok(None),
 	};
 	Ok(Some(e))
+}
+
+/// The type a cell or lock of type `ty`, or a reference to one, holds.
+fn held(ty: Option<Ty<'_>>) -> Ty<'_> {
+	match ty.map(|ty| ty.peel_refs().kind()) {
+		Some(ty::Adt(_, args)) => args.type_at(0),
+		_ => unreachable!("a cell or lock is a struct"),
+	}
+}
+
+/// What `get_mut` of `holder`, a `Mutex`, a `RefCell`, or an `RwLock`, lends: its value,
+/// or where that is where JS copies it.
+fn lend_value<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>, holder: Expr) -> Expr {
+	match b.t.needs_place(call.args.type_at(0)) {
+		true => Expr::rt("valuePlace", vec![holder]),
+		false => holder.member("value"),
+	}
 }
 
 /// `OnceCell::new()` or `OnceLock::new()` of `cell`: empty.
