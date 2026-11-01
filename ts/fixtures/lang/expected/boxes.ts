@@ -455,6 +455,25 @@ export function took(b: rt.u32, by: rt.u8): rt.u32 {
 	return b;
 }
 
+/**
+ * A write through a pointer into what `a` holds, made before the reference holding `a`
+ * is aimed at `b`, still reaches `a`.
+ */
+export function reaimed(a: rt.Place<rt.u32>, b: rt.Place<rt.u32>, by: rt.u8): void {
+	let p!: rt.Place<rt.u32>;
+	let r: rt.Place<rt.u32> = a;
+	if (rt.u8Rem(by, 2) === 0) {
+		const borrowed = r;
+		p = rt.place(() => borrowed.v, (value2) => borrowed.v = value2);
+	} else {
+		const _9: rt.Place<rt.u32> = r;
+		p = rt.place(() => _9.v, (value) => _9.v = value);
+	}
+	r = b;
+	p.v = (p.v ^ by as rt.u32) >>> 0;
+	r.v = rt.u32WrappingAdd(r.v, 1);
+}
+
 /** What `&mut Owner` reaches of its boxes, each written by `by`. */
 export function reach(b: Owner.Owner, by: rt.u8): void {
 	const _3: rt.u8 = rt.u8Rem(by, 4);
@@ -504,29 +523,30 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const by: rt.u8 = _52[1];
 		const _58: rt.u8 = rt.u8Rem(by, 26);
 		if (_58 === 0) {
-			n = rt.u32WrappingMul(n, 3);
+			const r: rt.Place<rt.u32> = rt.place(() => n, (value28) => n = value28);
+			r.v = rt.u32WrappingMul(r.v, 3);
 		} else if (_58 === 1) {
-			bump(rt.place(() => n, (value25) => n = value25), by);
+			bump(rt.place(() => n, (value27) => n = value27), by);
 		} else if (_58 === 2) {
-			const _65: rt.Place<rt.u32> = rt.place(() => n, (value23) => n = value23);
-			bump(rt.place(() => _65.v, (value24) => _65.v = value24), by);
+			const _65: rt.Place<rt.u32> = rt.place(() => n, (value25) => n = value25);
+			bump(rt.place(() => _65.v, (value26) => _65.v = value26), by);
 		} else if (_58 === 3) {
-			const _67: rt.Place<rt.u32> = rt.place(() => n, (value21) => n = value21);
-			bump(rt.place(() => _67.v, (value22) => _67.v = value22), by);
+			const _67: rt.Place<rt.u32> = rt.place(() => n, (value23) => n = value23);
+			bump(rt.place(() => _67.v, (value24) => _67.v = value24), by);
 		} else if (_58 === 4) {
-			const _69: rt.Place<rt.u32> = rt.place(() => n, (value19) => n = value19);
-			bump(rt.place(() => _69.v, (value20) => _69.v = value20), by);
+			const _69: rt.Place<rt.u32> = rt.place(() => n, (value21) => n = value21);
+			bump(rt.place(() => _69.v, (value22) => _69.v = value22), by);
 		} else if (_58 === 5) {
 			n = (n ^ by as rt.u32) >>> 0;
 		} else if (_58 === 6) {
 			n = rt.u32WrappingAdd(by as rt.u32, n);
 		} else if (_58 === 7) {
-			const r: rt.ByteSlice = rt.byteSliceFrom(pair);
+			const r2: rt.ByteSlice = rt.byteSliceFrom(pair);
 			const _76: rt.usize = rt.usizeRem(by as rt.usize, 2);
 			if (!(_76 < 2)) {
 				rt.panic("index out of bounds: the len is " + 2 + " but the index is " + _76);
 			}
-			r.data[r.start + _76] = r.data[r.start + _76] ^ by;
+			r2.data[r2.start + _76] = r2.data[r2.start + _76] ^ by;
 		} else if (_58 === 8) {
 			s = s + String.fromCodePoint(rt.u8Add(97, rt.u8Rem(by, 26)) as rt.char);
 		} else if (_58 === 9) {
@@ -534,17 +554,17 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		} else if (_58 === 10) {
 			s = rt.stringInsertStr(s, 0, "<");
 		} else if (_58 === 11) {
-			shout(rt.place(() => t, (value18) => t = value18), by);
+			shout(rt.place(() => t, (value20) => t = value20), by);
 		} else if (_58 === 12) {
-			const _92: rt.Place<string> = rt.place(() => t, (value16) => t = value16);
-			shout(rt.place(() => _92.v, (value17) => _92.v = value17), by);
+			const _92: rt.Place<string> = rt.place(() => t, (value18) => t = value18);
+			shout(rt.place(() => _92.v, (value19) => _92.v = value19), by);
 		} else if (_58 === 13) {
-			const _94: rt.Place<string> = rt.place(() => t, (value15) => t = value15);
+			const _94: rt.Place<string> = rt.place(() => t, (value17) => t = value17);
 			_94.v = rt.strToAsciiLowercase(_94.v);
 		} else if (_58 === 14) {
 			t = rt.strSlice(s, 0);
 		} else if (_58 === 15) {
-			bump(rt.place(() => nested, (value14) => nested = value14), by);
+			bump(rt.place(() => nested, (value16) => nested = value16), by);
 		} else if (_58 === 16) {
 			nested = rt.u32WrappingAdd(nested, by as rt.u32);
 		} else if (_58 === 17) {
@@ -554,7 +574,7 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			}
 			maybe = rt.u32Add(maybe as rt.u32, 1);
 			if (maybe !== undefined) {
-				bump(rt.place(() => maybe as rt.u32, (value13) => maybe = value13), by);
+				bump(rt.place(() => maybe as rt.u32, (value15) => maybe = value15), by);
 			}
 		} else if (_58 === 18) {
 			reach(held, by);
@@ -562,7 +582,7 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			const at2 = rt.idx(v, rt.usizeRem(by as rt.usize, v.length));
 			const borrowed = v;
 			const borrowed2 = at2;
-			bump(rt.place(() => borrowed[borrowed2], (value12) => borrowed[borrowed2] = value12), by);
+			bump(rt.place(() => borrowed[borrowed2], (value14) => borrowed[borrowed2] = value14), by);
 			const _120: rt.Place<rt.u32> | undefined = rt.sliceLastMut(v);
 			if (_120 !== undefined) {
 				_120.v = (_120.v ^ 16) >>> 0;
@@ -574,16 +594,16 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				if (_130 === rt.DONE) {
 					break;
 				}
-				bump(rt.place(() => _130.v, (value11) => _130.v = value11), by);
+				bump(rt.place(() => _130.v, (value13) => _130.v = value13), by);
 			}
 			v.push(by as rt.u32);
 		} else if (_58 === 21) {
-			const _140: rt.Place<rt.u32 | undefined> = rt.place(() => o, (value7) => o = value7);
+			const _140: rt.Place<rt.u32 | undefined> = rt.place(() => o, (value9) => o = value9);
 			if (_140.v !== undefined) {
 				_140.v = rt.u32WrappingAdd(_140.v, by as rt.u32);
 			}
-			const _147: rt.Place<rt.u32 | undefined> = rt.place(() => o, (value8) => o = value8);
-			const _146: rt.Place<rt.u32> | undefined = _147.v === undefined ? undefined : rt.place(() => _147.v as rt.u32, (value9) => _147.v = value9);
+			const _147: rt.Place<rt.u32 | undefined> = rt.place(() => o, (value10) => o = value10);
+			const _146: rt.Place<rt.u32> | undefined = _147.v === undefined ? undefined : rt.place(() => _147.v as rt.u32, (value11) => _147.v = value11);
 			if (_146 !== undefined) {
 				bump(_146, by);
 			}
@@ -595,7 +615,7 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			if (res.ok) {
 				res = rt.Ok(rt.u32WrappingMul(res.value, by as rt.u32));
 			}
-			const _165: rt.Place<rt.Result<string, rt.u8>> = rt.place(() => said, (value10) => said = value10);
+			const _165: rt.Place<rt.Result<string, rt.u8>> = rt.place(() => said, (value12) => said = value12);
 			if (_165.v.ok) {
 				_165.v = rt.Ok(_165.v.value + String.fromCodePoint(rt.u8Add(97, rt.u8Rem(by, 26)) as rt.char));
 			}
@@ -613,17 +633,17 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				rt.idx(_188, 1);
 				_188[1] = (_188[1] ^ _192) >>> 0;
 			}
-			const _197: rt.Place<string> | undefined = named === undefined ? undefined : rt.place(() => named as string, (value2) => named = value2);
+			const _197: rt.Place<string> | undefined = named === undefined ? undefined : rt.place(() => named as string, (value4) => named = value4);
 			if (_197 !== undefined) {
 				shout(_197, by);
 			}
-			const _202: rt.Place<rt.u32 | undefined> | undefined = deep === rt.None ? undefined : rt.place(() => deep as rt.u32 | undefined, (value3) => deep = value3);
+			const _202: rt.Place<rt.u32 | undefined> | undefined = deep === rt.None ? undefined : rt.place(() => deep as rt.u32 | undefined, (value5) => deep = value5);
 			if (_202 !== undefined) {
 				if (_202.v !== undefined) {
 					_202.v = rt.u32Add(_202.v, by as rt.u32);
 				}
 			}
-			const _209: rt.Place<rt.u32 | undefined> | undefined = deep === rt.None ? undefined : rt.place(() => deep as rt.u32 | undefined, (value4) => deep = value4);
+			const _209: rt.Place<rt.u32 | undefined> | undefined = deep === rt.None ? undefined : rt.place(() => deep as rt.u32 | undefined, (value6) => deep = value6);
 			if (_209 !== undefined) {
 				if (!(rt.u8Rem(by, 4) === 0)) {
 					if (_209.v === undefined) {
@@ -635,10 +655,10 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			}
 			if (tup.ok) {
 				tup.value[0] = rt.u32Add(tup.value[0], by as rt.u32);
-				const _354: [rt.u32, rt.u32] = tup.value;
-				bump(rt.place(() => _354[1], (value5) => _354[1] = value5), by);
+				const _357: [rt.u32, rt.u32] = tup.value;
+				bump(rt.place(() => _357[1], (value7) => _357[1] = value7), by);
 			}
-			const _227: rt.Place<rt.u32> | undefined = boxedOpt === undefined ? undefined : rt.place(() => boxedOpt as rt.u32, (value6) => boxedOpt = value6);
+			const _227: rt.Place<rt.u32> | undefined = boxedOpt === undefined ? undefined : rt.place(() => boxedOpt as rt.u32, (value8) => boxedOpt = value8);
 			if (_227 !== undefined) {
 				bump(_227, by);
 			}
@@ -646,13 +666,15 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 				boxedOpt = rt.u32Add(boxedOpt, 1);
 			}
 		} else if (_58 === 23) {
+			const _238: rt.Place<rt.u32> = rt.place(() => n, (value3) => n = value3);
 			const f: (a0: rt.u8) => undefined = (by2: rt.u8): undefined => {
-				bump(rt.place(() => n, (value) => n = value), by2);
+				bump(_238, by2);
 			};
 			f(by);
 			f(1);
 		} else if (_58 === 24) {
 			n = took(n, by);
+			reaimed(rt.place(() => n, (value) => n = value), rt.place(() => held.n, (value2) => held.n = value2), by);
 		} else {
 			bump(leaked, by);
 		}
@@ -670,11 +692,11 @@ export function places(_1: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}, (value: Uint8Array) => rt.iterSlice(value), false, 4), undefined, true);
 		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(option_unwrapOr$11c0we2(option_asDeref$0avuzwv(o), 238)).reverse()), undefined, true);
 		rt.iterExtendBytes(out, rt.iterSlice(rt.u32ToBeBytes(result_unwrapOr$0e4foht(copied$0bbq7yi(result_asDeref$04i8i5u(res)), 238)).reverse()), undefined, true);
-		const _295: rt.Result<string, rt.u8> = said;
-		if (_295.ok) {
-			fmt_put(out, _295.value);
+		const _298: rt.Result<string, rt.u8> = said;
+		if (_298.ok) {
+			fmt_put(out, _298.value);
 		} else {
-			rt.byteVecPush(out, _295.error);
+			rt.byteVecPush(out, _298.error);
 		}
 		rt.iterExtendBytes(out, rt.iterFlatMap(rt.iterSlice(words), (w: rt.u32): Uint8Array => {
 			return rt.u32ToBeBytes(w).reverse();

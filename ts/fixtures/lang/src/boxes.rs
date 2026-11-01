@@ -374,6 +374,20 @@ fn took(mut b: Box<u32>, by: u8) -> Box<u32> {
 	b
 }
 
+/// A write through a pointer into what `a` holds, made before the reference holding `a`
+/// is aimed at `b`, still reaches `a`.
+fn reaimed(a: &mut Box<u32>, b: &mut Box<u32>, by: u8) {
+	use std::ops::DerefMut;
+	let mut r = a;
+	let p = match by % 2 {
+		0 => &mut **r,
+		_ => r.deref_mut(),
+	};
+	r = b;
+	*p ^= u32::from(by);
+	**r = r.wrapping_add(1);
+}
+
 /// What `&mut Owner` reaches of its boxes, each written by `by`.
 fn reach(b: &mut Owner, by: u8) {
 	match by % 4 {
@@ -513,7 +527,10 @@ pub fn places(_: u8, data: &[u8], out: &mut Vec<u8>) {
 				f(by);
 				f(1);
 			}
-			24 => n = took(n, by),
+			24 => {
+				n = took(n, by);
+				reaimed(&mut n, &mut held.n, by);
+			}
 			_ => bump(leaked, by),
 		}
 		out.extend(n.to_le_bytes());
