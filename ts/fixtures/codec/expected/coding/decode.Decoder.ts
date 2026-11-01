@@ -149,11 +149,11 @@ export function varint(self: Decoder): rt.Result<rt.u64, DecodeError.DecodeError
 	let _0!: rt.Result<rt.u64, DecodeError.DecodeError>;
 	const _13: rt.ByteSlice = self.buf;
 	const part: rt.u64 | undefined = read(_13.data, _13.start, _13.length, self.form);
+	const err2: DecodeError.DecodeError | undefined = part === undefined ? readOut.err as DecodeError.DecodeError : undefined;
 	const part2: Uint8Array = readOut.p_1Data;
 	const part3: number = readOut.p_1Start;
 	const part4: number = readOut.p_1Len;
-	const err2: DecodeError.DecodeError | undefined = part === undefined ? readOut.err as DecodeError.DecodeError : undefined;
-	if (part !== undefined) {
+	if (err2 === undefined) {
 		const value: rt.u64 = part as rt.u64;
 		self.buf = new rt.ByteSlice(part2, part3, part4);
 		_0 = rt.Ok(value);
