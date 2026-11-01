@@ -296,7 +296,8 @@ function in-process, so a call is one crossing, which releases the GIL while Rus
   `Event.Moved(p)`. `Display` is `str()`, `Debug` `repr()`, and `Default` a static
   `default()`. Constants are module or class attributes, made anew on each read unless a
   literal.
-- **Bytes** passed in are any buffer, such as `bytes`, read in place. Bytes Rust returns,
+- **Bytes** passed in are any buffer: `bytes` is read in place, and others, which Python
+  may change while Rust reads, are copied. Bytes Rust returns,
   or a record holds, are a read-only `memoryview` lending Rust's buffer until it and its
   views are released. Those Rust lends a closure or trait method are copied into `bytes`.
   Strings are `str`, `Option<T>` `T | None`, a tuple a `tuple`, `Duration`

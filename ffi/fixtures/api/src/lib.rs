@@ -179,6 +179,20 @@ pub fn divide(a: u64, b: u64) -> Result<(u64, u64), Error> {
 	}
 }
 
+/// The unit corner, borrowed for good, failing unless `unit`: a borrowed tuple returns as
+/// one value, not an out per element.
+pub fn corner(unit: bool) -> Result<&'static (u32, u32), Error> {
+	match unit {
+		true => Ok(&(1, 1)),
+		false => Err(Error::Overflow),
+	}
+}
+
+/// [`corner`]'s, from a future.
+pub async fn corner_later() -> &'static (u32, u32) {
+	&(1, 1)
+}
+
 /// `n` narrowed as [`widths`] does, unless 0: a tuple inside an `Option` is a struct.
 pub fn spread(n: u64) -> Option<(u8, i16, u32, u64)> {
 	(n != 0).then(|| widths(n))

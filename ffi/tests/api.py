@@ -505,6 +505,7 @@ def futures():
 	# A wake that lands while the future polls, before it returns pending, is kept: the
 	# future polls again rather than waiting for a wake that already happened.
 	check(loop.run_until_complete(asyncio.wait_for(api.yielded(7), 5)) == 7, "a wake during the poll polls again")
+	check(loop.run_until_complete(api.corner_later()) == (1, 1), "a future's borrowed tuple returns whole")
 
 	# Cancelled between its wake and its poll, a receive loses nothing: the payload stays
 	# for the next.
@@ -616,7 +617,7 @@ def values():
 	"""The values Python's types bound: integers checked against their Rust type's range,
 	durations truncated to the microsecond up to `timedelta.max`, which stands for longer,
 	and on Unix, a path whose bytes are not UTF-8, which crosses as `os.fsdecode` decodes it,
-	and back as it came."""
+	and back as it came. Also a borrowed tuple, returned whole."""
 
 	def raises(error, f, what):
 		try:
@@ -628,6 +629,10 @@ def values():
 	raises(OverflowError, lambda: api.widths(2**64), "an int past u64 raises")
 	raises(OverflowError, lambda: api.widths(-1), "a negative int for a u64 raises")
 	raises(TypeError, lambda: api.title(1), "an int is no bool")
+
+	# A borrowed tuple is one C value, not one out per element.
+	check(api.corner(True) == (1, 1), "a borrowed tuple returns whole")
+	raises(api.ErrorException, lambda: api.corner(False), "a borrowed tuple's error raises")
 
 	td = datetime.timedelta
 	check(api.doubled_ttl(td(seconds=1, microseconds=5)) == td(seconds=2, microseconds=10), "a duration crosses")

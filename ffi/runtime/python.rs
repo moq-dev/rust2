@@ -191,13 +191,12 @@ impl Key {
 	}
 }
 
-/// What a call borrows from Python until it returns: the objects whose memory it reads,
-/// the buffers it views, the handles it holds and those it moves out of, and what it
+/// What a call borrows from Python until it returns: the objects and copies whose memory
+/// it reads, the handles it holds and those it moves out of, and what it
 /// gives Rust, taken back if the call never happens.
 #[derive(Default)]
 pub struct Scope {
 	keep: Vec<Obj>,
-	views: Vec<Box<Py_buffer>>,
 	arrays: Vec<Box<dyn std::any::Any>>,
 	held: Vec<Obj>,
 	moved: Vec<*mut Handle>,
@@ -245,10 +244,6 @@ impl Drop for Scope {
 		for lent in self.lent.drain(..) {
 			// SAFETY: an object [`lent`] made.
 			unsafe { close(lent.ptr().cast()) };
-		}
-		for view in &mut self.views {
-			// SAFETY: a view `PyObject_GetBuffer` filled, released once.
-			unsafe { PyBuffer_Release(&mut **view) };
 		}
 		for held in self.held.drain(..) {
 			// SAFETY: a handle this scope holds.
@@ -462,22 +457,43 @@ pub fn str_out(buf: rt::Buf) -> R<Obj> {
 	}
 }
 
-/// A view of any object with the buffer protocol, `bytes`, `bytearray`, or a
-/// `memoryview` among them, held for the call: Rust reads it in place.
+/// The bytes of `bytes`, read in place, or of any other object with the buffer protocol,
+/// such as a `bytearray` or a `memoryview`, copied: the call runs without the GIL, so
+/// another thread could write storage that is not immutable while Rust reads it.
 pub fn bytes_in(obj: *mut PyObject, s: &mut Scope) -> R<rt::Buf> {
-	// SAFETY: `Py_buffer` is plain data, which the call fills.
-	let mut view: Box<Py_buffer> = Box::new(unsafe { std::mem::zeroed() });
 	// SAFETY: the GIL is held, and `obj` is live.
-	if unsafe { PyObject_GetBuffer(obj, &mut *view, PyBUF_SIMPLE) } != 0 {
-		return Err(Raised);
+	unsafe {
+		if PyBytes_Check(obj) != 0 {
+			let mut ptr: *mut c_char = null_mut();
+			let mut len = 0;
+			if PyBytes_AsStringAndSize(obj, &mut ptr, &mut len) != 0 {
+				return Err(Raised);
+			}
+			// A `bytes` never changes, and the caller keeps it for the call.
+			return Ok(rt::Buf {
+				ptr: ptr.cast_const().cast(),
+				len: len as usize,
+				owner: null_mut(),
+			});
+		}
+		// SAFETY: `Py_buffer` is plain data, which the call fills.
+		let mut view: Py_buffer = std::mem::zeroed();
+		if PyObject_GetBuffer(obj, &mut view, PyBUF_SIMPLE) != 0 {
+			return Err(Raised);
+		}
+		let copy = match view.len {
+			0 => Vec::new(),
+			len => std::slice::from_raw_parts(view.buf.cast_const().cast::<u8>(), len as usize).to_vec(),
+		};
+		PyBuffer_Release(&mut view);
+		let buf = rt::Buf {
+			ptr: copy.as_ptr(),
+			len: copy.len(),
+			owner: null_mut(),
+		};
+		s.arrays.push(Box::new(copy));
+		Ok(buf)
 	}
-	let buf = rt::Buf {
-		ptr: view.buf.cast_const().cast(),
-		len: view.len as usize,
-		owner: null_mut(),
-	};
-	s.views.push(view);
-	Ok(buf)
 }
 
 /// Bytes Rust returned, as a read-only `memoryview` that lends them without a copy until
@@ -1401,6 +1417,10 @@ pub struct Future {
 	/// Whether an `await` took it, after which another raises, as awaiting a coroutine
 	/// twice does.
 	claimed: bool,
+	/// Whether a poll runs, without the GIL, so a close from another thread waits for it.
+	polling: bool,
+	/// Whether it was closed while it polled, which the poll then does.
+	closing: bool,
 	/// The handles the call holds until the future ends.
 	held: Vec<Obj>,
 }
@@ -1448,13 +1468,18 @@ pub unsafe fn start(raw: *mut c_void, poll: Poll, free: unsafe fn(*mut c_void), 
 	}
 }
 
-/// Free a future's C future, cancelling it unless it finished, and let go of its holds.
+/// Free a future's C future, cancelling it unless it finished, and let go of its holds:
+/// once its poll returns, if one runs.
 ///
 /// # Safety
 /// `future` is live.
 unsafe fn future_close(future: *mut Future) {
 	// SAFETY: the caller's contract.
 	unsafe {
+		if (*future).polling {
+			(*future).closing = true;
+			return;
+		}
 		if let Some(free) = (*future).free.take() {
 			let raw = std::mem::replace(&mut (*future).raw, null_mut());
 			call(|| free(raw));
@@ -1474,51 +1499,57 @@ unsafe extern "C" fn future_poll(obj: *mut PyObject, args: *mut *mut PyObject, n
 	wrap(|| {
 		// SAFETY: Python's call.
 		let args = unsafe { self::args(args, nargs, 1, "poll") }?;
-		// SAFETY: Python calls it on a `Future`, holding the GIL.
-		let this = unsafe { &mut *future };
-		let Some(poll) = this.poll else {
-			return value_error("the future ended");
-		};
-		let node = match &this.node {
-			Some(node) => node.clone(),
-			None => {
-				let node = Arc::new(Node {
-					state: AtomicU8::new(IDLE),
-					token: this.token,
-					queue: queue_of(args[0])?,
-					waker: false,
-				});
-				this.node = Some(node.clone());
-				node
-			}
-		};
-		loop {
-			let first = node.state.swap(POLLING, Ordering::AcqRel) == IDLE;
-			// The first poll with the node gives the C ABI a reference, which it keeps
-			// while it reuses the waker.
-			let waker = match first {
-				true => node.give(),
-				false => node.lend(),
+		// SAFETY: Python calls it on a `Future`, holding the GIL. Each access goes through
+		// the pointer, as a thread holding the GIL may close it while the poll runs without.
+		unsafe {
+			let Some(poll) = (*future).poll else {
+				return value_error("the future ended");
 			};
-			// SAFETY: a live future, which `poll` takes.
-			let done = unsafe { poll(this.raw, waker) };
-			match done {
-				Ok(None) => {}
-				done => {
-					// SAFETY: a live future, finished or failed.
-					unsafe { future_close(future) };
-					return done.map(|value| value.expect("ready"));
+			if (*future).polling {
+				return raise(PyExc_RuntimeError, "a Rust future is polled already");
+			}
+			let node = match &(*future).node {
+				Some(node) => node.clone(),
+				None => {
+					let node = Arc::new(Node {
+						state: AtomicU8::new(IDLE),
+						token: (*future).token,
+						queue: queue_of(args[0])?,
+						waker: false,
+					});
+					(*future).node = Some(node.clone());
+					node
 				}
+			};
+			loop {
+				let first = node.state.swap(POLLING, Ordering::AcqRel) == IDLE;
+				// The first poll with the node gives the C ABI a reference, which it keeps
+				// while it reuses the waker.
+				let waker = match first {
+					true => node.give(),
+					false => node.lend(),
+				};
+				(*future).polling = true;
+				let done = poll((*future).raw, waker);
+				(*future).polling = false;
+				if std::mem::take(&mut (*future).closing) {
+					future_close(future);
+					// What the poll returned is dropped with the future.
+					return value_error("the future was closed while it polled");
+				}
+				if let Some(done) = done.transpose() {
+					future_close(future);
+					return done;
+				}
+				if node
+					.state
+					.compare_exchange(POLLING, PARKED, Ordering::AcqRel, Ordering::Acquire)
+					.is_ok()
+				{
+					return Ok(Obj::borrowed(PENDING.get().expect("loaded").ptr()));
+				}
+				// Woken while it polled: the wake is for this poll's registration, so poll again.
 			}
-			if node
-				.state
-				.compare_exchange(POLLING, PARKED, Ordering::AcqRel, Ordering::Acquire)
-				.is_ok()
-			{
-				// SAFETY: set when the module loaded.
-				return Ok(unsafe { Obj::borrowed(PENDING.get().expect("loaded").ptr()) });
-			}
-			// Woken while it polled: the wake is for this poll's registration, so poll again.
 		}
 	})
 }

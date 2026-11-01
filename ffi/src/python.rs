@@ -1158,7 +1158,7 @@ impl<'a> Gen<'a> {
 		}
 		let outs: Vec<(String, Ty)> = c_params.cloned().collect();
 
-		// A tuple of one returned whole is written through its one out pointer.
+		// The outs follow the unstripped return: a borrowed tuple is one struct, not its elements.
 		let ok = strip_refs(&function.ok);
 		let err = function.err.as_ref().map(strip_refs);
 		let exception = err.as_ref().map(|e| {
@@ -1177,7 +1177,7 @@ impl<'a> Gen<'a> {
 		});
 		if let Some((_, poll, free)) = &export.future {
 			let poll_outs = &poll.params[2..];
-			let (decl, ptrs, value) = self.outs(poll_outs, &ok, err.as_ref(), exception.as_deref(), "r == 1");
+			let (decl, ptrs, value) = self.outs(poll_outs, &function.ok, err.as_ref(), exception.as_deref(), "r == 1");
 			let _ = write!(
 				self.glue,
 				"unsafe fn poll_{c_name}(f: *mut c_void, w: crate::rt::Waker) -> R<Option<Obj>> {{\n\tunsafe {{\n\t\t{decl}\n\t\tlet r = rt::call(|| crate::{}(f as _, w{}));\n\t\tif r == 0 {{\n\t\t\treturn Ok(None);\n\t\t}}\n\t\t{value}.map(Some)\n\t}}\n}}\n\nunsafe fn free_{c_name}(f: *mut c_void) {{\n\tunsafe {{ crate::{}(f as _) }}\n}}\n\n",
@@ -1196,7 +1196,7 @@ impl<'a> Gen<'a> {
 					let value = self.lower(&ok, "ret");
 					(String::new(), Vec::new(), value)
 				}
-				false => self.outs(&outs, &ok, err.as_ref(), exception.as_deref(), "ret"),
+				false => self.outs(&outs, &function.ok, err.as_ref(), exception.as_deref(), "ret"),
 			};
 			let args: Vec<String> = c_args.iter().cloned().chain(ptrs).collect();
 			stmts.push(format!(
