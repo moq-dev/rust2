@@ -535,7 +535,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		}
 		for (field, &id) in adt.non_enum_variant().fields.iter().zip(fields) {
 			let ty = tcx.type_of(field.did).instantiate_identity().skip_norm_wip();
-			if let Some(dropped) = self.drop_value(Expr::This.field(id), ty, span) {
+			if let Some(dropped) = self.drop_value(Translator::read_field(Expr::This, id), ty, span) {
 				steps.push(StmtKind::Expr(dropped).at(None));
 			}
 		}

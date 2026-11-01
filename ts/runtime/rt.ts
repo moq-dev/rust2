@@ -95,6 +95,20 @@ export function optionAsMut<T>(p: Place<T | undefined | None>, none?: None): Pla
 	return p.v === none ? undefined : (p as Place<T>);
 }
 
+/**
+ * The payload's place of the `Result` at `p`, while it is `Ok`: writing it makes `p` a
+ * new `Ok`, as a `Result` is never changed in place.
+ */
+export function resultAsMut<T, E>(p: Place<Result<T, E>>): Place<T> | undefined {
+	if (!p.v.ok) return undefined;
+	return place(
+		() => (p.v as { readonly value: T }).value,
+		(value) => {
+			p.v = Ok(value);
+		},
+	);
+}
+
 /** The place `get` reads and `set` writes. */
 export function place<T>(get: () => T, set: (value: T) => void): Place<T> {
 	return new Accessed(get, set);

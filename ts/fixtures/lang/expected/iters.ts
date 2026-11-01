@@ -2,7 +2,7 @@
 
 import * as rt from "./rt.ts";
 import { copy$iters_Bumped, copy$tuple2_u8_u8 } from "./lib.ts";
-import { thenSome$0b23a33, thenSome$0d5am30 } from "./core/bool.ts";
+import { thenSome$0d5am30, thenSome$0b23a33 } from "./core/bool.ts";
 import { unwrapOr$0k15iai as option_unwrapOr$0k15iai, unwrapOr$00uis1j as option_unwrapOr$00uis1j, unwrapOr$1tvry1i as option_unwrapOr$1tvry1i, unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, unwrapOr$14m5xjm as option_unwrapOr$14m5xjm, unwrapOrDefault$165pyh5 as option_unwrapOrDefault$165pyh5, unwrapOrDefault$0wx44sw as option_unwrapOrDefault$0wx44sw, map$1uo1d4o as option_map$1uo1d4o, map$1httady as option_map$1httady, map$0p22lts as option_map$0p22lts, map$0of9gds as option_map$0of9gds, map$1c7zybz as option_map$1c7zybz, map$0cs071d as option_map$0cs071d, mapOr$0lcrgk1 as option_mapOr$0lcrgk1, mapOr$1kiffmd as option_mapOr$1kiffmd, mapOr$1a3irjf as option_mapOr$1a3irjf, mapOr$0sl5app as option_mapOr$0sl5app, mapOr$0atjiti as option_mapOr$0atjiti, mapOr$0okqj9y as option_mapOr$0okqj9y, mapOr$1e4a1e0 as option_mapOr$1e4a1e0, mapOr$1lznlgz as option_mapOr$1lznlgz, mapOr$0tmtgfi as option_mapOr$0tmtgfi, mapOr$0ev76sb as option_mapOr$0ev76sb, mapOr$1surhce as option_mapOr$1surhce, mapOr$1t0muvr as option_mapOr$1t0muvr, mapOr$02k4ito as option_mapOr$02k4ito, mapOr$0a96v80 as option_mapOr$0a96v80, mapOr$0mmpeqx as option_mapOr$0mmpeqx, mapOr$1vjqo89 as option_mapOr$1vjqo89, mapOr$1h04da8 as option_mapOr$1h04da8, mapOr$0f73bb7 as option_mapOr$0f73bb7, mapOr$06gg5x7 as option_mapOr$06gg5x7, mapOr$1dmz9kd as option_mapOr$1dmz9kd, mapOr$1sxa8ki as option_mapOr$1sxa8ki, asDeref$0w8at8i as option_asDeref$0w8at8i, filter$0v80fk8 } from "./core/option.ts";
 import { unwrapOr$01jdcm7 as result_unwrapOr$01jdcm7 } from "./core/result.ts";
 import * as Badge from "./iters.Badge.ts";
@@ -1369,7 +1369,7 @@ export function options(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return _83(b9, calls);
 	})) & 0xff);
 	rt.byteVecExtendFromSlice(out, rt.byteVecSlice(calls));
-	const iter3: Gaps.Gaps = { data, at: 0 };
+	const iter3: Gaps.Gaps = { dataData: data.data, dataStart: data.start, dataLen: data.length, at: 0 };
 	while (true) {
 		const _114: rt.u8 | undefined | rt.Done = Gaps.next$iter_Iterator(iter3);
 		if (_114 === rt.DONE) {
@@ -1715,8 +1715,9 @@ export function values(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 		rt.byteVecPush(out, _21);
 	}
-	const _31: Doubled.Doubled = { _0: data };
-	const _33: Doubled.Doubled = { _0: rt.byteSliceRange(data, 0, rt.min(data.length, 2)) };
+	const _34: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.min(data.length, 2));
+	const _31: Doubled.Doubled = { _0Data: data.data, _0Start: data.start, _0Len: data.length };
+	const _33: Doubled.Doubled = { _0Data: _34.data, _0Start: _34.start, _0Len: _34.length };
 	const args2: rt.Fmt[] = [(f: rt.Formatter) => Doubled.fmt$fmt_Debug(_31, f), (f: rt.Formatter) => Doubled.fmt$fmt_Debug(_33, f)];
 	rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args2[0], "|", rt.fmtSpec({ alternate: true }, args2[1])])));
 	const tags: Tag.Tag[] = rt.iterToArray(rt.iterMap(rt.iterSlice(rt.byteSliceView(data)), (_2: rt.u8): Tag.Tag => {
@@ -1800,7 +1801,7 @@ export function returned(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return undefined;
 	}));
 	_4(part6, out);
-	const part7 = first$iters_Gaps({ data, at: n });
+	const part7 = first$iters_Gaps({ dataData: data.data, dataStart: data.start, dataLen: data.length, at: n });
 	_4(part7, out);
 	const part8 = first$iters_Countdown({ left: n & 0xff, step: 1 });
 	_3(part8, out);
@@ -1809,7 +1810,7 @@ export function returned(data: rt.ByteSlice, out: rt.ByteVec): void {
 	})).reverse()), undefined, true);
 	const part9 = byMut$iter_Copied_slice_Iter_u8(rt.iterSlice(rt.byteSliceView(data)));
 	_3(part9, out);
-	const gaps: Gaps.Gaps = { data, at: 0 };
+	const gaps: Gaps.Gaps = { dataData: data.data, dataStart: data.start, dataLen: data.length, at: 0 };
 	const part10 = byMut$iters_Gaps(gaps);
 	_4(part10, out);
 	const part11 = byMut$iters_Gaps(gaps);

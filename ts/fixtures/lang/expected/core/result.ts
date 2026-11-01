@@ -13,6 +13,7 @@ import { eq$1horntk as float_parse_eq$1horntk } from "../core/num/float_parse.ts
 import { eq$1v93ipo as str_error_eq$1v93ipo, eq$1f3e51k as str_error_eq$1f3e51k } from "../core/str/error.ts";
 import { cmp$175ka5q as poll_cmp$175ka5q } from "../core/task/poll.ts";
 import { eq$0dhyfbb as time_eq$0dhyfbb } from "../core/time.ts";
+import type * as locks_Tally from "../locks.Tally.ts";
 import * as Part from "../orders.Part.ts";
 import type * as returns_Error from "../returns.Error.ts";
 
@@ -438,6 +439,13 @@ export function isErrAnd$0b01a39(self: rt.Result<rt.u8, rt.u16>, f: (a0: rt.u16)
 	return f(self.error);
 }
 
+export function ok$04yj0hm(self: rt.Result<rt.ByteSlice, rt.usize>): rt.ByteSlice | undefined {
+	if (self.ok) {
+		return self.value;
+	}
+	return undefined;
+}
+
 export function ok$0lceojf(self: rt.Result<[rt.usize, rt.u8], rt.Arc<Any.Any>>): [rt.usize, rt.u8] | undefined {
 	let _0!: [rt.usize, rt.u8] | undefined;
 	if (self.ok) {
@@ -626,6 +634,13 @@ export function map$0zzqmaz(self: rt.Result<rt.Arc<[rt.u8, rt.u8]>, rt.Arc<Any.A
 	return rt.Err(self.error);
 }
 
+export function map$1g6jln5(self: rt.Result<rt.RefCell<rt.u64>, rt.RefCell<locks_Tally.Tally>>, op: (a0: rt.RefCell<rt.u64>) => rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>): rt.Result<rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>, rt.RefCell<locks_Tally.Tally>> {
+	if (self.ok) {
+		return rt.Ok(op(self.value));
+	}
+	return self as rt.Result<rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>, rt.RefCell<locks_Tally.Tally>>;
+}
+
 export function map$0r57egs(self: rt.Result<rt.u8, rt.ParseIntError>, op: (a0: rt.u8) => rt.u8 | undefined): rt.Result<rt.u8 | undefined, rt.ParseIntError> {
 	if (self.ok) {
 		return rt.Ok(op(self.value));
@@ -714,6 +729,13 @@ export function mapErr$1whfgss(self: rt.Result<rt.u8, undefined>, op: (a0: undef
 export function inspect$16o3gle(self: rt.Result<rt.u8, rt.u16>, f: (a0: rt.u8) => undefined): rt.Result<rt.u8, rt.u16> {
 	if (self.ok) {
 		f(self.value);
+	}
+	return self;
+}
+
+export function inspectErr$0g3nypv(self: rt.Result<rt.ByteSlice, rt.usize>, f: (a0: rt.usize) => undefined): rt.Result<rt.ByteSlice, rt.usize> {
+	if (!self.ok) {
+		f(self.error);
 	}
 	return self;
 }

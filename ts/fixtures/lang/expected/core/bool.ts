@@ -70,6 +70,20 @@ export function thenSome$0xksuo2(self: boolean, t: rt.Place<rt.u32>): rt.Place<r
 	return t;
 }
 
+export function thenSome$0sf2w1i(self: boolean, t: rt.Place<rt.u64>): rt.Place<rt.u64> | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return t;
+}
+
+export function thenSome$0d5am30(self: boolean, t: rt.u8): rt.u8 | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return t;
+}
+
 export function thenSome$1jqdi5p(self: boolean, t: rt.Duration): rt.Duration | undefined {
 	if (!self) {
 		return undefined;
@@ -92,13 +106,6 @@ export function thenSome$1af3oea(self: boolean, t: rt.u32): rt.u32 | undefined {
 }
 
 export function thenSome$1ugl8af(self: boolean, t: rt.u64): rt.u64 | undefined {
-	if (!self) {
-		return undefined;
-	}
-	return t;
-}
-
-export function thenSome$0d5am30(self: boolean, t: rt.u8): rt.u8 | undefined {
 	if (!self) {
 		return undefined;
 	}
