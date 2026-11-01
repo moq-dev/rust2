@@ -663,7 +663,10 @@ fn put<'tcx>(
 		buf_method(b, call, ty, "chunk")?,
 		buf_method(b, call, ty, "advance")?,
 	);
-	let f = if through { "byteVecPutBufChunked" } else { "byteVecPutBuf" };
+	let f = match through {
+		true => "byteVecPutBufChunked",
+		false => "byteVecPutBuf",
+	};
 	Some(Expr::rt(f, vec![this, src, has, remaining, chunk, advance]))
 }
 

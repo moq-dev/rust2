@@ -282,7 +282,10 @@ pub fn writes(data: &[u8], out: &mut Vec<u8>) {
 	let cap = usize::from(*cap % 24);
 	let (mut vec, mut buf) = (Vec::with_capacity(cap), BytesMut::with_capacity(cap));
 	let (mut through_vec, mut through_buf) = (Vec::with_capacity(cap), BytesMut::with_capacity(cap));
-	let (mut boxed_vec, mut boxed_buf) = (Box::new(Vec::with_capacity(cap)), Box::new(BytesMut::with_capacity(cap)));
+	let (mut boxed_vec, mut boxed_buf) = (
+		Box::new(Vec::with_capacity(cap)),
+		Box::new(BytesMut::with_capacity(cap)),
+	);
 	// Each first in turn, so each one's panic is reached.
 	for i in 0..6 {
 		match first.wrapping_add(i) % 6 {
