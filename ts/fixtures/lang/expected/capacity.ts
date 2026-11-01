@@ -40,38 +40,38 @@ export function alternate(): () => boolean {
  * A `Vec` that `data`'s first byte makes, by `with_capacity` if odd, and each pair after
  * it changes, its length and capacity after each.
  */
-export function vecs(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function vecs(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const _5: rt.u8 = rt.u8Rem(kind, 5);
 	if (_5 === 0) {
-		vecSteps$u8(data, (b3: rt.u8): rt.u8 => {
+		vecSteps$u8(dataData, dataStart, dataLen, (b3: rt.u8): rt.u8 => {
 			return b3;
 		}, out);
 	} else if (_5 === 1) {
-		vecSteps$u16(data, (a0: rt.u8): rt.u16 => {
+		vecSteps$u16(dataData, dataStart, dataLen, (a0: rt.u8): rt.u16 => {
 			return a0 as rt.u16;
 		}, out);
 	} else if (_5 === 2) {
-		vecSteps$tuple2_u64_u8(data, (b2: rt.u8): [rt.u64, rt.u8] => {
+		vecSteps$tuple2_u64_u8(dataData, dataStart, dataLen, (b2: rt.u8): [rt.u64, rt.u8] => {
 			return [b2 as rt.u64, b2] as [rt.u64, rt.u8];
 		}, out);
 	} else if (_5 === 3) {
-		vecSteps$array160_u64(data, (b: rt.u8): rt.u64[] => {
+		vecSteps$array160_u64(dataData, dataStart, dataLen, (b: rt.u8): rt.u64[] => {
 			const _3: rt.u64 = b as rt.u64;
 			return Array.from({ length: 160 }, (): rt.u64 => {
 				return _3;
 			});
 		}, out);
 	} else {
-		vecSteps$unit(data, (_2: rt.u8): undefined => {}, out);
+		vecSteps$unit(dataData, dataStart, dataLen, (_2: rt.u8): undefined => {}, out);
 	}
 }
 
-export function vecSteps$array160_u64(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u64[], out: rt.ByteVec): void {
+export function vecSteps$array160_u64(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u64[], out: rt.ByteVec): void {
 	let v!: rt.u64[][];
 	let _131!: rt.u8;
 	const size: rt.usize = 1280;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -219,12 +219,12 @@ export function vecSteps$array160_u64(data: rt.ByteSlice, make: (a0: rt.u8) => r
 	}
 }
 
-export function vecSteps$tuple2_u64_u8(data: rt.ByteSlice, make: (a0: rt.u8) => [rt.u64, rt.u8], out: rt.ByteVec): void {
+export function vecSteps$tuple2_u64_u8(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => [rt.u64, rt.u8], out: rt.ByteVec): void {
 	let v!: [rt.u64, rt.u8][];
 	let _131!: rt.u8;
 	const size: rt.usize = 16;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -372,12 +372,12 @@ export function vecSteps$tuple2_u64_u8(data: rt.ByteSlice, make: (a0: rt.u8) => 
 	}
 }
 
-export function vecSteps$u16(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u16, out: rt.ByteVec): void {
+export function vecSteps$u16(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u16, out: rt.ByteVec): void {
 	let v!: rt.u16[];
 	let _131!: rt.u8;
 	const size: rt.usize = 2;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -525,12 +525,12 @@ export function vecSteps$u16(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u16, ou
 	}
 }
 
-export function vecSteps$u8(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u8, out: rt.ByteVec): void {
+export function vecSteps$u8(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u8, out: rt.ByteVec): void {
 	let v!: rt.ByteVec;
 	let _131!: rt.u8;
 	const size: rt.usize = 1;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -678,12 +678,12 @@ export function vecSteps$u8(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u8, out:
 	}
 }
 
-export function vecSteps$unit(data: rt.ByteSlice, make: (a0: rt.u8) => undefined, out: rt.ByteVec): void {
+export function vecSteps$unit(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => undefined, out: rt.ByteVec): void {
 	let v!: undefined[];
 	let _131!: rt.u8;
 	const size: rt.usize = 0;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -841,37 +841,37 @@ export function vecSteps$unit(data: rt.ByteSlice, make: (a0: rt.u8) => undefined
 }
 
 /** A `VecDeque`, as `vecs` steps a `Vec`. */
-export function deques(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function deques(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const _5: rt.u8 = rt.u8Rem(kind, 5);
 	if (_5 === 0) {
-		dequeSteps$u8(data, (b3: rt.u8): rt.u8 => {
+		dequeSteps$u8(dataData, dataStart, dataLen, (b3: rt.u8): rt.u8 => {
 			return b3;
 		}, out);
 	} else if (_5 === 1) {
-		dequeSteps$u16(data, (a0: rt.u8): rt.u16 => {
+		dequeSteps$u16(dataData, dataStart, dataLen, (a0: rt.u8): rt.u16 => {
 			return a0 as rt.u16;
 		}, out);
 	} else if (_5 === 2) {
-		dequeSteps$tuple2_u64_u8(data, (b2: rt.u8): [rt.u64, rt.u8] => {
+		dequeSteps$tuple2_u64_u8(dataData, dataStart, dataLen, (b2: rt.u8): [rt.u64, rt.u8] => {
 			return [b2 as rt.u64, b2] as [rt.u64, rt.u8];
 		}, out);
 	} else if (_5 === 3) {
-		dequeSteps$array160_u64(data, (b: rt.u8): rt.u64[] => {
+		dequeSteps$array160_u64(dataData, dataStart, dataLen, (b: rt.u8): rt.u64[] => {
 			const _3: rt.u64 = b as rt.u64;
 			return Array.from({ length: 160 }, (): rt.u64 => {
 				return _3;
 			});
 		}, out);
 	} else {
-		dequeSteps$unit(data, (_2: rt.u8): undefined => {}, out);
+		dequeSteps$unit(dataData, dataStart, dataLen, (_2: rt.u8): undefined => {}, out);
 	}
 }
 
-export function dequeSteps$array160_u64(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u64[], out: rt.ByteVec): void {
+export function dequeSteps$array160_u64(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u64[], out: rt.ByteVec): void {
 	let q!: rt.VecDeque<rt.u64[]>;
 	const size: rt.usize = 1280;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -946,11 +946,11 @@ export function dequeSteps$array160_u64(data: rt.ByteSlice, make: (a0: rt.u8) =>
 	}
 }
 
-export function dequeSteps$tuple2_u64_u8(data: rt.ByteSlice, make: (a0: rt.u8) => [rt.u64, rt.u8], out: rt.ByteVec): void {
+export function dequeSteps$tuple2_u64_u8(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => [rt.u64, rt.u8], out: rt.ByteVec): void {
 	let q!: rt.VecDeque<[rt.u64, rt.u8]>;
 	const size: rt.usize = 16;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1025,11 +1025,11 @@ export function dequeSteps$tuple2_u64_u8(data: rt.ByteSlice, make: (a0: rt.u8) =
 	}
 }
 
-export function dequeSteps$u16(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u16, out: rt.ByteVec): void {
+export function dequeSteps$u16(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u16, out: rt.ByteVec): void {
 	let q!: rt.VecDeque<rt.u16>;
 	const size: rt.usize = 2;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1104,11 +1104,11 @@ export function dequeSteps$u16(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u16, 
 	}
 }
 
-export function dequeSteps$u8(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u8, out: rt.ByteVec): void {
+export function dequeSteps$u8(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u8, out: rt.ByteVec): void {
 	let q!: rt.VecDeque<rt.u8>;
 	const size: rt.usize = 1;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1183,11 +1183,11 @@ export function dequeSteps$u8(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u8, ou
 	}
 }
 
-export function dequeSteps$unit(data: rt.ByteSlice, make: (a0: rt.u8) => undefined, out: rt.ByteVec): void {
+export function dequeSteps$unit(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => undefined, out: rt.ByteVec): void {
 	let q!: rt.VecDeque<undefined>;
 	const size: rt.usize = 0;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1273,37 +1273,37 @@ export function dequeSteps$unit(data: rt.ByteSlice, make: (a0: rt.u8) => undefin
 }
 
 /** A `BinaryHeap`, as `vecs` steps a `Vec`, and the `Vec` it gives up at the end. */
-export function heaps(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
+export function heaps(kind: rt.u8, dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const _5: rt.u8 = rt.u8Rem(kind, 5);
 	if (_5 === 0) {
-		heapSteps$u8(data, (b3: rt.u8): rt.u8 => {
+		heapSteps$u8(dataData, dataStart, dataLen, (b3: rt.u8): rt.u8 => {
 			return b3;
 		}, out);
 	} else if (_5 === 1) {
-		heapSteps$u16(data, (a0: rt.u8): rt.u16 => {
+		heapSteps$u16(dataData, dataStart, dataLen, (a0: rt.u8): rt.u16 => {
 			return a0 as rt.u16;
 		}, out);
 	} else if (_5 === 2) {
-		heapSteps$tuple2_u64_u8(data, (b2: rt.u8): [rt.u64, rt.u8] => {
+		heapSteps$tuple2_u64_u8(dataData, dataStart, dataLen, (b2: rt.u8): [rt.u64, rt.u8] => {
 			return [b2 as rt.u64, b2] as [rt.u64, rt.u8];
 		}, out);
 	} else if (_5 === 3) {
-		heapSteps$array160_u64(data, (b: rt.u8): rt.u64[] => {
+		heapSteps$array160_u64(dataData, dataStart, dataLen, (b: rt.u8): rt.u64[] => {
 			const _3: rt.u64 = b as rt.u64;
 			return Array.from({ length: 160 }, (): rt.u64 => {
 				return _3;
 			});
 		}, out);
 	} else {
-		heapSteps$unit(data, (_2: rt.u8): undefined => {}, out);
+		heapSteps$unit(dataData, dataStart, dataLen, (_2: rt.u8): undefined => {}, out);
 	}
 }
 
-export function heapSteps$array160_u64(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u64[], out: rt.ByteVec): void {
+export function heapSteps$array160_u64(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u64[], out: rt.ByteVec): void {
 	let h!: rt.BinaryHeap<rt.u64[]>;
 	const size: rt.usize = 1280;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1364,11 +1364,11 @@ export function heapSteps$array160_u64(data: rt.ByteSlice, make: (a0: rt.u8) => 
 	put(out, rt.vecCapacity(rt.heapIntoSortedVec(h, rt.cmpLe(rt.cmpSlice(rt.cmp)), rt.cmpGe(rt.cmpSlice(rt.cmp)), rt.cmpLt(rt.cmpSlice(rt.cmp))), 1280));
 }
 
-export function heapSteps$tuple2_u64_u8(data: rt.ByteSlice, make: (a0: rt.u8) => [rt.u64, rt.u8], out: rt.ByteVec): void {
+export function heapSteps$tuple2_u64_u8(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => [rt.u64, rt.u8], out: rt.ByteVec): void {
 	let h!: rt.BinaryHeap<[rt.u64, rt.u8]>;
 	const size: rt.usize = 16;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1429,11 +1429,11 @@ export function heapSteps$tuple2_u64_u8(data: rt.ByteSlice, make: (a0: rt.u8) =>
 	put(out, rt.vecCapacity(rt.heapIntoSortedVec(h, rt.cmpLe(rt.cmpTuple<[rt.u64, rt.u8], rt.Ordering | undefined>([rt.cmp, rt.cmp])), rt.cmpGe(rt.cmpTuple<[rt.u64, rt.u8], rt.Ordering | undefined>([rt.cmp, rt.cmp])), rt.cmpLt(rt.cmpTuple<[rt.u64, rt.u8], rt.Ordering | undefined>([rt.cmp, rt.cmp]))), 16));
 }
 
-export function heapSteps$u16(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u16, out: rt.ByteVec): void {
+export function heapSteps$u16(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u16, out: rt.ByteVec): void {
 	let h!: rt.BinaryHeap<rt.u16>;
 	const size: rt.usize = 2;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1494,11 +1494,11 @@ export function heapSteps$u16(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u16, o
 	put(out, rt.vecCapacity(rt.heapIntoSortedVec(h, rt.le, rt.ge, rt.lt), 2));
 }
 
-export function heapSteps$u8(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u8, out: rt.ByteVec): void {
+export function heapSteps$u8(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => rt.u8, out: rt.ByteVec): void {
 	let h!: rt.BinaryHeap<rt.u8>;
 	const size: rt.usize = 1;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];
@@ -1559,11 +1559,11 @@ export function heapSteps$u8(data: rt.ByteSlice, make: (a0: rt.u8) => rt.u8, out
 	put(out, rt.byteVecCapacity(rt.byteVecFromVec(rt.heapIntoSortedVec(h, rt.le, rt.ge, rt.lt))));
 }
 
-export function heapSteps$unit(data: rt.ByteSlice, make: (a0: rt.u8) => undefined, out: rt.ByteVec): void {
+export function heapSteps$unit(dataData: Uint8Array, dataStart: number, dataLen: number, make: (a0: rt.u8) => undefined, out: rt.ByteVec): void {
 	let h!: rt.BinaryHeap<undefined>;
 	const size: rt.usize = 0;
 	const _9: [rt.u8, rt.ByteSlice] = [0, rt.byteSliceRange(rt.byteSliceFrom(Uint8Array.of()), 0)];
-	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((data.length !== 0 ? [data.data[data.start], new rt.ByteSlice(data.data, data.start + 1, data.length - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
+	const _7: [rt.u8, rt.ByteSlice] = option_mapOr$1ttssgs((dataLen !== 0 ? [dataData[dataStart], new rt.ByteSlice(dataData, dataStart + 1, dataLen - 1)] as [rt.u8, rt.ByteSlice] : undefined) as [rt.u8, rt.ByteSlice] | undefined, _9, (_2: [rt.u8, rt.ByteSlice]): [rt.u8, rt.ByteSlice] => {
 		return [_2[0], _2[1]] as [rt.u8, rt.ByteSlice];
 	});
 	const first: rt.u8 = _7[0];

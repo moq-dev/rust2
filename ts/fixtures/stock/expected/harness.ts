@@ -106,7 +106,7 @@ export function slices(dataData: Uint8Array, dataStart: number, dataLen: number,
 		rt.byteVecPush(out, rt.byteSliceEq(part, bytes) ? 1 : 0);
 		rt.byteVecPush(out, rt.byteSliceEq(part, rt.byteSliceRange(part, 0)) ? 1 : 0);
 		rt.byteVecPush(out, rt.byteSliceEq(rt.bytesSlice(rt.bytesSlice(bytes, rt.min(a, dataLen - 3)), 0, 0), rt.bytesNew()) ? 1 : 0);
-		rt.byteVecExtendFromSlice(out, rt.byteVecSlice(rt.byteSliceToByteVec(part)));
+		rt.byteVecExtendFromSlice(out, rt.byteVecSlice(rt.bytesToByteVec(part)));
 	}
 }
 
