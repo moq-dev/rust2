@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- A function the config's roots don't name takes each `&[u8]` or `&[u8; N]` parameter
+  whose object its body never makes as its `data`, `start`, and `length`:
+  `read(buf, form)` is `read(buf.data, buf.start, buf.length, form)`. A caller takes
+  which from the output. One that returns a `Result` of byte slices
+  and scalars returns its error or `undefined`, and leaves the `Ok`'s parts in a
+  module-level slot, such as `sliceOut`. If the `Ok`'s first part is a number, it returns
+  that, or `undefined` for an error, and leaves the rest, or the error as `err`, in the
+  slot, such as `readOut`. A root still takes an `rt.ByteSlice` and returns
+  the `Result`.
 - `rt.btreeCollect` takes whether it sorts and the keys' `!ne` after the entries, and
   `rt.btreeCollectKeys` the keys' `PartialOrd::lt` and `!ne`, as in
   `rt.btreeCollect(m, entries, true, Key.eq$cmp_PartialEq)`; neither takes a test for keys
@@ -34,6 +43,10 @@
   `rt.charStep` too, to step past the surrogates. One of unsigned `NonZero`s takes
   `rt.nonZeroStep` of its integer's `Step` and maximum, as in
   `new rt.RangeInclusive(lo, hi, rt.nonZeroStep(rt.u8Step, 255))`.
+- A generic type's field holding a reference or pointer to what only an instance decides
+  the form of, such as `*mut T`, `NonNull<T>`, or `&'a mut T`, is an `rt.Ptr<T>`, the
+  object, an `rt.Place<T>`, or an `rt.ByteSlice`, rather than `rt.Place<T>` or `T`: a
+  caller reading one casts it to what its instance holds, as the output does.
 - A closure, a `fn` pointer, a `dyn Fn`, or a function item as a value returns
   `undefined` for `()`, not `void`, as in `(a0: rt.u8) => undefined`: a caller passes such
   a parameter a function typed `=> undefined`.

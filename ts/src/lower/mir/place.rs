@@ -441,11 +441,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 
 	/// `base`, a `ty`, cast to its `variant`, which MIR reads without a switch where the
 	/// others can't be, as a derived `==` reads the other operand after comparing
-	/// discriminants. `tsc` narrows only what a switch tests.
+	/// discriminants. `tsc` narrows only what a switch tests, and nothing read through a
+	/// cast, as a generic type's `rt.Ptr` field is read as its instance's type.
 	fn as_variant(&mut self, base: Expr, ty: Ty<'tcx>, variant: VariantIdx, span: Span) -> Expr {
 		match ty.kind() {
 			ty::Adt(adt, _)
-				if self.b.t.crates.translates(adt.did()) || Std::of(self.tcx, adt.did()) == Some(Std::Result) =>
+				if self.b.t.crates.translates(adt.did())
+					|| Std::of(self.tcx, adt.did()) == Some(Std::Result)
+					|| matches!(base, Expr::As(..)) =>
 			{
 				match self.variant_ty(ty, variant, span) {
 					Some(variant) => Expr::As(Box::new(base), variant),
@@ -610,18 +613,18 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				_ if transparent(self.b.t, ty) || crate::lower::library::wrapped(tcx, ty).is_some() => base,
 				None if self.b.t.own(adt.did()) => {
 					let info = self.b.t.adt(*adt, span);
-					match info.repr {
+					let def = &adt.variant(variant.unwrap_or(rustc_abi::FIRST_VARIANT)).fields[field];
+					let read = match info.repr {
 						AdtRepr::Struct { fields, .. } => base.field(fields[field.index()]),
 						AdtRepr::Slots(_) => {
-							self.err(span, format!("a field of union `{ty}` read apart from its place"))
+							return self.err(span, format!("a field of union `{ty}` read apart from its place"));
 						}
 						AdtRepr::Union | AdtRepr::Tags => {
-							let variant = variant.unwrap_or(rustc_abi::FIRST_VARIANT);
-							let def = &adt.variant(variant).fields[field];
-							let name = crate::lower::field_name(def.name.as_str(), field.index());
-							base.member(name)
+							base.member(crate::lower::field_name(def.name.as_str(), field.index()))
 						}
-					}
+					};
+					let ty::Adt(_, args) = ty.kind() else { unreachable!() };
+					self.b.t.held_field(read, def.did, args, span)
 				}
 				_ => self.err(span, format!("a field of `{ty}`")),
 			},
@@ -1021,8 +1024,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		Expr::rt("place", vec![get, set])
 	}
 
-	/// The `rt.Place` of `place`, a reborrow `&mut *r` of a reference `r` that is one, which is `r`'s.
-	/// A shared reborrow `&*r` is what `r` points at instead.
+	/// The `rt.Place` of `place`, a reborrow `&mut *r` of a reference or pointer `r` that is
+	/// one, which is `r`'s. A shared reborrow `&*r` is what `r` points at instead, and so is
+	/// a `&mut` to an object that a pointer to is a place, such as a `Cell`.
 	pub(super) fn reborrowed(
 		&mut self,
 		kind: mir::BorrowKind,
@@ -1030,7 +1034,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		span: Span,
 		out: &mut Vec<Stmt>,
 	) -> Option<Expr> {
-		if !matches!(kind, mir::BorrowKind::Mut { .. }) {
+		if !matches!(kind, mir::BorrowKind::Mut { .. })
+			|| !self.b.t.needs_place(place.ty(&self.mir.local_decls, self.tcx).ty)
+		{
 			return None;
 		}
 		let [rest @ .., ProjectionElem::Deref] = place.projection.as_slice() else {
@@ -1857,17 +1863,22 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	/// place read through a reference to a place this body borrows is that place.
 	pub(super) fn out_of_step(&self, place: Place<'tcx>, cells: bool) -> Option<String> {
 		self.borrowed_places(place).into_iter().find_map(|place| {
-			self.parts_out_of_step(place, cells)
+			self.parts_out_of_step(place, cells, false)
 				.or_else(|| self.reassigned(place, cells))
 		})
 	}
 
 	/// Why a reference made of `place` here would not keep pointing where Rust's does, if
 	/// a raw pointer the crate's code can't follow back here may be made through it, as
-	/// one a callee takes and returns, into a part JS keeps as an object: the variable it
-	/// is in, or a part on its path, assigned again while the reference, or what is made of
-	/// it, may still be read, as [`Self::out_of_step`] judges the pointer.
-	pub(super) fn lent_out_of_step(&self, place: Place<'tcx>) -> Option<String> {
+	/// one a callee takes and returns, into a part JS keeps as an object that holds an
+	/// `UnsafeCell`, as [`Self::out_of_step`] judges the pointer: a part on its path that
+	/// the crate, here or in any other body, may put another object in place of, or the
+	/// variable it is in assigned again while the reference, or what is made of it, may
+	/// still be read. A read through a pointer into any other part after is undefined. A
+	/// part is not judged for `reference`, what holds the reference, read only by std: to
+	/// make a raw pointer of it, which [`Self::made_out_of_step`] judges, or to give what
+	/// it points at another value, which keeps no pointer.
+	pub(super) fn lent_out_of_step(&self, place: Place<'tcx>, reference: Place<'tcx>) -> Option<String> {
 		let ty = place.ty(&self.mir.local_decls, self.tcx).ty;
 		if !self
 			.b
@@ -1876,13 +1887,37 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		{
 			return None;
 		}
-		let assigned = self
-			.borrowed_places(place)
-			.into_iter()
-			.any(|place| self.assigned_after(place, past_pointers(place)));
-		assigned.then(|| {
-			format!("a reference to `{ty}`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there")
+		let by_std = reference.as_local().is_some_and(|local| self.read_by_std(local));
+		self.borrowed_places(place).into_iter().find_map(|place| {
+			(!by_std)
+				.then(|| self.parts_out_of_step(place, true, true))
+				.flatten()
+				.or_else(|| {
+				self.assigned_after(place, past_pointers(place)).then(|| {
+					format!("a reference to `{ty}`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there")
+				})
+			})
 		})
+	}
+
+	/// Whether `local` is read once, as the reference std makes a raw pointer of, or as
+	/// one `mem::replace`, `swap`, or `take` gives what it points at another value through.
+	fn read_by_std(&self, local: Local) -> bool {
+		use crate::lower::pointer::{from_reference, rebinds};
+		self.uses[local] == 1
+			&& self.mir.basic_blocks.iter().any(|data| {
+				let mir::TerminatorKind::Call { func, args, .. } = &data.terminator().kind else {
+					return false;
+				};
+				let Some((def_id, gargs)) = func.const_fn_def() else {
+					return false;
+				};
+				let given = args
+					.iter()
+					.position(|a| a.node.place().and_then(|p| p.as_local()) == Some(local));
+				given
+					.is_some_and(|i| i == 0 && from_reference(self.tcx, def_id, gargs) || i < rebinds(self.tcx, def_id))
+			})
 	}
 
 	/// The places a pointer made of `place` here may point into, as
@@ -1895,9 +1930,11 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 
 	/// Why a raw pointer to `place`, read through no borrow of this body's, would not keep
 	/// pointing where Rust's does by a part on its path past its last pointer, if it would
-	/// not: one in an element, a payload, a union field, or an object the crate may give
-	/// another in its place.
-	fn parts_out_of_step(&self, place: Place<'tcx>, cells: bool) -> Option<String> {
+	/// not: one in a payload, a union field, or an object the crate may give another in its
+	/// place, or one in an element unless `lent`. With `lent`, the pointer is one a
+	/// callee may make through a reference to `place`, of the object there, and so of no
+	/// other element.
+	fn parts_out_of_step(&self, place: Place<'tcx>, cells: bool, lent: bool) -> Option<String> {
 		let (tcx, decls, t) = (self.tcx, &self.mir.local_decls, &self.b.t);
 		let elems = place.projection.as_slice();
 		let start = past_pointers(place);
@@ -1911,21 +1948,40 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				) {
 				continue;
 			}
-			let field = matches!(elems[i], ProjectionElem::Field(..))
-				&& matches!(base.kind(), ty::Tuple(_) | ty::Adt(..))
-				&& !base.is_union()
-				&& !base.is_enum()
-				&& elems[..i]
-					.last()
-					.is_none_or(|e| !matches!(e, ProjectionElem::Downcast(..)));
-			if !field {
+			let at = match elems[i] {
+				ProjectionElem::Field(field, _)
+					if matches!(base.kind(), ty::Tuple(_) | ty::Adt(..))
+						&& !base.is_union()
+						&& !base.is_enum()
+						&& elems[..i]
+							.last()
+							.is_none_or(|e| !matches!(e, ProjectionElem::Downcast(..))) =>
+				{
+					Some(Some(field))
+				}
+				// A view of its base's bytes, which is no object of its own.
+				ProjectionElem::Subslice { .. } if lent && (byte_array(ty) || byte_slice(ty)) => {
+					continue;
+				}
+				ProjectionElem::Index(_) | ProjectionElem::ConstantIndex { .. } | ProjectionElem::Subslice { .. }
+					if lent =>
+				{
+					Some(None)
+				}
+				_ => None,
+			};
+			let what = match lent {
+				true => format!("a reference through which a raw pointer may be made into `{ty}`"),
+				false => format!("a raw pointer to `{ty}`"),
+			};
+			let Some(at) = at else {
 				return Some(format!(
-					"a raw pointer to `{ty}` in an element, a payload, or a union field, which is not supported yet"
+					"{what} in an element, a payload, or a union field, which is not supported yet"
 				));
-			}
-			if t.replaced(base) {
+			};
+			if t.replaced(base, at) {
 				return Some(format!(
-					"a raw pointer to `{ty}` in `{base}`, which the crate may put another object in place of"
+					"{what} in `{base}`, which the crate may put another object in place of"
 				));
 			}
 		}

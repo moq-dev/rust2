@@ -50,6 +50,8 @@ pub fn translate<'tcx>(tcx: TyCtxt<'tcx>, config: &Config) -> Option<Program> {
 		for path in &config.printable {
 			t.printable(path);
 		}
+		// What the outside calls takes its arguments whole.
+		t.roots = t.instances.keys().copied().collect();
 		t.drain();
 	})?;
 	for (span, msg) in t.refusals.take().unwrap_or_default() {
@@ -191,6 +193,10 @@ pub struct Translator<'a, 'tcx> {
 	instances: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, SymId>,
 	queue: VecDeque<(Instance<'tcx>, SymId)>,
 	adts: rustc_data_structures::fx::FxHashMap<DefId, Adt>,
+	/// The fields of generic types whose definition types a pointer as an `rt.Ptr`, which
+	/// an instance's read casts to what it holds, with that type where a function type in
+	/// it takes one, which an instance's value is cast to.
+	ptr_fields: rustc_data_structures::fx::FxHashMap<DefId, Option<Type>>,
 	/// Source files by name, as indexes into `program.sources`.
 	sources: rustc_data_structures::fx::FxHashMap<String, Option<u32>>,
 	failed: bool,
@@ -230,6 +236,11 @@ pub struct Translator<'a, 'tcx> {
 	cloned: rustc_data_structures::fx::FxHashSet<DefId>,
 	/// Those this run reached.
 	cloning: rustc_data_structures::fx::FxHashSet<DefId>,
+	/// The types with no `UnsafeCell` whose pointers the runs before compared, into which
+	/// a callee may keep a pointer through a reference.
+	compared: rustc_data_structures::fx::FxHashSet<Ty<'tcx>>,
+	/// Those this run compared.
+	comparing: rustc_data_structures::fx::FxHashSet<Ty<'tcx>>,
 	/// The trait of each trait object, by its principal trait.
 	objects: rustc_data_structures::fx::FxHashMap<DefId, dynamic::Object>,
 	/// The class wrapping each type as each trait object.
@@ -245,6 +256,16 @@ pub struct Translator<'a, 'tcx> {
 	site: Option<(Span, DefId)>,
 	/// The hand-written TypeScript the config binds items to.
 	bindings: bind::Bindings<'tcx>,
+	/// The instances the config's roots name, which the outside calls.
+	roots: rustc_data_structures::fx::FxHashSet<Instance<'tcx>>,
+	/// Which parameters each instance takes as a byte slice's parts, by [`Self::parted`].
+	parted: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, Vec<bool>>,
+	/// While [`Self::parted`] settles, each instance it reached, with its guess so far.
+	parting: Option<rustc_data_structures::fx::FxIndexMap<Instance<'tcx>, Vec<bool>>>,
+	/// Where each instance hands back its `Ok`'s parts, if it does, by [`Self::slotted`].
+	slotted: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, Option<mir::Slotted<'tcx>>>,
+	/// The slot of each `Ok` payload type, which every function returning one shares.
+	slots: rustc_data_structures::fx::FxHashMap<Ty<'tcx>, SymId>,
 }
 
 /// The crates that translate as one program: the package, and every crate it depends on
@@ -356,7 +377,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// it knows once it has reached them. So it runs again while it reaches a body whose
 	/// writes it didn't read, or an instance of one writing a type parameter that it didn't
 	/// judge by. A closure's clone may come before or after the closure is made, which
-	/// makes it as its clones need, so it runs again too when it reaches a new one.
+	/// makes it as its clones need, so it runs again too when it reaches a new one, and a
+	/// comparison of pointers may come before or after the borrows it decides.
 	fn settle<R>(
 		tcx: TyCtxt<'tcx>,
 		config: &'a Config,
@@ -365,8 +387,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	) -> Option<(Self, R)> {
 		let mut read = rustc_data_structures::fx::FxHashSet::default();
 		let mut cloned = rustc_data_structures::fx::FxHashSet::default();
+		let mut compared = rustc_data_structures::fx::FxHashSet::default();
 		loop {
-			let mut t = Self::new(tcx, config, census, read, cloned)?;
+			let mut t = Self::new(tcx, config, census, read, cloned, compared)?;
 			t.bind();
 			let out = reach(&mut t);
 			let reached: Vec<Instance<'tcx>> = t
@@ -376,13 +399,15 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				.copied()
 				.filter(|&instance| t.crates.translates(instance.def_id()) && t.writes.unread(instance))
 				.collect();
-			if reached.is_empty() && t.cloning.is_subset(&t.cloned) {
+			if reached.is_empty() && t.cloning.is_subset(&t.cloned) && t.comparing.is_subset(&t.compared) {
 				return Some((t, out));
 			}
 			read = std::mem::take(&mut t.read);
 			read.extend(reached);
 			cloned = std::mem::take(&mut t.cloned);
 			cloned.extend(t.cloning.drain());
+			compared = std::mem::take(&mut t.compared);
+			compared.extend(t.comparing.drain());
 		}
 	}
 
@@ -403,6 +428,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		census: bool,
 		read: rustc_data_structures::fx::FxHashSet<Instance<'tcx>>,
 		cloned: rustc_data_structures::fx::FxHashSet<DefId>,
+		compared: rustc_data_structures::fx::FxHashSet<Ty<'tcx>>,
 	) -> Option<Self> {
 		if tcx.data_layout.pointer_size().bits() != 32 {
 			tcx.dcx().err(
@@ -418,6 +444,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			instances: Default::default(),
 			queue: VecDeque::new(),
 			adts: Default::default(),
+			ptr_fields: Default::default(),
 			sources: Default::default(),
 			failed: false,
 			env: TypingEnv::fully_monomorphized(),
@@ -441,10 +468,17 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			lowered: Default::default(),
 			cloned,
 			cloning: Default::default(),
+			compared,
+			comparing: Default::default(),
 			held: false,
 			sites: Default::default(),
 			site: None,
 			bindings: Default::default(),
+			roots: Default::default(),
+			parted: Default::default(),
+			parting: None,
+			slotted: Default::default(),
+			slots: Default::default(),
 		})
 	}
 
@@ -897,19 +931,20 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// crate's own or std's from its MIR, rather than a mapping.
 	pub fn translated(&self, def_id: DefId, args: GenericArgsRef<'tcx>) -> bool {
 		match Instance::try_resolve(self.tcx, self.typing_env(), def_id, args) {
-			Ok(Some(instance)) => self.lowers(instance) || self.dispatches(instance),
+			Ok(Some(instance)) => self.lowers(self.typing_env(), instance) || self.dispatches(instance),
 			_ => false,
 		}
 	}
 
 	/// Whether `instance`'s body lowers from its MIR: the crate's own function, unless a
-	/// binding stands in for it, or one of std's that `library` leaves to its MIR.
-	pub fn lowers(&self, instance: Instance<'tcx>) -> bool {
+	/// binding stands in for it, or one of std's that `library` leaves to its MIR. `env`
+	/// holds the bounds of the body naming `instance`.
+	pub fn lowers(&self, env: TypingEnv<'tcx>, instance: Instance<'tcx>) -> bool {
 		match instance.def {
 			InstanceKind::Item(did) => {
 				self.bound_module(instance).is_none()
 					&& ((self.crates.translates(did) && !stock::maps(self.tcx, instance))
-						|| library::from_mir(self, instance))
+						|| library::from_mir(self, env, instance))
 			}
 			_ => false,
 		}
@@ -920,7 +955,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	pub fn mapped(&self, def_id: DefId, args: GenericArgsRef<'tcx>) -> bool {
 		match Instance::try_resolve(self.tcx, self.typing_env(), def_id, args) {
 			Ok(Some(instance)) => {
-				!self.lowers(instance) && !self.dispatches(instance) && self.bound_module(instance).is_none()
+				!self.lowers(self.typing_env(), instance)
+					&& !self.dispatches(instance)
+					&& self.bound_module(instance).is_none()
 			}
 			_ => true,
 		}
@@ -1034,7 +1071,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						let span = tcx.def_span(field.did);
 						ts::Field {
 							id,
-							ty: self.ty(field.ty(tcx, identity).skip_norm_wip(), span),
+							ty: self.defined_field_ty(field, identity, span),
 							doc: self.doc(field.did),
 							init: ts::FieldInit::Ctor,
 						}
@@ -1078,7 +1115,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						let mut fields = vec![("tag".to_string(), Type::StrLit(v.name.to_string()))];
 						for (i, field) in v.fields.iter().enumerate() {
 							let span = tcx.def_span(field.did);
-							let ty = self.ty(field.ty(tcx, identity).skip_norm_wip(), span);
+							let ty = self.defined_field_ty(field, identity, span);
 							fields.push((field_name(field.name.as_str(), i), ty));
 						}
 						Type::Object(fields)
@@ -1168,6 +1205,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					| library::Std::BTreeMap
 					| library::Std::BTreeSet
 					| library::Std::VecDeque
+					| library::Std::LinkedList
 					| library::Std::BinaryHeap
 					| library::Std::PeekMut
 					| library::Std::Entry
@@ -1256,6 +1294,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			ty::Never => Type::Builtin("never"),
 			ty::Tuple(tys) if tys.is_empty() => Type::Builtin("undefined"),
 			ty::Tuple(tys) => Type::Tuple(tys.iter().map(|t| self.ty(t, span)).collect()),
+			ty::Ref(_, inner, _) if self.instance_pointee(*inner) => Type::Rt("Ptr", vec![self.ty(*inner, span)]),
 			ty::Ref(_, inner, rustc_ast::Mutability::Mut) if self.needs_place(*inner) => {
 				Type::Rt("Place", vec![self.ty(*inner, span)])
 			}
@@ -1527,6 +1566,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				| library::Std::HashSet
 				| library::Std::BTreeSet
 				| library::Std::VecDeque
+				| library::Std::LinkedList
 				| library::Std::BinaryHeap
 				| library::Std::PeekMut => {
 					let (name, n) = match std {
@@ -1537,6 +1577,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 						library::Std::BTreeSet => ("BTreeSet", 1),
 						library::Std::BinaryHeap => ("BinaryHeap", 1),
 						library::Std::PeekMut => ("PeekMut", 1),
+						library::Std::LinkedList => ("LinkedList", 1),
 						_ => ("VecDeque", 1),
 					};
 					let tys: Vec<Ty<'tcx>> = args.types().take(n).collect();
@@ -1593,6 +1634,54 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		}
 		let args = args.types().map(|t| self.ty(t, span)).collect();
 		Type::Sym(info.sym, args)
+	}
+
+	/// The TypeScript type of `field` in its type's definition, with `identity` its own
+	/// parameters, noting a field that holds an `rt.Ptr` for [`Self::held_field`].
+	fn defined_field_ty(&mut self, field: &ty::FieldDef, identity: GenericArgsRef<'tcx>, span: Span) -> Type {
+		let ty = self.ty(field.ty(self.tcx, identity).skip_norm_wip(), span);
+		let ptr = |t: &Type| matches!(t, Type::Rt("Ptr", _));
+		if ty.any(&ptr) {
+			self.ptr_fields.insert(field.did, ty.takes(&ptr).then(|| ty.clone()));
+		}
+		ty
+	}
+
+	/// `value`, for `field` of an instance of `adt` with `args`, cast to the field's type in
+	/// the definition at those arguments where a function type in it takes an `rt.Ptr`: a
+	/// function taking what the instance's pointer is takes no other form of one.
+	pub fn field_value(
+		&mut self,
+		value: ts::Expr,
+		adt: DefId,
+		field: DefId,
+		args: GenericArgsRef<'tcx>,
+		span: Span,
+	) -> ts::Expr {
+		let Some(Some(defined)) = self.ptr_fields.get(&field).cloned() else {
+			return value;
+		};
+		let params: Vec<(String, Type)> = (self.tcx.generics_of(adt).own_params.iter())
+			.filter(|param| matches!(param.kind, ty::GenericParamDefKind::Type { .. }))
+			.map(|param| {
+				(
+					param.name.to_string(),
+					self.ty(args.type_at(param.index as usize), span),
+				)
+			})
+			.collect();
+		let at = defined.subst(&|name| params.iter().find(|(p, _)| p == name).map(|(_, t)| t.clone()));
+		ts::Expr::As(Box::new(value), at)
+	}
+
+	/// `read`, of `field` of an instance with `args`, cast to what the instance holds there
+	/// where the definition types a pointer in it as an `rt.Ptr`.
+	pub fn held_field(&mut self, read: ts::Expr, field: DefId, args: GenericArgsRef<'tcx>, span: Span) -> ts::Expr {
+		if !self.ptr_fields.contains_key(&field) {
+			return read;
+		}
+		let ty = self.field_ty(field, args);
+		ts::Expr::As(Box::new(read), self.ty(ty, span))
 	}
 
 	/// Why an instance of the crate's generic `adt` with `args` can't hold its fields' values,
@@ -1759,7 +1848,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			self.err(span, format!("unsupported function `{}`", tcx.def_path_str(def_id)));
 			return;
 		};
-		if !self.lowers(instance) {
+		if !self.lowers(self.typing_env(), instance) {
 			self.err(span, format!("`{}` is from another crate", tcx.def_path_str(def_id)));
 			return;
 		}

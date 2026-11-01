@@ -112,6 +112,12 @@ export const DANGLING: never = /* @__PURE__ */ Object.freeze({}) as never;
 export const DANGLING_UNIT: Place<undefined> = { v: undefined };
 
 /**
+ * A generic type's pointer or reference to a `T` that only an instance decides: the object,
+ * the `Place` of a value JS copies, or the `ByteSlice` of a `[u8; N]`'s bytes.
+ */
+export type Ptr<T> = T | Place<T> | ByteSlice;
+
+/**
  * `ptr::write` of `value` through a pointer to an object: `value` copied into it, one
  * object deep, so every pointer to it sees the write.
  */
@@ -1824,6 +1830,12 @@ export type IterWrap = string | readonly [name: string, field: string];
 /** `Debug` of one of std's iterators: the items `it` has left, as a list inside `wraps`, outermost first. */
 export function fmtIter<T>(it: Iter<unknown>, f: Formatter, debug: Debug<T>, wraps: readonly IterWrap[] = []): FmtResult {
 	return wrapIn(f, wraps, (f) => fmtList(it.remaining() as Iterable<T>, f, debug));
+}
+
+/** `Debug` of a `LinkedList`'s `Iter` or `IterMut`, `name`: the list it has left, then its length by `len`. */
+export function fmtListIter<T>(it: Iter<unknown>, f: Formatter, debug: Debug<T>, len: Debug<usize>, name: string): FmtResult {
+	const list: Fmt = (f) => fmtList(it.remaining() as Iterable<T>, f, debug);
+	return fmtDebugTupleFields(f, name, [list, (f) => len(it.len(), f)]);
 }
 
 function wrapIn(f: Formatter, wraps: readonly IterWrap[], inner: Fmt): FmtResult {

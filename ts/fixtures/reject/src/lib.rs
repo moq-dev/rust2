@@ -2,7 +2,7 @@
 //! output is written.
 
 #![allow(dead_code, reason = "each item is a translation root, not called from Rust")]
-#![feature(cow_is_borrowed, f16, is_ascii_octdigit)]
+#![feature(cow_is_borrowed, extend_one, f16, is_ascii_octdigit, linked_list_retain)]
 
 pub fn float(a: f16) -> f16 {
 	a * 2.0
@@ -1259,26 +1259,26 @@ pub fn pushed_part_kept(n: u16) -> u16 {
 	unsafe { (*part).0 }
 }
 
-/// A collection of the crate's own, which std's tuple impls extend by its `extend_one`.
+/// A collection of the crate's own that overrides `extend_one`, which a tuple's `Extend`
+/// calls, as only a nightly crate can.
 #[derive(Default)]
-pub struct Tally(pub u8);
+pub struct Tens(pub u8);
 
-impl Extend<u8> for Tally {
+impl Extend<u8> for Tens {
 	fn extend<I: IntoIterator<Item = u8>>(&mut self, iter: I) {
 		for b in iter {
 			self.0 = self.0.wrapping_add(b);
 		}
 	}
+
+	fn extend_one(&mut self, item: u8) {
+		self.0 = self.0.wrapping_add(item).wrapping_mul(10);
+	}
 }
 
-/// A tuple of collections, one of them the crate's own.
-pub fn tallied(data: &[u8]) -> (Vec<u8>, Tally) {
+/// A tuple of collections, one of them the crate's own that overrides `extend_one`.
+pub fn tens(data: &[u8]) -> (Vec<u8>, Tens) {
 	data.iter().map(|&b| (b, b)).collect()
-}
-
-/// A 1-tuple of the crate's own collection, which std's impl extends by its `extend`.
-pub fn tallied_alone(data: &[u8]) -> (Tally,) {
-	data.iter().map(|&b| (b,)).collect()
 }
 
 /// `u8`'s unstable ASCII methods are not translated.
@@ -1640,108 +1640,17 @@ pub fn key_taken(n: u16) -> u16 {
 	unsafe { *part }
 }
 
-/// A `String`'s case changed where a tuple holds it, through a `&mut str` to an element
-/// JS copies, which is no path to write it back to.
-pub fn ascii_in_tuple(mut pair: (u8, String)) -> String {
-	pair.1.make_ascii_uppercase();
-	pair.1
+/// A `str`'s UTF-8 written as bytes, or a part of it unchecked.
+pub fn str_bytes_mut(s: &mut str) {
+	unsafe { s.as_bytes_mut()[0] = b'a' };
+	unsafe { s.get_unchecked_mut(..1) }.make_ascii_uppercase();
 }
 
-/// Part of a `String` changed in place, which a JS string can't be.
-pub fn ascii_part(mut s: String) -> String {
-	s[1..].make_ascii_uppercase();
-	s
-}
-
-pub struct Owned(pub u32, pub u32);
-
-fn owned_of(k: &mut Owned) -> *mut Owned {
-	&raw mut *k
-}
-
-/// A pointer a callee returns, taken through a reference to a variable's object, which
-/// the caller's assignment of the variable replaces.
-pub fn returned_rebound(n: u32) -> u32 {
-	let mut k = Owned(n, n);
-	let p = owned_of(&mut k);
-	k = Owned(0, 0);
-	unsafe { (*p).0 + k.1 }
-}
-
-pub struct Stored(pub u32);
-
-fn store_into(s: &mut Stored, slot: &mut *mut Stored) {
-	*slot = &raw mut *s;
-}
-
-/// A pointer a callee keeps behind a pointer, which the caller's `mem::replace` of the
-/// variable replaces.
-pub fn stored_rebound(n: u32) -> u32 {
-	let mut s = Stored(n);
-	let mut p = std::ptr::null_mut();
-	store_into(&mut s, &mut p);
-	let old = std::mem::replace(&mut s, Stored(0));
-	unsafe { (*p).0 + old.0 }
-}
-
-pub struct Passed(pub u32);
-
-fn pass_on(s: &mut Passed, kept: &mut Vec<*mut Passed>) {
-	kept.push(&raw mut *s);
-}
-
-/// A pointer a callee gives a call that keeps it, which the caller's assignment of the
-/// variable replaces.
-pub fn passed_rebound(n: u32) -> u32 {
-	let mut s = Passed(n);
-	let mut kept = Vec::new();
-	pass_on(&mut s, &mut kept);
-	s = Passed(0);
-	unsafe { (*kept[0]).0 + s.0 }
-}
-
-pub struct Counter {
-	pub count: u32,
-}
-
-fn count_of(t: &mut Counter) -> *mut u32 {
-	&raw mut t.count
-}
-
-/// A pointer a callee returns to a number in a variable's object, which the caller's
-/// assignment of the variable replaces.
-pub fn field_rebound(n: u32) -> u32 {
-	let mut t = Counter { count: n };
-	let p = count_of(&mut t);
-	t = Counter { count: 0 };
-	unsafe { *p + t.count }
-}
-
-pub struct Nest {
-	pub mid: Middle,
-}
-
-pub struct Middle {
-	pub inner: Core,
-}
-
-pub struct Core(pub u32);
-
-fn core_of(i: &mut Core) -> *mut Core {
-	&raw mut *i
-}
-
-/// A pointer a callee returns into a part of a variable, which the caller's assignment of
-/// the whole variable replaces.
-pub fn part_rebound(n: u32) -> u32 {
-	let mut d = Nest {
-		mid: Middle { inner: Core(n) },
-	};
-	let p = core_of(&mut d.mid.inner);
-	d = Nest {
-		mid: Middle { inner: Core(0) },
-	};
-	unsafe { (*p).0 + d.mid.inner.0 }
+/// Bytes written through a `&mut str` to them, which no JS string is.
+pub fn str_from_bytes_mut(bytes: &mut [u8]) {
+	if let Ok(text) = std::str::from_utf8_mut(bytes) {
+		text.make_ascii_uppercase();
+	}
 }
 
 fn cell_of(c: &std::cell::UnsafeCell<u64>) -> *mut u64 {
@@ -1782,22 +1691,6 @@ pub fn swap_retargeted(n: u32) -> u32 {
 	let p = &raw mut *r;
 	b = (0, 0);
 	unsafe { (*p).0 + b.0 + a.0 }
-}
-
-pub struct Picked(pub u32);
-
-fn pick<'a>(a: &'a mut Picked, b: &'a mut Picked, first: bool) -> &'a mut Picked {
-	if first { a } else { b }
-}
-
-/// A pointer through a reference a call picks between two variables, one of which an
-/// assignment then replaces.
-pub fn picked_rebound(n: u32) -> u32 {
-	let mut a = Picked(n);
-	let mut b = Picked(n);
-	let p = &raw mut *pick(&mut a, &mut b, n > 1);
-	a = Picked(0);
-	unsafe { (*p).0 + a.0 + b.0 }
 }
 
 /// A pointer through a reference a loop's `mem::swap`s may point at either variable, one
@@ -1853,33 +1746,405 @@ pub fn byte_pointer_rebound(n: u8) -> u8 {
 	unsafe { (*p)[0] + (*q)[1] + a[2] }
 }
 
-pub struct Behind(pub u32);
+pub struct Behind(pub std::cell::Cell<u32>);
 
-fn read_behind(b: &mut Behind) -> *mut Behind {
-	let p = &raw mut *b;
+fn read_behind(b: &Behind) -> *const Behind {
+	let p = &raw const *b;
 	let held = (p,);
 	unsafe { std::ptr::read(&raw const held).0 }
 }
 
 /// A pointer a callee reads back through a pointer to where it put it, which the read
-/// holds, and returns.
+/// holds, and returns, to a cell the caller's assignment replaces.
 pub fn read_behind_rebound(n: u32) -> u32 {
-	let mut b = Behind(n);
-	let p = read_behind(&mut b);
-	b = Behind(0);
-	unsafe { (*p).0 + b.0 }
+	let mut b = Behind(std::cell::Cell::new(n));
+	let p = read_behind(&b);
+	b = Behind(std::cell::Cell::new(0));
+	unsafe { (*p).0.get() + b.0.get() }
 }
 
-pub struct Unboxed(pub u32);
+pub struct Unboxed(pub std::cell::Cell<u32>);
 
-fn unbox(u: &mut Unboxed) -> *mut Unboxed {
-	*Box::leak(Box::new(&raw mut *u))
+fn unbox(u: &Unboxed) -> *const Unboxed {
+	*Box::leak(Box::new(&raw const *u))
 }
 
-/// A pointer a callee reads back out of a box it put it in, and returns.
+/// A pointer a callee reads back out of a box it put it in, and returns, to a cell the
+/// caller's assignment replaces.
 pub fn unboxed_rebound(n: u32) -> u32 {
-	let mut u = Unboxed(n);
-	let p = unbox(&mut u);
-	u = Unboxed(0);
-	unsafe { (*p).0 + u.0 }
+	let mut u = Unboxed(std::cell::Cell::new(n));
+	let p = unbox(&u);
+	u = Unboxed(std::cell::Cell::new(0));
+	unsafe { (*p).0.get() + u.0.get() }
+}
+
+pub struct Deep {
+	pub mid: DeepMid,
+}
+
+pub struct DeepMid(pub u8, pub std::cell::UnsafeCell<u32>);
+
+fn deep_of(d: &Deep) -> *mut u32 {
+	d.mid.1.get()
+}
+
+/// A pointer a callee makes into a cell two structs deep, which the caller's assignment
+/// of the outer one replaces.
+pub fn deep_cell_rebound(n: u32) -> u32 {
+	let mut d = Deep {
+		mid: DeepMid(1, std::cell::UnsafeCell::new(n)),
+	};
+	let p = deep_of(&d);
+	d = Deep {
+		mid: DeepMid(2, std::cell::UnsafeCell::new(0)),
+	};
+	unsafe { *p + d.mid.0 as u32 }
+}
+
+pub enum Slot {
+	Empty,
+	Full(std::cell::Cell<u32>),
+}
+
+pub struct Slotted(pub Slot);
+
+fn slotted_of(s: &Slotted) -> *const Slotted {
+	&raw const *s
+}
+
+/// A pointer a callee makes to a struct whose only cell is in an enum's payload, which
+/// the caller's assignment replaces.
+pub fn payload_cell_rebound(n: u32) -> u32 {
+	let mut s = Slotted(Slot::Full(std::cell::Cell::new(n)));
+	let p = slotted_of(&s);
+	s = Slotted(Slot::Empty);
+	let rest = matches!(s.0, Slot::Empty) as u32;
+	match unsafe { &(*p).0 } {
+		Slot::Full(c) => c.get() + rest,
+		Slot::Empty => rest,
+	}
+}
+
+pub struct Shared(pub std::cell::RefCell<usize>);
+
+fn shared_of(s: &Shared) -> *const Shared {
+	s
+}
+
+/// A pointer a callee makes to a `RefCell`'s holder, which the caller's assignment
+/// replaces. A `usize` leaves no padding, which is not in the cell.
+pub fn ref_cell_rebound(n: usize) -> usize {
+	let mut s = Shared(std::cell::RefCell::new(n));
+	let p = shared_of(&s);
+	s = Shared(std::cell::RefCell::new(0));
+	unsafe { *(*p).0.borrow() + *s.0.borrow() }
+}
+
+pub struct Duo(pub u32, pub u32);
+
+pub struct Inside(pub std::cell::UnsafeCell<Duo>);
+
+fn inside_of(i: &Inside) -> *mut Duo {
+	i.0.get()
+}
+
+/// A pointer a callee makes through a cell to the object it holds, which the caller's
+/// assignment of the cell's holder replaces.
+pub fn inside_cell_rebound(n: u32) -> u32 {
+	let mut i = Inside(std::cell::UnsafeCell::new(Duo(n, n)));
+	let p = inside_of(&i);
+	i = Inside(std::cell::UnsafeCell::new(Duo(0, 0)));
+	unsafe { (*p).0 + (*i.0.get()).1 }
+}
+
+fn inside_field_of(i: &Inside) -> *mut u32 {
+	unsafe { &raw mut (*i.0.get()).1 }
+}
+
+/// A pointer a callee makes through a cell to a field of the object it holds, which the
+/// caller's assignment of the cell's holder replaces.
+pub fn inside_field_rebound(n: u32) -> u32 {
+	let mut i = Inside(std::cell::UnsafeCell::new(Duo(n, n)));
+	let p = inside_field_of(&i);
+	i = Inside(std::cell::UnsafeCell::new(Duo(0, 0)));
+	unsafe { *p + (*i.0.get()).0 }
+}
+
+pub struct Compared(pub u32);
+
+fn compared_of(c: &Compared) -> *const Compared {
+	c
+}
+
+/// A pointer a callee makes to a struct with no cell, compared after the caller's
+/// assignment, which Rust defines as its address and JS as the object it replaced.
+pub fn compared_rebound(n: u32) -> bool {
+	let mut c = Compared(n);
+	let p = compared_of(&c);
+	c = Compared(n + 1);
+	p == compared_of(&c) && c.0 > 0
+}
+
+pub struct Enclosed(pub u32);
+
+pub struct Enclosing(pub Enclosed);
+
+fn enclosed_of(e: &Enclosing) -> *const Enclosed {
+	&e.0
+}
+
+/// A pointer a callee makes to a part of a struct with no cell, compared after the
+/// caller's assignment of the whole.
+pub fn enclosed_compared_rebound(n: u32) -> bool {
+	let mut e = Enclosing(Enclosed(n));
+	let p = enclosed_of(&e);
+	e = Enclosing(Enclosed(n + 1));
+	p == enclosed_of(&e) && (e.0).0 > 0
+}
+
+pub struct Chosen(pub u32);
+
+fn choose<'a>(a: &'a mut Chosen, b: &'a mut Chosen, first: bool) -> &'a mut Chosen {
+	if first { a } else { b }
+}
+
+/// A pointer made of a reference a callee picks between two variables, compared after
+/// the caller's assignment of one of them.
+pub fn chosen_compared_rebound(n: u32, first: bool) -> bool {
+	let mut a = Chosen(n);
+	let mut b = Chosen(n + 1);
+	let r = choose(&mut a, &mut b, first);
+	let p = &raw const *r;
+	a = Chosen(n + 2);
+	p == &raw const a && a.0 > b.0
+}
+
+fn bytes_of(b: &[u8; 4]) -> *const [u8; 4] {
+	b
+}
+
+/// A pointer a callee makes to an array of bytes, compared after the caller's assignment.
+pub fn bytes_compared_rebound(n: u8) -> bool {
+	let mut b = [n; 4];
+	let p = bytes_of(&b);
+	b = [n ^ 1; 4];
+	std::ptr::eq(p, bytes_of(&b)) && b[0] > 0
+}
+
+pub struct Wrapped<T>(pub u8, pub T);
+
+fn wrapped_of<T>(w: &Wrapped<T>) -> *const Wrapped<T> {
+	w
+}
+
+/// A pointer a generic callee makes, instantiated with a cell, which the caller's
+/// assignment replaces.
+pub fn generic_cell_rebound(n: u32) -> u32 {
+	let mut w = Wrapped(1, std::cell::Cell::new(n));
+	let p = wrapped_of(&w);
+	w = Wrapped(2, std::cell::Cell::new(0));
+	unsafe { (*p).1.get() + w.0 as u32 }
+}
+
+fn part_cell(c: &std::cell::UnsafeCell<u16>) -> *mut u16 {
+	c.get()
+}
+
+pub struct Replaced {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn replace_part(r: &mut Replaced) {
+	drop(std::mem::replace(&mut r.cell, std::cell::UnsafeCell::new(0)));
+}
+
+/// A pointer a callee takes through a reference to a cell in a struct, which another
+/// function's `mem::replace` gives another object.
+pub fn part_mem_replaced(n: u16) -> u16 {
+	let mut r = Replaced {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&r.cell);
+	replace_part(&mut r);
+	unsafe { *p }
+}
+
+pub struct Swapped {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn swap_part(s: &mut Swapped) {
+	std::mem::swap(&mut s.cell, &mut std::cell::UnsafeCell::new(0));
+}
+
+/// As `part_replaced`, by another function's `mem::swap`.
+pub fn part_swapped(n: u16) -> u16 {
+	let mut s = Swapped {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&s.cell);
+	swap_part(&mut s);
+	unsafe { *p }
+}
+
+pub struct Taken {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn take_part(t: &mut Taken) {
+	drop(std::mem::take(&mut t.cell));
+}
+
+/// As `part_replaced`, by another function's `mem::take`.
+pub fn part_taken(n: u16) -> u16 {
+	let mut t = Taken {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&t.cell);
+	take_part(&mut t);
+	unsafe { *p }
+}
+
+pub struct Assigned {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn assign_part(a: &mut Assigned) {
+	a.cell = std::cell::UnsafeCell::new(0);
+}
+
+/// As `part_replaced`, by another function's assignment of the part through a `&mut` to
+/// its holder.
+pub fn part_assigned(n: u16) -> u16 {
+	let mut a = Assigned {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&a.cell);
+	assign_part(&mut a);
+	unsafe { *p }
+}
+
+pub struct Deeper {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+fn deeper_cell(c: &std::cell::UnsafeCell<u16>) -> *mut u16 {
+	part_cell(c)
+}
+
+fn assign_deeper(d: &mut Deeper) {
+	d.cell = std::cell::UnsafeCell::new(0);
+}
+
+fn reset_deeper(d: &mut Deeper) {
+	assign_deeper(d);
+}
+
+/// As `part_assigned`, with the pointer taken and the part assigned each two calls deep.
+pub fn part_replaced_deep(n: u16) -> u16 {
+	let mut d = Deeper {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = deeper_cell(&d.cell);
+	reset_deeper(&mut d);
+	unsafe { *p }
+}
+
+pub trait Clear {
+	fn clear(&mut self);
+}
+
+pub struct Dynamic {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+impl Clear for Dynamic {
+	fn clear(&mut self) {
+		self.cell = std::cell::UnsafeCell::new(0);
+	}
+}
+
+/// As `part_assigned`, through a trait object's method.
+pub fn part_replaced_dyn(n: u16) -> u16 {
+	let mut d = Dynamic {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let p = part_cell(&d.cell);
+	let clear: &mut dyn Clear = &mut d;
+	clear.clear();
+	unsafe { *p }
+}
+
+pub struct Closed {
+	pub cell: std::cell::UnsafeCell<u16>,
+}
+
+/// As `part_assigned`, by a closure, which also takes the pointer.
+pub fn part_replaced_closure(n: u16) -> u16 {
+	let mut e = Closed {
+		cell: std::cell::UnsafeCell::new(n),
+	};
+	let take = |c: &std::cell::UnsafeCell<u16>| c.get();
+	let p = take(&e.cell);
+	let reset = |e: &mut Closed| e.cell = std::cell::UnsafeCell::new(0);
+	reset(&mut e);
+	unsafe { *p }
+}
+
+fn replace_element(cells: &mut [std::cell::UnsafeCell<u16>; 2]) {
+	cells[1] = std::cell::UnsafeCell::new(0);
+}
+
+/// As `part_assigned`, with the cell an array's element, which another function assigns.
+pub fn element_replaced(n: u16) -> u16 {
+	let mut cells = [std::cell::UnsafeCell::new(n), std::cell::UnsafeCell::new(n)];
+	let p = part_cell(&cells[1]);
+	replace_element(&mut cells);
+	unsafe { *p }
+}
+
+#[derive(Clone, Copy)]
+pub struct Block<const N: usize>([u8; N]);
+
+/// A struct generic over a length, which no class is, cloned out of an `Option` a pair
+/// holds and written back whole in a body generic over that length.
+pub fn block_cloned(a: Option<Block<2>>) -> Option<Block<2>> {
+	reclone(a)
+}
+
+fn reclone<const N: usize>(a: Option<Block<N>>) -> Option<Block<N>> {
+	let mut pair = (a, 0u8);
+	#[allow(clippy::clone_on_copy, reason = "the clone `Option`'s `Clone` makes")]
+	let copy = pair.0.clone();
+	pair.0 = copy;
+	pair.0
+}
+
+/// `LinkedList`'s unstable `retain`, which no mapping covers, as none does its other
+/// unstable methods; its `clone_from` of items whose own `clone_from` it would call; and
+/// an empty `IterMut` of bytes, whose places nothing makes.
+pub fn lists(l: &mut std::collections::LinkedList<u8>, r: &mut std::collections::LinkedList<Reused>) -> usize {
+	l.retain(|x| *x > 1);
+	r.clone_from(&std::collections::LinkedList::new());
+	std::collections::linked_list::IterMut::<u8>::default().count()
+}
+
+pub struct Parking<T> {
+	pub task: T,
+	pub park: Parked,
+}
+
+pub struct Parked(pub std::cell::Cell<i16>);
+
+fn parked_of<A>(a: &A) -> *const A {
+	a
+}
+
+/// A pointer a callee generic over what it points at makes into a cell, which the
+/// caller's assignment replaces, in a body that the census lowers over its own type
+/// parameter: the callee's instance for the cell's holder takes it.
+pub fn generic_park_rebound<T>(mut w: Parking<T>, next: Parking<T>) -> i16 {
+	let p = parked_of(&w.park);
+	w = next;
+	unsafe { (*p).0.get() + w.park.0.get() }
 }

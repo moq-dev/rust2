@@ -4,22 +4,22 @@ import * as rt from "./rt.ts";
 import { thenSome$0d5am30 } from "./core/bool.ts";
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function cellOption(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function cellOption(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => rt.u8 | undefined = maybe;
 	const put: (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined = putMaybe as (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined;
 	let cell: rt.OnceCell<rt.u8 | undefined, rt.None> = new rt.OnceCell(rt.None);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -102,7 +102,7 @@ export function cellOption(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function cellString(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function cellString(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => string = (v3: rt.u8): string => {
 		return rt.fmtToString((f: rt.Formatter) => rt.u8Display(v3, f));
 	};
@@ -110,18 +110,18 @@ export function cellString(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecExtendFromSlice(out2, rt.stringAsBytes(t6));
 	};
 	let cell: rt.OnceCell<string> = new rt.OnceCell(undefined);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -204,24 +204,24 @@ export function cellString(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function cellU64(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function cellU64(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => rt.u64 = wide;
 	const put: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, t6: rt.u64): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u64ToBeBytes(t6)));
 	};
 	let cell: rt.OnceCell<rt.u64> = new rt.OnceCell(undefined);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -304,7 +304,7 @@ export function cellU64(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function cellU8(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function cellU8(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => rt.u8 = (v3: rt.u8): rt.u8 => {
 		return v3;
 	};
@@ -312,18 +312,18 @@ export function cellU8(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecPush(out2, t6);
 	};
 	let cell: rt.OnceCell<rt.u8> = new rt.OnceCell(undefined);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -406,24 +406,24 @@ export function cellU8(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function cellUnit(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function cellUnit(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => undefined = (_2: rt.u8): undefined => {};
 	const put: (a0: rt.ByteVec, a1: undefined) => undefined = (out2: rt.ByteVec, _3: undefined): undefined => {
 		rt.byteVecPush(out2, 170);
 	};
 	let cell: rt.OnceCell<undefined, rt.None> = new rt.OnceCell(rt.None);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -506,27 +506,47 @@ export function cellUnit(data: rt.ByteSlice, out: rt.ByteVec): void {
 
 /** Steps on the cell and value type `kind` picks. */
 export function cells(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
-	const cases: Array<(a0: rt.ByteSlice, a1: rt.ByteVec) => undefined> = [cellU8 as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, lockU8 as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, cellU64 as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, lockU64 as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, cellOption as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, lockOption as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, cellUnit as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, lockUnit as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, cellString as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined, lockString as (a0: rt.ByteSlice, a1: rt.ByteVec) => undefined];
+	const cases: Array<(a0: rt.ByteSlice, a1: rt.ByteVec) => undefined> = [(a0: rt.ByteSlice, a1: rt.ByteVec): undefined => {
+		cellU8(a0.data, a0.start, a0.length, a1);
+	}, (a02: rt.ByteSlice, a12: rt.ByteVec): undefined => {
+		lockU8(a02.data, a02.start, a02.length, a12);
+	}, (a03: rt.ByteSlice, a13: rt.ByteVec): undefined => {
+		cellU64(a03.data, a03.start, a03.length, a13);
+	}, (a04: rt.ByteSlice, a14: rt.ByteVec): undefined => {
+		lockU64(a04.data, a04.start, a04.length, a14);
+	}, (a05: rt.ByteSlice, a15: rt.ByteVec): undefined => {
+		cellOption(a05.data, a05.start, a05.length, a15);
+	}, (a06: rt.ByteSlice, a16: rt.ByteVec): undefined => {
+		lockOption(a06.data, a06.start, a06.length, a16);
+	}, (a07: rt.ByteSlice, a17: rt.ByteVec): undefined => {
+		cellUnit(a07.data, a07.start, a07.length, a17);
+	}, (a08: rt.ByteSlice, a18: rt.ByteVec): undefined => {
+		lockUnit(a08.data, a08.start, a08.length, a18);
+	}, (a09: rt.ByteSlice, a19: rt.ByteVec): undefined => {
+		cellString(a09.data, a09.start, a09.length, a19);
+	}, (a010: rt.ByteSlice, a110: rt.ByteVec): undefined => {
+		lockString(a010.data, a010.start, a010.length, a110);
+	}];
 	cases[rt.idx(cases, rt.usizeRem(kind as rt.usize, cases.length))](data, out);
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function lockOption(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function lockOption(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => rt.u8 | undefined = maybe;
 	const put: (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined = putMaybe as (a0: rt.ByteVec, a1: rt.u8 | undefined) => undefined;
 	let cell: rt.OnceLock<rt.u8 | undefined, rt.None> = new rt.OnceLock(rt.None);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -609,7 +629,7 @@ export function lockOption(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function lockString(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function lockString(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => string = (v3: rt.u8): string => {
 		return rt.fmtToString((f: rt.Formatter) => rt.u8Display(v3, f));
 	};
@@ -617,18 +637,18 @@ export function lockString(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecExtendFromSlice(out2, rt.stringAsBytes(t6));
 	};
 	let cell: rt.OnceLock<string> = new rt.OnceLock(undefined);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -711,24 +731,24 @@ export function lockString(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function lockU64(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function lockU64(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => rt.u64 = wide;
 	const put: (a0: rt.ByteVec, a1: rt.u64) => undefined = (out2: rt.ByteVec, t6: rt.u64): undefined => {
 		rt.byteVecExtendFromSlice(out2, rt.byteSliceFrom(rt.u64ToBeBytes(t6)));
 	};
 	let cell: rt.OnceLock<rt.u64> = new rt.OnceLock(undefined);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -811,7 +831,7 @@ export function lockU64(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function lockU8(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function lockU8(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => rt.u8 = (v3: rt.u8): rt.u8 => {
 		return v3;
 	};
@@ -819,18 +839,18 @@ export function lockU8(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecPush(out2, t6);
 	};
 	let cell: rt.OnceLock<rt.u8> = new rt.OnceLock(undefined);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);
@@ -913,24 +933,24 @@ export function lockU8(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /** Steps of an operation and an operand on one cell, each putting what it read. */
-export function lockUnit(data: rt.ByteSlice, out: rt.ByteVec): void {
+export function lockUnit(dataData: Uint8Array, dataStart: number, dataLen: number, out: rt.ByteVec): void {
 	const make: (a0: rt.u8) => undefined = (_2: rt.u8): undefined => {};
 	const put: (a0: rt.ByteVec, a1: undefined) => undefined = (out2: rt.ByteVec, _3: undefined): undefined => {
 		rt.byteVecPush(out2, 170);
 	};
 	let cell: rt.OnceLock<undefined, rt.None> = new rt.OnceLock(rt.None);
-	let dataData: Uint8Array = data.data;
-	let dataStart: number = data.start;
-	let dataLen: number = data.length;
-	while (dataLen >= 2) {
-		const op: rt.u8 = dataData[dataStart];
-		const v: rt.u8 = dataData[dataStart + 1];
-		const restData: Uint8Array = dataData;
-		const restStart: number = dataStart + 2;
-		const restLen: number = dataLen - 2;
-		dataData = restData;
-		dataStart = restStart;
-		dataLen = restLen;
+	let dataData2: Uint8Array = dataData;
+	let dataStart2: number = dataStart;
+	let dataLen2: number = dataLen;
+	while (dataLen2 >= 2) {
+		const op: rt.u8 = dataData2[dataStart2];
+		const v: rt.u8 = dataData2[dataStart2 + 1];
+		const restData: Uint8Array = dataData2;
+		const restStart: number = dataStart2 + 2;
+		const restLen: number = dataLen2 - 2;
+		dataData2 = restData;
+		dataStart2 = restStart;
+		dataLen2 = restLen;
 		const op2: rt.u8 = op;
 		const v2: rt.u8 = v;
 		const _18: rt.u8 = rt.u8Rem(op2, 9);

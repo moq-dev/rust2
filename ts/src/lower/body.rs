@@ -13,6 +13,12 @@ pub struct Body<'b, 'a, 'tcx> {
 	pub t: &'b mut Translator<'a, 'tcx>,
 	/// Every name in the function, so none shadows another.
 	names: FxHashSet<String>,
+	/// Which of the function's parameters are byte slices it takes as their parts, by
+	/// [`Translator::parted`], until its own body takes them.
+	pub parted: Vec<bool>,
+	/// Where the function hands back its `Ok`'s parts, by [`Translator::slotted`], until
+	/// its own body takes it.
+	pub slotted: Option<super::mir::Slotted<'tcx>>,
 }
 
 impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
@@ -20,6 +26,8 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 		Body {
 			t,
 			names: FxHashSet::default(),
+			parted: Vec::new(),
+			slotted: None,
 		}
 	}
 
@@ -105,15 +113,14 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 			return future.member("poll").call(values);
 		}
 		if let ty::InstanceKind::Item(did) = instance.def
-			&& self.t.lowers(instance)
+			&& self.t.lowers(self.t.typing_env_pub(), instance)
 		{
 			let values: Vec<Expr> = args.into_iter().map(Expr::typed).collect();
 			// An `async fn` that only makes its future: the future, made here.
 			if let Some(class) = super::mir::coroutine::of_async_fn(self.t, instance, span) {
 				return Expr::New(Box::new(Expr::Sym(class)), values);
 			}
-			let sym = self.t.callee(instance, span);
-			let call = Expr::Sym(sym).call(values);
+			let call = self.direct_call(instance, values, span, out);
 			// The crate's own `next` returns an item or `rt.DONE`, and its caller an `Option`.
 			if super::iter::is_next(tcx, did) {
 				let option = self.t.sig(did, instance.args).output();
@@ -123,6 +130,17 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 				};
 				let none = self.t.none_arg(option_args.type_at(0));
 				return Expr::rt("iterToOption", [call].into_iter().chain(none).collect());
+			}
+			// One that hands back its `Ok`'s parts, made whole here, before anything else can
+			// write its slot.
+			if let Some(slotted) = self.t.slotted(instance) {
+				let ret = self.fresh(if slotted.returned { "part" } else { "err" });
+				out.push(StmtKind::decl(false, ret.clone(), None, Some(call)).at(None));
+				let value = slotted.rebuild(self.t, &ret, span);
+				let result = self.fresh("result");
+				let ty = self.t.ty(slotted.ret, span);
+				out.push(StmtKind::decl(false, result.clone(), Some(ty), Some(value)).at(None));
+				return Expr::ident(result);
 			}
 			return call;
 		}
@@ -202,7 +220,10 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 		match info.repr {
 			AdtRepr::Struct { ctor, fields } => {
 				let args = (adt.variant(variant).fields.iter().zip(values))
-					.map(|(field, value)| field_arg(tcx, field, value))
+					.map(|(field, value)| {
+						let value = self.t.field_value(value, adt_id, field.did, gargs, span);
+						field_arg(tcx, field, value)
+					})
 					.collect();
 				self.t.construct(info.sym, &ctor, &fields, args)
 			}
@@ -223,6 +244,63 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 				Expr::As(Box::new(Expr::Object(props)), ts_ty)
 			}
 		}
+	}
+
+	/// A call of `instance`, whose body translates, with `values`, each byte slice it takes
+	/// as its parts split into them.
+	pub fn direct_call(
+		&mut self,
+		instance: Instance<'tcx>,
+		values: Vec<Expr>,
+		span: Span,
+		out: &mut Vec<Stmt>,
+	) -> Expr {
+		let parted = self.t.parted(instance);
+		let values = match parted.is_empty() {
+			true => values,
+			false => self.slice_args(values, &parted, out),
+		};
+		Expr::Sym(self.t.callee(instance, span)).call(values)
+	}
+
+	/// `values`, with each byte slice `parted` marks as its `data`, `start`, and `length`,
+	/// evaluated in the order `values` are: a slice made in place gives its parts, and a
+	/// path or a tuple's part is read three times, but anything else is held first, after
+	/// what comes before it.
+	fn slice_args(&mut self, values: Vec<Expr>, parted: &[bool], out: &mut Vec<Stmt>) -> Vec<Expr> {
+		let mut args: Vec<Expr> = Vec::with_capacity(values.len() + 2);
+		for (value, &parted) in values.into_iter().zip(parted) {
+			if !parted {
+				args.push(value);
+				continue;
+			}
+			let mut made = &value;
+			while let Expr::Located(_, e) | Expr::As(e, _) = made {
+				made = e;
+			}
+			if let Some(parts) = super::mir::made_slice(made) {
+				args.extend(parts.iter().cloned());
+				continue;
+			}
+			let slice = match &value {
+				Expr::Index(base, i) if base.is_path() && i.is_constant() => value,
+				_ if value.is_path() => value,
+				_ => {
+					for arg in &mut args {
+						if !arg.is_constant() {
+							let name = self.fresh("arg");
+							let value = std::mem::replace(arg, Expr::ident(&name));
+							out.push(StmtKind::decl(false, name, None, Some(value)).at(None));
+						}
+					}
+					let name = self.fresh("slice");
+					out.push(StmtKind::decl(false, name.clone(), None, Some(value)).at(None));
+					Expr::ident(name)
+				}
+			};
+			args.extend(["data", "start", "length"].map(|key| slice.clone().member(key)));
+		}
+		args
 	}
 
 	/// A value of one of std's types made of zero-sized `values`, which MIR reads as a
@@ -278,7 +356,12 @@ impl<'b, 'a, 'tcx> Body<'b, 'a, 'tcx> {
 		{
 			let sym = match self.t.bound_fn(instance, span) {
 				Some(sym) => Some(sym),
-				None => self.t.lowers(instance).then(|| self.t.callee(instance, span)),
+				// One that takes byte slices as their parts, or hands back its `Ok`'s, is wrapped
+				// to take and return them whole.
+				None => (self.t.lowers(self.t.typing_env_pub(), instance)
+					&& self.t.parted(instance).is_empty()
+					&& self.t.slotted(instance).is_none())
+				.then(|| self.t.callee(instance, span)),
 			};
 			if let Some(sym) = sym {
 				return match sig.output().is_unit() {

@@ -153,6 +153,13 @@ export function then$0l8o6jo(self: boolean, f: () => rt.u32[]): rt.u32[] | undef
 	return f();
 }
 
+export function then$11x7xqs(self: boolean, f: () => Uint8Array): Uint8Array | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return f();
+}
+
 export function then$0b2eeh4(self: boolean, f: () => Array<rt.u8 | undefined>): Array<rt.u8 | undefined> | undefined {
 	if (!self) {
 		return undefined;
@@ -219,6 +226,13 @@ export function then$0wlzj76(self: boolean, f: () => rt.Ordering): rt.Ordering |
 export function then$18np55d(self: boolean, f: () => Way.Way | undefined): Way.Way | undefined | rt.None {
 	if (!self) {
 		return rt.None;
+	}
+	return f();
+}
+
+export function then$0w2ymju(self: boolean, f: () => rt.ByteSlice): rt.ByteSlice | undefined {
+	if (!self) {
+		return undefined;
 	}
 	return f();
 }

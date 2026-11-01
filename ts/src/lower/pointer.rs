@@ -79,8 +79,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 
 	/// Why pointers to `ty` that are not null don't compare as their JS values, if they
 	/// don't. Two `rt.Place`s of one place are two objects, and Rust leaves where a value of
-	/// no bytes is unspecified, but a pointer to `()` is an identity.
-	pub fn incomparable(&self, ty: Ty<'tcx>) -> Option<String> {
+	/// no bytes is unspecified, but a pointer to `()` is an identity. Notes the comparison of
+	/// those that do, for [`Self::taken`].
+	pub fn incomparable(&mut self, ty: Ty<'tcx>) -> Option<String> {
 		if self.identity_pointee(ty) {
 			return None;
 		}
@@ -90,7 +91,10 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			));
 		}
 		match self.pointee(ty) {
-			Pointee::Object | Pointee::Bytes => None,
+			Pointee::Object | Pointee::Bytes => {
+				self.compare(ty);
+				None
+			}
 			Pointee::Place => Some(format!(
 				"comparing pointers to `{ty}`, each a place JS makes of its own"
 			)),
@@ -108,8 +112,27 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		ty
 	}
 
+	/// Whether only an instance decides what a pointer or reference to `ty` is, as in a
+	/// generic type's definition: `ty` a type parameter, an array of one, either through
+	/// `MaybeUninit`s, or a binding's generic type, which an instance decides is `Copy`.
+	pub fn instance_pointee(&self, ty: Ty<'tcx>) -> bool {
+		if self.polymorphic() || !ty.has_param() {
+			return false;
+		}
+		let open = |ty: Ty<'tcx>| matches!(ty.kind(), ty::Param(_) | ty::Alias(..));
+		let ty = self.uninit_inner(ty);
+		match ty.kind() {
+			ty::Array(elem, _) => open(*elem),
+			ty::Adt(adt, _) => self.bound_drops(adt.did()).is_some(),
+			_ => open(ty),
+		}
+	}
+
 	/// The TypeScript type of a raw pointer or `NonNull` to `pointee`.
 	pub fn pointer_ty(&mut self, pointee: Ty<'tcx>, span: Span) -> Type {
+		if self.instance_pointee(pointee) {
+			return Type::Rt("Ptr", vec![self.ty(pointee, span)]);
+		}
 		match self.pointee(pointee) {
 			Pointee::Place => Type::Rt("Place", vec![self.ty(pointee, span)]),
 			Pointee::Object => self.ty(pointee, span),
@@ -183,19 +206,16 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				let info = self.adt(*adt, span);
 				match info.repr {
 					AdtRepr::Struct { ctor, fields } => {
-						let tys: Vec<Ty<'tcx>> = adt
-							.non_enum_variant()
-							.fields
-							.iter()
-							.map(|f| self.field_ty(f.did, args))
-							.collect();
 						// A class's constructor types each of its parameters.
 						let plain = self.plain(info.sym);
-						let values = tys
-							.into_iter()
-							.map(|t| match plain {
-								true => self.shell(t, span),
-								false => self.uninit(t, span),
+						let values = (adt.non_enum_variant().fields.iter())
+							.map(|f| {
+								let t = self.field_ty(f.did, args);
+								let value = match plain {
+									true => self.shell(t, span),
+									false => self.uninit(t, span),
+								};
+								self.field_value(value, adt.did(), f.did, args, span)
 							})
 							.collect();
 						self.construct(info.sym, &ctor, &fields, values)

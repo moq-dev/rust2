@@ -28,13 +28,15 @@ use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_hir::def::DefKind;
 use rustc_index::IndexVec;
 use rustc_middle::mir::{self, BasicBlock, Local, Operand, Place, Rvalue, StatementKind, TerminatorKind};
-use rustc_middle::ty::{self, EarlyBinder, Instance, Ty, TyCtxt};
+use rustc_middle::ty::{self, EarlyBinder, Instance, Ty, TyCtxt, TypingEnv};
 use rustc_span::{Span, Spanned};
 
 use self::cfg::Exit;
-pub use self::place::{slice_member, writes_captures};
+pub use self::place::{made_slice, slice_member, writes_captures};
+pub use self::scalar::Slotted;
 use super::Translator;
 use super::body::Body;
+use super::copy::field_ty;
 
 use crate::ts::{self, Expr, Param, Stmt, StmtKind, Type};
 
@@ -49,15 +51,21 @@ pub fn function<'a, 'tcx>(t: &mut Translator<'a, 'tcx>, instance: Instance<'tcx>
 		super::iter::check_impl(t, def_id);
 	}
 	let ret_ty = mir.return_ty();
+	let parted = t.parted(instance);
+	let slotted = t.slotted(instance);
 	let mut b = Body::new(t);
+	b.parted = parted;
+	b.slotted = slotted.clone();
 	let mut fx = Fx::new(&mut b, &mir, Env::Plain, span);
-	let params = fx.params();
+	let mut params = fx.params();
 	let body = fx.lower();
+	fx.mark_unread_parts(&mut params, &body);
 	let ret_span = fx.local_span(mir::RETURN_PLACE);
 	let ret = match (next, ret_ty.kind()) {
 		(true, ty::Adt(_, args)) => {
 			Type::Union(vec![fx.b.t.ty(args.type_at(0), ret_span), Type::Rt("Done", Vec::new())])
 		}
+		(_, ty::Adt(..)) if let Some(slotted) = &slotted => fx.b.t.slot_ret_ty(slotted, ret_span),
 		_ => fx.b.t.ret_ty(ret_ty, ret_span),
 	};
 	Some(ts::Function {
@@ -369,6 +377,21 @@ pub struct Fx<'m, 'b, 'a, 'tcx> {
 	steady: FxHashSet<String>,
 	/// Those slices, with their types, which need declarations.
 	scalar_binds: Vec<(String, Type)>,
+	/// The parameters that are byte slices passed as their parts.
+	parted: FxHashSet<Local>,
+	/// Those not held as their parts, each made from its parts on entry: its name, then
+	/// its parts'.
+	rebuilt: Vec<(Local, String, [String; 3])>,
+	/// Those held as their parts whose object some read makes from them all the same.
+	remade: FxHashSet<Local>,
+	/// The names of the parameters that are parts.
+	part_params: Vec<String>,
+	/// Where this function hands back its `Ok`'s parts, if it does.
+	slot: Option<Slotted<'tcx>>,
+	/// The calls, by block, of functions that hand back theirs.
+	slotted_calls: FxHashMap<mir::BasicBlock, (Instance<'tcx>, Slotted<'tcx>)>,
+	/// The assignments of the result that return right where they are.
+	returning: FxHashSet<mir::Location>,
 	/// The tests and payload reads TypeScript may have narrowed stale.
 	narrowing: decided::Narrowing<'tcx>,
 	/// The statement or terminator being lowered.
@@ -379,6 +402,16 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	pub fn new(b: &'m mut Body<'b, 'a, 'tcx>, mir: &'m mir::Body<'tcx>, env: Env, span: Span) -> Self {
 		let tcx = b.t.tcx;
 		let n = mir.local_decls.len();
+		let (parted, slot) = match env {
+			Env::Plain => (std::mem::take(&mut b.parted), b.slotted.take()),
+			_ => (Vec::new(), None),
+		};
+		let parted = mir
+			.args_iter()
+			.zip(parted)
+			.filter(|&(_, p)| p)
+			.map(|(l, _)| l)
+			.collect();
 		let narrowing = decided::narrowing(tcx, &b.t.crates, mir);
 		let mut fx = Fx {
 			b,
@@ -429,6 +462,13 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			scalars: FxHashMap::default(),
 			steady: FxHashSet::default(),
 			scalar_binds: Vec::new(),
+			parted,
+			rebuilt: Vec::new(),
+			remade: FxHashSet::default(),
+			part_params: Vec::new(),
+			slot,
+			slotted_calls: FxHashMap::default(),
+			returning: FxHashSet::default(),
 			narrowing,
 			at: mir::START_BLOCK.start_location(),
 		};
@@ -545,7 +585,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 								.any(|op| self.changes(op.ty(&mir.local_decls, self.tcx), part));
 							self.arg_use[local] = true;
 							self.arg_alone[local] = alone;
-							self.arg_kept[local] = kept || self.b.t.holds(result, part);
+							self.arg_kept[local] = kept || self.b.t.holds(self.b.t.typing_env_pub(), result, part);
 						}
 					}
 					self.def(*destination);
@@ -596,7 +636,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		self.find_stepped();
 		self.unborrow_passed();
 		self.find_halves();
+		self.find_slotted_calls();
 		self.find_scalars();
+		self.find_returning();
 		for local in mir.local_decls.indices() {
 			let ty = mir.local_decls[local].ty;
 			let slot = if self.zero_sized(ty) {
@@ -1441,6 +1483,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				Slot::Var(name) => name.clone(),
 				_ => self.b.fresh("_"),
 			};
+			if self.parted.contains(&local) {
+				params.extend(self.part_params(local, name));
+				continue;
+			}
 			let ty = self.b.t.ty(ty, self.local_span(local));
 			params.push(Param { name, ty: Some(ty) });
 		}
@@ -1451,6 +1497,12 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	pub fn lower(&mut self) -> Vec<Stmt> {
 		// A parameter changed in place gets its own copy, since the caller's may be shared.
 		let mut entry = Vec::new();
+		// A slice passed as its parts that isn't held so, made from them.
+		for (local, name, parts) in std::mem::take(&mut self.rebuilt) {
+			let slice = Expr::New(Box::new(Expr::Rt("ByteSlice".into())), parts.map(Expr::ident).to_vec());
+			let ty = Type::Rt("ByteSlice", Vec::new());
+			entry.push(StmtKind::decl(self.defs[local] > 0, name, Some(ty), Some(slice)).at(None));
+		}
 		for local in self.mir.args_iter() {
 			let ty = self.mir.local_decls[local].ty;
 			if self.mutated[local]
@@ -2238,6 +2290,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					statement_index: i,
 				};
 				self.statement(stmt, out);
+				if self.returning.contains(&self.at) {
+					self.flush(out);
+					return Exit::End;
+				}
 			}
 		}
 		if let Some(&to) = self.redirect.get(&bb) {
@@ -2257,7 +2313,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				let (place, rvalue) = &**assign;
 				// Whichever way the reference lowers, as an alias of the place or a value.
 				if let Rvalue::Ref(_, _, borrowed) = rvalue
-					&& let Some(why) = self.lent_out_of_step(*borrowed)
+					&& let Some(why) = self.lent_out_of_step(*borrowed, *place)
 				{
 					self.err(span, why);
 				}
@@ -2493,6 +2549,11 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			TerminatorKind::FalseEdge { real_target, .. } | TerminatorKind::FalseUnwind { real_target, .. } => {
 				Exit::Goto(real_target.as_usize())
 			}
+			TerminatorKind::Return if let Some(slot) = self.slot.clone() => {
+				self.slot_return(&slot, span, out);
+				self.flush(out);
+				Exit::End
+			}
 			TerminatorKind::Return if !self.mir.local_decls[mir::RETURN_PLACE].ty.is_never() => {
 				let ret = self.mir.local_decls[mir::RETURN_PLACE].ty;
 				let value = match self.zero_sized(ret) {
@@ -2565,6 +2626,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			} => {
 				self.call(func, args, *destination, *fn_span, out);
 				match target {
+					Some(_) if self.returning.contains(&self.at) => {
+						self.flush(out);
+						Exit::End
+					}
 					Some(target) => Exit::Goto(target.as_usize()),
 					None => {
 						self.flush(out);
@@ -2902,8 +2967,8 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	fn changes(&self, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
 		use rustc_middle::ty::TypeVisitableExt;
 		let env = self.b.t.typing_env_pub();
-		let overlaps = |t: Ty<'tcx>| self.b.t.holds(t, part) || self.b.t.holds(part, t);
-		self.b.t.reaches(ty, |t| match t.kind() {
+		let overlaps = |t: Ty<'tcx>| self.b.t.holds(env, t, part) || self.b.t.holds(env, part, t);
+		self.b.t.reaches(env, ty, |t| match t.kind() {
 			ty::RawPtr(..) => true,
 			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => overlaps(*inner),
 			// Inside a binder, as a function pointer's signature, only its kind tells.
@@ -2927,12 +2992,13 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		if self.moves_copied(part) {
 			return true;
 		}
+		let env = self.b.t.typing_env_pub();
 		!translated
 			&& self.copied_parts(part).into_iter().any(|t| {
 				self.holds_behind(result, t)
 					|| args
 						.iter()
-						.any(|a| self.b.t.stores(a.node.ty(&self.mir.local_decls, self.tcx), t))
+						.any(|a| self.b.t.stores(env, a.node.ty(&self.mir.local_decls, self.tcx), t))
 			})
 	}
 
@@ -3015,7 +3081,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				adt.all_fields()
 					.any(|field| self.holds_behind(self.b.t.field_ty(field.did, args), part))
 			}
-			_ => self.b.t.holds(ty, part),
+			_ => self.b.t.holds(self.b.t.typing_env_pub(), ty, part),
 		}
 	}
 }
@@ -3037,25 +3103,25 @@ pub(super) fn whole(value: Expr, ty: Type) -> Result<Expr, Expr> {
 impl<'tcx> Translator<'_, 'tcx> {
 	/// Whether a value of `ty` reaches somewhere that could take a `part` in: a raw
 	/// pointer, or a mutable reference to or interior mutability around what could hold one.
-	pub(crate) fn stores(&self, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
+	/// `env` holds the bounds of the body naming `ty`.
+	pub(crate) fn stores(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
 		use rustc_middle::ty::TypeVisitableExt;
-		let env = self.typing_env_pub();
-		self.reaches(ty, |t| match t.kind() {
+		self.reaches(env, ty, |t| match t.kind() {
 			ty::RawPtr(..) => true,
-			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => self.holds(*inner, part),
-			_ => !t.has_escaping_bound_vars() && !t.is_freeze(self.tcx, env) && self.holds(t, part),
+			ty::Ref(_, inner, rustc_ast::Mutability::Mut) => self.holds(env, *inner, part),
+			_ => !t.has_escaping_bound_vars() && !t.is_freeze(self.tcx, env) && self.holds(env, t, part),
 		})
 	}
 
 	/// Whether a value of `ty` could hold a `part`: holds its type, or hides what it holds.
-	pub(crate) fn holds(&self, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
+	pub(crate) fn holds(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, part: Ty<'tcx>) -> bool {
 		// An array and a slice of its element share storage through an unsizing coercion.
 		let storage = |t: Ty<'tcx>| match t.kind() {
 			ty::Array(elem, _) => Ty::new_slice(self.tcx, *elem),
 			_ => t,
 		};
 		let part = storage(part);
-		self.reaches(ty, |t| {
+		self.reaches(env, ty, |t| {
 			storage(t) == part
 				|| matches!(
 					t.kind(),
@@ -3065,8 +3131,8 @@ impl<'tcx> Translator<'_, 'tcx> {
 	}
 
 	/// Whether `f` holds for any type a value of `ty` holds: its type arguments, which are
-	/// what std's types hold, and the fields of the crate's own types.
-	pub(crate) fn reaches(&self, ty: Ty<'tcx>, mut f: impl FnMut(Ty<'tcx>) -> bool) -> bool {
+	/// what std's types hold, and the fields of the crate's own types, normalized in `env`.
+	pub(crate) fn reaches(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, mut f: impl FnMut(Ty<'tcx>) -> bool) -> bool {
 		let mut seen = FxHashSet::default();
 		let mut stack = vec![ty];
 		while let Some(ty) = stack.pop() {
@@ -3078,7 +3144,7 @@ impl<'tcx> Translator<'_, 'tcx> {
 					&& self.own(adt.did())
 					&& seen.insert(t)
 				{
-					stack.extend(adt.all_fields().map(|field| self.field_ty(field.did, args)));
+					stack.extend(adt.all_fields().map(|field| field_ty(self.tcx, env, field.did, args)));
 				}
 			}
 		}
@@ -3557,7 +3623,7 @@ fn place_declaration(stmts: &mut [Stmt], name: &str, ty: &Type, total: usize, mu
 }
 
 /// How many times the statements name `name`, read or assigned.
-fn list_names(stmts: &[Stmt], name: &str) -> usize {
+pub(super) fn list_names(stmts: &[Stmt], name: &str) -> usize {
 	stmts.iter().map(|s| stmt_names(s, name)).sum()
 }
 

@@ -198,7 +198,7 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 					values.resize(2, Expr::undefined());
 					values.push(none);
 				}
-				Some(Expr::rt("iterOption", values))
+				Some(items(Expr::rt("iterOption", values), inner))
 			}
 			_ => super::collections::into_iter(b, ty, value, span),
 		},
@@ -206,8 +206,8 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 	}
 }
 
-/// `iter`, over the elements of a slice or `Vec` of `elem`s, yielding references to them:
-/// a slice of each array of bytes.
+/// `iter`, over the elements of a slice or `Vec` of `elem`s or the payload of an `Option`,
+/// yielding references to them: a slice of each array of bytes.
 pub(super) fn by_ref(iter: Expr, elem: Ty<'_>) -> Expr {
 	match super::byte_array(elem) {
 		true => Expr::rt("iterLend", vec![iter, Expr::Rt("byteSliceFrom".into())]),
@@ -684,7 +684,9 @@ pub fn call<'tcx>(
 			};
 			// A `Clone` written by hand may do other than copy, even for a `Copy` type. A JS
 			// string is a value already.
-			let copies = name == "copied" || library::clone_copies(b.t, *inner) || library::string(tcx, *inner);
+			let copies = name == "copied"
+				|| library::clone_copies(b.t, b.t.typing_env_pub(), *inner)
+				|| library::string(tcx, *inner);
 			let copy = match () {
 				// Each item through its `Clone`.
 				_ if !copies => Some(clone(b)?),
@@ -966,6 +968,7 @@ fn clones<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Option<
 		| ["option", "Iter"]
 		| ["ops", "range", "Range" | "RangeFrom" | "RangeInclusive"]
 		| ["collections", "vec_deque", "iter", "Iter"]
+		| ["collections", "linked_list", "Iter"]
 		| ["collections", "binary_heap", "Iter"]
 		| ["collections", "btree", "map", "Iter" | "Keys" | "Values" | "Range"]
 		| ["collections", "hash", "map", "Iter" | "Keys" | "Values"]
@@ -981,6 +984,7 @@ fn clones<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Option<
 		| ["option", "IntoIter"]
 		| ["iter", "sources", "once", "Once"]
 		| ["collections", "vec_deque", "into_iter", "IntoIter"]
+		| ["collections", "linked_list", "IntoIter"]
 		| ["collections", "binary_heap", "IntoIter"] => parts(vec![("v", value(b, arg(0)?))]),
 		// A closure's searcher clones the closure; another holds what it searches for.
 		["str", "iter", "Split" | "MatchIndices"] => match arg(0)?.kind() {
@@ -1054,6 +1058,7 @@ pub(super) fn holds_closure(tcx: ty::TyCtxt<'_>, did: DefId) -> bool {
 		] | ["iter", "adapters", "flatten", "FlatMap"]
 			| ["iter", "sources", "from_fn", "FromFn"]
 			| ["iter", "sources", "successors", "Successors"]
+			| ["collections", "linked_list", "ExtractIf"]
 			| [
 				"slice",
 				"iter",
@@ -1092,6 +1097,7 @@ fn flattens<'tcx>(b: &mut Body<'_, '_, 'tcx>, inner: Ty<'tcx>, span: Span) {
 			| ["collections", "btree", "map", "IntoIter" | "IntoKeys" | "IntoValues"]
 			| ["collections", "btree", "set", "IntoIter"]
 			| ["collections", "vec_deque", "into_iter", "IntoIter"]
+			| ["collections", "linked_list", "IntoIter"]
 	);
 	if !empties {
 		b.t.err(
@@ -1152,7 +1158,7 @@ pub(super) fn implements<'tcx>(t: &Translator<'_, 'tcx>, ty: Ty<'tcx>, name: &st
 }
 
 /// `core`'s trait `name`.
-fn core_trait(tcx: ty::TyCtxt<'_>, name: &str) -> Option<DefId> {
+pub(super) fn core_trait(tcx: ty::TyCtxt<'_>, name: &str) -> Option<DefId> {
 	let &core = tcx
 		.crates(())
 		.iter()
@@ -1227,7 +1233,21 @@ fn collect<'tcx>(
 			// What it collects from is what `from` yields up to the first `Err` or `None`, which
 			// std's collects in place of `from`'s source as it would `from`, but never trusts
 			// the length of.
-			let values = collect(b, args.type_at(0), value, Expr::ident("values"), from, false, span)?;
+			// A tuple's `Extend` is given the `GenericShunt` std's reads `from` through, which a
+			// 1-tuple's collection's own `extend` sees as it is.
+			let values_from = match sees_shunt(b.t, args.type_at(0)) {
+				true => shunt(b.t, ty, item, from)?,
+				false => from,
+			};
+			let values = collect(
+				b,
+				args.type_at(0),
+				value,
+				Expr::ident("values"),
+				values_from,
+				false,
+				span,
+			)?;
 			let param = Param {
 				name: "values".into(),
 				ty: Some(Type::Rt("Iter", vec![value_ty])),
@@ -1260,6 +1280,31 @@ fn collect<'tcx>(
 		}
 		_ => super::collections::collect(b, ty, iter, from, trusted, span),
 	}
+}
+
+/// Whether `ty`, collected through a `GenericShunt`, is given it: a tuple, whose `Extend`
+/// is, or a `Result` or `Option` of one, which shunts it again.
+fn sees_shunt<'tcx>(t: &Translator<'_, 'tcx>, ty: Ty<'tcx>) -> bool {
+	match ty.kind() {
+		ty::Tuple(_) => true,
+		ty::Adt(_, args) if matches!(t.std_of(ty), Some(Std::Result | Std::Option)) => sees_shunt(t, args.type_at(0)),
+		_ => false,
+	}
+}
+
+/// The `GenericShunt` std's `collect` into `ty`, a `Result` or an `Option`, of its `item`s
+/// from an iterator of type `from` reads them through, as the values it collects.
+fn shunt<'tcx>(t: &Translator<'_, 'tcx>, ty: Ty<'tcx>, item: Ty<'tcx>, from: Ty<'tcx>) -> Option<Ty<'tcx>> {
+	let tcx = t.tcx;
+	let from_iter = super::collections::trait_fn(tcx, "FromIterator", "from_iter");
+	let args = tcx.mk_args(&[ty.into(), item.into(), from.into()]);
+	// `try_process(iter, |shunt| shunt.collect())`.
+	let args = library::callee_args(t, from_iter, args, |f| tcx.item_name(f).as_str() == "try_process")?;
+	let ty::Closure(_, closure) = args.type_at(3).kind() else {
+		return None;
+	};
+	let sig = tcx.instantiate_bound_regions_with_erased(closure.as_closure().sig());
+	sig.inputs().first()?.tuple_fields().first().copied()
 }
 
 /// `s` extended by `items`, an iterator of type `iter` of `item`s, as `String`'s `Extend`

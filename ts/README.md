@@ -102,7 +102,7 @@ crate translation reaches is refused, and so are two versions of one crate it re
 | `a..b`, `a..=b` | `rt.Range<T>`, `rt.RangeInclusive<T>`, which are iterators too |
 | `a..`, `..b`, `..=b`, `Bound<T>` | `{ start }`, `{ end }`, `{ end, inclusive: true }`; `rt.RangeBound<T>`, a union tagged by variant |
 | a range a drain or a B-tree's `range` takes | itself, or of a type other than std's ranges and a pair of `Bound`s, `rt.boundsOf` of it and its `start_bound` and `end_bound`, which the runtime calls where std's does; one that drops, the parameter of the call `rt.dropAfter` makes, which drops it once the call returns, as std drops it before it does anything JS can see |
-| `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `VecDeque`, `BinaryHeap` | `rt.HashMap<K, V>` and so on, each a plain object whose functions are the runtime's: `rt.hashGet(map, key)` |
+| `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `VecDeque`, `LinkedList`, `BinaryHeap` | `rt.HashMap<K, V>` and so on, each a plain object whose functions are the runtime's: `rt.hashGet(map, key)` |
 | `PeekMut<T>` | `rt.PeekMut<T>`, the `rt.Place` of a heap's greatest element, which sifts it down as it drops once `DerefMut` lent it |
 | `Ordering`, `DefaultHasher`, `RandomState` | `rt.Ordering`, which is `-1`, `0`, or `1`; `rt.Hasher`; `rt.RandomState`, the keys of the `DefaultHasher` it builds, never changed once made |
 | `Duration` | `rt.Duration`: `{ secs, nanos }`, std's whole seconds as an `rt.u64` and the nanoseconds past them, never changed once made |
@@ -171,8 +171,7 @@ the width and sign, which computes on the value's `bigint`.
 The stable ASCII methods of `u8` and `char`, and of `[u8]` and `str`, so of a `Vec<u8>`
 and a `String`, are std's. A `u8` and a `char` share each runtime function, `rt.isAsciiDigit(c)`.
 `make_ascii_uppercase` and `make_ascii_lowercase` of a byte, a char, or a string write
-the other case where the `&mut` borrows it; of a part of a `String`, or of a `String`
-that a tuple, an array, or a `Vec` holds, they are refused. `escape_ascii`'s iterators read from either
+the other case where the `&mut` borrows it, a part of a `String` included. `escape_ascii`'s iterators read from either
 end, size themselves as std's do, and write what they have left by `Display`, unpadded.
 
 An `f64` is a JS number, so its operators are JS's, which round as Rust's do. Where
@@ -230,7 +229,8 @@ std's Unicode tables, which the runtime carries, not the engine's. `Debug` of st
 collections writes their items in the order each iterates, a hash map's or set's included,
 and of their iterators and `Chars` the items each has left, in std's wrapper; a deque's
 `Iter` and `IterMut`, which write its buffer's two halves, and its `Drain`, which writes its
-counts, are refused. `Debug` of `Bound`, `Ordering`, `Reverse`, and `ControlFlow` is
+counts, are refused; a list's `Iter` and `IterMut` write what is left and its length, as
+std's do. `Debug` of `Bound`, `Ordering`, `Reverse`, and `ControlFlow` is
 their derived one, whichever way each is held. A caller prints a
 `printable` type as `to_string()` and `format!("{err:?}")`
 would: `rt.fmtToString((f) => DecodeError.fmt$fmt_Display(err, f))` and
@@ -263,7 +263,9 @@ an `extend` starts from is taken as full. A tuple of these, of `String`s, `()`, 
 tuples, collects, unzips, and extends as std's tuple impls do: a 1-tuple's collection by
 its own `extend`, and a longer one's each reserving the lower bound, in field order, before
 each item's fields go into them in order, as `rt.tupleExtend(t, it, [rt.vecPart(2),
-rt.STRING_PART])`. Any other collection in one is refused.
+rt.STRING_PART])`. The crate's own `Default + Extend` collection keeps the defaults stable
+Rust can't override: it reserves nothing, and takes each item by its `extend` of `Some(item)`,
+through `rt.ownPart`. Any other collection in one is refused.
 
 `clone` of one of std's iterators or adaptors is its `rt.Iter`'s `clone`, which reads on
 from where the original was, independently of it, as std's `Clone` does; one over a hash
@@ -284,7 +286,11 @@ returns, from `rfind` or `match_indices`, counts UTF-8 bytes, as Rust's does, an
 one `&s[a..b]` takes, which reads the string up to it and panics as std does inside a
 char. A JS string can't change in place, so `String`'s edits, `push_str`, `truncate`,
 `insert`, `retain`, `replace_range`, and the rest, assign the edited one to the local or
-field the `&mut` borrows, taking and checking byte offsets as std does. `extend` and
+field the `&mut` borrows, taking and checking byte offsets as std does. A `&mut str` is
+the `rt.Place` of its `String` wherever that is, and a part of one, from `&mut s[a..b]`,
+`get_mut`, or `split_at_mut`, is `rt.strPart(p, a, b)`, a place of its own that writes the
+whole string anew, checking its offsets as `&s[a..b]` does. `as_bytes_mut`,
+`get_unchecked_mut`, and `str::from_utf8_mut` are refused. `extend` and
 `collect` read their iterator by `for_each`, as std's do, and of chars first reserve its
 size hint's lower bound, which panics past `isize::MAX`. A `drain` holds the `&mut`'s
 place and writes the string without the drained text as it drops, so one that
@@ -315,7 +321,10 @@ function is suffixed instead by a hash of its text, with what it calls by name, 
 `map$1cf8u0y`: instances that print the same are one function, whichever of them
 translation reaches. Types are translated once, generically, so a function of a generic
 type is one instance's, declaring the instance it takes as `self`:
-`fmt$fmt_Debug_fmt_Pair(self: Wrap<Pair.Pair>, f: rt.Formatter)`. A type's module exports the
+`fmt$fmt_Debug_fmt_Pair(self: Wrap<Pair.Pair>, f: rt.Formatter)`. A reference or pointer
+in a generic type to what only an instance decides the form of, such as `*mut T` or
+`&'a mut T`, is an `rt.Ptr<T>`: the object, an `rt.Place<T>`, or an `rt.ByteSlice`,
+which each read of an instance's field casts to what it holds. A type's module exports the
 type by its own name, which a caller writes `Decoder.Decoder`, and a function whose name
 and exports it as its own: `function new_` is `Decoder.new`. A module imports a function
 or value by its name, and a type's module whole by the type's, `import * as Decoder`,
@@ -364,7 +373,8 @@ so a map of `Arc<str>` finds a `&str`, a `Cell` and a `RefCell` compare and orde
 what they hold, a `RefCell` borrowing each, a one-time cell compares its `Option`, and
 arrays, slices, and vectors, of bytes or of other elements, order by their elements and then their length, and compare and hash alike
 whatever their form, so a map of `Vec<u8>` finds a `&[u8]` and one of `[u16; 2]` a `&[u16]`.
-A `VecDeque` orders as they do, however its buffer wraps.
+A `VecDeque` orders as they do, however its buffer wraps, and so does a `LinkedList`, which
+also compares and hashes as its iterator does: each item by `==`, never `!=`.
 Slices, arrays, `Vec`s, and `VecDeque`s compare against each
 other as std's do, by their lengths and then each pair of items in order, through the
 items' own `PartialEq<U>`, and its `ne` where the crate overrides it, which a tuple's and
@@ -674,8 +684,35 @@ they need.
   often than before stays one. `just ts bench` measured the codec's varint decode at 0.49
   times the objects' time in Chrome, 0.57 in Firefox, 0.64 in Node, and 0.56 in Bun at
   the geometric mean, and frame decode at 0.61, 0.56, 0.70, and 0.61, with the A/A route
-  within 0.04 and encode no slower. A parameter, a return, and a field are still a
-  `ByteSlice` ([byte slices without objects](/quest/m2/ts-byte-views/README.md)).
+  within 0.04 and encode no slower. A field is still a `ByteSlice`, as is a return but
+  for the `Result`s below ([byte slices without objects](/quest/m2/ts-byte-views/README.md)).
+- A function only translated code calls takes each `&[u8]` or `&[u8; N]` parameter as
+  three, its `data`, `start`, and `length`, which its body holds as that local's parts:
+  not a root, which the outside calls, a closure, or an `async fn`. One whose object the
+  body would make anyway, to borrow it, to pass it to a function taking it whole, or at
+  all, it takes whole: as parts, the callee would just make the object instead of the caller.
+  That made Chrome's `btree/` workloads 1.06x `main`'s time through a helper that
+  rebuilt the slice it was passed. What a body makes depends on what its callees take, so
+  the functions a call reaches settle together, recursion included, each dropping the
+  slices it would make until none does. The function as a value is an arrow that takes
+  the slice whole. `just ts bench` measured parts
+  no faster than passing the slice whole, since V8 already removes what an inlined call
+  doesn't keep: Chrome's varint decode at 0.98-0.99 times the time and frame decode at
+  1.01-1.05 over two runs, with the A/A route within 0.05, Firefox and Bun within their
+  noise, and Node's varint decode at 1.11-1.15.
+- A function of the crate's that only translated code calls and that returns a `Result`
+  of byte slices and scalars, such as `Result<(u64, &[u8]), E>`, whose error is one JS
+  value that is never `undefined`, writes the `Ok`'s parts into a module-level slot and returns the error or
+  `undefined`. The slot is shared by every function returning that payload type, named
+  for the first of them in source order with its suffix, as `readOut` or `leadOut$u16`.
+  The function writes it at its JS `return`, after its drops, and its caller reads it at
+  once, so one that returns another's result as is returns the call. The slot's fields
+  start as `undefined`, so V8 keeps them tagged. When the `Ok`'s first part is a number,
+  the function returns that, or `undefined` for an error, and writes the error into the
+  slot instead: V8 boxes a number past 2^31 that a function too big to inline writes into
+  the long-lived slot, which made Chrome's 8-byte leading-ones varints 1.06-1.09x `main`'s
+  time. A slice's bytes stay in the slot, since returning them gave back frame decode. The
+  function as a value is an arrow that rebuilds the `Result`.
 - A `BTreeMap` is a B+ tree of up to 64 keys a node, O(log n) as std's B-tree is: its
   leaves hold the keys and values and link to their neighbors, which iterators walk from
   either end, and its branches hold each child's lower bound. A node's slots shift in a
@@ -684,7 +721,9 @@ they need.
   and Chrome; 64 keys a node measured best of 16 to 128. A hash map's JS primitive keys
   are a JS `Map`'s, the engine's own hash table; its other keys go into a second `Map`
   by their translated hash, chained by `Eq`. `VecDeque` is a ring buffer over an array
-  whose length is a power of two. Dropping a whole map or set drops its entries in the
+  whose length is a power of two. A `LinkedList` is nodes linked both ways, as std's are,
+  so `append` is O(1) and `split_off` walks from the nearer end; each node is the place
+  `iter_mut` and `front_mut` lend of an item JS copies. Dropping a whole map or set drops its entries in the
   runtime's order, keys' for a B-tree, not std's node by node: std leaves that order
   undocumented, and matching it would mean porting std's 11-key node layout, measured 1.5x
   slower ([#272](https://github.com/moq-dev/rust2/pull/272)). Maintainer's decision on
@@ -796,8 +835,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
   that log what each is called with, `concat` and `join` of arrays, slices, `Vec`s, and
   `Cow`s, of bytes and of items whose `Clone` logs, std's `Bound`, `Reverse`, and
   `NonZero`, and raw pointers: a linked list of boxed nodes as `hashlink` keeps one, through a union and a
-  `MaybeUninit` entry, pointers to locals, fields, and whole structs, and those
-  `UnsafeCell::get` gives, as crossbeam-epoch's own `OnceLock` keeps its collector. Its
+  `MaybeUninit` entry, pointers to locals, fields, and whole structs, those
+  `UnsafeCell::get` gives, as crossbeam-epoch's own `OnceLock` keeps its collector, and
+  those a generic type holds to its parameter, at each form a pointer takes. Its
   differential test runs through `caller.ts`, a
   hand-written caller that also prints a `printable` error nothing translated prints,
   and adds every 64- and 128-bit case over each pair of values next to a power of two,

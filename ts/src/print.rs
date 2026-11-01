@@ -624,7 +624,13 @@ impl Printer<'_> {
 					None => "export const",
 				};
 				let ty = self.ty(ty);
-				self.write(&format!("{decl} {name}: {ty} = /* @__PURE__ */ "));
+				// Only a call or `new` takes the mark: a literal is pure already, and Rollup
+				// warns of a mark anywhere else.
+				let pure = match value {
+					Expr::Call(..) | Expr::New(..) => "/* @__PURE__ */ ",
+					_ => "",
+				};
+				self.write(&format!("{decl} {name}: {ty} = {pure}"));
 				self.expr(value, 2);
 				self.write(";\n");
 			}
