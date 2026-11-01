@@ -820,6 +820,14 @@ export function drop$Option_cell_Ref_borrows_Tagged(_1: rt.RefCell<borrows_Tagge
 	}
 }
 
+export function drop$Result_Result_sync_MappedMutexGuard_u64_sync_MappedMutexGuard_u64_sync_MutexGuard_locks_Tally(_1: rt.Result<rt.Result<rt.Mutex<rt.u64>, rt.Mutex<rt.u64>>, rt.Mutex<locks_Tally.Tally>>): void {
+	if (_1.ok) {
+		drop$Result_sync_MappedMutexGuard_u64_sync_MappedMutexGuard_u64(_1.value);
+	} else {
+		rt.mutexUnlock(_1.error);
+	}
+}
+
 export function drop$Result_Result_sync_MappedRwLockWriteGuard_u64_sync_MappedRwLockWriteGuard_u64_sync_RwLockWriteGuard_locks_Tally(_1: rt.Result<rt.Result<rt.RefCell<rt.u64>, rt.RefCell<rt.u64>>, rt.RefCell<locks_Tally.Tally>>): void {
 	if (_1.ok) {
 		drop$Result_sync_MappedRwLockWriteGuard_u64_sync_MappedRwLockWriteGuard_u64(_1.value);
@@ -858,6 +866,14 @@ export function drop$Result_cell_RefMut_u32_cell_BorrowMutError(_1: rt.Result<rt
 	}
 }
 
+export function drop$Result_cell_RefMut_u32_tuple2_cell_RefMut_borrows_Parts_unit(_1: rt.Result<rt.RefCell<rt.u32>, [rt.RefCell<borrows_Parts.Parts>, undefined]>): void {
+	if (_1.ok) {
+		rt.refMutRelease(_1.value);
+	} else {
+		drop$tuple2_cell_RefMut_borrows_Parts_unit(_1.error);
+	}
+}
+
 export function drop$Result_cell_Ref_Vec_u8_cell_BorrowError(_1: rt.Result<rt.RefCell<rt.ByteVec>, rt.BorrowError>): void {
 	if (_1.ok) {
 		rt.refRelease(_1.value);
@@ -876,6 +892,14 @@ export function drop$Result_cell_Ref_borrows_Parts_cell_BorrowError(_1: rt.Resul
 	}
 }
 
+export function drop$Result_cell_Ref_ref_str_tuple2_cell_Ref_tuple2_u8_ref_str_u8(_1: rt.Result<rt.RefCell<string>, [rt.RefCell<[rt.u8, string]>, rt.u8]>): void {
+	if (_1.ok) {
+		rt.refRelease(_1.value);
+	} else {
+		drop$tuple2_cell_Ref_tuple2_u8_ref_str_u8(_1.error);
+	}
+}
+
 export function drop$Result_cell_Ref_u32_cell_BorrowError(_1: rt.Result<rt.RefCell<rt.u32>, rt.BorrowError>): void {
 	if (_1.ok) {
 		rt.refRelease(_1.value);
@@ -890,11 +914,27 @@ export function drop$Result_cell_Ref_u32_cell_Ref_borrows_Parts(_1: rt.Result<rt
 	}
 }
 
+export function drop$Result_cell_Ref_u32_tuple2_cell_Ref_borrows_Parts_unit(_1: rt.Result<rt.RefCell<rt.u32>, [rt.RefCell<borrows_Parts.Parts>, undefined]>): void {
+	if (_1.ok) {
+		rt.refRelease(_1.value);
+	} else {
+		drop$tuple2_cell_Ref_borrows_Parts_unit(_1.error);
+	}
+}
+
 export function drop$Result_results_Logged_results_Logged(_1: rt.Result<results_Logged.Logged, results_Logged.Logged>): void {
 	if (_1.ok) {
 		_1.value[Symbol.dispose]();
 	} else {
 		_1.error[Symbol.dispose]();
+	}
+}
+
+export function drop$Result_sync_MappedMutexGuard_u64_sync_MappedMutexGuard_u64(_1: rt.Result<rt.Mutex<rt.u64>, rt.Mutex<rt.u64>>): void {
+	if (_1.ok) {
+		rt.mutexUnlock(_1.value);
+	} else {
+		rt.mutexUnlock(_1.error);
 	}
 }
 
@@ -1044,6 +1084,10 @@ export function drop$tuple2_Vec_tuples_Logged_tuples_Tally(_1: [tuples_Logged.Lo
 	rt.dropAll(_1[0]);
 }
 
+export function drop$tuple2_cell_RefMut_borrows_Parts_unit(_1: [rt.RefCell<borrows_Parts.Parts>, undefined]): void {
+	rt.refMutRelease(_1[0]);
+}
+
 export function drop$tuple2_cell_RefMut_slice_u8_cell_RefMut_slice_u8(_1: [rt.RefCell<rt.ByteSlice>, rt.RefCell<rt.ByteSlice>]): void {
 	rt.refMutRelease(_1[0]);
 	rt.refMutRelease(_1[1]);
@@ -1054,9 +1098,17 @@ export function drop$tuple2_cell_Ref_Vec_u8_cell_Ref_u8(_1: [rt.RefCell<rt.ByteV
 	rt.refRelease(_1[1]);
 }
 
+export function drop$tuple2_cell_Ref_borrows_Parts_unit(_1: [rt.RefCell<borrows_Parts.Parts>, undefined]): void {
+	rt.refRelease(_1[0]);
+}
+
 export function drop$tuple2_cell_Ref_str_cell_RefMut_u32(_1: [rt.RefCell<string>, rt.RefCell<rt.u32>]): void {
 	rt.refRelease(_1[0]);
 	rt.refMutRelease(_1[1]);
+}
+
+export function drop$tuple2_cell_Ref_tuple2_u8_ref_str_u8(_1: [rt.RefCell<[rt.u8, string]>, rt.u8]): void {
+	rt.refRelease(_1[0]);
 }
 
 export function drop$tuple2_sync_Arc_collections_Picky_u8(_1: [rt.Arc<collections_Picky.Picky>, rt.u8]): void {
@@ -1081,6 +1133,12 @@ export function drop$tuple2_u8_sync_Arc_u8(_1: [rt.u8, rt.Arc<rt.u8>]): void {
 
 export function drop$tuple2_u8_tuples_Logged(_1: [rt.u8, tuples_Logged.Logged]): void {
 	_1[1][Symbol.dispose]();
+}
+
+export function drop$tuple3_cell_Ref_String_cell_Ref_array4_u8_cell_Ref_u32(_1: [rt.RefCell<string>, rt.RefCell<Uint8Array>, rt.RefCell<rt.u32>]): void {
+	rt.refRelease(_1[0]);
+	rt.refRelease(_1[1]);
+	rt.refRelease(_1[2]);
 }
 
 export function drop$tuple4_Vec_Vec_joins_Logged_array2_array2_joins_Logged_joins_Logged_Vec_joins_Logged(_1: [joins_Logged.Logged[][], joins_Logged.Logged[][], joins_Logged.Logged, joins_Logged.Logged[]]): void {

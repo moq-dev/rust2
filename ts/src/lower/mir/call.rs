@@ -348,7 +348,10 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				| ("Result", "iter_mut")
 				| ("Arc" | "Rc", "get_mut" | "make_mut")
 				| ("Mutex" | "RwLock" | "RefCell" | "OnceCell" | "OnceLock", "get_mut")
-				| ("RefMut" | "RwLockWriteGuard" | "MappedRwLockWriteGuard", "map" | "filter_map" | "map_split") => true,
+				| (
+					"RefMut" | "MutexGuard" | "MappedMutexGuard" | "RwLockWriteGuard" | "MappedRwLockWriteGuard",
+					"map" | "filter_map" | "try_map" | "map_split",
+				) => true,
 				("IntoIterator", "into_iter") => gargs.types().next().is_some_and(|ty| {
 					let ty = crate::lower::iter::unbox_ref(tcx, ty);
 					ty.ref_mutability() == Some(ty::Mutability::Mut)
