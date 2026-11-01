@@ -834,7 +834,7 @@ pub fn may_from_mir(tcx: TyCtxt<'_>, did: DefId) -> bool {
 			"unwrap" | "expect" | "is_some" | "is_none" | "as_ref" | "copied" | "cloned" | "iter"
 		) | (
 			Some(Std::Result),
-			"unwrap" | "expect" | "unwrap_err" | "is_ok" | "is_err"
+			"unwrap" | "expect" | "unwrap_err" | "is_ok" | "is_err" | "iter"
 		) | (
 			Some(Std::LocalKey),
 			"with" | "try_with" | "initialize_with" | "with_borrow_mut"

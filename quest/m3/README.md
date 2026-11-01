@@ -23,12 +23,12 @@ generic std gap is planned here even when moq never calls it.
 - [Waiting: type-check in process with tsrs](/quest/m3/ts-tsrs.md) - rust2-ts checks bindings through tsrs instead of `tsc` once it is a stable library
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
 - [Fresh writes in a body generic over a type](/quest/m3/ts-fresh-type-params.md) - a whole write into fresh memory holding a type parameter's values fills it, as one generic over a length alone does
-- [Result's iterators](/quest/m3/ts-result-iters.md) - `Result::iter`, `iter_mut`, `into_iter`, and `flatten` over `Result`s translate
 - [A generic type's bytes at u8](/quest/m3/ts-generic-byte-fields.md) - a `[T; N]`, `Vec<T>`, or `&[T]` field of a generic type is typed as its `u8` instance holds it, or refused
 - [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are
+- [Places through an adaptor's argument](/quest/m3/ts-adaptor-places.md) - `iter.zip(&mut v)` of values JS copies lends places as `for x in &mut v` does
 - [std's sorts call their tests in std's order](/quest/m3/ts-sort-order.md) - `slice::sort` and a B-tree's `collect` call `lt` or `cmp` as std's driftsort does past 16 elements
 - [A B-tree's searches call Ord as std's do](/quest/m3/ts-btree-search-order.md) - a B-tree's lookups and inserts call a key's own `Ord` in std's order and number
 - [The rest of a guard's maps](/quest/m3/ts-guard-maps.md) - `RefMut::map`, the guards' `filter_map` and `map_split`, and an `RwLock` guard's `map` translate
