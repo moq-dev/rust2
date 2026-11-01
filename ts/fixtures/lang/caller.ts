@@ -349,7 +349,9 @@ const dyns = [[], [1, 2], [3, 0, 7], [255, 1, 255, 0, 1, 2, 3, 4, 5], [0, 3, 2, 
 /**
  * `cells` scripts of (op, operand) pairs on every kind, so each cell and value type: reads
  * and sets, a `None` and a `()` held, initializing from within initialization and
- * panicking in it, empty and full, and a cell replaced.
+ * panicking in it, empty and full, and a cell replaced; clones, `Debug`, and `get_mut`,
+ * empty and full; and `get_or_try_init` failing, succeeding, set, and set or initialized
+ * again from within, failing after or not.
  */
 const cellsOp = op("cells::cells");
 const cellScripts = [
@@ -361,6 +363,15 @@ const cellScripts = [
 	[7, 1],
 	[2, 1, 5, 3, 6, 3, 7, 1],
 	[8, 4, 0, 0, 8, 5, 0, 0, 1, 3, 8, 6],
+	[9, 0, 9, 1, 0, 0],
+	[10, 0, 10, 1, 11, 2, 0, 0],
+	[11, 1, 2, 1, 11, 4, 0, 0, 4, 0, 11, 5],
+	[12, 0, 12, 6, 0, 0, 12, 1],
+	[12, 1, 12, 2],
+	[12, 2],
+	[12, 3, 4, 0, 12, 7],
+	[12, 11],
+	[12, 7, 12, 4],
 	[],
 ];
 const cells = Array.from({ length: 256 }, (_, kind) => cellScripts.map((script) => Uint8Array.of(cellsOp, kind, ...script))).flat();
@@ -379,6 +390,21 @@ const shared = [[], [1], [0, 0], [255, 255, 0, 1, 2, 3, 4, 5], [7, 0xff, 255, 25
 const locks = [[0, 1, 5, 6, 2, 7, 3, 8, 3, 0, 1], [4, 0, 4, 1], [2, 9, 2, 10, 4, 1], [3, 3, 4, 0]].map(
 	(bytes) => Uint8Array.of(op("locks::locks"), 0, ...bytes),
 );
+
+/**
+ * `borrows::guards` scripts: each operation on cells empty and not, cloned while borrowed
+ * shared and exclusive, and borrowed exclusively while a mapped or cloned guard holds it.
+ */
+const guards = [
+	[0x04, 0x05, 0x06, 0x03, 0x07, 0x02, 0x01],
+	[0x10, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0b, 0x0c, 0x0d],
+	[0x08, 0xe1, 0xf1],
+	[0x08, 0xe6],
+	[0xf6],
+].map((bytes) => Uint8Array.of(op("borrows::guards"), 0, ...bytes));
+
+/** `locks::rwlocks` scripts: `get_mut` and `into_inner` among writes and reads. */
+const rwlocks = [[6, 7, 0, 6, 2, 14, 15, 1]].map((bytes) => Uint8Array.of(op("locks::rwlocks"), 0, ...bytes));
 
 /**
  * `statics::onces` scripts: a `Once` forced, called, and forced again, which drops the
@@ -727,4 +753,4 @@ const asciiCases = [
 	...Array.from({ length: 8 * 3 * 3 }, (_, i) => Uint8Array.of(op("ascii::parts"), 0x10 | (i % 8), Math.floor(i / 8) % 3, Math.floor(i / 24))),
 ];
 
-export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases];
+export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases];
