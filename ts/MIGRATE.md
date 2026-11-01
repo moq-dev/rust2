@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- A `Vec`, `VecDeque`, and `BinaryHeap` hold std's capacity. An `rt.VecDeque` holds it
+  as `c`, so one made by hand is `rt.dequeNew()` or `{ b, h, n, c }`, and a JS array as a
+  `Vec` holds it as `cap` where it differs from its length. The runtime's functions that
+  grow, shrink, or read one take its element size in bytes last, as in
+  `rt.vecPush(v, item, 4)`, `rt.dequePushBack(q, item, 4)`, and `rt.heapPush(h, item, le, 4)`.
 - A function the config's roots don't name takes each `&[u8]` or `&[u8; N]` parameter
   whose object its body never makes as its `data`, `start`, and `length`:
   `read(buf, form)` is `read(buf.data, buf.start, buf.length, form)`. A caller takes
