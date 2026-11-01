@@ -1640,17 +1640,17 @@ pub fn key_taken(n: u16) -> u16 {
 	unsafe { *part }
 }
 
-/// A `String`'s case changed where a tuple holds it, through a `&mut str` to an element
-/// JS copies, which is no path to write it back to.
-pub fn ascii_in_tuple(mut pair: (u8, String)) -> String {
-	pair.1.make_ascii_uppercase();
-	pair.1
+/// A `str`'s UTF-8 written as bytes, or a part of it unchecked.
+pub fn str_bytes_mut(s: &mut str) {
+	unsafe { s.as_bytes_mut()[0] = b'a' };
+	unsafe { s.get_unchecked_mut(..1) }.make_ascii_uppercase();
 }
 
-/// Part of a `String` changed in place, which a JS string can't be.
-pub fn ascii_part(mut s: String) -> String {
-	s[1..].make_ascii_uppercase();
-	s
+/// Bytes written through a `&mut str` to them, which no JS string is.
+pub fn str_from_bytes_mut(bytes: &mut [u8]) {
+	if let Ok(text) = std::str::from_utf8_mut(bytes) {
+		text.make_ascii_uppercase();
+	}
 }
 
 fn cell_of(c: &std::cell::UnsafeCell<u64>) -> *mut u64 {

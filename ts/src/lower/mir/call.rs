@@ -650,24 +650,47 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				self.set_borrowed(&place, value, span, out);
 				done(Expr::undefined(), false)
 			}
-			// A `Cow<str>` is the `String` it would hold, so the `&mut` borrows the same place.
-			("Cow", "to_mut") if targ(0).is_some_and(|t| t.is_str()) => {
-				let (place, borrowed) = self.borrowed_place(&args[0].node, span, out)?;
-				if let Some(local) = dest.as_local()
-					&& self.defs[local] == 1
-					&& matches!(self.slots[local], Slot::Var(_))
-				{
-					self.slots[local] = Slot::Alias(Some(place));
-					self.reborrows.extend(borrowed.map(|b| (local, b)));
-					return Some(None);
-				}
-				match borrowed {
-					Some(borrowed) => {
-						let target = self.stable_target(borrowed, place, span, out);
-						done(self.place_of(target, None), true)
-					}
-					None => done(place, true),
-				}
+			// A `Cow<str>` is the `String` it would hold, and a `String` is its `str`, so the
+			// `&mut` borrows the same place.
+			("Cow", "to_mut") if targ(0).is_some_and(|t| t.is_str()) => self.same_place(args, dest, span, out),
+			("String", "as_mut_str") => self.same_place(args, dest, span, out),
+			("DerefMut", "deref_mut") | ("AsMut", "as_mut") | ("BorrowMut", "borrow_mut")
+				if targ(0).is_some_and(|t| t.is_str() || self.b.t.std_of(t) == Some(Std::String))
+					&& dest.ty(&self.mir.local_decls, tcx).ty.peel_refs().is_str() =>
+			{
+				self.same_place(args, dest, span, out)
+			}
+			// A place nothing else holds: the `String` leaked, or `Default`'s empty `str`.
+			("String", "leak") => {
+				let leaked = self.operand(&args[0].node, span, out);
+				done(Expr::Object(vec![(crate::ts::Key::Name("v".into()), leaked)]), true)
+			}
+			("Default", "default")
+				if targ(0)
+					.and_then(|t| self.b.t.place_pointee(t))
+					.is_some_and(|t| t.is_str()) =>
+			{
+				done(
+					Expr::Object(vec![(crate::ts::Key::Name("v".into()), Expr::Str(String::new()))]),
+					false,
+				)
+			}
+			// A part of a `str` is a place of its own, which splices the whole anew.
+			("str", "get_mut") => {
+				let whole = self.operand(&args[0].node, span, out);
+				let (start, end) = self.range_bounds(&args[1].node, targ(0)?, span, out)?;
+				done(
+					Expr::rt("strGetMut", [whole, start].into_iter().chain(end).collect()),
+					true,
+				)
+			}
+			("str", "split_at_mut" | "split_at_mut_checked") => {
+				let values = self.operands(false, &[], args, dest.ty(&self.mir.local_decls, tcx).ty, span, out);
+				let f = match name.as_str() {
+					"split_at_mut" => "strSplitAtMut",
+					_ => "strSplitAtMutChecked",
+				};
+				done(Expr::rt(f, values), true)
 			}
 			// A `Wrapping` or a `Saturating` is its integer, so what the `&mut` borrows gets the
 			// wrapped or saturated result.
@@ -1076,6 +1099,33 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		}
 	}
 
+	/// The place the `&mut` receiver borrows, as the `&mut` the call returns: an alias of it
+	/// where the destination is read only as one.
+	fn same_place(
+		&mut self,
+		args: &[Spanned<Operand<'tcx>>],
+		dest: Place<'tcx>,
+		span: Span,
+		out: &mut Vec<Stmt>,
+	) -> Option<Option<(Expr, bool)>> {
+		let (place, borrowed) = self.borrowed_place(&args[0].node, span, out)?;
+		if let Some(local) = dest.as_local()
+			&& self.defs[local] == 1
+			&& matches!(self.slots[local], Slot::Var(_))
+		{
+			self.slots[local] = Slot::Alias(Some(place));
+			self.reborrows.extend(borrowed.map(|b| (local, b)));
+			return Some(None);
+		}
+		match borrowed {
+			Some(borrowed) => {
+				let target = self.stable_target(borrowed, place, span, out);
+				Some(Some((self.place_of(target, None), true)))
+			}
+			None => Some(Some((place, true))),
+		}
+	}
+
 	/// A `fmt::Write` method of a `String`, a `Formatter`, or the crate's own writer, or of
 	/// std's impl for a `&mut W`, which calls `W`'s. A provided method of the crate's impl
 	/// writes through its `write_str`. `None` for any other writer.
@@ -1407,16 +1457,18 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 	) -> Option<Option<(Expr, bool)>> {
 		let container = gargs.type_at(0);
 		let index_ty = gargs.type_at(1);
-		// A string slices by UTF-8 byte offsets, which a JS string doesn't index by.
+		// A string slices by UTF-8 byte offsets, which a JS string doesn't index by, and a
+		// part a `&mut` borrows is a place of its own, which splices the whole anew.
 		if container.is_str() || self.b.t.std_of(container) == Some(Std::String) {
-			if name == "index_mut" {
-				return None;
-			}
 			let base = self.operand(&args[0].node, span, out);
 			let (start, end) = self.range_bounds(&args[1].node, index_ty, span, out)?;
+			let f = match name {
+				"index_mut" => "strPart",
+				_ => "strSlice",
+			};
 			let mut values = vec![self.path(base, "s", out), start];
 			values.extend(end);
-			return Some(Some((Expr::rt("strSlice", values), true)));
+			return Some(Some((Expr::rt(f, values), true)));
 		}
 		let elem_ty = elem(self.tcx, container)?;
 		let bytes = matches!(elem_ty.kind(), ty::Uint(ty::UintTy::U8));
