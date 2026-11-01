@@ -1767,12 +1767,13 @@ fn continued(ty: Ty<'_>) -> Ty<'_> {
 	}
 }
 
-/// Whether an assignment can write `e`: a path, an element, or a member of one.
+/// Whether an assignment can write `e`: a path, an element, or a member of one, through a
+/// cast, as a generic type's field is read as its instance holds it.
 fn assignable(e: &Expr) -> bool {
 	match e {
 		_ if super::place::split_target(e).is_some() => true,
 		Expr::Index(..) => true,
-		Expr::Member(base, _) | Expr::Located(_, base) => assignable(base),
+		Expr::Member(base, _) | Expr::Located(_, base) | Expr::As(base, _) => assignable(base),
 		e => e.is_path(),
 	}
 }

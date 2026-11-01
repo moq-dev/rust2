@@ -533,12 +533,20 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			let sym = self.instance(Instance::mono(tcx, dtor.did));
 			steps.push(StmtKind::Expr(Expr::Sym(sym).call(vec![Expr::This])).at(None));
 		}
+		// Only an instance whose parameters drop runs the glue, so none is a byte: a field
+		// whose definition's type an instance decides is read as an array of them holds it.
+		let glue = std::mem::replace(&mut self.glue, true);
 		for (field, &id) in adt.non_enum_variant().fields.iter().zip(fields) {
 			let ty = tcx.type_of(field.did).instantiate_identity().skip_norm_wip();
-			if let Some(dropped) = self.drop_value(Translator::read_field(Expr::This, id), ty, span) {
+			let read = match self.instanced_fields.contains_key(&field.did) {
+				true => Expr::As(Box::new(Translator::read_field(Expr::This, id)), self.ty(ty, span)),
+				false => Translator::read_field(Expr::This, id),
+			};
+			if let Some(dropped) = self.drop_value(read, ty, span) {
 				steps.push(StmtKind::Expr(dropped).at(None));
 			}
 		}
+		self.glue = glue;
 		let sym = self.program.sym(Symbol {
 			module: self.module_of(adt.did()),
 			base: "[Symbol.dispose]".into(),

@@ -193,10 +193,11 @@ pub struct Translator<'a, 'tcx> {
 	instances: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, SymId>,
 	queue: VecDeque<(Instance<'tcx>, SymId)>,
 	adts: rustc_data_structures::fx::FxHashMap<DefId, Adt>,
-	/// The fields of generic types whose definition types a pointer as an `rt.Ptr`, which
-	/// an instance's read casts to what it holds, with that type where a function type in
-	/// it takes one, which an instance's value is cast to.
-	ptr_fields: rustc_data_structures::fx::FxHashMap<DefId, Option<Type>>,
+	/// The fields of generic types whose definition types a form only an instance decides,
+	/// such as an `rt.Ptr` or an `rt.VecOf`, which an instance's read casts to what it
+	/// holds, with that type where a function type in it takes one, which an instance's
+	/// value is cast to.
+	instanced_fields: rustc_data_structures::fx::FxHashMap<DefId, Option<Type>>,
 	/// Source files by name, as indexes into `program.sources`.
 	sources: rustc_data_structures::fx::FxHashMap<String, Option<u32>>,
 	failed: bool,
@@ -249,6 +250,9 @@ pub struct Translator<'a, 'tcx> {
 	pub coroutines: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, mir::coroutine::Info<'tcx>>,
 	/// Whether [`Self::ty`] is typing a variable: see [`Self::held_ty`].
 	held: bool,
+	/// Whether [`Self::ty`] is typing a generic class's drop glue, which only an instance
+	/// whose parameters drop runs, so none is a byte.
+	glue: bool,
 	/// Where the crate first reached each instance of std's that lowers from its MIR, which
 	/// refuses there: its own spans are std's.
 	sites: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, Span>,
@@ -455,7 +459,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			instances: Default::default(),
 			queue: VecDeque::new(),
 			adts: Default::default(),
-			ptr_fields: Default::default(),
+			instanced_fields: Default::default(),
 			sources: Default::default(),
 			failed: false,
 			env: TypingEnv::fully_monomorphized(),
@@ -482,6 +486,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			compared,
 			comparing: Default::default(),
 			held: false,
+			glue: false,
 			sites: Default::default(),
 			site: None,
 			bindings: Default::default(),
@@ -623,6 +628,18 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// decides.
 	pub fn deferred(&self, ty: Ty<'tcx>) -> bool {
 		self.polymorphic() && matches!(ty.kind(), ty::Param(_) | ty::Alias(..))
+	}
+
+	/// Whether `ty` is a type parameter, or a projection from one, in a generic type's
+	/// definition, which only an instance decides.
+	pub fn open(&self, ty: Ty<'tcx>) -> bool {
+		!self.polymorphic() && ty.has_param() && matches!(ty.kind(), ty::Param(_) | ty::Alias(..))
+	}
+
+	/// Whether only an instance decides whether `elem`, a run's element, is a byte, which
+	/// JS keeps a run of apart.
+	fn open_elem(&self, elem: Ty<'tcx>) -> bool {
+		!self.glue && self.open(elem)
 	}
 
 	pub fn typing_env_pub(&self) -> TypingEnv<'tcx> {
@@ -1017,8 +1034,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		}
 		// Its fields' types are refused where they are written, whatever reached it.
 		let held = std::mem::replace(&mut self.held, false);
+		let glue = std::mem::replace(&mut self.glue, false);
 		let info = self.define(adt, span);
-		self.held = held;
+		(self.held, self.glue) = (held, glue);
 		info
 	}
 
@@ -1409,6 +1427,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			ty::RawPtr(inner, _) => self.pointer_ty(*inner, span),
 			ty::Ref(..) if bytes_ref(ty) => Type::Rt("ByteSlice", vec![]),
 			ty::Ref(_, inner, _) => self.ty(*inner, span),
+			ty::Array(elem, _) if self.open_elem(*elem) => Type::Rt("ArrayOf", vec![self.ty(*elem, span)]),
+			ty::Slice(elem) if self.open_elem(*elem) => Type::Rt("SliceOf", vec![self.ty(*elem, span)]),
 			ty::Array(elem, _) => match elem.kind() {
 				ty::Uint(ty::UintTy::U8) => Type::Builtin("Uint8Array"),
 				_ => Type::Array(Box::new(self.ty(*elem, span))),
@@ -1570,6 +1590,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					"Result",
 					vec![self.ty(args.type_at(0), span), self.ty(args.type_at(1), span)],
 				),
+				library::Std::Vec if self.open_elem(args.type_at(0)) => {
+					Type::Rt("VecOf", vec![self.ty(args.type_at(0), span)])
+				}
 				library::Std::Vec => match args.type_at(0).kind() {
 					ty::Uint(ty::UintTy::U8) => Type::Rt("ByteVec", vec![]),
 					_ => Type::Array(Box::new(self.ty(args.type_at(0), span))),
@@ -1578,6 +1601,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				library::Std::Cow if library::string(tcx, Ty::new_adt(tcx, adt, args)) => Type::Builtin("string"),
 				library::Std::Cow if let Some(elem) = library::cow_slice(tcx, Ty::new_adt(tcx, adt, args)) => {
 					match elem.kind() {
+						_ if self.open_elem(elem) => Type::Rt("CowOf", vec![self.ty(elem, span)]),
 						ty::Uint(ty::UintTy::U8) => Type::Rt("ByteCow", vec![]),
 						_ => Type::Rt("Cow", vec![self.ty(elem, span)]),
 					}
@@ -1759,19 +1783,21 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	}
 
 	/// The TypeScript type of `field` in its type's definition, with `identity` its own
-	/// parameters, noting a field that holds an `rt.Ptr` for [`Self::held_field`].
+	/// parameters, noting a field that holds a form only an instance decides for
+	/// [`Self::held_field`].
 	fn defined_field_ty(&mut self, field: &ty::FieldDef, identity: GenericArgsRef<'tcx>, span: Span) -> Type {
 		let ty = self.ty(field.ty(self.tcx, identity).skip_norm_wip(), span);
-		let ptr = |t: &Type| matches!(t, Type::Rt("Ptr", _));
-		if ty.any(&ptr) {
-			self.ptr_fields.insert(field.did, ty.takes(&ptr).then(|| ty.clone()));
+		let instanced = |t: &Type| matches!(t, Type::Rt("Ptr" | "ArrayOf" | "SliceOf" | "VecOf" | "CowOf", _));
+		if ty.any(&instanced) {
+			self.instanced_fields
+				.insert(field.did, ty.takes(&instanced).then(|| ty.clone()));
 		}
 		ty
 	}
 
 	/// `value`, for `field` of an instance of `adt` with `args`, cast to the field's type in
-	/// the definition at those arguments where a function type in it takes an `rt.Ptr`: a
-	/// function taking what the instance's pointer is takes no other form of one.
+	/// the definition at those arguments where a function type in it takes a form only an
+	/// instance decides: a function taking what the instance holds takes no other form.
 	pub fn field_value(
 		&mut self,
 		value: ts::Expr,
@@ -1780,7 +1806,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		args: GenericArgsRef<'tcx>,
 		span: Span,
 	) -> ts::Expr {
-		let Some(Some(defined)) = self.ptr_fields.get(&field).cloned() else {
+		let Some(Some(defined)) = self.instanced_fields.get(&field).cloned() else {
 			return value;
 		};
 		let params: Vec<(String, Type)> = (self.tcx.generics_of(adt).own_params.iter())
@@ -1797,9 +1823,9 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	}
 
 	/// `read`, of `field` of an instance with `args`, cast to what the instance holds there
-	/// where the definition types a pointer in it as an `rt.Ptr`.
+	/// where the definition types a form in it that only an instance decides.
 	pub fn held_field(&mut self, read: ts::Expr, field: DefId, args: GenericArgsRef<'tcx>, span: Span) -> ts::Expr {
-		if !self.ptr_fields.contains_key(&field) {
+		if !self.instanced_fields.contains_key(&field) {
 			return read;
 		}
 		let ty = self.field_ty(field, args);
