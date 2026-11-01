@@ -14,8 +14,9 @@ import * as Guard from "./model.Guard.ts";
  * moves its guard into its future, which drops it as it returns or is cancelled; one
  * that only borrows is called through `AsyncFn` and through `Fn`, a future of its own
  * each call, and so is one that captures nothing; one that moves its guard out is called
- * once; one made by a function holds a copy of its argument; and one that owns a guard,
- * called through `AsyncFn`, is then consumed through `FnOnce`. A clone of the one that owns a count changes its own. A
+ * once; one made by a function holds a copy of its argument; one that owns a guard,
+ * called through `AsyncFn`, is then consumed through `FnOnce`; and a box of one that owns
+ * a guard is consumed through `AsyncFnOnce`. A clone of the one that owns a count changes its own. A
  * cancel drops what the future in flight holds, then the closures, in reverse.
  */
 export function closures(rx: Consumer.Consumer, guard: Guard.Guard): rt.Future<rt.u64> {
@@ -48,9 +49,9 @@ export class closuresFuture {
 	#fourth!: rt.u64;
 	#add!: (a0: rt.u64) => rt.Future<rt.u64>;
 	#finish!: (a0: rt.u64) => rt.Future<rt.u64>;
-	#saved$3!: rt.u64;
-	#saved$4!: (a0: rt.u64) => rt.Future<rt.u64>;
-	#saved$5!: boolean;
+	#fifth!: rt.u64;
+	#saved$3!: (a0: rt.u64) => rt.Future<rt.u64>;
+	#saved$4!: boolean;
 
 	constructor(rx: Consumer.Consumer, guard: Guard.Guard) {
 		this.#rx = rx;
@@ -111,16 +112,18 @@ export class closuresFuture {
 					rt.drop(this.#awaitee$3);
 				} else if (this.#state === 15) {
 					rt.drop(this.#awaitee);
-					rt.drop(this.#saved$4);
+					rt.drop(this.#saved$3);
 				} else if (this.#state === 16) {
+					rt.drop(this.#awaitee$3);
+				} else if (this.#state === 17) {
 					rt.drop(this.#awaitee$3);
 				} else {
 					return;
 				}
-				if (this.#saved$5) {
+				if (this.#saved$4) {
 					rt.drop(this.#finish);
 				}
-				this.#saved$5 = false;
+				this.#saved$4 = false;
 			}
 			this.#lent[Symbol.dispose]();
 		}
@@ -143,270 +146,293 @@ export class closuresFuture {
 												b10: {
 													b11: {
 														b12: {
-															if (this.#state === 0) {
-																this.#saved$5 = false;
-																const _3: [rt.u32, Log.Log] = [Guard.id(this.#guard), Log.clone$Clone(Guard.log(this.#guard))];
-																this.#id = _3[0];
-																this.#log = _3[1];
-																this.#seen = [];
-																this.#reads = 0;
-																this.#next = (scale: rt.u64): rt.Future<rt.u64 | undefined> => {
-																	return new closuresFuture$closure0_closure0(scale, this.#rx, this.#seen, rt.place(() => this.#reads, (value) => this.#reads = value));
-																};
-																this.#awaitee = this.#next(1);
-															} else if (this.#state === 1) {
-																rt.asyncFnResumed();
-															} else if (this.#state !== 3) {
-																if (this.#state === 4) {
-																	break b12;
+															b13: {
+																if (this.#state === 0) {
+																	this.#saved$4 = false;
+																	const _3: [rt.u32, Log.Log] = [Guard.id(this.#guard), Log.clone$Clone(Guard.log(this.#guard))];
+																	this.#id = _3[0];
+																	this.#log = _3[1];
+																	this.#seen = [];
+																	this.#reads = 0;
+																	this.#next = (scale: rt.u64): rt.Future<rt.u64 | undefined> => {
+																		return new closuresFuture$closure0_closure0(scale, this.#rx, this.#seen, rt.place(() => this.#reads, (value) => this.#reads = value));
+																	};
+																	this.#awaitee = this.#next(1);
+																} else if (this.#state === 1) {
+																	rt.asyncFnResumed();
+																} else if (this.#state !== 3) {
+																	if (this.#state === 4) {
+																		break b13;
+																	}
+																	if (this.#state === 5) {
+																		break b12;
+																	}
+																	if (this.#state === 6) {
+																		break b11;
+																	}
+																	if (this.#state === 7) {
+																		break b10;
+																	}
+																	if (this.#state === 8) {
+																		break b9;
+																	}
+																	if (this.#state === 9) {
+																		break b8;
+																	}
+																	if (this.#state === 10) {
+																		break b7;
+																	}
+																	if (this.#state === 11) {
+																		break b6;
+																	}
+																	if (this.#state === 12) {
+																		break b5;
+																	}
+																	if (this.#state === 13) {
+																		break b4;
+																	}
+																	if (this.#state === 14) {
+																		break b3;
+																	}
+																	if (this.#state === 15) {
+																		break b2;
+																	}
+																	if (this.#state === 16) {
+																		break b1;
+																	}
+																	break b0;
 																}
-																if (this.#state === 5) {
-																	break b11;
+																const _16: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
+																if (_16 !== rt.Pending) {
+																	this.#first = _16;
+																	rt.drop(this.#awaitee);
+																	this.#awaitee = new twiceFuture$closures_closures_closure0_closure0(this.#next);
+																} else {
+																	this.#state = 3;
+																	return rt.Pending;
 																}
-																if (this.#state === 6) {
-																	break b10;
-																}
-																if (this.#state === 7) {
-																	break b9;
-																}
-																if (this.#state === 8) {
-																	break b8;
-																}
-																if (this.#state === 9) {
-																	break b7;
-																}
-																if (this.#state === 10) {
-																	break b6;
-																}
-																if (this.#state === 11) {
-																	break b5;
-																}
-																if (this.#state === 12) {
-																	break b4;
-																}
-																if (this.#state === 13) {
-																	break b3;
-																}
-																if (this.#state === 14) {
-																	break b2;
-																}
-																if (this.#state === 15) {
-																	break b1;
-																}
-																break b0;
 															}
-															const _16: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
-															if (_16 !== rt.Pending) {
-																this.#first = _16;
+															const _27: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
+															if (_27 !== rt.Pending) {
+																this.#second = _27;
 																rt.drop(this.#awaitee);
-																this.#awaitee = new twiceFuture$closures_closures_closure0_closure0(this.#next);
+																this.#count = this.#reads;
+																const make = (captured: rt.u32): (a0: rt.u32) => rt.Future<rt.u32> => {
+																	return rt.cloning((by: rt.u32): rt.Future<rt.u32> => {
+																		return new closuresFuture$closure1_closure0(by, rt.place(() => captured, (value2) => captured = value2));
+																	}, () => make(captured));
+																};
+																this.#tally = make(this.#count);
+																this.#awaitee$2 = this.#tally(10);
 															} else {
-																this.#state = 3;
+																this.#state = 4;
 																return rt.Pending;
 															}
 														}
-														const _27: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
-														if (_27 !== rt.Pending) {
-															this.#second = _27;
-															rt.drop(this.#awaitee);
-															this.#count = this.#reads;
-															const make = (captured: rt.u32): (a0: rt.u32) => rt.Future<rt.u32> => {
-																return rt.cloning((by: rt.u32): rt.Future<rt.u32> => {
-																	return new closuresFuture$closure1_closure0(by, rt.place(() => captured, (value2) => captured = value2));
-																}, () => make(captured));
-															};
-															this.#tally = make(this.#count);
-															this.#awaitee$2 = this.#tally(10);
+														const _39: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
+														if (_39 !== rt.Pending) {
+															const once: rt.u32 = _39;
+															rt.drop(this.#awaitee$2);
+															this.#copy = rt.closureClone(this.#tally);
+															this.#saved = once;
+															this.#awaitee$2 = this.#copy(100);
 														} else {
-															this.#state = 4;
+															this.#state = 5;
 															return rt.Pending;
 														}
 													}
-													const _39: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
-													if (_39 !== rt.Pending) {
-														const once: rt.u32 = _39;
+													const _52: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
+													if (_52 !== rt.Pending) {
+														this.#saved$2 = _52;
 														rt.drop(this.#awaitee$2);
-														this.#copy = rt.closureClone(this.#tally);
-														this.#saved = once;
-														this.#awaitee$2 = this.#copy(100);
+														this.#awaitee$2 = this.#tally(1000);
 													} else {
-														this.#state = 5;
+														this.#state = 6;
 														return rt.Pending;
 													}
 												}
-												const _52: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
-												if (_52 !== rt.Pending) {
-													this.#saved$2 = _52;
+												const _64: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
+												if (_64 !== rt.Pending) {
+													const result4: rt.u32 = _64;
 													rt.drop(this.#awaitee$2);
-													this.#awaitee$2 = this.#tally(1000);
+													this.#tallied = [this.#saved, this.#saved$2, result4] as [rt.u32, rt.u32, rt.u32];
+													const arg = this.#seen;
+													const _87: rt.Fmt = (f: rt.Formatter) => rt.fmtList(arg, f, (value: rt.u64 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u64Debug));
+													const arg2 = this.#first;
+													const _88: rt.Fmt = (f: rt.Formatter) => rt.fmtOption(arg2, f, rt.u64Debug);
+													const arg3 = this.#second;
+													const _89: rt.Fmt = (f: rt.Formatter) => rt.fmtOption(arg3, f, rt.u64Debug);
+													const arg4 = this.#reads;
+													const _90: rt.Fmt = (f: rt.Formatter) => rt.u32Display(arg4, f);
+													const arg5 = this.#tallied;
+													const _91: rt.Fmt = (f: rt.Formatter) => rt.fmtTuple([(f: rt.Formatter) => rt.u32Debug(arg5[0], f), (f: rt.Formatter) => rt.u32Debug(arg5[1], f), (f: rt.Formatter) => rt.u32Debug(arg5[2], f)], f);
+													const arg6 = this.#count;
+													const args2: rt.Fmt[] = [_87, _88, _89, _90, _91, (f: rt.Formatter) => rt.u32Display(arg6, f)];
+													const _74: string = rt.fmtFormat(["seen ", args2[0], " first ", args2[1], " second ", args2[2], " reads ", args2[3], " tallied ", args2[4], " count ", args2[5]]);
+													Guard.note(this.#guard, _74);
+													const captured2 = Guard.new(rt.u32Add(this.#id, 500), Log.clone$Clone(this.#log));
+													this.#awaitee$3 = new callOnceFuture$closures_closures_closure0_closure2(rt.closure(rt.byMove((rx: Consumer.Consumer): rt.Future<rt.u64> => {
+														return new closuresFuture$closure2_closure0(rx, captured2);
+													}, (_22: Consumer.Consumer): rt.Future<rt.u64> => {
+														return new closuresFuture$closure2_closure0_once(_22, captured2);
+													}), (): void => {
+														captured2[Symbol.dispose]();
+													}), this.#rx);
 												} else {
-													this.#state = 6;
+													this.#state = 7;
 													return rt.Pending;
 												}
 											}
-											const _64: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
-											if (_64 !== rt.Pending) {
-												const result4: rt.u32 = _64;
-												rt.drop(this.#awaitee$2);
-												this.#tallied = [this.#saved, this.#saved$2, result4] as [rt.u32, rt.u32, rt.u32];
-												const arg = this.#seen;
-												const _87: rt.Fmt = (f: rt.Formatter) => rt.fmtList(arg, f, (value: rt.u64 | undefined, f: rt.Formatter) => rt.fmtOption(value, f, rt.u64Debug));
-												const arg2 = this.#first;
-												const _88: rt.Fmt = (f: rt.Formatter) => rt.fmtOption(arg2, f, rt.u64Debug);
-												const arg3 = this.#second;
-												const _89: rt.Fmt = (f: rt.Formatter) => rt.fmtOption(arg3, f, rt.u64Debug);
-												const arg4 = this.#reads;
-												const _90: rt.Fmt = (f: rt.Formatter) => rt.u32Display(arg4, f);
-												const arg5 = this.#tallied;
-												const _91: rt.Fmt = (f: rt.Formatter) => rt.fmtTuple([(f: rt.Formatter) => rt.u32Debug(arg5[0], f), (f: rt.Formatter) => rt.u32Debug(arg5[1], f), (f: rt.Formatter) => rt.u32Debug(arg5[2], f)], f);
-												const arg6 = this.#count;
-												const args2: rt.Fmt[] = [_87, _88, _89, _90, _91, (f: rt.Formatter) => rt.u32Display(arg6, f)];
-												const _74: string = rt.fmtFormat(["seen ", args2[0], " first ", args2[1], " second ", args2[2], " reads ", args2[3], " tallied ", args2[4], " count ", args2[5]]);
-												Guard.note(this.#guard, _74);
-												const captured2 = Guard.new(rt.u32Add(this.#id, 500), Log.clone$Clone(this.#log));
-												this.#awaitee$3 = new callOnceFuture$closures_closures_closure0_closure2(rt.closure(rt.byMove((rx: Consumer.Consumer): rt.Future<rt.u64> => {
-													return new closuresFuture$closure2_closure0(rx, captured2);
-												}, (_22: Consumer.Consumer): rt.Future<rt.u64> => {
-													return new closuresFuture$closure2_closure0_once(_22, captured2);
-												}), (): void => {
-													captured2[Symbol.dispose]();
-												}), this.#rx);
+											const _105: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+											if (_105 !== rt.Pending) {
+												this.#third = _105;
+												rt.drop(this.#awaitee$3);
+												const arg7 = this.#third;
+												const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg7, f)];
+												const _115: string = rt.fmtFormat(["third ", args4[0]]);
+												Guard.note(this.#guard, _115);
+												this.#lent = Guard.new(rt.u32Add(this.#id, 600), Log.clone$Clone(this.#log));
+												this.#peek = (value3: rt.u64): rt.Future<rt.u64> => {
+													return new closuresFuture$closure3_closure0(value3, this.#lent);
+												};
+												this.#awaitee$3 = new callFuture$closures_closures_closure0_closure3(this.#peek, 4);
 											} else {
-												this.#state = 7;
+												this.#state = 8;
 												return rt.Pending;
 											}
 										}
-										const _105: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
-										if (_105 !== rt.Pending) {
-											this.#third = _105;
+										const _135: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+										if (_135 !== rt.Pending) {
+											this.#fourth = _135;
 											rt.drop(this.#awaitee$3);
-											const arg7 = this.#third;
-											const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg7, f)];
-											const _115: string = rt.fmtFormat(["third ", args4[0]]);
-											Guard.note(this.#guard, _115);
-											this.#lent = Guard.new(rt.u32Add(this.#id, 600), Log.clone$Clone(this.#log));
-											this.#peek = (value3: rt.u64): rt.Future<rt.u64> => {
-												return new closuresFuture$closure3_closure0(value3, this.#lent);
-											};
-											this.#awaitee$3 = new callFuture$closures_closures_closure0_closure3(this.#peek, 4);
+											this.#awaitee$3 = new throughFnFuture$ref_closures_closures_closure0_closure3_closures_closures_closure0_closure3_closure0(this.#peek, 5);
 										} else {
-											this.#state = 8;
+											this.#state = 9;
 											return rt.Pending;
 										}
 									}
-									const _135: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
-									if (_135 !== rt.Pending) {
-										this.#fourth = _135;
+									const _146: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+									if (_146 !== rt.Pending) {
+										const result7: rt.u64 = _146;
 										rt.drop(this.#awaitee$3);
-										this.#awaitee$3 = new throughFnFuture$ref_closures_closures_closure0_closure3_closures_closures_closure0_closure3_closure0(this.#peek, 5);
+										this.#fourth = rt.u64Add(this.#fourth, result7);
+										this.#awaitee$3 = new throughFnFuture$closures_closures_closure0_closure4_closures_closures_closure0_closure4_closure0((value4: rt.u64): rt.Future<rt.u64> => {
+											return new closuresFuture$closure4_closure0(value4);
+										}, 6);
 									} else {
-										this.#state = 9;
+										this.#state = 10;
 										return rt.Pending;
 									}
 								}
-								const _146: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
-								if (_146 !== rt.Pending) {
-									const result7: rt.u64 = _146;
+								const _158: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+								if (_158 !== rt.Pending) {
+									const result8: rt.u64 = _158;
 									rt.drop(this.#awaitee$3);
-									this.#fourth = rt.u64Add(this.#fourth, result7);
-									this.#awaitee$3 = new throughFnFuture$closures_closures_closure0_closure4_closures_closures_closure0_closure4_closure0((value4: rt.u64): rt.Future<rt.u64> => {
-										return new closuresFuture$closure4_closure0(value4);
-									}, 6);
+									this.#fourth = rt.u64Add(this.#fourth, result8);
+									const captured3 = Guard.new(rt.u32Add(this.#id, 700), Log.clone$Clone(this.#log));
+									this.#awaitee$2 = rt.closure((): rt.Future<rt.u32> => {
+										return new closuresFuture$closure5_closure0(captured3);
+									}, (): void => {
+										captured3[Symbol.dispose]();
+									})();
 								} else {
-									this.#state = 10;
+									this.#state = 11;
 									return rt.Pending;
 								}
 							}
-							const _158: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
-							if (_158 !== rt.Pending) {
-								const result8: rt.u64 = _158;
-								rt.drop(this.#awaitee$3);
-								this.#fourth = rt.u64Add(this.#fourth, result8);
-								const captured3 = Guard.new(rt.u32Add(this.#id, 700), Log.clone$Clone(this.#log));
-								this.#awaitee$2 = rt.closure((): rt.Future<rt.u32> => {
-									return new closuresFuture$closure5_closure0(captured3);
-								}, (): void => {
-									captured3[Symbol.dispose]();
-								})();
+							const _178: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
+							if (_178 !== rt.Pending) {
+								const result9: rt.u32 = _178;
+								rt.drop(this.#awaitee$2);
+								this.#add = adder(result9 as rt.u64);
+								const last: Guard.Guard = Guard.new(rt.u32Add(this.#id, 800), Log.clone$Clone(this.#log));
+								this.#saved$4 = true;
+								const captured4 = last;
+								this.#finish = rt.closure(rt.byMove((value5: rt.u64): rt.Future<rt.u64> => {
+									return new closuresFuture$closure6_closure0(value5, captured4);
+								}, (_26: rt.u64): rt.Future<rt.u64> => {
+									return new closuresFuture$closure6_closure0_once(_26, captured4);
+								}), (): void => {
+									captured4[Symbol.dispose]();
+								});
+								this.#awaitee$3 = new callFuture$closures_adder_closure0(this.#add, 10);
 							} else {
-								this.#state = 11;
+								this.#state = 12;
 								return rt.Pending;
 							}
 						}
-						const _178: rt.Poll<rt.u32> = this.#awaitee$2.poll(_2);
-						if (_178 !== rt.Pending) {
-							const result9: rt.u32 = _178;
-							rt.drop(this.#awaitee$2);
-							this.#add = adder(result9 as rt.u64);
-							const last: Guard.Guard = Guard.new(rt.u32Add(this.#id, 800), Log.clone$Clone(this.#log));
-							this.#saved$5 = true;
-							const captured4 = last;
-							this.#finish = rt.closure(rt.byMove((value5: rt.u64): rt.Future<rt.u64> => {
-								return new closuresFuture$closure6_closure0(value5, captured4);
-							}, (_26: rt.u64): rt.Future<rt.u64> => {
-								return new closuresFuture$closure6_closure0_once(_26, captured4);
-							}), (): void => {
-								captured4[Symbol.dispose]();
-							});
-							this.#awaitee$3 = new callFuture$closures_adder_closure0(this.#add, 10);
+						const _195: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+						if (_195 !== rt.Pending) {
+							this.#fifth = _195;
+							rt.drop(this.#awaitee$3);
+							this.#awaitee$3 = new callFuture$closures_closures_closure0_closure6(this.#finish, 20);
 						} else {
-							this.#state = 12;
+							this.#state = 13;
 							return rt.Pending;
 						}
 					}
-					const _196: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
-					if (_196 !== rt.Pending) {
-						this.#saved$3 = _196;
+					const _206: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+					if (_206 !== rt.Pending) {
+						const result11: rt.u64 = _206;
 						rt.drop(this.#awaitee$3);
-						this.#awaitee$3 = new callFuture$closures_closures_closure0_closure6(this.#finish, 20);
+						this.#fifth = rt.u64Add(this.#fifth, result11);
+						this.#saved$4 = false;
+						this.#saved$3 = this.#finish;
+						this.#awaitee = new recvFuture$kio_Consumer(this.#rx);
 					} else {
-						this.#state = 13;
+						this.#state = 14;
 						return rt.Pending;
 					}
 				}
-				const _207: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
-				if (_207 !== rt.Pending) {
-					const result11: rt.u64 = _207;
-					rt.drop(this.#awaitee$3);
-					this.#saved$3 = rt.u64Add(this.#saved$3, result11);
-					this.#saved$5 = false;
-					this.#saved$4 = this.#finish;
-					this.#awaitee = new recvFuture$kio_Consumer(this.#rx);
+				const _221: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
+				if (_221 !== rt.Pending) {
+					const result12: rt.u64 | undefined = _221;
+					rt.drop(this.#awaitee);
+					const _217: rt.u64 = option_unwrapOr$1tvry1i(result12, 0);
+					this.#awaitee$3 = new throughFnOnceFuture$closures_closures_closure0_closure6_closures_closures_closure0_closure6_closure0(this.#saved$3, _217);
 				} else {
-					this.#state = 14;
+					this.#state = 15;
 					return rt.Pending;
 				}
 			}
-			const _222: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
-			if (_222 !== rt.Pending) {
-				const result12: rt.u64 | undefined = _222;
-				rt.drop(this.#awaitee);
-				const _218: rt.u64 = option_unwrapOr$1tvry1i(result12, 0);
-				this.#awaitee$3 = new throughFnOnceFuture$closures_closures_closure0_closure6_closures_closures_closure0_closure6_closure0(this.#saved$4, _218);
+			const _229: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+			if (_229 !== rt.Pending) {
+				const result13: rt.u64 = _229;
+				rt.drop(this.#awaitee$3);
+				this.#fifth = rt.u64Add(this.#fifth, result13);
+				const arg8 = this.#fourth;
+				const _249: rt.Fmt = (f: rt.Formatter) => rt.u64Display(arg8, f);
+				const arg9 = this.#fifth;
+				const args6: rt.Fmt[] = [_249, (f: rt.Formatter) => rt.u64Display(arg9, f)];
+				const _240: string = rt.fmtFormat(["fourth ", args6[0], " fifth ", args6[1]]);
+				Guard.note(this.#guard, _240);
+				const captured5 = Guard.new(rt.u32Add(this.#id, 900), Log.clone$Clone(this.#log));
+				this.#awaitee$3 = new callOnceFuture$boxed_Box_closures_closures_closure0_closure7(rt.closure(rt.byMove((rx2: Consumer.Consumer): rt.Future<rt.u64> => {
+					return new closuresFuture$closure7_closure0(rx2, captured5);
+				}, (_29: Consumer.Consumer): rt.Future<rt.u64> => {
+					return new closuresFuture$closure7_closure0_once(_29, captured5);
+				}), (): void => {
+					captured5[Symbol.dispose]();
+				}), this.#rx);
 			} else {
-				this.#state = 15;
+				this.#state = 16;
 				return rt.Pending;
 			}
 		}
-		const _230: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
-		if (_230 !== rt.Pending) {
-			const result13: rt.u64 = _230;
+		const _264: rt.Poll<rt.u64> = this.#awaitee$3.poll(_2);
+		if (_264 !== rt.Pending) {
+			const sixth: rt.u64 = _264;
 			rt.drop(this.#awaitee$3);
-			const fifth: rt.u64 = rt.u64Add(this.#saved$3, result13);
-			const arg8 = this.#fourth;
-			const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.u64Display(arg8, f), (f: rt.Formatter) => rt.u64Display(fifth, f)];
-			const _241: string = rt.fmtFormat(["fourth ", args6[0], " fifth ", args6[1]]);
-			Guard.note(this.#guard, _241);
-			const _276: rt.u64 = rt.u64Add(rt.u64Add(rt.u64Add(rt.u64Add(option_unwrapOr$1tvry1i(this.#first, 0), option_unwrapOr$1tvry1i(this.#second, 0)), this.#third), this.#fourth), fifth);
-			this.#saved$5 = false;
+			const _297: rt.u64 = rt.u64Add(rt.u64Add(rt.u64Add(rt.u64Add(rt.u64Add(option_unwrapOr$1tvry1i(this.#first, 0), option_unwrapOr$1tvry1i(this.#second, 0)), this.#third), this.#fourth), this.#fifth), sixth);
+			this.#saved$4 = false;
 			this.#lent[Symbol.dispose]();
 			this.#log[Symbol.dispose]();
 			this.#guard[Symbol.dispose]();
 			this.#rx[Symbol.dispose]();
 			this.#state = 1;
-			return _276;
+			return _297;
 		}
-		this.#state = 16;
+		this.#state = 17;
 		return rt.Pending;
 	}
 }
@@ -690,6 +716,88 @@ export class closuresFuture$closure6_closure0_once {
 	}
 }
 
+export class closuresFuture$closure7_closure0 {
+	#state: number = 0;
+	#rx: Consumer.Consumer;
+	#boxed: Guard.Guard;
+	#awaitee!: rt.Future<rt.u64 | undefined>;
+
+	constructor(rx: Consumer.Consumer, boxed: Guard.Guard) {
+		this.#rx = rx;
+		this.#boxed = boxed;
+	}
+
+	[Symbol.dispose](): void {
+		if (this.#state === 3) {
+			rt.drop(this.#awaitee);
+		}
+	}
+
+	poll(_2: rt.Context): rt.Poll<rt.u64> {
+		if (this.#state === 0) {
+			this.#awaitee = new recvFuture$kio_Consumer(this.#rx);
+		} else if (this.#state === 1) {
+			rt.asyncFnResumed();
+		}
+		const _7: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
+		if (_7 !== rt.Pending) {
+			const value: rt.u64 | undefined = _7;
+			rt.drop(this.#awaitee);
+			const _27: Guard.Guard = this.#boxed;
+			const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtOption(value, f, rt.u64Debug)];
+			Guard.note(_27, rt.fmtFormat(["boxed ", args2[0]]));
+			const _0: rt.Poll<rt.u64> = option_unwrapOr$1tvry1i(value, 0);
+			this.#state = 1;
+			return _0;
+		}
+		this.#state = 3;
+		return rt.Pending;
+	}
+}
+
+export class closuresFuture$closure7_closure0_once {
+	#state: number = 0;
+	#rx: Consumer.Consumer;
+	#boxed: Guard.Guard;
+	#awaitee!: rt.Future<rt.u64 | undefined>;
+
+	constructor(rx: Consumer.Consumer, boxed: Guard.Guard) {
+		this.#rx = rx;
+		this.#boxed = boxed;
+	}
+
+	[Symbol.dispose](): void {
+		if (this.#state === 0) {
+			this.#boxed[Symbol.dispose]();
+		} else if (this.#state === 3) {
+			rt.drop(this.#awaitee);
+			this.#boxed[Symbol.dispose]();
+		}
+	}
+
+	poll(_2: rt.Context): rt.Poll<rt.u64> {
+		if (this.#state === 0) {
+			this.#awaitee = new recvFuture$kio_Consumer(this.#rx);
+		} else if (this.#state === 1) {
+			rt.asyncFnResumed();
+		}
+		const _7: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
+		if (_7 !== rt.Pending) {
+			const value: rt.u64 | undefined = _7;
+			rt.drop(this.#awaitee);
+			const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtOption(value, f, rt.u64Debug)];
+			const _17: string = rt.fmtFormat(["boxed ", args2[0]]);
+			Guard.note(this.#boxed, _17);
+			const _29: rt.u64 = option_unwrapOr$1tvry1i(value, 0);
+			this.#boxed[Symbol.dispose]();
+			this.#state = 1;
+			return _29;
+		}
+		this.#state = 3;
+		return rt.Pending;
+	}
+}
+
 export class twiceFuture$closures_closures_closure0_closure0 {
 	#state: number = 0;
 	#f: (a0: rt.u64) => rt.Future<rt.u64 | undefined>;
@@ -755,6 +863,42 @@ export class twiceFuture$closures_closures_closure0_closure0 {
 		}
 		this.#state = 1;
 		return _35;
+	}
+}
+
+export class callOnceFuture$boxed_Box_closures_closures_closure0_closure7 {
+	#state: number = 0;
+	#f: (a0: Consumer.Consumer) => rt.Future<rt.u64>;
+	#rx: Consumer.Consumer;
+	#awaitee!: rt.Future<rt.u64>;
+
+	constructor(f: (a0: Consumer.Consumer) => rt.Future<rt.u64>, rx: Consumer.Consumer) {
+		this.#f = f;
+		this.#rx = rx;
+	}
+
+	[Symbol.dispose](): void {
+		if (this.#state === 0) {
+			rt.drop(this.#f);
+		} else if (this.#state === 3) {
+			rt.drop(this.#awaitee);
+		}
+	}
+
+	poll(_2: rt.Context): rt.Poll<rt.u64> {
+		if (this.#state === 0) {
+			this.#awaitee = rt.callByMove(this.#f, this.#rx);
+		} else if (this.#state === 1) {
+			rt.asyncFnResumed();
+		}
+		const _8: rt.Poll<rt.u64> = this.#awaitee.poll(_2);
+		if (_8 !== rt.Pending) {
+			rt.drop(this.#awaitee);
+			this.#state = 1;
+			return _8;
+		}
+		this.#state = 3;
+		return rt.Pending;
 	}
 }
 

@@ -14,8 +14,9 @@ use crate::model::Guard;
 /// moves its guard into its future, which drops it as it returns or is cancelled; one
 /// that only borrows is called through `AsyncFn` and through `Fn`, a future of its own
 /// each call, and so is one that captures nothing; one that moves its guard out is called
-/// once; one made by a function holds a copy of its argument; and one that owns a guard,
-/// called through `AsyncFn`, is then consumed through `FnOnce`. A clone of the one that owns a count changes its own. A
+/// once; one made by a function holds a copy of its argument; one that owns a guard,
+/// called through `AsyncFn`, is then consumed through `FnOnce`; and a box of one that owns
+/// a guard is consumed through `AsyncFnOnce`. A clone of the one that owns a count changes its own. A
 /// cancel drops what the future in flight holds, then the closures, in reverse.
 pub async fn closures(mut rx: Consumer, guard: Guard) -> u64 {
 	let (id, log) = (guard.id(), guard.log().clone());
@@ -69,7 +70,14 @@ pub async fn closures(mut rx: Consumer, guard: Guard) -> u64 {
 	let fifth =
 		call(&add, 10).await + call(&finish, 20).await + through_fn_once(finish, rx.recv().await.unwrap_or(0)).await;
 	guard.note(&format!("fourth {fourth} fifth {fifth}"));
-	first.unwrap_or(0) + second.unwrap_or(0) + third + fourth + fifth
+	let boxed = Guard::new(id + 900, log.clone());
+	let wait = Box::new(async move |rx: &mut Consumer| {
+		let value = rx.recv().await;
+		boxed.note(&format!("boxed {value:?}"));
+		value.unwrap_or(0)
+	});
+	let sixth = call_once(wait, &mut rx).await;
+	first.unwrap_or(0) + second.unwrap_or(0) + third + fourth + fifth + sixth
 }
 
 /// Two calls of `f`, through `AsyncFnMut`.

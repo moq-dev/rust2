@@ -435,9 +435,10 @@ export const cases: Uint8Array[] = [
 	script(["open", 0], ["wakers", 0], ["run", 0], ["send", 3], ["run", 0], ["close", 0], ["run", 0]),
 	script(["open", 0], ["wakers", 0], ["wakers", 0], ["run", 0], ["send", 2], ["step", 0], ["step", 0], ["drop", 1], ["send", 5], ["run", 0], ["drop", 0]),
 	// Async closures, cancelled at each await in turn: a borrowing closure's own future,
-	// one through `AsyncFnMut`, the future that owns a consumed closure's guard, and the
-	// last read beside closures that borrow and own; then returning, and closed early.
-	...Array.from({ length: 6 }, (_, sends) =>
+	// one through `AsyncFnMut`, the future that owns a consumed closure's guard, a read
+	// beside closures that borrow and own, and the future of a consumed box of a closure;
+	// then returning, and closed early.
+	...Array.from({ length: 7 }, (_, sends) =>
 		script(["open", 0], ["closures", 0], ["run", 0], ...Array.from({ length: sends }, (_, i): [string, number][] => [["send", i + 1], ["run", 0]]).flat(), ["drop", 0]),
 	),
 	script(["open", 0], ["closures", 0], ["run", 0], ["send", 6], ["run", 0], ["close", 0], ["run", 0]),

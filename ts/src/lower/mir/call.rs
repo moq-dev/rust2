@@ -275,12 +275,16 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 					(None, None) => break,
 				};
 			}
-			// A call that consumes an async closure that `Fn` or `FnMut` call makes the future
-			// that owns what it captured.
+			// A call that consumes an async closure that `Fn` or `FnMut` call, or a box of one,
+			// makes the future that owns what it captured.
+			let mut owned = callee_ty;
+			while let Some(inner) = owned.boxed_ty() {
+				owned = inner;
+			}
 			if kind == ty::ClosureKind::FnOnce
-				&& let ty::CoroutineClosure(_, closure) = callee_ty.kind()
+				&& let ty::CoroutineClosure(_, closure) = owned.kind()
 				&& closure.as_coroutine_closure().kind() != ty::ClosureKind::FnOnce
-				&& self.b.t.drops(callee_ty)
+				&& self.b.t.drops(owned)
 			{
 				return Expr::rt("callByMove", [vec![f], values].concat());
 			}
