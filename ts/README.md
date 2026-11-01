@@ -321,7 +321,10 @@ function is suffixed instead by a hash of its text, with what it calls by name, 
 `map$1cf8u0y`: instances that print the same are one function, whichever of them
 translation reaches. Types are translated once, generically, so a function of a generic
 type is one instance's, declaring the instance it takes as `self`:
-`fmt$fmt_Debug_fmt_Pair(self: Wrap<Pair.Pair>, f: rt.Formatter)`. A type's module exports the
+`fmt$fmt_Debug_fmt_Pair(self: Wrap<Pair.Pair>, f: rt.Formatter)`. A reference or pointer
+in a generic type to what only an instance decides the form of, such as `*mut T` or
+`&'a mut T`, is an `rt.Ptr<T>`: the object, an `rt.Place<T>`, or an `rt.ByteSlice`,
+which each read of an instance's field casts to what it holds. A type's module exports the
 type by its own name, which a caller writes `Decoder.Decoder`, and a function whose name
 and exports it as its own: `function new_` is `Decoder.new`. A module imports a function
 or value by its name, and a type's module whole by the type's, `import * as Decoder`,
@@ -832,8 +835,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
   that log what each is called with, `concat` and `join` of arrays, slices, `Vec`s, and
   `Cow`s, of bytes and of items whose `Clone` logs, std's `Bound`, `Reverse`, and
   `NonZero`, and raw pointers: a linked list of boxed nodes as `hashlink` keeps one, through a union and a
-  `MaybeUninit` entry, pointers to locals, fields, and whole structs, and those
-  `UnsafeCell::get` gives, as crossbeam-epoch's own `OnceLock` keeps its collector. Its
+  `MaybeUninit` entry, pointers to locals, fields, and whole structs, those
+  `UnsafeCell::get` gives, as crossbeam-epoch's own `OnceLock` keeps its collector, and
+  those a generic type holds to its parameter, at each form a pointer takes. Its
   differential test runs through `caller.ts`, a
   hand-written caller that also prints a `printable` error nothing translated prints,
   and adds every 64- and 128-bit case over each pair of values next to a power of two,

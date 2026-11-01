@@ -194,7 +194,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 				};
 				let field = &adt.non_enum_variant().fields[FieldIdx::from_usize(first)];
 				let part_ty = self.field_ty(field.did, args);
-				self.part_of(value.field(fields[first]), part_ty, rest, span)
+				let read = self.held_field(value.field(fields[first]), field.did, args, span);
+				self.part_of(read, part_ty, rest, span)
 			}
 			_ => unreachable!("a union's part is in a tuple or a struct"),
 		}
@@ -235,12 +236,12 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 					.iter()
 					.map(|f| self.field_ty(f.did, args))
 					.collect();
-				let values = tys
-					.into_iter()
-					.enumerate()
-					.map(|(i, t)| {
+				let defs = &adt.non_enum_variant().fields;
+				let values = (tys.into_iter().zip(defs.iter()).enumerate())
+					.map(|(i, (t, field))| {
 						let part = within(i);
-						self.of_slots(base.clone(), t, &part, span)
+						let value = self.of_slots(base.clone(), t, &part, span);
+						self.field_value(value, adt.did(), field.did, args, span)
 					})
 					.collect();
 				self.construct(info.sym, &ctor, &fields, values)

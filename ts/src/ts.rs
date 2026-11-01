@@ -594,16 +594,50 @@ pub enum Type {
 impl Type {
 	/// Whether it names the type parameter `param`.
 	pub fn names(&self, param: &str) -> bool {
+		self.any(&|t| matches!(t, Type::Param(name) if name == param))
+	}
+
+	/// Whether a function type in it takes a parameter holding a type `f` picks.
+	pub fn takes(&self, f: &impl Fn(&Type) -> bool) -> bool {
 		match self {
-			Type::Param(name) => name == param,
-			Type::Builtin(_) | Type::StrLit(_) => false,
+			Type::Func(params, ret) => params.iter().any(|t| t.any(f)) || ret.takes(f),
+			Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) => false,
 			Type::Rt(_, tys) | Type::Sym(_, tys) | Type::Union(tys) | Type::Tuple(tys) => {
-				tys.iter().any(|t| t.names(param))
+				tys.iter().any(|t| t.takes(f))
 			}
-			Type::Array(t) => t.names(param),
-			Type::Func(tys, ret) => ret.names(param) || tys.iter().any(|t| t.names(param)),
-			Type::Object(fields) => fields.iter().any(|(_, t)| t.names(param)),
+			Type::Array(t) => t.takes(f),
+			Type::Object(fields) => fields.iter().any(|(_, t)| t.takes(f)),
 		}
+	}
+
+	/// It with each type parameter `f` gives a type for replaced.
+	pub fn subst(&self, f: &impl Fn(&str) -> Option<Type>) -> Type {
+		let all = |tys: &[Type]| tys.iter().map(|t| t.subst(f)).collect();
+		match self {
+			Type::Param(name) => f(name).unwrap_or_else(|| self.clone()),
+			Type::Builtin(_) | Type::StrLit(_) => self.clone(),
+			Type::Rt(name, tys) => Type::Rt(name, all(tys)),
+			Type::Sym(sym, tys) => Type::Sym(*sym, all(tys)),
+			Type::Union(tys) => Type::Union(all(tys)),
+			Type::Tuple(tys) => Type::Tuple(all(tys)),
+			Type::Array(t) => Type::Array(Box::new(t.subst(f))),
+			Type::Func(tys, ret) => Type::Func(all(tys), Box::new(ret.subst(f))),
+			Type::Object(fields) => Type::Object(fields.iter().map(|(k, t)| (k.clone(), t.subst(f))).collect()),
+		}
+	}
+
+	/// Whether it, or any type in it, is one `f` picks.
+	pub fn any(&self, f: &impl Fn(&Type) -> bool) -> bool {
+		f(self)
+			|| match self {
+				Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) => false,
+				Type::Rt(_, tys) | Type::Sym(_, tys) | Type::Union(tys) | Type::Tuple(tys) => {
+					tys.iter().any(|t| t.any(f))
+				}
+				Type::Array(t) => t.any(f),
+				Type::Func(tys, ret) => ret.any(f) || tys.iter().any(|t| t.any(f)),
+				Type::Object(fields) => fields.iter().any(|(_, t)| t.any(f)),
+			}
 	}
 }
 
