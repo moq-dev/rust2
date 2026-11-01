@@ -2290,8 +2290,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						.fold((effect, memory), |(e, m), p| (e || p.effect, m || p.memory));
 					let mut folded = self.fold_exprs(Vec::new(), vec![value], true, out);
 					let value = folded.pop().unwrap();
-					let parts =
-						parts.and_then(|rereadable| Some(parts_of(&value)?.into_iter().zip(rereadable).collect()));
+					let parts = parts.and_then(|rereadable| {
+						Some(
+							parts_of(&value, &self.b.t.slices)?
+								.into_iter()
+								.zip(rereadable)
+								.collect(),
+						)
+					});
 					let mut bare = &value;
 					while let Expr::Located(_, e) = bare {
 						bare = e;
@@ -2311,7 +2317,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 						kind: StmtKind::Expr(Expr::Assign(_, value)),
 						..
 					}) = out.last()
-					&& let Some(parts) = parts_of(value)
+					&& let Some(parts) = parts_of(value, &self.b.t.slices)
 				{
 					self.var_parts.insert(local, parts);
 				}
@@ -3774,14 +3780,31 @@ fn visit_expr(e: &Expr, f: &mut dyn FnMut(&Expr)) {
 }
 
 /// The operands of an aggregate, from its expression.
-fn parts_of(value: &Expr) -> Option<Vec<Expr>> {
+fn parts_of(value: &Expr, slices: &FxHashSet<crate::ts::FieldId>) -> Option<Vec<Expr>> {
 	match value {
 		Expr::Array(items) => Some(items.clone()),
-		Expr::As(inner, _) => parts_of(inner),
+		Expr::As(inner, _) => parts_of(inner, slices),
 		Expr::Call(f, items) if matches!(&**f, Expr::Member(base, crate::ts::Key::Name(of)) if of == "of" && matches!(&**base, Expr::Ident(u) if u == "Uint8Array")) => {
 			Some(items.clone())
 		}
-		Expr::Object(props) => Some(props.iter().map(|(_, v)| v.clone()).collect()),
+		// A byte slice field held as its parts, `slices` its bytes', is one operand.
+		Expr::Object(props) => {
+			let mut parts = Vec::with_capacity(props.len());
+			let mut props = props.iter();
+			while let Some((key, value)) = props.next() {
+				parts.push(match key {
+					crate::ts::Key::Field(id) if slices.contains(id) => {
+						let (start, length) = (props.next()?.1.clone(), props.next()?.1.clone());
+						Expr::New(
+							Box::new(Expr::Rt("ByteSlice".into())),
+							vec![value.clone(), start, length],
+						)
+					}
+					_ => value.clone(),
+				});
+			}
+			Some(parts)
+		}
 		Expr::New(f, items) if matches!(&**f, Expr::Rt(name) if name == "Range" || name == "RangeFrom") => {
 			Some(items.clone())
 		}

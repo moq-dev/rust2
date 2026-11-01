@@ -266,6 +266,8 @@ pub struct Translator<'a, 'tcx> {
 	slotted: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, Option<mir::Slotted<'tcx>>>,
 	/// The slot of each `Ok` payload type, which every function returning one shares.
 	slots: rustc_data_structures::fx::FxHashMap<Ty<'tcx>, SymId>,
+	/// The field of each struct's byte slice field held as its parts that holds its bytes.
+	pub slices: rustc_data_structures::fx::FxHashSet<FieldId>,
 }
 
 /// The crates that translate as one program: the package, and every crate it depends on
@@ -488,6 +490,7 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			parting: None,
 			slotted: Default::default(),
 			slots: Default::default(),
+			slices: Default::default(),
 		})
 	}
 
@@ -1079,9 +1082,11 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			for (i, field) in adt.non_enum_variant().fields.iter().enumerate() {
 				let name = field_name(field.name.as_str(), i);
 				fields.push(match self.split(field) {
-					true => StructField::Slice(
-						["Data", "Start", "Len"].map(|key| self.program.field(sym, format!("{name}{key}"))),
-					),
+					true => {
+						let ids = ["Data", "Start", "Len"].map(|key| self.program.field(sym, format!("{name}{key}")));
+						self.slices.insert(ids[0]);
+						StructField::Slice(ids)
+					}
 					false => StructField::Whole(self.program.field(sym, name)),
 				});
 			}

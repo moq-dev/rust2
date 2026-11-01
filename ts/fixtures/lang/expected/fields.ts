@@ -20,11 +20,15 @@ export const SCANNER: Scanner.Scanner = { bufData: Uint8Array.of(120, 121, 122),
 export function fields(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let two!: Glued.Glued;
 	const n: rt.usize = rt.u8Rem(kind, 5) as rt.usize;
+	const _12: rt.usize = kind as rt.usize;
+	const _8: rt.ByteSlice = rt.byteSliceRange(data, rt.min(n, data.length));
+	rt.byteVecPush(out, _12 & 0xff);
+	rt.byteVecExtendFromSlice(out, rt.byteSliceRange(new rt.ByteSlice(_8.data, _8.start, _8.length), 0, rt.min(_8.length, 2)));
 	const r: Scanner.Scanner = { bufData: data.data, bufStart: data.start, bufLen: data.length, read: 0 };
 	while (true) {
-		const _8: rt.ByteSlice | undefined = Scanner.take(r, rt.max(n, 1));
-		if (_8 !== undefined) {
-			rt.byteVecExtendFromSlice(out, rt.byteSliceRange(_8, 0, rt.min(_8.length, 1)));
+		const _22: rt.ByteSlice | undefined = Scanner.take(r, rt.max(n, 1));
+		if (_22 !== undefined) {
+			rt.byteVecExtendFromSlice(out, rt.byteSliceRange(_22, 0, rt.min(_22.length, 1)));
 			if (r.read > 12) {
 				break;
 			}
@@ -33,11 +37,11 @@ export function fields(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 	}
 	const r2: Scanner.Scanner = { bufData: data.data, bufStart: data.start, bufLen: data.length, read: 0 };
-	const _22: rt.ByteSlice | undefined = Scanner.takeOrRewind(r2, rt.usizeAdd(n, 3));
-	if (_22 === undefined) {
+	const _36: rt.ByteSlice | undefined = Scanner.takeOrRewind(r2, rt.usizeAdd(n, 3));
+	if (_36 === undefined) {
 		rt.byteVecPush(out, 200);
 	} else {
-		rt.byteVecPush(out, _22.length & 0xff);
+		rt.byteVecPush(out, _36.length & 0xff);
 	}
 	rt.byteVecPush(out, r2.bufLen & 0xff);
 	const before: Scanner.Scanner = Scanner.clone$Clone(r2);
@@ -47,11 +51,11 @@ export function fields(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	rt.byteVecPush(out, Scanner.rest(r2).length & 0xff);
 	rt.byteVecPush(out, r2.bufLen & 0xff);
 	const s: Scanner.Scanner = { bufData: data.data, bufStart: data.start, bufLen: data.length, read: 0 };
-	const _56: rt.ByteSlice = rt.byteSliceRange(data, rt.usizeDiv(data.length, 2));
+	const _70: rt.ByteSlice = rt.byteSliceRange(data, rt.usizeDiv(data.length, 2));
 	const old2 = new rt.ByteSlice(s.bufData, s.bufStart, s.bufLen);
-	s.bufData = _56.data;
-	s.bufStart = _56.start;
-	s.bufLen = _56.length;
+	s.bufData = _70.data;
+	s.bufStart = _70.start;
+	s.bufLen = _70.length;
 	rt.byteVecPush(out, rt.usizeSub(old2.length, s.bufLen) & 0xff);
 	const swapped = new rt.ByteSlice(r2.bufData, r2.bufStart, r2.bufLen);
 	r2.bufData = s.bufData;
@@ -72,52 +76,52 @@ export function fields(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		r2.bufStart = value2.start;
 		r2.bufLen = value2.length;
 	}), 1);
-	const _85: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(r2.bufData, r2.bufStart, r2.bufLen), rt.min(new rt.ByteSlice(r2.bufData, r2.bufStart, r2.bufLen).length, 1));
-	r2.bufData = _85.data;
-	r2.bufStart = _85.start;
-	r2.bufLen = _85.length;
+	const _99: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(r2.bufData, r2.bufStart, r2.bufLen), rt.min(new rt.ByteSlice(r2.bufData, r2.bufStart, r2.bufLen).length, 1));
+	r2.bufData = _99.data;
+	r2.bufStart = _99.start;
+	r2.bufLen = _99.length;
 	rt.byteVecPush(out, r2.bufLen & 0xff);
-	const _92: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(r2.bufData, r2.bufStart, r2.bufLen), rt.usizeDiv(r2.bufLen, 2));
-	r2.bufData = _92.data;
-	r2.bufStart = _92.start;
-	r2.bufLen = _92.length;
+	const _106: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(r2.bufData, r2.bufStart, r2.bufLen), rt.usizeDiv(r2.bufLen, 2));
+	r2.bufData = _106.data;
+	r2.bufStart = _106.start;
+	r2.bufLen = _106.length;
 	rt.byteVecPush(out, r2.bufLen & 0xff);
-	const _100: rt.ByteSlice | undefined = rt.byteSliceGetRange(data, 0, 2);
-	if (_100 !== undefined) {
-		const p: Couple.Couple = { headData: data.data, headStart: data.start, headLen: data.length, wordData: _100.data, wordStart: _100.start, wordLen: _100.length };
+	const _114: rt.ByteSlice | undefined = rt.byteSliceGetRange(data, 0, 2);
+	if (_114 !== undefined) {
+		const p: Couple.Couple = { headData: data.data, headStart: data.start, headLen: data.length, wordData: _114.data, wordStart: _114.start, wordLen: _114.length };
 		const q: Couple.Couple = copy$fields_Couple(p);
-		const _105: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(p.headData, p.headStart, p.headLen), 1);
-		p.headData = _105.data;
-		p.headStart = _105.start;
-		p.headLen = _105.length;
+		const _119: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(p.headData, p.headStart, p.headLen), 1);
+		p.headData = _119.data;
+		p.headStart = _119.start;
+		p.headLen = _119.length;
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(p.headLen & 0xff, q.headLen & 0xff, Couple.eq$cmp_PartialEq(p, q) ? 1 : 0)));
 		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(q.wordData, q.wordStart, q.wordLen));
 		const args2: rt.Fmt[] = [(f: rt.Formatter) => Couple.fmt$fmt_Debug(p, f)];
 		rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args2[0]])));
 	}
-	const _134: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.min(data.length, 3));
-	const open: Exposed.Exposed = { buf: _134, at: kind };
+	const _148: rt.ByteSlice = rt.byteSliceRange(data, 0, rt.min(data.length, 3));
+	const open: Exposed.Exposed = { buf: _148, at: kind };
 	const args4: rt.Fmt[] = [(f: rt.Formatter) => Exposed.fmt$fmt_Debug(open, f), (f: rt.Formatter) => Scanner.fmt$fmt_Debug(r2, f)];
 	rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args4[0], args4[1]])));
-	rt.byteVecPush(out, kind ^ (_134.length & 0xff));
+	rt.byteVecPush(out, kind ^ (_148.length & 0xff));
 	if (!(rt.u8Rem(kind, 2) === 0)) {
-		const _161: Glued.Glued = { _0Data: Uint8Array.of(97, 98), _0Start: 0, _0Len: 2, _1Data: Uint8Array.of(), _1Start: 0, _1Len: 0 };
-		two = { _0Data: data.data, _0Start: data.start, _0Len: data.length, _1Data: _161._0Data, _1Start: _161._0Start, _1Len: _161._0Len };
+		const _175: Glued.Glued = { _0Data: Uint8Array.of(97, 98), _0Start: 0, _0Len: 2, _1Data: Uint8Array.of(), _1Start: 0, _1Len: 0 };
+		two = { _0Data: data.data, _0Start: data.start, _0Len: data.length, _1Data: _175._0Data, _1Start: _175._0Start, _1Len: _175._0Len };
 	} else {
 		two = { _0Data: Uint8Array.of(97, 98), _0Start: 0, _0Len: 2, _1Data: Uint8Array.of(), _1Start: 0, _1Len: 0 };
 	}
 	const args6: rt.Fmt[] = [(f: rt.Formatter) => Glued.fmt$fmt_Debug(two, f)];
 	rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args6[0]])));
 	rt.byteVecPush(out, rt.usizeAdd(two._0Len, two._1Len) & 0xff);
-	const _181: Scanner.Scanner = SCANNER;
-	rt.byteVecExtendFromSlice(out, new rt.ByteSlice(_181.bufData, _181.bufStart, _181.bufLen));
+	const _195: Scanner.Scanner = SCANNER;
+	rt.byteVecExtendFromSlice(out, new rt.ByteSlice(_195.bufData, _195.bufStart, _195.bufLen));
 	rt.byteVecPush(out, SCANNER.read & 0xff);
 	rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(Labeled.sum$u8(new Labeled.Labeled(kind, data.data, data.start, data.length))).reverse()));
 	const g: Sentry.Sentry = new Sentry.Sentry(data.data, data.start, data.length, out);
-	const _194: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(g.bufData, g.bufStart, g.bufLen), rt.min(g.bufLen, 2));
-	g.bufData = _194.data;
-	g.bufStart = _194.start;
-	g.bufLen = _194.length;
+	const _208: rt.ByteSlice = rt.byteSliceRange(new rt.ByteSlice(g.bufData, g.bufStart, g.bufLen), rt.min(g.bufLen, 2));
+	g.bufData = _208.data;
+	g.bufStart = _208.start;
+	g.bufLen = _208.length;
 	rt.byteVecPush(g.out, option_unwrapOr$0r2bmpr(rt.byteSliceFirst(new rt.ByteSlice(g.bufData, g.bufStart, g.bufLen)), 0));
 	g[Symbol.dispose]();
 }

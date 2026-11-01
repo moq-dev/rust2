@@ -82,6 +82,13 @@ impl Drop for Sentry<'_, '_> {
 
 pub fn fields(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 	let n = usize::from(kind % 5);
+	// Fields read from a struct made once, the one after the slice included.
+	let made = Scanner {
+		buf: &data[n.min(data.len())..],
+		read: usize::from(kind),
+	};
+	out.push(made.read as u8);
+	out.extend_from_slice(&made.buf[..made.buf.len().min(2)]);
 	// Reads, splits, and a closure that writes the field back.
 	let mut r = Scanner { buf: data, read: 0 };
 	while let Some(head) = r.take(n.max(1)) {
