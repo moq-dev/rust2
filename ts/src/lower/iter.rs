@@ -200,14 +200,30 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 				}
 				Some(items(Expr::rt("iterOption", values), inner))
 			}
+			Std::Result if places(b, args.type_at(0)) => Some(result_places(value)),
+			// One by value drops its `Err` as it makes the iterator.
+			Std::Result => {
+				let (ok, err) = (args.type_at(0), args.type_at(1));
+				let mut values = each(b, ok, vec![b.t.pointee_value(ty, value)]);
+				if owned && b.t.drops(err) {
+					values.resize(2, Expr::undefined());
+					values.push(b.t.dropper(err, span));
+				}
+				Some(items(Expr::rt("iterResult", values), ok))
+			}
 			_ => super::collections::into_iter(b, ty, value, span),
 		},
 		_ => None,
 	}
 }
 
-/// `iter`, over the elements of a slice or `Vec` of `elem`s or the payload of an `Option`,
-/// yielding references to them: a slice of each array of bytes.
+/// The iterator of the payload of the `Result` at `place`, an `rt.Place`, as its own place.
+fn result_places(place: Expr) -> Expr {
+	Expr::rt("iterOption", vec![Expr::rt("resultAsMut", vec![place])])
+}
+
+/// `iter`, over the elements of a slice or `Vec` of `elem`s or the payload of an `Option`
+/// or a `Result`, yielding references to them: a slice of each array of bytes.
 pub(super) fn by_ref(iter: Expr, elem: Ty<'_>) -> Expr {
 	match super::byte_array(elem) {
 		true => Expr::rt("iterLend", vec![iter, Expr::Rt("byteSliceFrom".into())]),
@@ -325,6 +341,8 @@ pub fn call<'tcx>(
 			}
 			return Some(Expr::rt("iterOption", args));
 		}
+		("Result", "iter_mut") if b.t.needs_place(targ(0)?) => return Some(result_places(args.pop()?)),
+		("Result", "iter" | "iter_mut") => return Some(Expr::rt("iterResult", args)),
 		// A `&mut` to a `&mut` iterator is itself, an `rt.Place` that each use reads through.
 		("IntoIterator", "into_iter") if through_mut(targ(0)?) => return args.pop(),
 		// So is a `&mut` iterator, which what takes it by value borrows as it does.
@@ -966,6 +984,7 @@ fn clones<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Option<
 		| ["ascii", "EscapeDefault"]
 		| ["slice", "ascii", "EscapeAscii"]
 		| ["option", "Iter"]
+		| ["result", "Iter"]
 		| ["ops", "range", "Range" | "RangeFrom" | "RangeInclusive"]
 		| ["collections", "vec_deque", "iter", "Iter"]
 		| ["collections", "linked_list", "Iter"]
@@ -982,6 +1001,7 @@ fn clones<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, span: Span) -> Option<
 		["vec", "into_iter", "IntoIter"]
 		| ["array", "iter", "IntoIter"]
 		| ["option", "IntoIter"]
+		| ["result", "IntoIter"]
 		| ["iter", "sources", "once", "Once"]
 		| ["collections", "vec_deque", "into_iter", "IntoIter"]
 		| ["collections", "linked_list", "IntoIter"]
@@ -1078,8 +1098,8 @@ pub(super) fn holds_closure(tcx: ty::TyCtxt<'_>, did: DefId) -> bool {
 
 /// Refuse a `flatten` or `flat_map` of `inner` iterators that drop and may hold what drops
 /// once they end: std's `try_fold` drops each such one only as it reads the next, where
-/// `next` drops it as it ends. What std's collections' and `Option`'s `into_iter` make
-/// holds nothing then.
+/// `next` drops it as it ends. What std's collections', `Option`'s, and `Result`'s
+/// `into_iter` make holds nothing then.
 fn flattens<'tcx>(b: &mut Body<'_, '_, 'tcx>, inner: Ty<'tcx>, span: Span) {
 	if !b.t.drops(inner) {
 		return;
@@ -1091,6 +1111,7 @@ fn flattens<'tcx>(b: &mut Body<'_, '_, 'tcx>, inner: Ty<'tcx>, span: Span) {
 		["vec", "into_iter", "IntoIter"]
 			| ["array", "iter", "IntoIter"]
 			| ["option", "IntoIter"]
+			| ["result", "IntoIter"]
 			| ["iter", "sources", "once", "Once"]
 			| ["collections", "hash", "map", "IntoIter" | "IntoKeys" | "IntoValues"]
 			| ["collections", "hash", "set", "IntoIter"]
