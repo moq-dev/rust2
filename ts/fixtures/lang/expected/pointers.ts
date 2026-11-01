@@ -22,6 +22,7 @@ import type * as Outer from "./pointers.Outer.ts";
 import type * as pointers_Pair from "./pointers.Pair.ts";
 import * as Pointing from "./pointers.Pointing.ts";
 import type * as Reattached from "./pointers.Reattached.ts";
+import type * as Refilled from "./pointers.Refilled.ts";
 import * as Reset from "./pointers.Reset.ts";
 import type * as pointers_Run from "./pointers.Run.ts";
 import * as Segment from "./pointers.Segment.ts";
@@ -1352,10 +1353,13 @@ export function attach$pointers_Reattached(at: rt.Place<Reattached.Reattached>, 
  * A pointer a callee takes through a reference to a cell in a struct, which other
  * functions then write whole through a `&mut` to the cell alone: by assignment, by
  * `mem::replace`, and by `mem::swap`. JS writes each into the cell there, which the
- * pointer sees.
+ * pointer sees. Another struct's cell, which no pointer is taken into, is given another
+ * cell by `mem::replace` through a `&mut` to the struct.
  */
 export function partWritten(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const refilled: Refilled.Refilled = { cell: new rt.Cell(0) };
 	for (const n of rt.byteSliceView(data)) {
+		rt.byteVecPush(out, refill(refilled, n));
 		const w: Written.Written = { cell: new rt.Cell(n), tag: ~n & 0xff };
 		const p: rt.Place<rt.u8> = writtenCell(w.cell);
 		const seen: rt.u8 = p.v;
@@ -1378,6 +1382,13 @@ export function overwrite(c: rt.Cell<rt.u8>, n: rt.u8): void {
 
 export function replaceCell(c: rt.Cell<rt.u8>, n: rt.u8): rt.u8 {
 	return rt.replaceIn(c, new rt.Cell(n)).v;
+}
+
+export function refill(r: Refilled.Refilled, n: rt.u8): rt.u8 {
+	const _5: rt.Cell<rt.u8> = new rt.Cell(n);
+	const old = r.cell;
+	r.cell = _5;
+	return old.v;
 }
 
 export function swapCell(c: rt.Cell<rt.u8>, n: rt.u8): void {

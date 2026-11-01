@@ -1869,8 +1869,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	/// the crate, here or in any other body, may put another object in place of, or the
 	/// variable it is in assigned again while the reference, or what is made of it, may
 	/// still be read. A read through a pointer into any other part after is undefined. A
-	/// part is not judged again for `reference`, what holds the reference, read only by
-	/// std making a raw pointer of it, which [`Self::made_out_of_step`] judges.
+	/// part is not judged for `reference`, what holds the reference, read only by std: to
+	/// make a raw pointer of it, which [`Self::made_out_of_step`] judges, or to give what
+	/// it points at another value, which keeps no pointer.
 	pub(super) fn lent_out_of_step(&self, place: Place<'tcx>, reference: Place<'tcx>) -> Option<String> {
 		let ty = place.ty(&self.mir.local_decls, self.tcx).ty;
 		if !self
@@ -1880,9 +1881,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		{
 			return None;
 		}
-		let made_here = reference.as_local().is_some_and(|local| self.made_here(local));
+		let by_std = reference.as_local().is_some_and(|local| self.read_by_std(local));
 		self.borrowed_places(place).into_iter().find_map(|place| {
-			(!made_here)
+			(!by_std)
 				.then(|| self.parts_out_of_step(place, true, true))
 				.flatten()
 				.or_else(|| {
@@ -1893,18 +1894,23 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		})
 	}
 
-	/// Whether `local` is read once, as the reference std makes a raw pointer of.
-	fn made_here(&self, local: Local) -> bool {
+	/// Whether `local` is read once, as the reference std makes a raw pointer of, or as
+	/// one `mem::replace`, `swap`, or `take` gives what it points at another value through.
+	fn read_by_std(&self, local: Local) -> bool {
+		use crate::lower::pointer::{from_reference, rebinds};
 		self.uses[local] == 1
 			&& self.mir.basic_blocks.iter().any(|data| {
-				matches!(
-					&data.terminator().kind,
-					mir::TerminatorKind::Call { func, args, .. }
-						if func
-							.const_fn_def()
-							.is_some_and(|(def_id, gargs)| crate::lower::pointer::from_reference(self.tcx, def_id, gargs))
-							&& args.first().and_then(|a| a.node.place()).and_then(|p| p.as_local()) == Some(local)
-				)
+				let mir::TerminatorKind::Call { func, args, .. } = &data.terminator().kind else {
+					return false;
+				};
+				let Some((def_id, gargs)) = func.const_fn_def() else {
+					return false;
+				};
+				let given = args
+					.iter()
+					.position(|a| a.node.place().and_then(|p| p.as_local()) == Some(local));
+				given
+					.is_some_and(|i| i == 0 && from_reference(self.tcx, def_id, gargs) || i < rebinds(self.tcx, def_id))
 			})
 	}
 

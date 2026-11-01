@@ -1,6 +1,6 @@
 # Census of `reject-fixture`
 
-- Refusals: 217
+- Refusals: 214
 - Function instances: 266
 - Generic functions no instance reached, lowered over their type parameters: 11
 
@@ -11,8 +11,8 @@
 | 45 | a raw pointer to `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:617:10 |
 | 25 | unsupported call to `_` | fixtures/reject/src/lib.rs:167:8 |
 | 19 | a raw pointer to `_` in a variable assigned again while it may point there | fixtures/reject/src/lib.rs:625:10 |
-| 17 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:1346:33 |
 | 15 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | fixtures/reject/src/lib.rs:1664:18 |
+| 14 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | fixtures/reject/src/lib.rs:1346:33 |
 | 5 | a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet | fixtures/reject/src/lib.rs:688:10 |
 | 4 | a variant of `_`, which is not supported: either is the same JS string | fixtures/reject/src/lib.rs:338:2 |
 | 3 | `_` with a mutable reference to a value JS copies, which its mapping would copy | fixtures/reject/src/lib.rs:523:12 |
@@ -86,7 +86,7 @@ The type or module each refused type or path belongs to.
 
 | Count | API | First |
 | ---: | --- | --- |
-| 42 | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:696:15 |
+| 39 | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:696:15 |
 | 24 | `(u32, u32)` | fixtures/reject/src/lib.rs:617:10 |
 | 6 | `[u8; 4]` | fixtures/reject/src/lib.rs:483:26 |
 | 6 | `f16` | fixtures/reject/src/lib.rs:7:14 |
@@ -111,11 +111,8 @@ The type or module each refused type or path belongs to.
 | 2 | `InWritten` | fixtures/reject/src/lib.rs:1335:9 |
 | 2 | `Inside` | fixtures/reject/src/lib.rs:1855:20 |
 | 2 | `Poll` | fixtures/reject/src/lib.rs:79:20 |
-| 2 | `Replaced` | fixtures/reject/src/lib.rs:1958:25 |
 | 2 | `Reused` | fixtures/reject/src/lib.rs:21:4 |
 | 2 | `Scaled` | fixtures/reject/src/lib.rs:466:23 |
-| 2 | `Swapped` | fixtures/reject/src/lib.rs:1977:17 |
-| 2 | `Taken` | fixtures/reject/src/lib.rs:1995:22 |
 | 2 | `Tally` | fixtures/reject/src/lib.rs:1276:31 |
 | 2 | `[u8; 2]` | fixtures/reject/src/lib.rs:1736:37 |
 | 2 | `[u8; 3]` | fixtures/reject/src/lib.rs:1736:15 |
@@ -199,14 +196,17 @@ The type or module each refused type or path belongs to.
 | 1 | `Plain` | fixtures/reject/src/lib.rs:835:10 |
 | 1 | `Pushed` | fixtures/reject/src/lib.rs:1257:22 |
 | 1 | `Repeated` | fixtures/reject/src/lib.rs:1230:18 |
+| 1 | `Replaced` | fixtures/reject/src/lib.rs:1967:20 |
 | 1 | `Rewritten` | fixtures/reject/src/lib.rs:1139:47 |
 | 1 | `Shared` | fixtures/reject/src/lib.rs:1838:20 |
 | 1 | `Sink` | fixtures/reject/src/lib.rs:62:10 |
 | 1 | `Slotted` | fixtures/reject/src/lib.rs:1819:21 |
 | 1 | `Span2` | fixtures/reject/src/lib.rs:617:10 |
 | 1 | `String` | fixtures/reject/src/lib.rs:793:4 |
+| 1 | `Swapped` | fixtures/reject/src/lib.rs:1985:20 |
 | 1 | `T \| undefined` | fixtures/reject/src/lib.rs:31:2 |
 | 1 | `Tail` | fixtures/reject/src/lib.rs:493:30 |
+| 1 | `Taken` | fixtures/reject/src/lib.rs:2003:20 |
 | 1 | `Target` | fixtures/reject/src/lib.rs:1678:10 |
 | 1 | `Track` | fixtures/reject/src/lib.rs:861:19 |
 | 1 | `Unboxed` | fixtures/reject/src/lib.rs:1776:16 |
@@ -263,9 +263,6 @@ The type or module each refused type or path belongs to.
 | 2 | a raw pointer to `_` in a variable assigned again while it may point there | `std::cell::UnsafeCell` | fixtures/reject/src/lib.rs:705:15 |
 | 2 | a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet | `[u8; 2]` | fixtures/reject/src/lib.rs:1736:37 |
 | 2 | a raw pointer to `_` in an element, a payload, or a union field, which is not supported yet | `[u8; 3]` | fixtures/reject/src/lib.rs:1736:15 |
-| 2 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Replaced` | fixtures/reject/src/lib.rs:1958:25 |
-| 2 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Swapped` | fixtures/reject/src/lib.rs:1977:17 |
-| 2 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Taken` | fixtures/reject/src/lib.rs:1995:22 |
 | 2 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Inside` | fixtures/reject/src/lib.rs:1855:20 |
 | 2 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `[u8; 4]` | fixtures/reject/src/lib.rs:1743:26 |
 | 2 | an assignment through a reference to `_` | `std::pin::Pin` | fixtures/reject/src/lib.rs:114:2 |
@@ -355,6 +352,9 @@ The type or module each refused type or path belongs to.
 | 1 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Closed` | fixtures/reject/src/lib.rs:2088:15 |
 | 1 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Deeper` | fixtures/reject/src/lib.rs:2048:22 |
 | 1 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Dynamic` | fixtures/reject/src/lib.rs:2072:20 |
+| 1 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Replaced` | fixtures/reject/src/lib.rs:1967:20 |
+| 1 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Swapped` | fixtures/reject/src/lib.rs:1985:20 |
+| 1 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `Taken` | fixtures/reject/src/lib.rs:2003:20 |
 | 1 | a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of | `std::cell::UnsafeCell`, `[std::cell::UnsafeCell; 2]` | fixtures/reject/src/lib.rs:2101:20 |
 | 1 | a reference through which a raw pointer may be made into `_` in an element, a payload, or a union field, which is not supported yet | `InPayload` | fixtures/reject/src/lib.rs:1373:11 |
 | 1 | a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there | `Behind` | fixtures/reject/src/lib.rs:1761:22 |
@@ -523,28 +523,6 @@ The type or module each refused type or path belongs to.
 
 </details>
 
-<details><summary>a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of (17)</summary>
-
-- fixtures/reject/src/lib.rs:1346:33: a reference through which a raw pointer may be made into `InArray` in `[InArray; 2]`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1355:33: a reference through which a raw pointer may be made into `InTuple` in `(u16, InTuple)`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1364:34: a reference through which a raw pointer may be made into `Mid<InNested>` in `Outer<InNested>`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1385:33: a reference through which a raw pointer may be made into `Mid<InField>` in `Outer<InField>`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1398:35: a reference through which a raw pointer may be made into `Mid<InGeneric>` in `Outer<InGeneric>`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1407:35: a reference through which a raw pointer may be made into `InWritten` in `[InWritten; 1]`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1958:25: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Replaced`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1967:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Replaced`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1977:17: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Swapped`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1985:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Swapped`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:1995:22: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Taken`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:2003:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Taken`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:2022:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Assigned`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:2048:22: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Deeper`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:2072:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Dynamic`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:2088:15: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Closed`, which the crate may put another object in place of
-- fixtures/reject/src/lib.rs:2101:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `[std::cell::UnsafeCell<u16>; 2]`, which the crate may put another object in place of
-
-</details>
-
 <details><summary>a reference to `_`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there (15)</summary>
 
 - fixtures/reject/src/lib.rs:1664:18: a reference to `std::cell::UnsafeCell<u64>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
@@ -562,6 +540,25 @@ The type or module each refused type or path belongs to.
 - fixtures/reject/src/lib.rs:1929:19: a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
 - fixtures/reject/src/lib.rs:1944:21: a reference to `Wrapped<std::cell::Cell<u32>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
 - fixtures/reject/src/lib.rs:2118:13: a reference to `std::option::Option<Block<2>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there
+
+</details>
+
+<details><summary>a reference through which a raw pointer may be made into `_` in `_`, which the crate may put another object in place of (14)</summary>
+
+- fixtures/reject/src/lib.rs:1346:33: a reference through which a raw pointer may be made into `InArray` in `[InArray; 2]`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:1355:33: a reference through which a raw pointer may be made into `InTuple` in `(u16, InTuple)`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:1364:34: a reference through which a raw pointer may be made into `Mid<InNested>` in `Outer<InNested>`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:1385:33: a reference through which a raw pointer may be made into `Mid<InField>` in `Outer<InField>`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:1398:35: a reference through which a raw pointer may be made into `Mid<InGeneric>` in `Outer<InGeneric>`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:1407:35: a reference through which a raw pointer may be made into `InWritten` in `[InWritten; 1]`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:1967:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Replaced`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:1985:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Swapped`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2003:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Taken`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2022:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Assigned`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2048:22: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Deeper`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2072:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Dynamic`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2088:15: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Closed`, which the crate may put another object in place of
+- fixtures/reject/src/lib.rs:2101:20: a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `[std::cell::UnsafeCell<u16>; 2]`, which the crate may put another object in place of
 
 </details>
 

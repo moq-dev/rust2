@@ -1013,7 +1013,7 @@ impl<'tcx> BodyWrites<'_, '_, '_, 'tcx> {
 		let replaced = self.parts(ty);
 		let holder = match elem {
 			_ if !self.inline(ty) => None,
-			ProjectionElem::Field(field, _) => Some(Some(field)).filter(|_| !base.is_union() && self.inline(base)),
+			ProjectionElem::Field(field, _) => (!base.is_union() && self.inline(base)).then_some(Some(field)),
 			ProjectionElem::Index(_) | ProjectionElem::ConstantIndex { .. } => Some(None),
 			_ => None,
 		};

@@ -1493,9 +1493,14 @@ fn attach<T>(at: &mut *mut T, to: &mut T) {
 /// A pointer a callee takes through a reference to a cell in a struct, which other
 /// functions then write whole through a `&mut` to the cell alone: by assignment, by
 /// `mem::replace`, and by `mem::swap`. JS writes each into the cell there, which the
-/// pointer sees.
+/// pointer sees. Another struct's cell, which no pointer is taken into, is given another
+/// cell by `mem::replace` through a `&mut` to the struct.
 pub fn part_written(data: &[u8], out: &mut Vec<u8>) {
+	let mut refilled = Refilled {
+		cell: UnsafeCell::new(0),
+	};
 	for &n in data {
+		out.push(refill(&mut refilled, n));
 		let mut w = Written {
 			cell: UnsafeCell::new(n),
 			tag: !n,
@@ -1535,6 +1540,15 @@ fn overwrite(c: &mut UnsafeCell<u8>, n: u8) {
 
 fn replace_cell(c: &mut UnsafeCell<u8>, n: u8) -> u8 {
 	std::mem::replace(c, UnsafeCell::new(n)).into_inner()
+}
+
+/// A struct JS keeps as an object, whose cell only [`refill`] replaces.
+struct Refilled {
+	cell: UnsafeCell<u8>,
+}
+
+fn refill(r: &mut Refilled, n: u8) -> u8 {
+	std::mem::replace(&mut r.cell, UnsafeCell::new(n)).into_inner()
 }
 
 fn swap_cell(c: &mut UnsafeCell<u8>, n: u8) {
