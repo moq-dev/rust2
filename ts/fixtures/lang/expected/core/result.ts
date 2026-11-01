@@ -14,6 +14,7 @@ import { eq$1v93ipo as str_error_eq$1v93ipo, eq$1f3e51k as str_error_eq$1f3e51k 
 import { cmp$175ka5q as poll_cmp$175ka5q } from "../core/task/poll.ts";
 import { eq$0dhyfbb as time_eq$0dhyfbb } from "../core/time.ts";
 import * as Part from "../orders.Part.ts";
+import type * as returns_Error from "../returns.Error.ts";
 
 export function eq$04qb8k3(self: rt.Result<rt.u8 | undefined, rt.ParseIntError>, other: rt.Result<rt.u8 | undefined, rt.ParseIntError>): boolean {
 	if (!((self.ok ? 0 : 1) === (other.ok ? 0 : 1))) {
@@ -557,6 +558,13 @@ export function map$03hz3l7(self: rt.Result<rt.u8, rt.u8>, op: (a0: rt.u8) => un
 	return self as rt.Result<undefined, rt.u8>;
 }
 
+export function mapOr$0fbyajt(self: rt.Result<rt.ByteSlice, returns_Error.Error>, default_: rt.usize, _: (a0: rt.ByteSlice) => rt.usize): rt.usize {
+	if (self.ok) {
+		return self.value.length;
+	}
+	return default_;
+}
+
 export function mapOr$1mu5bvh(self: rt.Result<rt.u8, rt.u16>, default_: rt.u8, f: (a0: rt.u8) => rt.u8): rt.u8 {
 	if (self.ok) {
 		return f(self.value);
@@ -640,6 +648,13 @@ export function and$0l7ltae(self: rt.Result<rt.u8, rt.u16>, res: rt.Result<rt.u8
 		return res;
 	}
 	return self;
+}
+
+export function andThen$1yropo4(self: rt.Result<[rt.ByteSlice, rt.ByteSlice], returns_Error.Error>, op: (a0: [rt.ByteSlice, rt.ByteSlice]) => rt.Result<rt.ByteSlice, returns_Error.Error>): rt.Result<rt.ByteSlice, returns_Error.Error> {
+	if (self.ok) {
+		return op(self.value);
+	}
+	return self as rt.Result<rt.ByteSlice, returns_Error.Error>;
 }
 
 export function andThen$0hd6ik8(self: rt.Result<rt.u8, rt.u16>, op: (a0: rt.u8) => rt.Result<rt.u8, rt.u16>): rt.Result<rt.u8, rt.u16> {

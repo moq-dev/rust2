@@ -3,39 +3,39 @@
 import * as rt from "../rt.ts";
 import { toDigit$01k9ewn } from "../core/char/methods.ts";
 
-export function canNotOverflow$01xawbo(radix: rt.u32, isSignedTy: boolean, digits: rt.ByteSlice): boolean {
+export function canNotOverflow$0q497dn(radix: rt.u32, isSignedTy: boolean, _digitsData: Uint8Array, _digitsStart: number, digitsLen: number): boolean {
 	if (!(radix <= 16)) {
 		return false;
 	}
-	return digits.length <= rt.usizeSub(rt.usizeMul(16, 2), isSignedTy ? 1 : 0);
+	return digitsLen <= rt.usizeSub(rt.usizeMul(16, 2), isSignedTy ? 1 : 0);
 }
 
-export function canNotOverflow$0omqc31(radix: rt.u32, isSignedTy: boolean, digits: rt.ByteSlice): boolean {
+export function canNotOverflow$1wu8g18(radix: rt.u32, isSignedTy: boolean, _digitsData: Uint8Array, _digitsStart: number, digitsLen: number): boolean {
 	if (!(radix <= 16)) {
 		return false;
 	}
-	return digits.length <= rt.usizeSub(rt.usizeMul(2, 2), isSignedTy ? 1 : 0);
+	return digitsLen <= rt.usizeSub(rt.usizeMul(2, 2), isSignedTy ? 1 : 0);
 }
 
-export function canNotOverflow$1ldhufq(radix: rt.u32, isSignedTy: boolean, digits: rt.ByteSlice): boolean {
+export function canNotOverflow$0uown4l(radix: rt.u32, isSignedTy: boolean, _digitsData: Uint8Array, _digitsStart: number, digitsLen: number): boolean {
 	if (!(radix <= 16)) {
 		return false;
 	}
-	return digits.length <= rt.usizeSub(rt.usizeMul(4, 2), isSignedTy ? 1 : 0);
+	return digitsLen <= rt.usizeSub(rt.usizeMul(4, 2), isSignedTy ? 1 : 0);
 }
 
-export function canNotOverflow$0ywqfa7(radix: rt.u32, isSignedTy: boolean, digits: rt.ByteSlice): boolean {
+export function canNotOverflow$03q1vv8(radix: rt.u32, isSignedTy: boolean, _digitsData: Uint8Array, _digitsStart: number, digitsLen: number): boolean {
 	if (!(radix <= 16)) {
 		return false;
 	}
-	return digits.length <= rt.usizeSub(rt.usizeMul(8, 2), isSignedTy ? 1 : 0);
+	return digitsLen <= rt.usizeSub(rt.usizeMul(8, 2), isSignedTy ? 1 : 0);
 }
 
-export function canNotOverflow$01utshh(radix: rt.u32, isSignedTy: boolean, digits: rt.ByteSlice): boolean {
+export function canNotOverflow$0aqh4yo(radix: rt.u32, isSignedTy: boolean, _digitsData: Uint8Array, _digitsStart: number, digitsLen: number): boolean {
 	if (!(radix <= 16)) {
 		return false;
 	}
-	return digits.length <= rt.usizeSub(rt.usizeMul(1, 2), isSignedTy ? 1 : 0);
+	return digitsLen <= rt.usizeSub(rt.usizeMul(1, 2), isSignedTy ? 1 : 0);
 }
 
 export function fromAsciiBytesRadixPanic(radix: rt.u32): never {
@@ -51,7 +51,7 @@ export function runtime$0bn0geu(radix: rt.u32): never {
 	rt.panicFmt(["from_ascii_bytes_radix: radix must lie in the range `[2, 36]` - found ", args2[0]]);
 }
 
-export function fromAsciiBytesRadixImpl$1fi5krg(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0xhcrxt(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -98,7 +98,7 @@ export function fromAsciiBytesRadixImpl$1fi5krg(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.i128 = 0;
 				b5: {
-					if (!canNotOverflow$01xawbo(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0q497dn(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -203,7 +203,7 @@ export function fromAsciiBytesRadixImpl$1fi5krg(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0vxnyo2(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0jbbuu8(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -250,7 +250,7 @@ export function fromAsciiBytesRadixImpl$0vxnyo2(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.i16 = 0;
 				b5: {
-					if (!canNotOverflow$0omqc31(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$1wu8g18(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -355,7 +355,7 @@ export function fromAsciiBytesRadixImpl$0vxnyo2(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$084mvn4(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0p2idzk(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -402,7 +402,7 @@ export function fromAsciiBytesRadixImpl$084mvn4(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.i32 = 0;
 				b5: {
-					if (!canNotOverflow$1ldhufq(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0uown4l(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -507,7 +507,7 @@ export function fromAsciiBytesRadixImpl$084mvn4(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$1txa8fg(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$01tfvb9(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -554,7 +554,7 @@ export function fromAsciiBytesRadixImpl$1txa8fg(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.i64 = 0;
 				b5: {
-					if (!canNotOverflow$0ywqfa7(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$03q1vv8(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -659,7 +659,7 @@ export function fromAsciiBytesRadixImpl$1txa8fg(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0jjf32b(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$18og5o1(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -706,7 +706,7 @@ export function fromAsciiBytesRadixImpl$0jjf32b(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.i8 = 0;
 				b5: {
-					if (!canNotOverflow$01utshh(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0aqh4yo(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -811,7 +811,7 @@ export function fromAsciiBytesRadixImpl$0jjf32b(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0z6zuq3(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$05ylgyc(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -858,7 +858,7 @@ export function fromAsciiBytesRadixImpl$0z6zuq3(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.isize = 0;
 				b5: {
-					if (!canNotOverflow$1ldhufq(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0uown4l(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -963,55 +963,55 @@ export function fromAsciiBytesRadixImpl$0z6zuq3(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromStr$1ej7fl2(src: string): rt.Result<rt.i128, rt.ParseIntError> {
-	return fromStrRadix$1cxc8v7(src, 10);
+export function fromStr$0zyj6he(src: string): rt.Result<rt.i128, rt.ParseIntError> {
+	return fromStrRadix$0366bau(src, 10);
 }
 
-export function fromStr$076yg1t(src: string): rt.Result<rt.i16, rt.ParseIntError> {
-	return fromStrRadix$0w5k2s7(src, 10);
+export function fromStr$17ewwma(src: string): rt.Result<rt.i16, rt.ParseIntError> {
+	return fromStrRadix$02mhuxs(src, 10);
 }
 
-export function fromStr$1dxzqb4(src: string): rt.Result<rt.i32, rt.ParseIntError> {
-	return fromStrRadix$1a42la1(src, 10);
+export function fromStr$0zhqfgx(src: string): rt.Result<rt.i32, rt.ParseIntError> {
+	return fromStrRadix$1bgm1z0(src, 10);
 }
 
-export function fromStr$09oey6q(src: string): rt.Result<rt.i64, rt.ParseIntError> {
-	return fromStrRadix$0olne29(src, 10);
+export function fromStr$116mp4t(src: string): rt.Result<rt.i64, rt.ParseIntError> {
+	return fromStrRadix$11y6fsf(src, 10);
 }
 
-export function fromStr$1m3wp28(src: string): rt.Result<rt.i8, rt.ParseIntError> {
-	return fromStrRadix$0snhnv5(src, 10);
+export function fromStr$0ovlgjd(src: string): rt.Result<rt.i8, rt.ParseIntError> {
+	return fromStrRadix$0s9rspw(src, 10);
 }
 
-export function fromStr$1gsa29j(src: string): rt.Result<rt.isize, rt.ParseIntError> {
-	return fromStrRadix$1mq18rn(src, 10);
+export function fromStr$1grmucc(src: string): rt.Result<rt.isize, rt.ParseIntError> {
+	return fromStrRadix$1473bi0(src, 10);
 }
 
-export function fromStrRadix$1cxc8v7(src: string, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$1fi5krg(rt.stringAsBytes(src), radix);
+export function fromStrRadix$0366bau(src: string, radix: rt.u32): rt.Result<rt.i128, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0xhcrxt(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$0w5k2s7(src: string, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$0vxnyo2(rt.stringAsBytes(src), radix);
+export function fromStrRadix$02mhuxs(src: string, radix: rt.u32): rt.Result<rt.i16, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0jbbuu8(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1a42la1(src: string, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$084mvn4(rt.stringAsBytes(src), radix);
+export function fromStrRadix$1bgm1z0(src: string, radix: rt.u32): rt.Result<rt.i32, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0p2idzk(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$0olne29(src: string, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$1txa8fg(rt.stringAsBytes(src), radix);
+export function fromStrRadix$11y6fsf(src: string, radix: rt.u32): rt.Result<rt.i64, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$01tfvb9(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$0snhnv5(src: string, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$0jjf32b(rt.stringAsBytes(src), radix);
+export function fromStrRadix$0s9rspw(src: string, radix: rt.u32): rt.Result<rt.i8, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$18og5o1(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1mq18rn(src: string, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$0z6zuq3(rt.stringAsBytes(src), radix);
+export function fromStrRadix$1473bi0(src: string, radix: rt.u32): rt.Result<rt.isize, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$05ylgyc(rt.stringAsBytes(src), radix);
 }
 
-export function fromAsciiBytesRadixImpl$0upyfqu(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0r1q6uy(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -1058,7 +1058,7 @@ export function fromAsciiBytesRadixImpl$0upyfqu(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.u128 = 0;
 				b5: {
-					if (!canNotOverflow$01xawbo(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0q497dn(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -1163,7 +1163,7 @@ export function fromAsciiBytesRadixImpl$0upyfqu(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$02by984(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$1ukmfx2(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -1210,7 +1210,7 @@ export function fromAsciiBytesRadixImpl$02by984(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.u16 = 0;
 				b5: {
-					if (!canNotOverflow$0omqc31(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$1wu8g18(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -1315,7 +1315,7 @@ export function fromAsciiBytesRadixImpl$02by984(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$1wmuzvm(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$0ax4wbr(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -1362,7 +1362,7 @@ export function fromAsciiBytesRadixImpl$1wmuzvm(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.u32 = 0;
 				b5: {
-					if (!canNotOverflow$1ldhufq(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0uown4l(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -1467,7 +1467,7 @@ export function fromAsciiBytesRadixImpl$1wmuzvm(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$1qf6fna(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$02xpj41(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -1514,7 +1514,7 @@ export function fromAsciiBytesRadixImpl$1qf6fna(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.u64 = 0;
 				b5: {
-					if (!canNotOverflow$0ywqfa7(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$03q1vv8(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -1619,7 +1619,7 @@ export function fromAsciiBytesRadixImpl$1qf6fna(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$0kv3dtn(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$1n9fygl(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -1666,7 +1666,7 @@ export function fromAsciiBytesRadixImpl$0kv3dtn(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.u8 = 0;
 				b5: {
-					if (!canNotOverflow$01utshh(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0aqh4yo(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -1771,7 +1771,7 @@ export function fromAsciiBytesRadixImpl$0kv3dtn(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromAsciiBytesRadixImpl$1z1297b(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
+export function fromAsciiBytesRadixImpl$00hojjd(src: rt.ByteSlice, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
 	let _12_0!: boolean;
 	let _12_1Data!: Uint8Array;
 	let _12_1Start!: number;
@@ -1818,7 +1818,7 @@ export function fromAsciiBytesRadixImpl$1z1297b(src: rt.ByteSlice, radix: rt.u32
 				let digitsLen: number = _12_1Len;
 				let result: rt.usize = 0;
 				b5: {
-					if (!canNotOverflow$1ldhufq(radix, isSignedTy, new rt.ByteSlice(digitsData, digitsStart, digitsLen))) {
+					if (!canNotOverflow$0uown4l(radix, isSignedTy, digitsData, digitsStart, digitsLen)) {
 						if (!isPositive) {
 							while (true) {
 								if (!(digitsLen >= 1)) {
@@ -1923,52 +1923,52 @@ export function fromAsciiBytesRadixImpl$1z1297b(src: rt.ByteSlice, radix: rt.u32
 	fromAsciiBytesRadixPanic(radix);
 }
 
-export function fromStr$0pnvd2c(src: string): rt.Result<rt.u128, rt.ParseIntError> {
-	return fromStrRadix$1549erz(src, 10);
+export function fromStr$0qvzsmz(src: string): rt.Result<rt.u128, rt.ParseIntError> {
+	return fromStrRadix$0g0g31i(src, 10);
 }
 
-export function fromStr$1bigolo(src: string): rt.Result<rt.u16, rt.ParseIntError> {
-	return fromStrRadix$1x7yq9g(src, 10);
+export function fromStr$0yqu2i9(src: string): rt.Result<rt.u16, rt.ParseIntError> {
+	return fromStrRadix$1ku3myt(src, 10);
 }
 
-export function fromStr$1uzmhcw(src: string): rt.Result<rt.u32, rt.ParseIntError> {
-	return fromStrRadix$1gamglm(src, 10);
+export function fromStr$08wf09w(src: string): rt.Result<rt.u32, rt.ParseIntError> {
+	return fromStrRadix$05zvwcf(src, 10);
 }
 
-export function fromStr$05sn9io(src: string): rt.Result<rt.u64, rt.ParseIntError> {
-	return fromStrRadix$0bx9j5d(src, 10);
+export function fromStr$1ypcnp8(src: string): rt.Result<rt.u64, rt.ParseIntError> {
+	return fromStrRadix$1gp4jqq(src, 10);
 }
 
-export function fromStr$0kn8g72(src: string): rt.Result<rt.u8, rt.ParseIntError> {
-	return fromStrRadix$1ys3fwo(src, 10);
+export function fromStr$1hq0zfa(src: string): rt.Result<rt.u8, rt.ParseIntError> {
+	return fromStrRadix$0nj08um(src, 10);
 }
 
-export function fromStr$0qgw0pl(src: string): rt.Result<rt.usize, rt.ParseIntError> {
-	return fromStrRadix$09ykvvv(src, 10);
+export function fromStr$10ypyht(src: string): rt.Result<rt.usize, rt.ParseIntError> {
+	return fromStrRadix$0tjqkb6(src, 10);
 }
 
-export function fromStrRadix$1549erz(src: string, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$0upyfqu(rt.stringAsBytes(src), radix);
+export function fromStrRadix$0g0g31i(src: string, radix: rt.u32): rt.Result<rt.u128, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0r1q6uy(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1x7yq9g(src: string, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$02by984(rt.stringAsBytes(src), radix);
+export function fromStrRadix$1ku3myt(src: string, radix: rt.u32): rt.Result<rt.u16, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$1ukmfx2(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1gamglm(src: string, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$1wmuzvm(rt.stringAsBytes(src), radix);
+export function fromStrRadix$05zvwcf(src: string, radix: rt.u32): rt.Result<rt.u32, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$0ax4wbr(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$0bx9j5d(src: string, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$1qf6fna(rt.stringAsBytes(src), radix);
+export function fromStrRadix$1gp4jqq(src: string, radix: rt.u32): rt.Result<rt.u64, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$02xpj41(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$1ys3fwo(src: string, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$0kv3dtn(rt.stringAsBytes(src), radix);
+export function fromStrRadix$0nj08um(src: string, radix: rt.u32): rt.Result<rt.u8, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$1n9fygl(rt.stringAsBytes(src), radix);
 }
 
-export function fromStrRadix$09ykvvv(src: string, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
-	return fromAsciiBytesRadixImpl$1z1297b(rt.stringAsBytes(src), radix);
+export function fromStrRadix$0tjqkb6(src: string, radix: rt.u32): rt.Result<rt.usize, rt.ParseIntError> {
+	return fromAsciiBytesRadixImpl$00hojjd(rt.stringAsBytes(src), radix);
 }
 
 //# sourceMappingURL=num.ts.map

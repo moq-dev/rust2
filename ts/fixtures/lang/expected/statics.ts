@@ -97,7 +97,7 @@ export function next(reset: boolean): rt.u8 {
 
 export const NEXT$next: rt.Atomic<rt.u64> = /* @__PURE__ */ new rt.Atomic(1);
 
-export const COUNTER: Counter.Counter = /* @__PURE__ */ { name: "hits", hits: new rt.Atomic(4294967294), limit: 3, steps: Uint8Array.of(1, 2, 4), state: [9, 122] };
+export const COUNTER: Counter.Counter = { name: "hits", hits: new rt.Atomic(4294967294), limit: 3, steps: Uint8Array.of(1, 2, 4), state: [9, 122] };
 
 export const SHARED: rt.LazyCell<rt.Atomic<rt.u8>> = /* @__PURE__ */ new rt.LazyCell((): rt.Atomic<rt.u8> => {
 	return LATER;

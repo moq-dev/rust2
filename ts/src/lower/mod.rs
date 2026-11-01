@@ -50,6 +50,8 @@ pub fn translate<'tcx>(tcx: TyCtxt<'tcx>, config: &Config) -> Option<Program> {
 		for path in &config.printable {
 			t.printable(path);
 		}
+		// What the outside calls takes its arguments whole.
+		t.roots = t.instances.keys().copied().collect();
 		t.drain();
 	})?;
 	for (span, msg) in t.refusals.take().unwrap_or_default() {
@@ -254,6 +256,16 @@ pub struct Translator<'a, 'tcx> {
 	site: Option<(Span, DefId)>,
 	/// The hand-written TypeScript the config binds items to.
 	bindings: bind::Bindings<'tcx>,
+	/// The instances the config's roots name, which the outside calls.
+	roots: rustc_data_structures::fx::FxHashSet<Instance<'tcx>>,
+	/// Which parameters each instance takes as a byte slice's parts, by [`Self::parted`].
+	parted: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, Vec<bool>>,
+	/// While [`Self::parted`] settles, each instance it reached, with its guess so far.
+	parting: Option<rustc_data_structures::fx::FxIndexMap<Instance<'tcx>, Vec<bool>>>,
+	/// Where each instance hands back its `Ok`'s parts, if it does, by [`Self::slotted`].
+	slotted: rustc_data_structures::fx::FxHashMap<Instance<'tcx>, Option<mir::Slotted<'tcx>>>,
+	/// The slot of each `Ok` payload type, which every function returning one shares.
+	slots: rustc_data_structures::fx::FxHashMap<Ty<'tcx>, SymId>,
 }
 
 /// The crates that translate as one program: the package, and every crate it depends on
@@ -462,6 +474,11 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 			sites: Default::default(),
 			site: None,
 			bindings: Default::default(),
+			roots: Default::default(),
+			parted: Default::default(),
+			parting: None,
+			slotted: Default::default(),
+			slots: Default::default(),
 		})
 	}
 

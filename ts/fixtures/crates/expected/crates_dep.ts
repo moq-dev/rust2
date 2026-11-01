@@ -24,16 +24,18 @@ export function heaviest$harness_Item(items: Item.Item[]): Item.Item | undefined
 }
 
 /** The first byte of `bytes`. */
-export function first(bytes: rt.ByteSlice): rt.u8 {
-	if (!(bytes.length === 0)) {
-		return read(bytes);
+export function first(bytesData: Uint8Array, bytesStart: number, bytesLen: number): rt.u8 {
+	if (!(bytesLen === 0)) {
+		return read(bytesData, bytesStart, bytesLen);
 	}
 	rt.panicFmt(["no first byte"]);
 }
 
-export function read(bytes: rt.ByteSlice): rt.u8 {
-	rt.idx(bytes, 0);
-	return bytes.data[bytes.start];
+export function read(bytesData: Uint8Array, bytesStart: number, bytesLen: number): rt.u8 {
+	if (0 >= bytesLen) {
+		rt.panic("index out of bounds: the len is " + bytesLen + " but the index is " + 0);
+	}
+	return bytesData[bytesStart];
 }
 
 /** Provided, and overridden by one impl. */

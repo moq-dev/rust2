@@ -17,7 +17,7 @@ kept them as `(data, start, length)` made Chrome's varint decode 2.3-2.9x and fr
 
 Decided with the maintainer on 2026-10-27: scalar-replace values built of byte slices,
 scalars, tuples, `Option`, `Result`, and `ControlFlow`, materializing an object only where
-one escapes, in three pieces that each land and measure alone (the children below).
+one escapes, in pieces that each land and measure alone (the children below).
 The precedents are `stepped` iterators, `range_nexts`, and `place_opts`, which a general
 pass could later absorb.
 
@@ -30,6 +30,5 @@ Public API: the translator's output for byte slices.
 
 ## Required
 
-- [Byte slices passed as parts](/quest/m2/ts-byte-views/arguments.md) - a function takes a slice's parts as arguments
-- [Byte slices returned](/quest/m2/ts-byte-views/returns.md) - a function returns a split's parts without an object
+- [Byte slices passed and returned as parts](/quest/m2/ts-byte-views/returns.md) - a function takes a slice's parts and returns a split's parts without an object
 - [Byte slices in fields](/quest/m2/ts-byte-views/fields.md) - a private slice field is three fields

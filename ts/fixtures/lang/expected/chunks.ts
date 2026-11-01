@@ -2,18 +2,29 @@
 
 import * as rt from "./rt.ts";
 import type * as Header from "./chunks.Header.ts";
-import { mapOr$1jgrjsu as option_mapOr$1jgrjsu, okOr$0jslmu4 as option_okOr$0jslmu4 } from "./core/option.ts";
+import { mapOr$1jgrjsu as option_mapOr$1jgrjsu } from "./core/option.ts";
 
-export function header(data: rt.ByteSlice): Header.Header | undefined {
-	if (data.length >= 2) {
-		return { tag: new rt.ByteSlice(data.data, data.start, 2), rest: new rt.ByteSlice(data.data, data.start + 2, data.length - 2) };
+export function header(dataData: Uint8Array, dataStart: number, dataLen: number): Header.Header | undefined {
+	if (dataLen >= 2) {
+		return { tag: new rt.ByteSlice(dataData, dataStart, 2), rest: new rt.ByteSlice(dataData, dataStart + 2, dataLen - 2) };
 	}
 	return undefined;
 }
 
-export function take4(data: rt.ByteSlice): rt.Result<[rt.ByteSlice, rt.ByteSlice], rt.u8> {
-	return option_okOr$0jslmu4((data.length >= 4 ? [new rt.ByteSlice(data.data, data.start, 4), new rt.ByteSlice(data.data, data.start + 4, data.length - 4)] as [rt.ByteSlice, rt.ByteSlice] : undefined) as [rt.ByteSlice, rt.ByteSlice] | undefined, data.length & 0xff);
+export function take4(dataData: Uint8Array, dataStart: number, dataLen: number): rt.u8 | undefined {
+	if (!(dataLen >= 4)) {
+		return dataLen & 0xff;
+	}
+	take4Out.p_0Data = dataData;
+	take4Out.p_0Start = dataStart;
+	take4Out.p_0Len = 4;
+	take4Out.p_1Data = dataData;
+	take4Out.p_1Start = dataStart + 4;
+	take4Out.p_1Len = dataLen - 4;
+	return undefined;
 }
+
+export const take4Out: { p_0Data: Uint8Array; p_0Start: number; p_0Len: number; p_1Data: Uint8Array; p_1Start: number; p_1Len: number } = { p_0Data: undefined as never, p_0Start: undefined as never, p_0Len: undefined as never, p_1Data: undefined as never, p_1Start: undefined as never, p_1Len: undefined as never };
 
 export function word(chunk: rt.ByteSlice): rt.u32 {
 	return ((chunk.data[chunk.start] << 24) | (chunk.data[chunk.start + 1] << 16) | (chunk.data[chunk.start + 2] << 8) | chunk.data[chunk.start + 3]) >>> 0;
@@ -42,30 +53,36 @@ export function bump(chunk: rt.ByteSlice): void {
 	chunk.data[chunk.start + 1] = chunk.data[chunk.start + 1] ^ 255;
 }
 
-export function ends(chunk: rt.ByteSlice): [rt.u8, rt.ByteSlice, rt.u8] {
-	return [chunk.data[chunk.start], new rt.ByteSlice(chunk.data, chunk.start + 1, 2), chunk.data[chunk.start + 3]] as [rt.u8, rt.ByteSlice, rt.u8];
+export function ends(chunkData: Uint8Array, chunkStart: number, _chunkLen: number): [rt.u8, rt.ByteSlice, rt.u8] {
+	return [chunkData[chunkStart], new rt.ByteSlice(chunkData, chunkStart + 1, 2), chunkData[chunkStart + 3]] as [rt.u8, rt.ByteSlice, rt.u8];
 }
 
 export function chunks(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 	let chosen2!: rt.ByteSlice;
 	const _4: rt.u8 = rt.u8Rem(kind, 6);
 	if (_4 === 0) {
-		const _6: Header.Header | undefined = header(data);
+		const _6: Header.Header | undefined = header(data.data, data.start, data.length);
 		if (_6 !== undefined) {
 			const h: Header.Header = _6;
 			rt.byteVecExtendFromSlice(out, h.tag);
 			rt.byteVecPush(out, h.tag.data[h.tag.start + 1]);
 			rt.byteVecPush(out, h.rest.length & 0xff);
 		}
-		const _18: rt.Result<[rt.ByteSlice, rt.ByteSlice], rt.u8> = take4(data);
-		if (_18.ok) {
-			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(word(_18.value[0]))));
-			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.i16ToBeBytes((((_18.value[0].data[_18.value[0].start + 1] << 8) | _18.value[0].data[_18.value[0].start + 2]) << 16) >> 16)));
-			const _42: [rt.u8, rt.ByteSlice, rt.u8] = ends(_18.value[0]);
+		const err: rt.u8 | undefined = take4(data.data, data.start, data.length);
+		const part3: Uint8Array = take4Out.p_0Data;
+		const part4: number = take4Out.p_0Start;
+		const part5: number = take4Out.p_0Len;
+		const part6: Uint8Array = take4Out.p_1Data;
+		const part7: number = take4Out.p_1Start;
+		const part8: number = take4Out.p_1Len;
+		if (err === undefined) {
+			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(word(new rt.ByteSlice(part3, part4, part5)))));
+			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.i16ToBeBytes((((part3[part4 + 1] << 8) | part3[part4 + 2]) << 16) >> 16)));
+			const _42: [rt.u8, rt.ByteSlice, rt.u8] = ends(part3, part4, part5);
 			rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(Uint8Array.of(_42[0], _42[2], _42[1].data[_42[1].start], _42[1].data[_42[1].start + 1], _42[1].length & 0xff)));
-			rt.byteVecExtendFromSlice(out, _18.value[1]);
+			rt.byteVecExtendFromSlice(out, new rt.ByteSlice(part6, part7, part8));
 		} else {
-			rt.byteVecPush(out, _18.error);
+			rt.byteVecPush(out, err as rt.u8);
 		}
 	} else if (_4 === 1) {
 		const buf: Uint8Array = rt.bytes(4);
@@ -135,8 +152,8 @@ export function chunks(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 		const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.byteSliceView(chosen2), f, rt.u8Debug), (f: rt.Formatter) => rt.fmtList(rt.byteSliceView(lit), f, rt.u8Debug)];
 		rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args2[0], " ", args2[1]])));
 		if (data.length >= 3) {
-			const chunk: rt.ByteSlice = new rt.ByteSlice(data.data, data.start, 3);
-			const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.byteSliceView(chunk), f, rt.u8Debug), (f: rt.Formatter) => rt.fmtList(rt.byteSliceView(chunk), f, rt.u8Debug)];
+			const chunk2: rt.ByteSlice = new rt.ByteSlice(data.data, data.start, 3);
+			const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(rt.byteSliceView(chunk2), f, rt.u8Debug), (f: rt.Formatter) => rt.fmtList(rt.byteSliceView(chunk2), f, rt.u8Debug)];
 			rt.byteVecExtendFromSlice(out, rt.stringAsBytes(rt.fmtFormat([args4[0], " ", args4[1]])));
 		}
 	} else if (_4 === 4) {
@@ -177,26 +194,26 @@ export function chunks(kind: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): void {
 			return p2.data[p2.start + 1];
 		})), undefined, true);
 	} else {
-		let restData2: Uint8Array = data.data;
-		let restStart2: number = data.start;
-		let restLen2: number = data.length;
+		let restData3: Uint8Array = data.data;
+		let restStart3: number = data.start;
+		let restLen3: number = data.length;
 		let sum: rt.u32 = 0;
 		while (true) {
-			const _261Data: Uint8Array = restData2;
-			const _261Start: number = restStart2;
-			const _261Len: number = restLen2;
+			const _261Data: Uint8Array = restData3;
+			const _261Start: number = restStart3;
+			const _261Len: number = restLen3;
 			if (_261Len >= 3) {
 				sum = rt.u32WrappingAdd((((sum << 5) >>> 0) | (sum >>> 27)) >>> 0, ((_261Data[_261Start] << 8) | _261Data[_261Start + 2]) as rt.u32);
 				rt.byteVecPush(out, _261Data[_261Start + 1]);
-				restData2 = _261Data;
-				restStart2 = _261Start + 3;
-				restLen2 = _261Len - 3;
+				restData3 = _261Data;
+				restStart3 = _261Start + 3;
+				restLen3 = _261Len - 3;
 			} else {
 				break;
 			}
 		}
 		rt.byteVecExtendFromSlice(out, rt.byteSliceFrom(rt.u32ToBeBytes(sum)));
-		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(restData2, restStart2, restLen2));
+		rt.byteVecExtendFromSlice(out, new rt.ByteSlice(restData3, restStart3, restLen3));
 	}
 }
 

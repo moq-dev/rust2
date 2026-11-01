@@ -191,129 +191,163 @@ export function writeLeadingOnes(value: rt.u64, out: rt.ByteVec): void {
 }
 
 /** Decode a varint in `form` from the front of `buf`, returning it and the rest of `buf`. */
-export function read(buf: rt.ByteSlice, form: Form.Form): rt.Result<[rt.u64, rt.ByteSlice], DecodeError.DecodeError> {
+export function read(bufData: Uint8Array, bufStart: number, bufLen: number, form: Form.Form): rt.u64 | undefined {
 	if (form.tag === "Quic") {
-		return readQuic(buf);
+		return readQuic(bufData, bufStart, bufLen);
 	}
-	return readLeadingOnes(buf, form.seven);
+	return readLeadingOnes(bufData, bufStart, bufLen, form.seven);
 }
 
-export function readQuic(buf: rt.ByteSlice): rt.Result<[rt.u64, rt.ByteSlice], DecodeError.DecodeError> {
-	if (buf.length !== 0) {
-		const first: rt.u8 = buf.data[buf.start];
+export const readOut: { err: unknown; p_1Data: Uint8Array; p_1Start: number; p_1Len: number } = { err: undefined, p_1Data: undefined as never, p_1Start: undefined as never, p_1Len: undefined as never };
+
+export function readQuic(bufData: Uint8Array, bufStart: number, bufLen: number): rt.u64 | undefined {
+	if (bufLen !== 0) {
+		const first: rt.u8 = bufData[bufStart];
 		if (!(first < 64)) {
 			if (!(first < 128)) {
 				if (!(first < 192)) {
-					if (buf.length >= 8) {
-						return rt.Ok([fromHalves((((buf.data[buf.start] & 63) << 24) | (buf.data[buf.start + 1] << 16) | (buf.data[buf.start + 2] << 8) | buf.data[buf.start + 3]) >>> 0, ((buf.data[buf.start + 4] << 24) | (buf.data[buf.start + 5] << 16) | (buf.data[buf.start + 6] << 8) | buf.data[buf.start + 7]) >>> 0), new rt.ByteSlice(buf.data, buf.start + 8, buf.length - 8)] as [rt.u64, rt.ByteSlice]);
+					if (bufLen >= 8) {
+						const _61_0: rt.u64 = fromHalves((((bufData[bufStart] & 63) << 24) | (bufData[bufStart + 1] << 16) | (bufData[bufStart + 2] << 8) | bufData[bufStart + 3]) >>> 0, ((bufData[bufStart + 4] << 24) | (bufData[bufStart + 5] << 16) | (bufData[bufStart + 6] << 8) | bufData[bufStart + 7]) >>> 0);
+						readOut.p_1Data = bufData;
+						readOut.p_1Start = bufStart + 8;
+						readOut.p_1Len = bufLen - 8;
+						return _61_0;
 					}
-					return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+					readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+					return undefined;
 				}
-				if (buf.length >= 4) {
-					return rt.Ok([(((buf.data[buf.start] & 63) << 24) | (buf.data[buf.start + 1] << 16) | (buf.data[buf.start + 2] << 8) | buf.data[buf.start + 3]) >>> 0 as rt.u64, new rt.ByteSlice(buf.data, buf.start + 4, buf.length - 4)] as [rt.u64, rt.ByteSlice]);
+				if (bufLen >= 4) {
+					const _40_0: rt.u64 = (((bufData[bufStart] & 63) << 24) | (bufData[bufStart + 1] << 16) | (bufData[bufStart + 2] << 8) | bufData[bufStart + 3]) >>> 0 as rt.u64;
+					readOut.p_1Data = bufData;
+					readOut.p_1Start = bufStart + 4;
+					readOut.p_1Len = bufLen - 4;
+					return _40_0;
 				}
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
-			if (buf.length >= 2) {
-				return rt.Ok([(((buf.data[buf.start] & 63) << 8) | buf.data[buf.start + 1]) as rt.u64, new rt.ByteSlice(buf.data, buf.start + 2, buf.length - 2)] as [rt.u64, rt.ByteSlice]);
+			if (bufLen >= 2) {
+				const _21_0: rt.u64 = (((bufData[bufStart] & 63) << 8) | bufData[bufStart + 1]) as rt.u64;
+				readOut.p_1Data = bufData;
+				readOut.p_1Start = bufStart + 2;
+				readOut.p_1Len = bufLen - 2;
+				return _21_0;
 			}
-			return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+			readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+			return undefined;
 		}
-		return rt.Ok([first as rt.u64, new rt.ByteSlice(buf.data, buf.start + 1, buf.length - 1)] as [rt.u64, rt.ByteSlice]);
+		readOut.p_1Data = bufData;
+		readOut.p_1Start = bufStart + 1;
+		readOut.p_1Len = bufLen - 1;
+		return first as rt.u64;
 	}
-	return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+	readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+	return undefined;
 }
 
-export function readLeadingOnes(buf: rt.ByteSlice, seven: boolean): rt.Result<[rt.u64, rt.ByteSlice], DecodeError.DecodeError> {
+export function readLeadingOnes(bufData: Uint8Array, bufStart: number, bufLen: number, seven: boolean): rt.u64 | undefined {
 	let _8_0!: rt.u64;
 	let _8_1Data!: Uint8Array;
 	let _8_1Start!: number;
 	let _8_1Len!: number;
-	if (buf.length !== 0) {
-		const first: rt.u8 = buf.data[buf.start];
+	if (bufLen !== 0) {
+		const first: rt.u8 = bufData[bufStart];
 		const _9: rt.u32 = rt.u8LeadingOnes(first);
 		if (_9 === 0) {
 			_8_0 = first as rt.u64;
-			_8_1Data = buf.data;
-			_8_1Start = buf.start + 1;
-			_8_1Len = buf.length - 1;
+			_8_1Data = bufData;
+			_8_1Start = bufStart + 1;
+			_8_1Len = bufLen - 1;
 		} else if (_9 === 1) {
-			if (buf.length >= 2) {
-				_8_0 = (((buf.data[buf.start] & 63) << 8) | buf.data[buf.start + 1]) as rt.u64;
-				_8_1Data = buf.data;
-				_8_1Start = buf.start + 2;
-				_8_1Len = buf.length - 2;
+			if (bufLen >= 2) {
+				_8_0 = (((bufData[bufStart] & 63) << 8) | bufData[bufStart + 1]) as rt.u64;
+				_8_1Data = bufData;
+				_8_1Start = bufStart + 2;
+				_8_1Len = bufLen - 2;
 			} else {
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
 		} else if (_9 === 2) {
-			if (buf.length >= 3) {
-				_8_0 = (((buf.data[buf.start] & 31) << 16) | (buf.data[buf.start + 1] << 8) | buf.data[buf.start + 2]) as rt.u64;
-				_8_1Data = buf.data;
-				_8_1Start = buf.start + 3;
-				_8_1Len = buf.length - 3;
+			if (bufLen >= 3) {
+				_8_0 = (((bufData[bufStart] & 31) << 16) | (bufData[bufStart + 1] << 8) | bufData[bufStart + 2]) as rt.u64;
+				_8_1Data = bufData;
+				_8_1Start = bufStart + 3;
+				_8_1Len = bufLen - 3;
 			} else {
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
 		} else if (_9 === 3) {
-			if (buf.length >= 4) {
-				_8_0 = (((buf.data[buf.start] & 15) << 24) | (buf.data[buf.start + 1] << 16) | (buf.data[buf.start + 2] << 8) | buf.data[buf.start + 3]) >>> 0 as rt.u64;
-				_8_1Data = buf.data;
-				_8_1Start = buf.start + 4;
-				_8_1Len = buf.length - 4;
+			if (bufLen >= 4) {
+				_8_0 = (((bufData[bufStart] & 15) << 24) | (bufData[bufStart + 1] << 16) | (bufData[bufStart + 2] << 8) | bufData[bufStart + 3]) >>> 0 as rt.u64;
+				_8_1Data = bufData;
+				_8_1Start = bufStart + 4;
+				_8_1Len = bufLen - 4;
 			} else {
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
 		} else if (_9 === 4) {
-			if (buf.length >= 5) {
-				_8_0 = fromHalves(((buf.data[buf.start] & 7)) as rt.u32, ((buf.data[buf.start + 1] << 24) | (buf.data[buf.start + 2] << 16) | (buf.data[buf.start + 3] << 8) | buf.data[buf.start + 4]) >>> 0);
-				_8_1Data = buf.data;
-				_8_1Start = buf.start + 5;
-				_8_1Len = buf.length - 5;
+			if (bufLen >= 5) {
+				_8_0 = fromHalves(((bufData[bufStart] & 7)) as rt.u32, ((bufData[bufStart + 1] << 24) | (bufData[bufStart + 2] << 16) | (bufData[bufStart + 3] << 8) | bufData[bufStart + 4]) >>> 0);
+				_8_1Data = bufData;
+				_8_1Start = bufStart + 5;
+				_8_1Len = bufLen - 5;
 			} else {
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
 		} else if (_9 === 5) {
-			if (buf.length >= 6) {
-				_8_0 = fromHalves(((buf.data[buf.start] & 3) << 8) | buf.data[buf.start + 1], ((buf.data[buf.start + 2] << 24) | (buf.data[buf.start + 3] << 16) | (buf.data[buf.start + 4] << 8) | buf.data[buf.start + 5]) >>> 0);
-				_8_1Data = buf.data;
-				_8_1Start = buf.start + 6;
-				_8_1Len = buf.length - 6;
+			if (bufLen >= 6) {
+				_8_0 = fromHalves(((bufData[bufStart] & 3) << 8) | bufData[bufStart + 1], ((bufData[bufStart + 2] << 24) | (bufData[bufStart + 3] << 16) | (bufData[bufStart + 4] << 8) | bufData[bufStart + 5]) >>> 0);
+				_8_1Data = bufData;
+				_8_1Start = bufStart + 6;
+				_8_1Len = bufLen - 6;
 			} else {
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
 		} else if (_9 === 6) {
 			if (!seven) {
-				return rt.Err({ tag: "InvalidValue" } as DecodeError.DecodeError);
+				readOut.err = { tag: "InvalidValue" } as DecodeError.DecodeError;
+				return undefined;
 			}
-			if (buf.length >= 7) {
-				_8_0 = fromHalves(((buf.data[buf.start] & 1) << 16) | (buf.data[buf.start + 1] << 8) | buf.data[buf.start + 2], ((buf.data[buf.start + 3] << 24) | (buf.data[buf.start + 4] << 16) | (buf.data[buf.start + 5] << 8) | buf.data[buf.start + 6]) >>> 0);
-				_8_1Data = buf.data;
-				_8_1Start = buf.start + 7;
-				_8_1Len = buf.length - 7;
+			if (bufLen >= 7) {
+				_8_0 = fromHalves(((bufData[bufStart] & 1) << 16) | (bufData[bufStart + 1] << 8) | bufData[bufStart + 2], ((bufData[bufStart + 3] << 24) | (bufData[bufStart + 4] << 16) | (bufData[bufStart + 5] << 8) | bufData[bufStart + 6]) >>> 0);
+				_8_1Data = bufData;
+				_8_1Start = bufStart + 7;
+				_8_1Len = bufLen - 7;
 			} else {
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
 		} else if (_9 === 7) {
-			if (buf.length >= 8) {
-				_8_0 = fromHalves((buf.data[buf.start + 1] << 16) | (buf.data[buf.start + 2] << 8) | buf.data[buf.start + 3], ((buf.data[buf.start + 4] << 24) | (buf.data[buf.start + 5] << 16) | (buf.data[buf.start + 6] << 8) | buf.data[buf.start + 7]) >>> 0);
-				_8_1Data = buf.data;
-				_8_1Start = buf.start + 8;
-				_8_1Len = buf.length - 8;
+			if (bufLen >= 8) {
+				_8_0 = fromHalves((bufData[bufStart + 1] << 16) | (bufData[bufStart + 2] << 8) | bufData[bufStart + 3], ((bufData[bufStart + 4] << 24) | (bufData[bufStart + 5] << 16) | (bufData[bufStart + 6] << 8) | bufData[bufStart + 7]) >>> 0);
+				_8_1Data = bufData;
+				_8_1Start = bufStart + 8;
+				_8_1Len = bufLen - 8;
 			} else {
-				return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+				readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+				return undefined;
 			}
-		} else if (buf.length >= 9) {
-			_8_0 = fromHalves(((buf.data[buf.start + 1] << 24) | (buf.data[buf.start + 2] << 16) | (buf.data[buf.start + 3] << 8) | buf.data[buf.start + 4]) >>> 0, ((buf.data[buf.start + 5] << 24) | (buf.data[buf.start + 6] << 16) | (buf.data[buf.start + 7] << 8) | buf.data[buf.start + 8]) >>> 0);
-			_8_1Data = buf.data;
-			_8_1Start = buf.start + 9;
-			_8_1Len = buf.length - 9;
+		} else if (bufLen >= 9) {
+			_8_0 = fromHalves(((bufData[bufStart + 1] << 24) | (bufData[bufStart + 2] << 16) | (bufData[bufStart + 3] << 8) | bufData[bufStart + 4]) >>> 0, ((bufData[bufStart + 5] << 24) | (bufData[bufStart + 6] << 16) | (bufData[bufStart + 7] << 8) | bufData[bufStart + 8]) >>> 0);
+			_8_1Data = bufData;
+			_8_1Start = bufStart + 9;
+			_8_1Len = bufLen - 9;
 		} else {
-			return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+			readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+			return undefined;
 		}
-		return rt.Ok([_8_0, new rt.ByteSlice(_8_1Data, _8_1Start, _8_1Len)] as [rt.u64, rt.ByteSlice]);
+		readOut.p_1Data = _8_1Data;
+		readOut.p_1Start = _8_1Start;
+		readOut.p_1Len = _8_1Len;
+		return _8_0;
 	}
-	return rt.Err({ tag: "Short" } as DecodeError.DecodeError);
+	readOut.err = { tag: "Short" } as DecodeError.DecodeError;
+	return undefined;
 }
 
 /**
