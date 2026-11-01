@@ -936,6 +936,39 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		)
 	}
 
+	/// `place` with each box's pointer or copy of a box it starts from replaced by the place
+	/// holding the box, which those aliases read in their place.
+	fn through_boxes(&self, mut place: Place<'tcx>) -> Place<'tcx> {
+		let tcx = self.tcx;
+		loop {
+			let (base, rest) = match (self.def_rvalue(place.local), place.projection.as_slice()) {
+				(
+					Some(Rvalue::Cast(mir::CastKind::BoxDerefTransmute, op, _)),
+					[mir::ProjectionElem::Deref, rest @ ..],
+				) if let Some(p) = op.place()
+					&& let Some(n) = (0..=p.projection.len()).rev().find(|&n| {
+						Place::ty_from(p.local, &p.projection[..n], &self.mir.local_decls, tcx)
+							.ty
+							.is_box()
+					}) =>
+				{
+					let boxed = Place {
+						local: p.local,
+						projection: tcx.mk_place_elems(&p.projection[..n]),
+					};
+					(boxed, rest)
+				}
+				(Some(Rvalue::Use(Operand::Copy(p), _) | Rvalue::CopyForDeref(p)), rest)
+					if self.mir.local_decls[place.local].ty.is_box() =>
+				{
+					(*p, rest)
+				}
+				_ => return place,
+			};
+			place = base.project_deeper(rest, tcx);
+		}
+	}
+
 	/// Whether `local` is a parameter.
 	fn is_arg(&self, local: Local) -> bool {
 		(1..=self.mir.arg_count).contains(&local.as_usize())
@@ -962,6 +995,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			return ty.is_bool() || ty.is_char() || crate::lower::num::Int::of(ty).is_some_and(|i| !i.big());
 		}
 		match (mir.local_decls[local].ty.kind(), rvalue) {
+			// A box's pointer to a value JS copies, or a copy of such a box that a `**b` reads
+			// it through, is the place holding the box, where a copy would be another value.
+			// Rust makes each for the one read or write it is made beside, while the box stays.
+			(ty::RawPtr(pointee, _), Rvalue::Cast(mir::CastKind::BoxDerefTransmute, ..))
+				if self.b.t.needs_place(*pointee) =>
+			{
+				true
+			}
+			(ty::Adt(adt, args), Rvalue::Use(Operand::Copy(_), _) | Rvalue::CopyForDeref(_))
+				if adt.is_box() && self.b.t.needs_place(args.type_at(0)) =>
+			{
+				true
+			}
 			// A borrow: borrow checking keeps the place as it is but through the borrow,
 			// unless the path to it goes through a reference held in a field or element,
 			// which can be replaced while the borrow lives.
@@ -973,7 +1019,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				false
 			}
 			(ty::Ref(..), Rvalue::Ref(_, _, place)) => {
-				self.stable(*place)
+				let place = self.through_boxes(*place);
+				self.stable(place)
 					&& place
 						.projection
 						.iter()

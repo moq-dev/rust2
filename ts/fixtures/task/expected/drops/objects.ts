@@ -207,8 +207,8 @@ export function anys(log: Log.Log, id: rt.u32): void {
 	const _72: Held.Held = { tag: "Empty" };
 	rt.drop(slot);
 	slot = new Any.of$drops_Held(_72);
-	const _160: Any.Any = slot;
-	const arg = _160 instanceof Any.of$drops_Held || _160 instanceof Any.ofPlace$drops_Held;
+	const _81: Any.Any = slot;
+	const arg = _81 instanceof Any.of$drops_Held || _81 instanceof Any.ofPlace$drops_Held;
 	const args6: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtBool(arg, f)];
 	Log.note(log, rt.fmtFormat(["slot ", args6[0]]));
 	lib_drop$Result_boxed_Box_model_Guard_boxed_Box_dyn_Any(held);
@@ -231,8 +231,8 @@ export function anys(log: Log.Log, id: rt.u32): void {
 	lib_drop$Option_sync_Arc_tuple2_model_Guard_model_Guard(typed);
 	Log.note(log, "dropped");
 	b[Symbol.dispose]();
-	const _161: Any.Any = slot;
-	const part5 = ((_161 instanceof Any.of$drops_Held ? _161.v : _161 instanceof Any.ofPlace$drops_Held ? _161.v.v : undefined)) !== undefined;
+	const _149: Any.Any = slot;
+	const part5 = ((_149 instanceof Any.of$drops_Held ? _149.v : _149 instanceof Any.ofPlace$drops_Held ? _149.v.v : undefined)) !== undefined;
 	const args12: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtBool(part5, f)];
 	Log.note(log, rt.fmtFormat(["slot ", args12[0]]));
 	rt.drop(slot);
