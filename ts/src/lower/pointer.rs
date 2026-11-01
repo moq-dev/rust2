@@ -626,10 +626,14 @@ pub fn call<'tcx>(
 /// What a `PartialEq` or `Clone` call's `Self` points at, if it is a raw pointer or a
 /// `NonNull`.
 fn pointer_self<'tcx>(b: &Body<'_, '_, 'tcx>, call: &Call<'tcx>) -> Option<Ty<'tcx>> {
-	let this = call.args.types().next()?;
-	match this.kind() {
+	raw_pointee(b.t.tcx, call.args.types().next()?)
+}
+
+/// What `ty` points at if it is a raw pointer or a `NonNull`, which compare by address.
+pub fn raw_pointee<'tcx>(tcx: ty::TyCtxt<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
+	match ty.kind() {
 		ty::RawPtr(pointee, _) => Some(*pointee),
-		ty::Adt(adt, args) if Std::of(b.t.tcx, adt.did()) == Some(Std::NonNull) => Some(args.type_at(0)),
+		ty::Adt(adt, args) if Std::of(tcx, adt.did()) == Some(Std::NonNull) => Some(args.type_at(0)),
 		_ => None,
 	}
 }
