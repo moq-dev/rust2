@@ -169,5 +169,8 @@ roots = [
     "unit_elements",
     "element_to_array",
     "elements_replaced",
+    "pointers_apart",
+    "lone_byte_slices",
+    "reached_out",
 ]
 printable = ["Meters"]

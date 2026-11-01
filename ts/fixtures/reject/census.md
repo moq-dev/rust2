@@ -1,7 +1,7 @@
 # Census of `reject-fixture`
 
-- Refusals: 226
-- Function instances: 274
+- Refusals: 236
+- Function instances: 277
 - Generic functions no instance reached, lowered over their type parameters: 13
 
 ## By construct
@@ -27,8 +27,11 @@
 | 2 | `_` of `_`, whose `clone_from` is its own, which is not supported yet | fixtures/reject/src/lib.rs:21:4 |
 | 2 | `_`, a trait object of another crate's trait, which is not supported yet | fixtures/reject/src/lib.rs:11:16 |
 | 2 | `_`, a trait object of the generic trait `_`, which is not supported yet | fixtures/reject/src/lib.rs:459:23 |
+| 2 | `offset_from` between a pointer into a value in no array and one into a value in no array, which JS keeps in different arrays | fixtures/reject/src/lib.rs:2205:5 |
 | 2 | a cast from a pointer to `_` to one to `_`, which reads the bytes of one type as another | fixtures/reject/src/lib.rs:550:27 |
 | 2 | a coercion to `_`, which is not supported yet | fixtures/reject/src/lib.rs:450:40 |
+| 2 | a pointer reaching past a shared subslice of values JS copies, which JS keeps apart from what holds it in Rust | fixtures/reject/src/lib.rs:2225:18 |
+| 2 | a raw or mutable slice of a byte in no array of bytes | fixtures/reject/src/lib.rs:2211:12 |
 | 2 | a raw pointer to a place of `()`, which has no address of its own | fixtures/reject/src/lib.rs:723:15 |
 | 2 | an iterator of the crate implementing `_`, which is not supported yet | fixtures/reject/src/lib.rs:145:1 |
 | 2 | comparing pointers to `_`, each a place JS makes of its own | fixtures/reject/src/lib.rs:591:2 |
@@ -50,6 +53,7 @@
 | 1 | `clone_from` of `_`, whose items' `clone_from` is their own, which is not supported yet | fixtures/reject/src/lib.rs:2113:4 |
 | 1 | `collect` of `_`, which sorts by `_`'s own `Ord`, of entries that drop, which is not supported yet | fixtures/reject/src/lib.rs:950:22 |
 | 1 | `fmt::Arguments` with a placeholder, or not made in place, written to `_`'s own `fmt::Write`, which is not supported yet: std splits what a placeholder writes into `write_str` calls the runtime does not make | fixtures/reject/src/lib.rs:55:10 |
+| 1 | `offset_from` between a pointer into a shared subslice of values JS copies and one into an array of this body's own, which JS keeps in different arrays | fixtures/reject/src/lib.rs:2205:88 |
 | 1 | `offset_from` of pointers to `()`, which has no bytes | fixtures/reject/src/lib.rs:2167:13 |
 | 1 | `offset_from` of pointers to `_`, which JS keeps as an object that knows no array it is in | fixtures/reject/src/lib.rs:2160:36 |
 | 1 | a `collect` in place of `_`, a zip std reads by index, holding values that drop, which is not supported yet | fixtures/reject/src/lib.rs:209:40 |
@@ -58,6 +62,7 @@
 | 1 | a coercion of `_` to `_`, a pointer to a slice | fixtures/reject/src/lib.rs:1709:28 |
 | 1 | a coercion to `_` | fixtures/reject/src/lib.rs:291:2 |
 | 1 | a constant of type `_`, a pointer into memory translation can't name | fixtures/reject/src/lib.rs:773:3 |
+| 1 | a copy reaching past a shared subslice of values JS copies, which JS keeps apart from what holds it in Rust | fixtures/reject/src/lib.rs:2223:3 |
 | 1 | a dangling pointer to `_`, a value of no bytes made of more than structs and tuples | fixtures/reject/src/lib.rs:732:11 |
 | 1 | a future of `_`, which can be `rt.Pending`, as the future's own `Pending` is | fixtures/reject/src/lib.rs:77:34 |
 | 1 | a mapped guard of `_`, which JS can't write in place | fixtures/reject/src/lib.rs:2147:10 |
@@ -65,6 +70,7 @@
 | 1 | a mutable static, which any code may write | fixtures/reject/src/lib.rs:61:11 |
 | 1 | a pointer into `_`, which JS keeps as an object that knows no array it is in | fixtures/reject/src/lib.rs:2154:12 |
 | 1 | a pointer into an array of `_`, which JS keeps as an object that knows no array it is in | fixtures/reject/src/lib.rs:2159:30 |
+| 1 | a pointer reaching past a value in no array, which JS keeps apart from what holds it in Rust | fixtures/reject/src/lib.rs:2227:27 |
 | 1 | a pointer's address, which JS has no counterpart of | fixtures/reject/src/lib.rs:555:17 |
 | 1 | a printable type must implement `Display` or `Debug` | fixtures/reject/src/lib.rs:64:1 |
 | 1 | a raw pointer to `_` behind a reference, which is the object and not where it is kept | fixtures/reject/src/lib.rs:572:10 |
@@ -72,6 +78,7 @@
 | 1 | a scalar constant of type `_` | fixtures/reject/src/lib.rs:8:2 |
 | 1 | a slice from a pointer to `_`, which JS keeps as an object that knows no array it is in | fixtures/reject/src/lib.rs:2158:11 |
 | 1 | a slice of `()`, which has no bytes, from a pointer | fixtures/reject/src/lib.rs:2167:39 |
+| 1 | a slice reaching past a value in no array, which JS keeps apart from what holds it in Rust | fixtures/reject/src/lib.rs:2226:6 |
 | 1 | a trait object of `_`, which is not supported yet | fixtures/reject/src/lib.rs:476:26 |
 | 1 | an upcast from `_` to `_`, which is not supported yet | fixtures/reject/src/lib.rs:527:32 |
 | 1 | arithmetic on `_` | fixtures/reject/src/lib.rs:8:2 |
@@ -687,6 +694,13 @@ The type or module each refused type or path belongs to.
 
 </details>
 
+<details><summary>`offset_from` between a pointer into a value in no array and one into a value in no array, which JS keeps in different arrays (2)</summary>
+
+- fixtures/reject/src/lib.rs:2205:5: `offset_from` between a pointer into a value in no array and one into a value in no array, which JS keeps in different arrays
+- fixtures/reject/src/lib.rs:2205:42: `offset_from` between a pointer into a value in no array and one into a value in no array, which JS keeps in different arrays
+
+</details>
+
 <details><summary>a cast from a pointer to `_` to one to `_`, which reads the bytes of one type as another (2)</summary>
 
 - fixtures/reject/src/lib.rs:550:27: a cast from a pointer to `u32` to one to `u8`, which reads the bytes of one type as another
@@ -698,6 +712,20 @@ The type or module each refused type or path belongs to.
 
 - fixtures/reject/src/lib.rs:450:40: a coercion to `std::sync::Weak<dyn Reading>`, which is not supported yet
 - fixtures/reject/src/lib.rs:486:30: a coercion to `&Tail<dyn Reading>`, which is not supported yet
+
+</details>
+
+<details><summary>a pointer reaching past a shared subslice of values JS copies, which JS keeps apart from what holds it in Rust (2)</summary>
+
+- fixtures/reject/src/lib.rs:2225:18: a pointer reaching past a shared subslice of values JS copies, which JS keeps apart from what holds it in Rust
+- fixtures/reject/src/lib.rs:2228:21: a pointer reaching past a shared subslice of values JS copies, which JS keeps apart from what holds it in Rust
+
+</details>
+
+<details><summary>a raw or mutable slice of a byte in no array of bytes (2)</summary>
+
+- fixtures/reject/src/lib.rs:2211:12: a raw or mutable slice of a byte in no array of bytes
+- fixtures/reject/src/lib.rs:2212:19: a raw or mutable slice of a byte in no array of bytes
 
 </details>
 
@@ -833,6 +861,12 @@ The type or module each refused type or path belongs to.
 
 </details>
 
+<details><summary>`offset_from` between a pointer into a shared subslice of values JS copies and one into an array of this body's own, which JS keeps in different arrays (1)</summary>
+
+- fixtures/reject/src/lib.rs:2205:88: `offset_from` between a pointer into a shared subslice of values JS copies and one into an array of this body's own, which JS keeps in different arrays
+
+</details>
+
 <details><summary>`offset_from` of pointers to `()`, which has no bytes (1)</summary>
 
 - fixtures/reject/src/lib.rs:2167:13: `offset_from` of pointers to `()`, which has no bytes
@@ -881,6 +915,12 @@ The type or module each refused type or path belongs to.
 
 </details>
 
+<details><summary>a copy reaching past a shared subslice of values JS copies, which JS keeps apart from what holds it in Rust (1)</summary>
+
+- fixtures/reject/src/lib.rs:2223:3: a copy reaching past a shared subslice of values JS copies, which JS keeps apart from what holds it in Rust
+
+</details>
+
 <details><summary>a dangling pointer to `_`, a value of no bytes made of more than structs and tuples (1)</summary>
 
 - fixtures/reject/src/lib.rs:732:11: a dangling pointer to `Only`, a value of no bytes made of more than structs and tuples
@@ -923,6 +963,12 @@ The type or module each refused type or path belongs to.
 
 </details>
 
+<details><summary>a pointer reaching past a value in no array, which JS keeps apart from what holds it in Rust (1)</summary>
+
+- fixtures/reject/src/lib.rs:2227:27: a pointer reaching past a value in no array, which JS keeps apart from what holds it in Rust
+
+</details>
+
 <details><summary>a pointer's address, which JS has no counterpart of (1)</summary>
 
 - fixtures/reject/src/lib.rs:555:17: a pointer's address, which JS has no counterpart of
@@ -962,6 +1008,12 @@ The type or module each refused type or path belongs to.
 <details><summary>a slice of `()`, which has no bytes, from a pointer (1)</summary>
 
 - fixtures/reject/src/lib.rs:2167:39: a slice of `()`, which has no bytes, from a pointer
+
+</details>
+
+<details><summary>a slice reaching past a value in no array, which JS keeps apart from what holds it in Rust (1)</summary>
+
+- fixtures/reject/src/lib.rs:2226:6: a slice reaching past a value in no array, which JS keeps apart from what holds it in Rust
 
 </details>
 

@@ -18,6 +18,7 @@ pub mod glue;
 pub(super) mod holders;
 mod inline;
 mod memory;
+mod origin;
 mod place;
 mod rvalue;
 mod scalar;

@@ -28,6 +28,9 @@ none of its own `unsafe`.
   silently differs from native where Rust's behavior is defined.
 - Element pointers into arrays of values JS copies are `rt.AtIndex`, `{ array, index }`,
   which `add`, `offset`, `offset_from`, `ptr::copy`, and `slice::from_raw_parts` act on.
+  Decided with the maintainer on 2026-11-01: where one body shows a pointer crossing what
+  JS keeps apart (a value in no array, a copied shared subslice), translation refuses it
+  with a span; a pointer from elsewhere, such as a field, fails there loudly at run time.
   A pointer to an element JS keeps as an object, such as a tuple or the crate's struct, is
   that object, which knows no array it is in, so arithmetic on one stays refused:
   hashbrown's buckets and kio's `log.rs` reach it. smallvec's pointer arithmetic

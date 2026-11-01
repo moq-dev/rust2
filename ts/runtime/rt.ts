@@ -248,13 +248,15 @@ export function ptrOffsetFrom<T>(p: Place<T>, origin: Place<T>): number {
 export function ptrCopy<T>(src: Place<T>, dst: Place<T>, n: number, copy?: (value: T) => T): void {
 	if (n === 0) return;
 	const [from, to] = [elemOf(src), elemOf(dst)];
+	from.reach(n);
+	to.reach(n);
 	if (ArrayBuffer.isView(from.array) && ArrayBuffer.isView(to.array)) {
 		const bytes = from.array as unknown as Uint8Array;
 		(to.array as unknown as Uint8Array).set(bytes.subarray(from.index, from.index + n), to.index);
 		return;
 	}
 	const values = Array.from({ length: n }, (_, i) => from.array[from.index + i]);
-	for (let i = 0; i < n; i++) new AtIndex(to.array, to.index + i).v = copy ? copy(values[i]) : values[i];
+	for (let i = 0; i < n; i++) to.array[to.index + i] = copy ? copy(values[i]) : values[i];
 }
 
 /** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` elements from `p`. */
@@ -262,6 +264,7 @@ export function ptrSlice<T>(p: Place<T>, len: number): T[] {
 	// One of none from a dangling pointer points nowhere.
 	if (len === 0 && (p === NULL || p === DANGLING)) return [];
 	const at = elemOf(p);
+	at.reach(len);
 	const array = at.array as T[];
 	return at.index === 0 && len === array.length ? array : sliceView(array, at.index, at.index + len);
 }
@@ -274,10 +277,11 @@ export function ptrSlice<T>(p: Place<T>, len: number): T[] {
 export function ptrByteSlice(p: Place<number>, len: number, shared: boolean): ByteSlice {
 	if (len === 0 && (p === NULL || p === DANGLING)) return new ByteSlice(new Uint8Array(0), 0, 0);
 	const at = elemOf(p);
+	at.reach(len);
 	if (at.array instanceof Uint8Array) return new ByteSlice(at.array, at.index, len);
 	// A byte in no array, which no `Uint8Array` can share.
 	if (!shared) throw new Error("rust2-ts: a raw or mutable slice of a byte in no array of bytes");
-	return new ByteSlice(Uint8Array.from({ length: len }, () => p.v), 0, len);
+	return new ByteSlice(Uint8Array.from({ length: len }, (_, i) => at.array[at.index + i]), 0, len);
 }
 
 /**

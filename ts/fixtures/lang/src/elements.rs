@@ -254,7 +254,7 @@ pub fn inline(data: &[u8], out: &mut Vec<u8>) {
 
 /// Pointers wrapped around wasm32's 32-bit addresses and back, to a value in no array, as
 /// the array of one Rust treats it as, and into a mutable part of an array, measured from
-/// the array, and the pointer an empty slice keeps.
+/// the array, the pointer an empty slice keeps, and within a shared part, which JS copies.
 pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 	for &n in data {
 		let bytes = [n, 1, 2, 3];
@@ -299,6 +299,15 @@ pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 			out.push(none.as_ptr().offset_from(p) as u8);
 		}
 		out.extend(a.iter().map(|&x| x as u8));
+		// Within a shared subslice, a copy, and to its end.
+		let lanes = [u32::from(n), 4, 5, 6];
+		let shared = &lanes[1..3];
+		let first = shared.as_ptr();
+		unsafe {
+			out.push(*first.add(1) as u8);
+			out.push(first.add(2).offset_from(first) as u8);
+			out.push(slice::from_raw_parts(first.add(1), 1)[0] as u8);
+		}
 	}
 }
 

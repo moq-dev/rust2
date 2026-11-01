@@ -2186,3 +2186,46 @@ pub fn elements_replaced(n: u32, l: &mut Lanes) -> u32 {
 	l.lanes = [1; 3];
 	unsafe { *p + *q + a[0] }
 }
+
+#[repr(C)]
+pub struct Halves {
+	pub low: u32,
+	pub high: u32,
+}
+
+/// `offset_from` of pointers the body shows JS keeps in different arrays: two made apart
+/// of one variable, two of a struct's fields, and one into a shared subslice, a copy,
+/// against one into what it was taken of.
+pub fn pointers_apart(n: u32, h: Halves) -> isize {
+	let a = &raw const n;
+	let b = &raw const n;
+	let lanes = [n; 4];
+	let part = &lanes[1..3];
+	unsafe {
+		a.offset_from(b) + (&raw const h.high).offset_from(&raw const h.low) + part.as_ptr().offset_from(lanes.as_ptr())
+	}
+}
+
+/// A raw and a mutable slice of a byte in no array, which no `Uint8Array` can share.
+pub fn lone_byte_slices(mut b: u8) -> u8 {
+	let raw = std::ptr::slice_from_raw_parts_mut(&raw mut b, 1);
+	let s = unsafe { std::slice::from_raw_parts_mut(&raw mut b, 1) };
+	s[0] = 1;
+	unsafe { (*raw)[0] }
+}
+
+/// Pointers, slices, and copies the body shows reach out of an array of one or a copied
+/// subslice, where Rust's reach the rest of what holds them.
+pub fn reached_out(h: Halves, lanes: [u32; 4]) -> u32 {
+	let part = &lanes[1..3];
+	let mut to = [0u32; 3];
+	unsafe {
+		std::ptr::copy_nonoverlapping(part.as_ptr(), to.as_mut_ptr(), 3);
+		let tail = lanes.get_unchecked(2..);
+		*part.as_ptr().sub(1)
+			+ std::slice::from_raw_parts(&raw const h.low, 2)[1]
+			+ *(&raw const h.high).sub(1)
+			+ *tail.as_ptr().offset(-2)
+			+ to[0]
+	}
+}
