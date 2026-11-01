@@ -37,12 +37,15 @@ unsure(() => rt.ptrSlice(rt.sliceAsPtr(part), 3));
 unsure(() => rt.ptrCopy(rt.sliceAsPtr(part), rt.sliceAsPtr(lanes), 3));
 assert.equal(rt.ptrAdd(rt.sliceAsPtr(part), 1).v, 3);
 
-// A byte in no array, as a raw or mutable slice, and as a shared one past it.
+// A byte in no array, as a raw or mutable slice, as a shared one past it, and the
+// pointer of a shared one, a copy, against the byte's.
 let byte = 3;
 const lone = rt.place(() => byte, (v) => (byte = v));
 unsure(() => rt.ptrByteSlice(lone, 1, false));
 unsure(() => rt.ptrByteSlice(lone, 2, true));
-assert.deepEqual(rt.ptrByteSlice(lone, 1, true).data, Uint8Array.of(3));
+const shared = rt.ptrByteSlice(lone, 1, true);
+assert.deepEqual(shared.data, Uint8Array.of(3));
+unsure(() => rt.ptrOffsetFrom(rt.byteSliceAsPtr(shared), lone));
 
 // A write into a `Vec`'s capacity past its length, which a JS array would grow by.
 const vec: number[] = [7];

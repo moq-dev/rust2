@@ -18,8 +18,8 @@ use crate::lower::pointer::Pointee;
 enum Array {
 	/// An array of one, around the place a `&raw` here took, which each `&raw` makes anew.
 	Lone(Location),
-	/// A shared subslice of values JS copies, which is a copy, made by the call ending this
-	/// block, with its length if the body fixes it.
+	/// A shared slice JS copies, of values it copies or of a byte in no array, made by the
+	/// call ending this block, with its length if the body fixes it.
 	Copy(BasicBlock, Option<i128>),
 	/// The array of a variable of this body's own, or of a field of one.
 	Owned,
@@ -39,7 +39,7 @@ impl Array {
 	fn what(self) -> &'static str {
 		match self {
 			Array::Lone(_) => "a value in no array",
-			Array::Copy(..) => "a shared subslice of values JS copies",
+			Array::Copy(..) => "a shared slice JS copies",
 			Array::Owned => "an array of this body's own",
 		}
 	}
@@ -170,10 +170,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 				Some(self.moved(self.origin(&args[0].node)?, name.as_str(), &args[1].node))
 			}
 			("NonNull", "as_ptr" | "new_unchecked") => self.origin(&args[0].node),
-			("slice" | "Vec", "as_ptr" | "as_mut_ptr") => Some(Origin {
-				array: self.array(&args[0].node)?,
-				index: Some(0),
-			}),
+			("slice" | "Vec", "as_ptr" | "as_mut_ptr") => self.start(&args[0].node),
 			_ => None,
 		}
 	}
@@ -190,14 +187,14 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		}
 	}
 
-	/// The array the slice or `Vec`, or reference to one, `op` is.
-	fn array(&self, op: &Operand<'tcx>) -> Option<Array> {
+	/// Where the slice or `Vec`, or reference to one, `op` starts.
+	fn start(&self, op: &Operand<'tcx>) -> Option<Origin> {
 		let local = self.traced(op)?;
 		if self.def_at[local].is_some() {
 			return match self.def_rvalue(local)? {
-				Rvalue::Use(op, _) | Rvalue::Cast(mir::CastKind::PointerCoercion(..), op, _) => self.array(op),
+				Rvalue::Use(op, _) | Rvalue::Cast(mir::CastKind::PointerCoercion(..), op, _) => self.start(op),
 				Rvalue::Ref(_, _, place) | Rvalue::CopyForDeref(place) => match place.projection.as_slice() {
-					[ProjectionElem::Deref] => self.array(&Operand::Copy(mir::Place::from(place.local))),
+					[ProjectionElem::Deref] => self.start(&Operand::Copy(mir::Place::from(place.local))),
 					projection
 						if !projection.contains(&ProjectionElem::Deref)
 							&& match place.ty(&self.mir.local_decls, self.tcx).ty.kind() {
@@ -206,7 +203,10 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 								_ => false,
 							} =>
 					{
-						Some(Array::Owned)
+						Some(Origin {
+							array: Array::Owned,
+							index: Some(0),
+						})
 					}
 					_ => None,
 				},
@@ -215,21 +215,36 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		}
 		let (def_id, gargs, args) = self.def_call(local)?;
 		let (owner, name) = library::key(self.tcx, def_id)?;
-		let container = gargs.type_at(0).peel_refs();
-		// `get_unchecked` is generic over the element, not the slice.
+		let mut types = gargs.types();
+		let container = types.next()?.peel_refs();
+		let byte = |ty: ty::Ty<'tcx>| matches!(ty.kind(), ty::Uint(ty::UintTy::U8));
+		let copy = |len| {
+			Some(Origin {
+				array: Array::Copy(self.def_block(local)?, len),
+				index: Some(0),
+			})
+		};
+		// `get_unchecked` and `from_raw_parts` are generic over the element, not the slice.
 		let elem = match (owner.as_str(), name.as_str(), container.kind()) {
+			("raw", "from_raw_parts" | "from_raw_parts_mut", _) => {
+				let o = self.origin(&args[0].node)?;
+				// A shared slice of a byte in no array is a copy of it, as no `Uint8Array` can share it.
+				return match (byte(container), o.array) {
+					(true, Array::Lone(_)) => copy(self.const_int(&args[1].node)),
+					_ => Some(o),
+				};
+			}
 			("slice", "get_unchecked", _) => container,
 			("Index", "index", ty::Slice(e) | ty::Array(e, _)) => *e,
 			("Index", "index", ty::Adt(adt, a)) if Std::of(self.tcx, adt.did()) == Some(Std::Vec) => a.type_at(0),
 			_ => return None,
 		};
-		let range = gargs.type_at(1);
+		let range = types.next()?;
 		// A shared range of bytes is a view of them.
-		if matches!(elem.kind(), ty::Uint(ty::UintTy::U8)) || Int::of(range).is_some() {
+		if byte(elem) || Int::of(range).is_some() {
 			return None;
 		}
-		let call = self.def_block(local)?;
-		Some(Array::Copy(call, self.range_len(&args[1].node, container)))
+		copy(self.range_len(&args[1].node, container))
 	}
 
 	/// How many elements the range `op` takes of `container`, if the body fixes it.

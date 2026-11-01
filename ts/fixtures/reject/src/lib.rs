@@ -2194,15 +2194,21 @@ pub struct Halves {
 }
 
 /// `offset_from` of pointers the body shows JS keeps in different arrays: two made apart
-/// of one variable, two of a struct's fields, and one into a shared subslice, a copy,
-/// against one into what it was taken of.
-pub fn pointers_apart(n: u32, h: Halves) -> isize {
+/// of one variable, two of a struct's fields, one into a shared subslice, a copy, against
+/// one into what it was taken of, and one into a shared slice of a byte, also a copy,
+/// against the byte's.
+pub fn pointers_apart(n: u32, h: Halves, byte: u8) -> isize {
 	let a = &raw const n;
 	let b = &raw const n;
 	let lanes = [n; 4];
 	let part = &lanes[1..3];
+	let at = &raw const byte;
 	unsafe {
-		a.offset_from(b) + (&raw const h.high).offset_from(&raw const h.low) + part.as_ptr().offset_from(lanes.as_ptr())
+		let bytes = std::slice::from_raw_parts(at, 1);
+		a.offset_from(b)
+			+ (&raw const h.high).offset_from(&raw const h.low)
+			+ part.as_ptr().offset_from(lanes.as_ptr())
+			+ bytes.as_ptr().offset_from(at)
 	}
 }
 
