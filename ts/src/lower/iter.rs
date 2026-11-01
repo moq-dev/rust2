@@ -206,8 +206,8 @@ pub fn into_iter<'tcx>(b: &mut Body<'_, '_, 'tcx>, ty: Ty<'tcx>, value: Expr, sp
 	}
 }
 
-/// `iter`, over the elements of a slice or `Vec` of `elem`s, yielding references to them:
-/// a slice of each array of bytes.
+/// `iter`, over the elements of a slice or `Vec` of `elem`s or the payload of an `Option`,
+/// yielding references to them: a slice of each array of bytes.
 pub(super) fn by_ref(iter: Expr, elem: Ty<'_>) -> Expr {
 	match super::byte_array(elem) {
 		true => Expr::rt("iterLend", vec![iter, Expr::Rt("byteSliceFrom".into())]),

@@ -1,7 +1,8 @@
 //! Arrays `array::from_fn` makes, calling its function on each index in order: of bytes,
 //! wide integers, atomics each its own, strings, nested arrays, none at all, and a length
 //! a const parameter gives; arrays `map` makes; arrays' elements each lent; arrays as
-//! slices, written through; and arrays of bytes std is given by reference.
+//! slices, written through; arrays of bytes std is given by reference; and arrays of bytes
+//! reached through the iterator std makes of each item.
 
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
@@ -427,7 +428,10 @@ where
 	out.extend_from_slice(&buf);
 }
 
-/// Arrays of bytes reached through an inner iterator std makes of each item.
+/// Arrays of bytes reached through the iterator std makes of each item: of an `Option`, a
+/// nested one, a `Vec`, a slice, and an array, by `flatten`, `flat_map`, `chain`, `zip`,
+/// `extend`, `from_iter`, and `DebugList::entries`, read from both ends and written through.
+/// Of no bytes, one, and many.
 pub fn flattened(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 	match kind % 3 {
 		0 => flattened_n::<0>(data, out),
@@ -438,7 +442,9 @@ pub fn flattened(kind: u8, data: &[u8], out: &mut Vec<u8>) {
 	out.extend_from_slice(format!("{listed:?}").as_bytes());
 }
 
+/// [`flattened`] of `N` bytes.
 fn flattened_n<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
+	// A `None` in the middle and at the end.
 	let mut options: Vec<Option<[u8; N]>> = (0..5)
 		.map(|k| (k != 2 && k != 4).then(|| bytes_at(data, k * N)))
 		.collect();
@@ -448,11 +454,13 @@ fn flattened_n<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
 	for a in options.iter().flatten().rev() {
 		out.extend_from_slice(a);
 	}
+	// From both ends at once, until they meet.
 	let mut it = options.iter().flatten();
 	while let (Some(a), b) = (it.next(), it.next_back()) {
 		out.extend_from_slice(a);
 		out.extend_from_slice(b.unwrap_or(&[0xaa; N]));
 	}
+	// Writes through each reach the array.
 	for a in options.iter_mut().flatten() {
 		a.reverse();
 		if let Some(x) = a.last_mut() {
@@ -466,6 +474,7 @@ fn flattened_n<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
 	for a in options.iter().flat_map(|o| o.iter()).rev() {
 		out.extend_from_slice(a);
 	}
+	// An `Option` of a reference, already a slice.
 	for a in options.iter().flat_map(|o| o.as_ref()) {
 		out.extend_from_slice(a);
 	}
@@ -475,6 +484,7 @@ fn flattened_n<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
 		}
 	}
 	put_options(out, &options);
+	// Beside another iterator, through `IntoIterator` of a reference to an `Option`.
 	let one = options[0];
 	let mut other = options[1];
 	for a in one.iter().chain(&other).chain(options.iter().flatten()) {
@@ -504,13 +514,20 @@ fn flattened_n<const N: usize>(data: &[u8], out: &mut Vec<u8>) {
 	copied.extend(&other);
 	copied.extend(options.iter().flatten());
 	put(out, &copied);
-	let nested: Vec<Option<Option<[u8; N]>>> = vec![Some(None), None, Some(options[0]), Some(Some(bytes_at(data, 3)))];
+	let nested: Vec<Option<Option<[u8; N]>>> = vec![
+		Some(None),
+		None,
+		Some(options[0]),
+		Some(Some(bytes_at(data, 3))),
+		Some(None),
+	];
 	for a in nested.iter().flatten().flatten() {
 		out.extend_from_slice(a);
 	}
 	for a in nested.iter().flatten().flatten().rev() {
 		out.extend_from_slice(a);
 	}
+	// Collections, whose iterators lend each array already.
 	let vecs: Vec<Vec<[u8; N]>> = vec![vec![], vec![bytes_at(data, 4), bytes_at(data, 5)]];
 	for a in vecs.iter().flatten().rev() {
 		out.extend_from_slice(a);
