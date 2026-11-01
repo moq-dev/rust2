@@ -1590,6 +1590,7 @@ macro_rules! compared {
 		let other: *mut _ = &raw mut $other;
 		let nest = aim!($to, 0u8);
 		let a = &nest.inner;
+		let none = aim!($to, 1u8).inner.maybe;
 		let same = [
 			a.at as *const _ == a.seen,
 			a.held == NonNull::new(a.at).unwrap(),
@@ -1602,8 +1603,20 @@ macro_rules! compared {
 			matches!(a.maybe, Some(p) if p.as_ptr() == other),
 			ptr::eq(a.seen, other),
 		];
+		// Options of them, `None` and a null pointer included, by `==` and `!=`.
+		let null = ptr::null();
+		let optional = [
+			a.maybe == Some(a.held),
+			a.maybe != Some(a.held),
+			a.maybe == NonNull::new(other),
+			a.maybe == none,
+			none == None,
+			Some(a.seen) == Some(a.at.cast_const()),
+			Some(a.seen) != Some(null),
+			Some(null) == Some(ptr::null()),
+		];
 		let bits = |b: &[bool]| b.iter().fold(0u8, |acc, &b| acc << 1 | u8::from(b));
-		[bits(&same), bits(&apart)]
+		[bits(&same), bits(&apart), bits(&optional)]
 	}};
 }
 

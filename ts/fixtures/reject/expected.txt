@@ -78,6 +78,7 @@ unsupported call to `std::alloc::dealloc` at fixtures/reject/src/lib.rs:572:3
 a raw pointer to `std::vec::Vec<u8>` behind a reference, which is the object and not where it is kept at fixtures/reject/src/lib.rs:579:10
 union `Bits`, whose fields overlap in `u32` and `f64`, which JS keeps apart at fixtures/reject/src/lib.rs:590:10
 comparing pointers to `u32`, each a place JS makes of its own at fixtures/reject/src/lib.rs:598:2
+comparing pointers to `u32`, each a place JS makes of its own at fixtures/reject/src/lib.rs:2165:2
 a raw pointer to `(u32, u32)` in `Span2`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:610:10
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:618:10
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:626:10
@@ -89,26 +90,26 @@ a reference to `std::cell::UnsafeCell<u64>`, through which a raw pointer may be 
 a raw pointer to `Target` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1671:10
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1684:10
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1699:10
-a reference to `Behind`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1754:22
-a reference to `Unboxed`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1769:16
-a reference to `Deep`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1790:18
-a reference to `Slotted`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1812:21
-a reference to `Shared`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1831:20
-a reference to `Inside`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1848:20
-a reference to `Inside`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1861:26
-a reference to `Wrapped<std::cell::Cell<u32>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1937:21
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Replaced`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1960:20
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Swapped`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1978:20
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Taken`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1996:20
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Assigned`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2015:20
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Deeper`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2041:22
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Dynamic`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2065:20
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Closed`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2081:15
-a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `[std::cell::UnsafeCell<u16>; 2]`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2094:20
-a reference to `Compared`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1876:22
-a reference to `Enclosing`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1893:22
-a reference to `Chosen`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1909:17
-a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1922:19
+a reference to `Behind`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1753:22
+a reference to `Unboxed`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1768:16
+a reference to `Deep`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1789:18
+a reference to `Slotted`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1811:21
+a reference to `Shared`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1830:20
+a reference to `Inside`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1847:20
+a reference to `Inside`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1860:26
+a reference to `Wrapped<std::cell::Cell<u32>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1936:21
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Replaced`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1959:20
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Swapped`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1977:20
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Taken`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1995:20
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Assigned`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2014:20
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Deeper`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2040:22
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Dynamic`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2064:20
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `Closed`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2080:15
+a reference through which a raw pointer may be made into `std::cell::UnsafeCell<u16>` in `[std::cell::UnsafeCell<u16>; 2]`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2093:20
+a reference to `Compared`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1875:22
+a reference to `Enclosing`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1892:22
+a reference to `Chosen`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1908:17
+a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1921:19
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1003:26
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1016:22
 a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1026:12
@@ -185,19 +186,18 @@ unsupported call to `std::ptr::mut_ptr::<impl *mut [u8; 4]>::add` at fixtures/re
 unsupported call to `std::ptr::const_ptr::<impl *const [u8; 4]>::offset` at fixtures/reject/src/lib.rs:1715:73
 a coercion of `*const [u8; 4]` to `*const [u8]`, a pointer to a slice at fixtures/reject/src/lib.rs:1716:28
 hashing `*const [u8; 4]` by its address, which JS has no counterpart of at fixtures/reject/src/lib.rs:1718:5
-unsupported call to `<std::option::Option<std::ptr::NonNull<[u8; 4]>> as std::cmp::PartialEq>::eq` at fixtures/reject/src/lib.rs:1719:14
-unsupported call to `std::ptr::const_ptr::<impl *const [u8]>::len` at fixtures/reject/src/lib.rs:1720:76
-a raw pointer to `[u8; 3]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1729:15
-a raw pointer to `[u8; 3]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1729:18
-a raw pointer to `[u8; 2]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1729:37
-a raw pointer to `[u8; 2]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1729:44
-a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1736:26
-a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1736:26
-a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1737:10
-const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:2104:21
-`std::collections::LinkedList::<T, A>::retain` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2120:4
-`clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:2121:4
-`std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2122:2
+unsupported call to `std::ptr::const_ptr::<impl *const [u8]>::len` at fixtures/reject/src/lib.rs:1719:58
+a raw pointer to `[u8; 3]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1728:15
+a raw pointer to `[u8; 3]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1728:18
+a raw pointer to `[u8; 2]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1728:37
+a raw pointer to `[u8; 2]` in an element, a payload, or a union field, which is not supported yet at fixtures/reject/src/lib.rs:1728:44
+a reference to `[u8; 4]`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:1735:26
+a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1735:26
+a raw pointer to `[u8; 4]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:1736:10
+const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:2103:21
+`std::collections::LinkedList::<T, A>::retain` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2119:4
+`clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:2120:4
+`std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2121:2
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:132:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:152:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:180:2
@@ -213,4 +213,4 @@ a raw pointer to `std::cell::UnsafeCell<u16>` in `InPayload`, which the crate ma
 a raw pointer to `std::cell::UnsafeCell<u16>` in `InField`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1320:9
 a raw pointer to `std::cell::UnsafeCell<u16>` in `InGeneric`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1324:9
 a raw pointer to `std::cell::UnsafeCell<u16>` in `InWritten`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:1328:9
-a reference to `std::option::Option<Block<2>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:2111:13
+a reference to `std::option::Option<Block<2>>`, through which a raw pointer may be made, in a variable assigned again while that pointer may point there at fixtures/reject/src/lib.rs:2110:13
