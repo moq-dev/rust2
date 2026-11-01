@@ -645,7 +645,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			("String", "as_mut_str") => self.same_place(args, dest, span, out),
 			("DerefMut", "deref_mut") | ("AsMut", "as_mut") | ("BorrowMut", "borrow_mut")
 				if targ(0).is_some_and(|t| t.is_str() || self.b.t.std_of(t) == Some(Std::String))
-					&& dest.ty(&self.mir.local_decls, tcx).ty.builtin_deref(true).is_some_and(|t| t.is_str()) =>
+					&& dest.ty(&self.mir.local_decls, tcx).ty.peel_refs().is_str() =>
 			{
 				self.same_place(args, dest, span, out)
 			}
@@ -655,15 +655,23 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				done(Expr::Object(vec![(crate::ts::Key::Name("v".into()), leaked)]), true)
 			}
 			("Default", "default")
-				if targ(0).is_some_and(|t| t.ref_mutability() == Some(ty::Mutability::Mut) && t.peel_refs().is_str()) =>
+				if targ(0)
+					.and_then(|t| self.b.t.place_pointee(t))
+					.is_some_and(|t| t.is_str()) =>
 			{
-				done(Expr::Object(vec![(crate::ts::Key::Name("v".into()), Expr::Str(String::new()))]), false)
+				done(
+					Expr::Object(vec![(crate::ts::Key::Name("v".into()), Expr::Str(String::new()))]),
+					false,
+				)
 			}
 			// A part of a `str` is a place of its own, which splices the whole anew.
 			("str", "get_mut") => {
 				let whole = self.operand(&args[0].node, span, out);
 				let (start, end) = self.range_bounds(&args[1].node, targ(0)?, span, out)?;
-				done(Expr::rt("strGetMut", [whole, start].into_iter().chain(end).collect()), true)
+				done(
+					Expr::rt("strGetMut", [whole, start].into_iter().chain(end).collect()),
+					true,
+				)
 			}
 			("str", "split_at_mut" | "split_at_mut_checked") => {
 				let values = self.operands(false, &[], args, dest.ty(&self.mir.local_decls, tcx).ty, span, out);
