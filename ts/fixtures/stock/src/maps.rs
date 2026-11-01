@@ -103,10 +103,12 @@ pub fn table(data: &[u8], out: &mut Vec<u8>) {
 	};
 	let mut t: HashTable<(u16, u32)> = HashTable::new();
 	let rehash = |e: &(u16, u32)| hash(kind, e.0);
+	let mut n: HashTable<u32> = HashTable::with_capacity(usize::from(kind % 8));
 	for step in steps.chunks(2) {
 		let (op, arg) = (step[0], step.get(1).copied().unwrap_or(0));
 		let key = u16::from(arg % 16);
 		let h = hash(kind, key);
+		numbers(&mut n, kind, op, key, out);
 		match op % 9 {
 			0 | 1 => match t.find_entry(h, |e| e.0 == key) {
 				Ok(mut e) => {
@@ -163,6 +165,53 @@ pub fn table(data: &[u8], out: &mut Vec<u8>) {
 	for (k, v) in left {
 		put(out, usize::from(k));
 		put(out, v as usize);
+	}
+}
+
+/// `HashTable<u32>`, whose items JS copies, so a `&mut` to one is its place: each item's
+/// key in its high half and a count in its low half, changed by step `op` of `key`.
+fn numbers(n: &mut HashTable<u32>, kind: u8, op: u8, key: u16, out: &mut Vec<u8>) {
+	let h = hash(kind, key);
+	let ours = |e: &u32| *e >> 16 == u32::from(key);
+	let rehash = |e: &u32| hash(kind, (*e >> 16) as u16);
+	match op % 6 {
+		0 => {
+			let e = n.entry(h, ours, rehash).and_modify(|e| *e += 1);
+			put(out, *e.or_insert(u32::from(key) << 16).get() as usize);
+		}
+		1 => match n.find_mut(h, ours) {
+			Some(e) => *e += 2,
+			None => put(out, *n.insert_unique(h, u32::from(key) << 16, rehash).into_mut() as usize),
+		},
+		2 => {
+			if let Ok(mut e) = n.find_entry(h, ours) {
+				*e.get_mut() += 3;
+				let e = e.into_mut();
+				*e += 4;
+			}
+		}
+		3 => n.retain(|e| {
+			*e += 5;
+			*e & 0xff < 200
+		}),
+		4 => {
+			for e in n.iter_mut() {
+				*e ^= 1;
+			}
+			for e in &mut *n {
+				*e += 1;
+			}
+		}
+		_ => {
+			if let Entry::Occupied(mut e) = n.entry(h, ours, rehash) {
+				*e.get_mut() += 6;
+			}
+		}
+	}
+	let mut items: Vec<u32> = n.iter().copied().collect();
+	items.sort();
+	for item in items {
+		put(out, item as usize);
 	}
 }
 
