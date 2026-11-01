@@ -927,12 +927,16 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				return place;
 			}
 			let (base, rest) = match (self.def_rvalue(place.local), place.projection.as_slice()) {
-				(Some(mir::Rvalue::Ref(_, _, p)), [ProjectionElem::Deref, rest @ ..]) if self.alias_of_place(place.local) => {
+				(Some(mir::Rvalue::Ref(_, _, p)), [ProjectionElem::Deref, rest @ ..])
+					if self.alias_of_place(place.local) =>
+				{
 					(*p, rest)
 				}
-				(Some(mir::Rvalue::Cast(mir::CastKind::BoxDerefTransmute, op, _)), [ProjectionElem::Deref, rest @ ..])
-					if let Some(p) = op.place()
-						&& let [inner @ .., ProjectionElem::Field(..)] = p.projection.as_slice() =>
+				(
+					Some(mir::Rvalue::Cast(mir::CastKind::BoxDerefTransmute, op, _)),
+					[ProjectionElem::Deref, rest @ ..],
+				) if let Some(p) = op.place()
+					&& let [inner @ .., ProjectionElem::Field(..)] = p.projection.as_slice() =>
 				{
 					let boxed = Place {
 						local: p.local,
@@ -1083,7 +1087,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		};
 		let base_ty = base.ty(&self.mir.local_decls, self.tcx).ty;
 		if self.b.t.place_pointee(base_ty).is_none()
-			|| base.as_local().is_some_and(|l| self.alias_of_place(l) || self.box_pointer(l))
+			|| base
+				.as_local()
+				.is_some_and(|l| self.alias_of_place(l) || self.box_pointer(l))
 		{
 			return None;
 		}

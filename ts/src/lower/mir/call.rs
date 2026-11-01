@@ -658,7 +658,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			}
 			// A box is what it holds, so the `&mut` borrows the place holding the box.
 			("DerefMut", "deref_mut") | ("AsMut", "as_mut") | ("BorrowMut", "borrow_mut")
-				if targ(0).and_then(|t| t.boxed_ty()).is_some_and(|t| self.b.t.needs_place(t)) =>
+				if targ(0)
+					.and_then(|t| t.boxed_ty())
+					.is_some_and(|t| self.b.t.needs_place(t)) =>
 			{
 				self.same_place(args, dest, span, out)
 			}
