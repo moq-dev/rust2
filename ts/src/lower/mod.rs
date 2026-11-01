@@ -1139,6 +1139,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// variable to the member it was assigned.
 	pub fn narrows(&self, ty: Ty<'tcx>) -> bool {
 		match ty.kind() {
+			// A box is what it holds.
+			ty::Adt(adt, args) if adt.is_box() => self.narrows(args.type_at(0)),
 			ty::Adt(adt, _) => match library::Std::of(self.tcx, adt.did()) {
 				Some(
 					library::Std::Option

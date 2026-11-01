@@ -216,6 +216,13 @@ export function then$1j955kq(self: boolean, _: () => defaults_Made.Made): defaul
 	return defaults_Made.default$Default();
 }
 
+export function then$0ea5h05(self: boolean, f: () => rt.u32): rt.u32 | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return f();
+}
+
 export function then$0wlzj76(self: boolean, f: () => rt.Ordering): rt.Ordering | undefined {
 	if (!self) {
 		return undefined;
