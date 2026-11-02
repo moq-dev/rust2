@@ -183,7 +183,7 @@ function measureSize({ route, files }: { route: string; files: Uint8Array<ArrayB
 const wasm = new Wasm(await WebAssembly.compile(wasmBytes));
 function expected(input: Uint8Array): Uint8Array {
 	const output = wasm.call(input);
-	if (output === "panic") throw new Error(`native Rust panics on ${hex(input)}`);
+	if (!(output instanceof Uint8Array)) throw new Error(`native Rust traps on ${hex(input)}`);
 	return output;
 }
 const list = workloads(expected);
@@ -219,7 +219,7 @@ async function native(): Promise<Engine> {
 	const taskWasm = new Wasm(await WebAssembly.compile(taskWasmBytes));
 	const handoff = (input: Uint8Array) => {
 		const output = taskWasm.call(input);
-		if (output === "panic") throw new Error(`native Rust panics on ${hex(input)}`);
+		if (!(output instanceof Uint8Array)) throw new Error(`native Rust traps on ${hex(input)}`);
 		return output;
 	};
 	const timings = [

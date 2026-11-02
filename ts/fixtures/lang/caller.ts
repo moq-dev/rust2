@@ -422,6 +422,13 @@ const mappedLocks = [[0x04, 0x01, 0x02, 0x86, 0x05, 0x0a, 0x03, 0x02, 0x80, 0x01
 );
 
 /**
+ * `locks::relock` with each pick: a mutex locked again while a guard holds it, which
+ * panics, and a read-write lock read or written again while a guard, mapped or not, holds
+ * it, which aborts but for a read under a read.
+ */
+const relocks = Array.from({ length: 16 }, (_, pick) => Uint8Array.of(op("locks::relock"), 0, pick));
+
+/**
  * `borrows::tries` scripts: each operation through tried guards, given back beside each
  * error, printed, and each borrow again while a tried guard holds the cell, which panics.
  */
@@ -840,4 +847,4 @@ const capacityCases = [
 	...Array.from({ length: 8 * 6 }, (_, i) => Uint8Array.of(op("capacity::collects"), i % 8, [0, 1, 2, 5, 9, 23][Math.floor(i / 8)], 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
 ];
 
-export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...maps, ...mappedLocks, ...tries, ...mutexMaps, ...printed, ...downgrades, ...leaks, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases, ...gets, ...capacityCases];
+export const cases: Uint8Array[] = [...loops, ...durations, ...ints(), ...utf8, ...floats, ...formats, ...parsed, ...singlesCases, ...singlesFormats, ...singlesParsed, ...dyns, ...cells, ...shared, ...locks, ...guards, ...maps, ...mappedLocks, ...relocks, ...tries, ...mutexMaps, ...printed, ...downgrades, ...leaks, ...rwlocks, ...onces, ...bounds, ...unsafeCells, ...edits, ...subslices, ...consumers, ...closures, ...elements, ...ranges, ...reducers, ...sliceEdits, ...drains, ...iters, ...hinted, ...peekedOthers, ...hints, ...reserves, ...setOps, ...zeros, ...writes, ...floatsMulAdds, ...singlesMulAdds, ...unlikeEqs, ...ownNes, ...rangeFroms, ...compares, ...unlikeCompares, ...rangeMethods, ...wraps(), ...refOrders, ...saturates(), ...methods(), ...separated, ...asciiCases, ...gets, ...capacityCases];
