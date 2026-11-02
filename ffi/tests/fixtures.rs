@@ -608,7 +608,11 @@ fn api_go() {
 	std::fs::create_dir_all(&package).unwrap();
 	std::fs::create_dir_all(module.join("include")).unwrap();
 	std::fs::copy(api.out.join("go").join("api.go"), package.join("api.go")).unwrap();
-	std::fs::copy(api.out.join("include").join("api.h"), module.join("include").join("api.h")).unwrap();
+	std::fs::copy(
+		api.out.join("include").join("api.h"),
+		module.join("include").join("api.h"),
+	)
+	.unwrap();
 	std::fs::copy(manifest_dir().join("tests").join("api.go"), module.join("main.go")).unwrap();
 	std::fs::write(module.join("go.mod"), "module apitest\n\ngo 1.24\n").unwrap();
 	let exe = module.join(format!("api-test{EXE_SUFFIX}"));

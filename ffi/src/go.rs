@@ -250,7 +250,12 @@ impl<'a> Gen<'a> {
 			Type::Enum(i) if self.abi.api.enums[*i].plain() => "0".to_string(),
 			Type::Box(inner) | Type::Ref(_, inner) => self.zero(inner),
 			Type::Tuple(elements) if elements.len() == 1 => self.zero(&elements[0]),
-			Type::Record(_) | Type::SocketAddr(_) | Type::Range(_) | Type::Bound(_) | Type::Bounds(_) | Type::Tuple(_) => {
+			Type::Record(_)
+			| Type::SocketAddr(_)
+			| Type::Range(_)
+			| Type::Bound(_)
+			| Type::Bounds(_)
+			| Type::Tuple(_) => {
 				format!("{}{{}}", self.go(ty))
 			}
 			_ => "nil".to_string(),
@@ -554,11 +559,7 @@ impl<'a> Gen<'a> {
 				Literal::Bool(b) => ("bool", b.to_string()),
 				Literal::Int(int, v) => (go_int(int), v.to_string()),
 			};
-			let _ = write!(
-				self.top,
-				"{}const {name} {ty} = {value}\n\n",
-				docs(&constant.docs, "")
-			);
+			let _ = write!(self.top, "{}const {name} {ty} = {value}\n\n", docs(&constant.docs, ""));
 		}
 		for i in 0..api.records.len() {
 			self.record(i);
@@ -673,7 +674,10 @@ impl<'a> Gen<'a> {
 		let arena = self.arena(ty);
 		// The receiver: a held handle, or the value lowered.
 		let (open, this) = match object {
-			true => ("h_ := self.h.hold()\ndefer unhold_(self)\n".to_string(), format!("(*C.{c})(h_)")),
+			true => (
+				"h_ := self.h.hold()\ndefer unhold_(self)\n".to_string(),
+				format!("(*C.{c})(h_)"),
+			),
 			false => match arena {
 				true => (
 					format!("a_ := &arena_{{}}\ndefer a_.finish()\nc_self_ := lower_{c}(a_, self)\n"),
@@ -723,8 +727,12 @@ impl<'a> Gen<'a> {
 				(true, _) => format!(
 					"{open}o_ := other.h.hold()\ndefer unhold_(other)\nreturn bool(C.{c}_eq({this}, (*C.{c})(o_)))"
 				),
-				(false, true) => format!("{open}c_other_ := lower_{c}(a_, other)\nreturn bool(C.{c}_eq({this}, &c_other_))"),
-				(false, false) => format!("{open}c_other_ := lower_{c}(other)\nreturn bool(C.{c}_eq({this}, &c_other_))"),
+				(false, true) => {
+					format!("{open}c_other_ := lower_{c}(a_, other)\nreturn bool(C.{c}_eq({this}, &c_other_))")
+				}
+				(false, false) => {
+					format!("{open}c_other_ := lower_{c}(other)\nreturn bool(C.{c}_eq({this}, &c_other_))")
+				}
 			};
 			methods.push(method(
 				"Equal is Rust's PartialEq.",
@@ -768,8 +776,12 @@ impl<'a> Gen<'a> {
 			.map(|(f, (name, go))| format!("{}\t{name} {go}\n", docs(&f.docs, "\t")))
 			.collect();
 		let text = format!("{name} is `{rust}`.\n\n{}", record.docs);
-		let _ = write!(self.types, "{}type {name} struct {{\n{body}}}\n\n", docs(text.trim(), ""));
-		self.methods_of(&ty, &c, &rust, record.traits, &record.methods, &Ty::Struct(c.clone()), &mut members);
+		let _ = write!(
+			self.types,
+			"{}type {name} struct {{\n{body}}}\n\n",
+			docs(text.trim(), "")
+		);
+		members.extend(self.methods_of(&ty, &c, &rust, record.traits, &record.methods, &Ty::Struct(c.clone())));
 		self.distinct(&rust, &members);
 		// Its conversions.
 		let lifted: Vec<String> = (record.fields.iter().zip(&fields))
@@ -793,8 +805,8 @@ impl<'a> Gen<'a> {
 		);
 	}
 
-	/// The methods and functions of a record, plain enum, or object, written after its type.
-	#[allow(clippy::too_many_arguments)]
+	/// The methods and functions of a record, plain enum, or object, written after its type,
+	/// returning its methods' names.
 	fn methods_of(
 		&mut self,
 		ty: &Type,
@@ -803,9 +815,9 @@ impl<'a> Gen<'a> {
 		traits: crate::ir::Traits,
 		functions: &[Function],
 		owner: &Ty,
-		members: &mut Vec<String>,
-	) {
+	) -> Vec<String> {
 		let (methods, statics) = self.members(ty, c, rust, traits, functions, owner);
+		let mut members = Vec::new();
 		for method in methods {
 			members.push(method.name.clone());
 			self.types.push_str(&method.write());
@@ -813,6 +825,7 @@ impl<'a> Gen<'a> {
 		for function in statics {
 			self.types.push_str(&function.write());
 		}
+		members
 	}
 
 	/// The methods of a type, and its functions, each of which it claims: its traits', its
@@ -892,8 +905,7 @@ impl<'a> Gen<'a> {
 				"{}type {name} int32\n\nconst (\n{consts})\n\nfunc lift_{c}(c C.{c}) {name} {{\n\treturn {name}(c)\n}}\n\nfunc lower_{c}(v {name}) C.{c} {{\n\treturn C.{c}(v)\n}}\n\n",
 				docs(text.trim(), "")
 			);
-			let mut members = Vec::new();
-			self.methods_of(&ty, &c, &rust, e.traits, &e.methods, &Ty::Enum(c.clone()), &mut members);
+			let members = self.methods_of(&ty, &c, &rust, e.traits, &e.methods, &Ty::Enum(c.clone()));
 			self.distinct(&rust, &members);
 			return;
 		}
@@ -904,7 +916,7 @@ impl<'a> Gen<'a> {
 		let mut interface = format!("\t{seal}()\n");
 		let mut shared = String::new();
 		for method in &methods {
-			let _ = write!(interface, "{}\t{}\n", docs(method.docs.trim(), "\t"), method.signature());
+			let _ = writeln!(interface, "{}\t{}", docs(method.docs.trim(), "\t"), method.signature());
 			let mut function = Method {
 				docs: String::new(),
 				receiver: None,
@@ -1032,7 +1044,7 @@ impl<'a> Gen<'a> {
 			name: c.clone(),
 			constant: false,
 		};
-		self.methods_of(&ty, &c, &rust, object.traits, &object.methods, &owner, &mut members);
+		members.extend(self.methods_of(&ty, &c, &rust, object.traits, &object.methods, &owner));
 		self.distinct(&rust, &members);
 	}
 
@@ -1046,7 +1058,7 @@ impl<'a> Gen<'a> {
 		let p = &abi.prefix;
 		let mut body = Vec::new();
 		let mut members = Vec::new();
-		let mut table = vec![format!("\tv.free = goRelease\n")];
+		let mut table = vec!["\tv.free = goRelease\n".to_string()];
 		for method in &callback.methods {
 			let member = pascal(&abi::snake(method.name()));
 			members.push(member.clone());
@@ -1170,7 +1182,11 @@ impl<'a> Gen<'a> {
 				let _ = writeln!(body, "\treturn {}", self.lower_scalar(ret, &call));
 			}
 		}
-		let params: Vec<(String, Ty)> = lent.iter().zip(&ps).map(|(ty, p)| (p.clone(), self.abi.ty(ty))).collect();
+		let params: Vec<(String, Ty)> = lent
+			.iter()
+			.zip(&ps)
+			.map(|(ty, p)| (p.clone(), self.abi.ty(ty)))
+			.collect();
 		let ret_ty = self.abi.ty(ret);
 		self.export(&name, &params, &ret_ty, &body);
 		name
@@ -1428,7 +1444,9 @@ impl<'a> Gen<'a> {
 		let mut text = function.docs.clone();
 		for (param, name) in function.params.iter().zip(&names) {
 			if let Type::Closure(lent, _) = &param.ty {
-				text.push_str(&format!("\n\nRust calls {name} only during the call, from any goroutine's thread."));
+				text.push_str(&format!(
+					"\n\nRust calls {name} only during the call, from any goroutine's thread."
+				));
 				if lent.iter().any(|p| matches!(p.base(), Type::Object(_))) {
 					text.push_str(&format!(
 						"\nAn object it lends lives only for that call of {name}: keep none past it."
