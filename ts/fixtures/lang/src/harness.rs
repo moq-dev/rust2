@@ -1,4 +1,4 @@
-//! The entry point both sides of the differential test run. The first byte picks a
+//! The entry point both sides of the differential test run. The first two bytes pick a
 //! case and the rest is its input.
 
 use crate::{
@@ -18,11 +18,11 @@ pub fn entry(input: &[u8]) -> Vec<u8> {
 	}
 }
 
-/// What a case runs on the second byte and the rest.
+/// What a case runs on the third byte and the rest.
 type Case = fn(u8, &[u8], &mut Vec<u8>);
 
-/// Each case's name and what it runs. The first byte picks one modulo their count, so a
-/// case added at the end moves no other.
+/// Each case's name and what it runs. The first two bytes, big-endian, pick one modulo
+/// their count, so a case added at the end moves no other.
 fn cases() -> Vec<(&'static str, Case)> {
 	vec![
 		("ints::u8_op", ints::u8_op),
@@ -292,20 +292,25 @@ fn cases() -> Vec<(&'static str, Case)> {
 /// Run one case.
 pub fn run(input: &[u8]) -> Vec<u8> {
 	let mut out = Vec::new();
-	let [op, kind, data @ ..] = input else {
+	let [high, low, kind, data @ ..] = input else {
 		return out;
 	};
 	let cases = cases();
-	let (_, case) = cases[usize::from(*op) % cases.len()];
+	let (_, case) = cases[usize::from(u16::from_be_bytes([*high, *low])) % cases.len()];
 	case(*kind, data, &mut out);
 	out
 }
 
-/// The first byte that picks the case named `name`, which `caller.ts` targets by.
-pub fn op(name: &str) -> u8 {
-	match cases().iter().position(|&(n, _)| n == name) {
-		Some(i) => i as u8,
-		None => panic!("no case {name}"),
+/// The first two bytes, as one big-endian number, that pick the case named `name`, which
+/// `caller.ts` targets by.
+pub fn op(name: &str) -> u16 {
+	let Some(i) = cases().iter().position(|&(n, _)| n == name) else {
+		panic!("no case {name}");
+	};
+	// A first byte of 0xff is `entry`'s, which prints a `Fault` instead.
+	match u16::try_from(i) {
+		Ok(op) if op >> 8 != 0xff => op,
+		_ => panic!("case {name} is past what two bytes pick"),
 	}
 }
 
