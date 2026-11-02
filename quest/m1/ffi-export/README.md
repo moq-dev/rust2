@@ -61,3 +61,4 @@ than `ctypes`; the others call C natively. moq's packages switch to them in moq'
 - [Go bindings](/quest/m1/ffi-export/go.md) - Go over the C ABI through cgo
 - [Dart bindings](/quest/m1/ffi-export/dart.md) - Dart over the C ABI through `dart:ffi`
 - [A moq checkout per pin](/quest/m1/ffi-export/moq-checkouts.md) - `just ts` and `just ffi` check out their own moq revisions, so both run at once
+- [Lifetimes with no undefined behavior](/quest/m1/ffi-export/lifetimes.md) - no `close()` in Swift or Python, errors after `close()` in Kotlin and Go, GC-owned bytes, and C++ smart pointers
