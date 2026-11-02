@@ -30,6 +30,11 @@ export class Panic extends Error {
 	override name = "Panic";
 }
 
+/** An abort that runs no panic hook, as std's `rtabort!`: a `Panic`, so catching one catches both. */
+export class Abort extends Panic {
+	override name = "Abort";
+}
+
 /** Panic with `message`. */
 export function panic(message: string): never {
 	throw new Panic(message);
