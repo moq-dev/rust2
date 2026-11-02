@@ -199,6 +199,16 @@ const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:210
 `clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:2118:4
 `std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2119:2
 a mapped guard of `{closure@fixtures/reject/src/lib.rs:2151:38: 2151:50}`, which JS can't write in place at fixtures/reject/src/lib.rs:2152:10
+a slice of one byte's place, which a byte slice can view only in an array of bytes at fixtures/reject/src/lib.rs:2158:2
+a slice or a cell of a mutable reference to `Reused` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2164:2
+`Clone::clone_from` of `std::vec::Vec<Reused>`, whose `clone_from` is its own, which is not supported yet at fixtures/reject/src/lib.rs:2169:4
+unsupported call to `std::mem::size_of_val::<dyn std::fmt::Debug>` at fixtures/reject/src/lib.rs:2174:2
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2180:10
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2188:10
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2196:10
+a slice or a cell of a mutable reference to `std::cell::LazyCell<u32>` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2206:3
+an assignment through a reference to `std::sync::LazyLock<u32>` at fixtures/reject/src/lib.rs:2211:2
+a slice or a cell of a mutable reference to `std::thread::LocalKey<u32>` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2217:2
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:125:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:145:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:173:2

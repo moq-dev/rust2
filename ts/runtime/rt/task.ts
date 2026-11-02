@@ -646,6 +646,28 @@ export class Cell<T> implements Place<T>, Disposable {
 	}
 }
 
+/** `Cell::from_mut` of the place `p`: a cell of it, which nothing drops, as nothing owns it. */
+export function cellOfPlace<T>(p: Place<T>): Cell<T> {
+	return p as Cell<T>;
+}
+
+/**
+ * `Cell::from_mut` of the object or the bytes a `&mut` is: a read is a copy, as a `Cell`
+ * only moves or copies its value out, and a write lands in place, a JS array's taking
+ * the new one's length.
+ */
+export function cellIn<T extends object>(p: T): Cell<T> {
+	const copy = (): T => {
+		if (ArrayBuffer.isView(p) || Array.isArray(p)) return (p as unknown as T[]).slice() as T;
+		return Object.assign(Object.create(Object.getPrototypeOf(p)) as T, p);
+	};
+	const write = (value: T): void => {
+		if (Array.isArray(p)) vecAssign(p, value as unknown[]);
+		else ptrWrite(p, value);
+	};
+	return cellOfPlace(place(copy, write));
+}
+
 /**
  * `PartialEq`, `PartialOrd`, or `Ord` of `Cell`s, or `PartialEq` of `OnceCell`s or
  * `OnceLock`s, by `f` of what each holds.
