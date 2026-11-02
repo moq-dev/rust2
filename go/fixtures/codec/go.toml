@@ -1,0 +1,2 @@
+package = "codec"
+roots = ["harness::run", "bench::run"]

@@ -299,6 +299,8 @@
               esbuild
               # rust2-ffi's tests compile its generated Kotlin and run it on the JVM.
               kotlin
+              # rust2-go's tests build and run its output against native Rust.
+              go
             ];
             RUST2_TS_TOOLCHAIN = tsToolchain;
             RUST2_TS_SYSROOT = rust2-ts-std;
