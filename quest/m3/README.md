@@ -21,7 +21,8 @@ generic std gap is planned here even when moq never calls it.
 - [Placeholders written to a crate's own fmt::Write](/quest/m3/ts-fmt-calls.md) - `write!` with placeholders into a crate's own writer translates, its `write_str` seeing each call std makes
 - [Waiting: type-check in process with tsrs](/quest/m3/ts-tsrs.md) - rust2-ts checks bindings through tsrs instead of `tsc` once it is a stable library
 - [Drop order in std's folds and iterators](/quest/m3/ts-drop-order.md) - the values that drop still refused in std's consumers, flattens, and collects drop as std's do
-- [std's conversions of a reference](/quest/m3/ts-ref-conversions.md) - `to_owned`, `clone_from`, `binary_search`, `size_of_val`, `from_ref`/`from_mut`, and `AsRef`/`Borrow` as a slice translate
+- [A slice of one value behind any &mut](/quest/m3/ts-slice-of-one.md) - `slice::from_mut` and `array::from_mut` of a `&mut u8`, or of an object no place names, translate
+- [A slice's searches by a closure](/quest/m3/ts-binary-search-by.md) - `binary_search_by`, `binary_search_by_key`, and `partition_point` translate, probing as std's do
 - [Waiting: a slice object for a mutable part of other values](/quest/m3/ts-slice-object.md) - waits on a moq profile showing the `Proxy` view's traps matter, then decides on an `rt.ByteSlice`-like form
 - [Port the workflow guard to kixelated/quest](/quest/m3/quest-workflow-guard.md) - quest's environment guard parses YAML as this repository's does
 - [A deque's two slices](/quest/m3/ts-deque-slices.md) - `VecDeque::as_slices` and `{:?}` of a deque's `Iter`, `IterMut`, and `Drain` translate, split where std's are
@@ -31,7 +32,6 @@ generic std gap is planned here even when moq never calls it.
 - [Rc and Arc of a slice](/quest/m3/ts-shared-slices.md) - `Rc<[T]>` and `Arc<[T]>` from a `Vec`, a slice, or an iterator translate
 - [The rest of a boxed slice's impls](/quest/m3/ts-boxed-slice-rest.md) - `clone_from`, `AsRef`, `AsMut`, `TryFrom` into a boxed array, and `Box<str>` into bytes translate for boxed slices
 - [The rest of a vector's methods](/quest/m3/ts-vec-rest.md) - `append`, `resize`, `split_off`, `try_reserve`, and `Vec::from(VecDeque)` translate
-- [Aborts in the differential](/quest/m3/ts-abort-differential.md) - the lang differential compares wasm32's aborts, so an `RwLock` locked again while held is tested
 - [A reversed zip's per-pair cost](/quest/m3/ts-zip-rev-overhead.md) - a reversed by-index zip costs per pair what a forward one does, or the gap is explained
 - [Whole writes into a lazy cell or thread-local key](/quest/m3/ts-lazy-writes.md) - a whole write through a `&mut` to a `LazyCell`, `LazyLock`, or `LocalKey` keeps its state
 - [Type errors at the Rust that made them](/quest/m3/ts-span-precision.md) - a `tsc` error on output names the tail expression or call argument that made it
@@ -39,3 +39,5 @@ generic std gap is planned here even when moq never calls it.
 - [An Option of numbers in the result slot](/quest/m3/ts-option-slot.md) - `varint_opt`'s `Option` comes back through the slot with no object per call
 - [Dropping a crate's generic type inside another](/quest/m3/ts-nested-generic-drop.md) - an `LruCache` holding a `LinkedHashMap` drops as rustc's glue does
 - [Fresh writes through a zip, a copy, and a repeat](/quest/m3/ts-fresh-shapes.md) - zipping a `Vec<[T; N]>`, reading a `T` out of `Zip::next`, and `copied` or `vec![x; n]` over a `Copy` type translate
+- [Python's wake on the loop's own thread](/quest/m3/ffi-python-wake.md) - a wake on the event loop's thread resumes the future with no socket pair
+- [Python's call cost](/quest/m3/ffi-python-calls.md) - a call on an object costs what BoltFFI's does, or the gap is explained

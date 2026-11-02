@@ -8,6 +8,11 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 export PATH := if env("RUST2_TS_TOOLCHAIN", "") == "" { env("PATH") } else { env("RUST2_TS_TOOLCHAIN") / "bin:" + env("PATH") }
 
+# The moq revision these recipes export by default, behind `just ts moq`'s: moq's later API
+# needs moq/ffi.toml to follow it, and past moq-dev/moq#7032 moq-tokio's `Send` check
+# overflows the recursion limit `moq-export` denies.
+moq_rev := "30f25c04e6d0288d87893dc609ba582518be2cf6"
+
 default:
     @just --list
 
@@ -37,11 +42,11 @@ fix:
 run *args:
     cargo run --locked --quiet -- {{ args }}
 
-# Census each package moq/ffi.toml exports into target/census/<package>.md, from the moq revision `just ts moq` pins or a checkout.
+# Census each package moq/ffi.toml exports into target/census/<package>.md, from the pinned moq revision or a checkout.
 census checkout="": (standin checkout)
     cargo run --locked --quiet -- --config moq/ffi.toml --manifest-path target/moq-ffi/Cargo.toml --census target/census
 
-# Time frame writes through the export, from C, C++, and Kotlin, and through moq's hand-written rs/moq-c, in the bench shell: nix develop .#bench.
+# Time frame writes through the export, from C, C++, Kotlin, and Swift, and through moq's hand-written rs/moq-c, in the bench shell: nix develop .#bench.
 bench checkout="": (moq checkout)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -57,14 +62,23 @@ bench checkout="": (moq checkout)
     c++ -O2 -std=c++17 -Wall -Wextra -Werror -I "$out/include" moq/bench/export.cpp "$out/target/release/libmoq.a" -lpthread -ldl -lm -o target/bench-export-cpp
     rm -rf target/bench-kt
     kotlinc -Werror -cp "$KOTLINX_COROUTINES" "$out/kotlin/moq.kt" moq/bench/export.kt -d target/bench-kt
+    swift=true
+    if [ "{{ os() }}-{{ arch() }}" = linux-aarch64 ]; then
+        echo "skipping the Swift: nixpkgs builds no Swift for aarch64-linux (quest/m2/uniffi-swift-arm.md)" >&2
+        swift=false
+    else
+        {{ just_executable() }} swift-module -O
+        swiftc -O -warnings-as-errors $({{ just_executable() }} swift-target 15) -I target/swift -I "$out/swift" moq/bench/export.swift target/swift/libMoq.a "$out/target/release/libmoq.a" -lpthread -ldl -lm -o target/bench-export-swift
+    fi
     for _ in 1 2 3; do
         target/bench-moq-c
         target/bench-export
         target/bench-export-cpp
         kotlin -Djava.library.path="$out/target/release" -cp "target/bench-kt:$KOTLINX_COROUTINES" ExportKt
+        if $swift; then target/bench-export-swift; fi
     done
 
-# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, and moq/moq.kt against it, from the moq revision `just ts moq` pins or a checkout.
+# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.swift against it, from the pinned moq revision or a checkout.
 moq checkout="": (moq-cpp checkout)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -76,6 +90,11 @@ moq checkout="": (moq-cpp checkout)
     rm -rf target/moq-kt
     kotlinc -Werror -cp "$KOTLINX_COROUTINES" "$out/kotlin/moq.kt" moq/moq.kt -d target/moq-kt
     kotlin -Djava.library.path="$out/target/release" -cp "target/moq-kt:$KOTLINX_COROUTINES" MoqKt
+    if [ "{{ os() }}-{{ arch() }}" = linux-aarch64 ]; then
+        echo "skipping moq/moq.swift: nixpkgs builds no Swift for aarch64-linux (quest/m2/uniffi-swift-arm.md)" >&2
+    else
+        {{ just_executable() }} moq-swift-run
+    fi
 
 # Export and build moq's crates' C ABI as `just ffi moq` does, and run only moq/moq.cpp against it, built by $CXX or the platform's compiler: MSVC's on Windows, from a developer environment.
 moq-cpp checkout="": (moq-export checkout)
@@ -93,6 +112,36 @@ moq-cpp checkout="": (moq-export checkout)
     fi
     target/moq-cpp-test
 
+# Export and build moq's crates' C ABI as `just ffi moq` does, and run only moq/moq.swift against it, through Swift on PATH: Apple's on macOS.
+moq-swift checkout="": (moq-export checkout) moq-swift-run
+
+# Build the exported Swift as the module Moq, and run moq/moq.swift against it.
+[private]
+moq-swift-run:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out=target/export/moq
+    read -ra native < target/moq-native
+    {{ just_executable() }} swift-module
+    swiftc -warnings-as-errors $({{ just_executable() }} swift-target 15) -parse-as-library -I target/swift -I "$out/swift" moq/moq.swift target/swift/libMoq.a "$out/target/release/libmoq.a" "${native[@]}" -o target/moq-swift-test
+    target/moq-swift-test
+
+# Build target/export/moq's Swift as the module Moq in target/swift, at Swift 6's language mode. Its deployment target is the oldest its `Swift.Duration` allows.
+[private]
+swift-module *flags:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out=target/export/moq/swift
+    rm -rf target/swift
+    mkdir -p target/swift
+    swiftc -warnings-as-errors $({{ just_executable() }} swift-target 13) -swift-version 6 {{ flags }} -parse-as-library -module-name Moq -emit-module -emit-module-path target/swift/Moq.swiftmodule -emit-library -static -I "$out" "$out/moq.swift" -o target/swift/libMoq.a
+
+# swiftc's target at this macOS deployment target on macOS, and nothing elsewhere.
+[private]
+swift-target macos:
+    #!/usr/bin/env bash
+    if [ "{{ os() }}" = macos ]; then echo "-target $(uname -m)-apple-macos{{ macos }}"; fi
+
 # Export moq's crates' C ABI into target/export/moq and build it, with the libraries a program linking it needs besides in target/moq-native.
 [private]
 moq-export checkout="": (standin checkout)
@@ -107,14 +156,14 @@ moq-export checkout="": (standin checkout)
     RUSTFLAGS="-D recursion_depth_exceeding_limit --print=native-static-libs" cargo build --quiet --release --manifest-path "$out/Cargo.toml" --features kotlin 2>&1 | tee target/moq-build.log
     sed -n 's/^note: native-static-libs: //p' target/moq-build.log > target/moq-native
 
-# Write target/moq-ffi, an empty library on every crate moq/ffi.toml exports, from the moq revision `just ts moq` pins or a checkout: the check builds with all of them, as moq-ffi's remainder will.
+# Write target/moq-ffi, an empty library on every crate moq/ffi.toml exports, from the pinned moq revision or a checkout: the check builds with all of them, as moq-ffi's remainder will.
 [private]
 standin checkout="":
     #!/usr/bin/env bash
     set -euo pipefail
     src="{{ checkout }}"
     if [ -z "$src" ]; then
-        (cd ../ts && just moq-pin)
+        (cd ../ts && just moq-pin {{ moq_rev }})
         src=../ts/target/moq
     fi
     src=$(realpath "$src")

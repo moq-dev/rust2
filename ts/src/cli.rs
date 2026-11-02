@@ -5,6 +5,7 @@ use std::process::ExitCode;
 
 use rust2_driver::cargo::{Args, Check, Output};
 
+use crate::browser;
 use crate::config::{self, Config};
 
 /// Translation type-checks for this target: its 32-bit `usize` is what a JS number
@@ -15,7 +16,8 @@ const USAGE: &str = "usage: rust2-ts --config <ts.toml> (--out <dir> | --census 
 
 Translates the library of the package that ts.toml names to TypeScript in <dir>. The
 package's Cargo.toml is beside ts.toml unless --manifest-path says where. Cargo args,
-such as --features, are passed to `cargo check`, which checks with the dev profile.
+such as --features, are passed to `cargo check`, which checks with the dev profile, and
+picks getrandom's and uuid's browser randomness for wasm32 as a binary would.
 
 --census writes a Markdown report of every construct translation refuses in the library,
 reached from each of its items as if each were a root, instead of translating it.";
@@ -52,15 +54,18 @@ fn try_run(args: &[String]) -> Result<ExitCode, String> {
 		("CARGO_CACHE_RUSTC_INFO", "0".as_ref()),
 		("CARGO_UNSTABLE_SEPARATE_NIGHTLIES", "true".as_ref()),
 	];
+	let target_dir = rust2_driver::cargo::target_dir("rust2-ts", Some(&args.manifest))?;
+	let root = browser::root(&args.manifest, &config.package, &target_dir, &args.cargo)?;
 	let mut cargo = profile_args(sysroot.is_none());
 	// The profile `PROFILE` sets, which cargo refuses to combine with one the cargo args
 	// pick.
 	cargo.extend(["--profile".into(), "dev".into()]);
-	cargo.extend(args.cargo);
+	cargo.extend(root.as_ref().map_or(args.cargo, |root| root.cargo.clone()));
 	Check {
 		tool: "rust2-ts",
 		manifest: &args.manifest,
 		package: &config.package,
+		root: root.as_ref().map(|root| root.manifest.as_path()),
 		target: Some(TARGET),
 		args: &cargo,
 		env: &env,

@@ -632,19 +632,13 @@ fn sysroot() {
 /// wasm32 has no OS to read. Only getrandom's flags change, so nothing else rebuilds.
 const GETRANDOM: &str = r#"profile.dev.package.getrandom.rustflags=["--cfg", 'getrandom_backend="custom"']"#;
 
-/// `bytes`, `rand`, and `tracing`, which translation maps without a binding or config.
+/// `bytes`, `rand`, and `tracing`, which translation maps without a binding or config:
+/// it picks getrandom's backend itself, as a browser's binary would.
 #[test]
 fn stock() {
 	let out = scratch().join("stock").join("out");
 	let config = fixture("stock").join("ts.toml");
-	let args: [&std::ffi::OsStr; 5] = [
-		"--out".as_ref(),
-		out.as_ref(),
-		"--".as_ref(),
-		"--config".as_ref(),
-		GETRANDOM.as_ref(),
-	];
-	let output = driver("stock", &config, &args, "build");
+	let output = driver("stock", &config, &["--out".as_ref(), out.as_ref()], "build");
 	assert!(
 		output.status.success(),
 		"translating stock failed:\n{}",

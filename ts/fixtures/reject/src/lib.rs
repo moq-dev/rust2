@@ -2153,6 +2153,71 @@ pub fn mapped_closure(add: u8) -> u8 {
 	f(1)
 }
 
+/// A slice of one `u8`'s place, which no `rt.ByteSlice` views.
+pub fn byte_slice_of_place(b: &mut u8) {
+	std::slice::from_mut(b)[0] = 1;
+}
+
+/// A slice of the object a parameter is, whose element a whole write would replace only
+/// in the slice, not where the caller holds it.
+pub fn slice_of_object(r: &mut Reused, by: Reused) {
+	std::slice::from_mut(r)[0] = by;
+}
+
+/// `clone_from` of a `Vec` whose elements' is their own.
+pub fn vec_clone_from(v: &mut Vec<Reused>, from: &Vec<Reused>) {
+	v.clone_from(from);
+}
+
+/// `size_of_val` of a trait object, which its vtable gives.
+pub fn dyn_size(d: &dyn std::fmt::Debug) -> usize {
+	size_of_val(d)
+}
+
+/// A pointer to a variable's object, which `clone_from` of the whole variable replaces.
+pub fn variable_cloned_from(n: u32) -> u32 {
+	let mut pair = (n, n);
+	let p = &raw mut pair;
+	pair.clone_from(&(0, 0));
+	unsafe { (*p).0 + pair.1 }
+}
+
+/// A pointer to a variable's object, which `clone_into` the whole variable replaces.
+pub fn variable_cloned_into(n: u32) -> u32 {
+	let mut pair = (n, n);
+	let p = &raw mut pair;
+	(0, 0).clone_into(&mut pair);
+	unsafe { (*p).0 + pair.1 }
+}
+
+/// A pointer to a variable's object, which a cell of the whole variable replaces.
+pub fn variable_celled(n: u32) -> u32 {
+	let mut pair = (n, n);
+	let p = &raw mut pair;
+	std::cell::Cell::from_mut(&mut pair).set((0, 0));
+	unsafe { (*p).0 + pair.1 }
+}
+
+const LAZY_CELL: std::cell::LazyCell<u32> = std::cell::LazyCell::new(|| 2);
+const LAZY_LOCK: std::sync::LazyLock<u32> = std::sync::LazyLock::new(|| 2);
+
+/// A lazy cell's state, which JS keeps private, so copying its fields can't move it.
+pub fn lazy_celled(c: &mut std::cell::LazyCell<u32>) -> u32 {
+	*std::cell::Cell::from_mut(c).replace(LAZY_CELL) + **c
+}
+
+/// A lazy lock written whole through a reference, which can't copy its private state.
+pub fn lazy_assigned(c: &mut std::sync::LazyLock<u32>) -> u32 {
+	*c = LAZY_LOCK;
+	**c
+}
+
+/// A thread local's key, whose state JS keeps private, set whole through a cell.
+pub fn key_celled(key: &'static mut std::thread::LocalKey<u32>, next: std::thread::LocalKey<u32>) -> u32 {
+	std::cell::Cell::from_mut(key).set(next);
+	key.with(|v| *v)
+}
+
 /// The tags of the first of two slots, each written whole as `fill` beside a pair of
 /// tags, then changed through a pointer to them.
 macro_rules! tagged_slots {
