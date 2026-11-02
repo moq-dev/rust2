@@ -255,7 +255,8 @@ pub fn inline(data: &[u8], out: &mut Vec<u8>) {
 /// Pointers wrapped around wasm32's 32-bit addresses and back, to a value in no array, as
 /// the array of one Rust treats it as, and into a mutable part of an array, measured from
 /// the array, the pointer an empty slice keeps, within a shared part, which JS copies,
-/// memory nothing wrote copied, null moved and back, and the crate's functions named as std's.
+/// memory nothing wrote copied, null and dangling pointers moved by address, and the crate's
+/// functions named as std's.
 pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 	for &n in data {
 		let bytes = [n, 1, 2, 3];
@@ -329,6 +330,12 @@ pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 		out.push(null.wrapping_add(1).wrapping_sub(1).is_null() as u8);
 		out.push(null.wrapping_add(usize::from(n)).is_null() as u8);
 		out.push(null.wrapping_add(1 << 30).is_null() as u8);
+		// A dangling pointer, at its alignment, moved to null and past it.
+		let dangling = NonNull::<u16>::dangling().as_ptr();
+		out.push(dangling.wrapping_sub(1).is_null() as u8);
+		out.push(dangling.wrapping_add(usize::MAX).is_null() as u8);
+		out.push(dangling.wrapping_sub(usize::from(n)).wrapping_add(usize::from(n)).is_null() as u8);
+		out.push(NonNull::<u64>::dangling().as_ptr().wrapping_offset(isize::from(n % 3) - 1).is_null() as u8);
 	}
 }
 
