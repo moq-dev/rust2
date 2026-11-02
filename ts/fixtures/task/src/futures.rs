@@ -132,6 +132,10 @@ fn polling(waker: &Waker) -> bool {
 /// `Polling` does. First, wakers made from one `Arc` and from another, of two `Wake`
 /// impls, `Waker::noop`, and pointers to `()`; then, each poll, the task's waker against
 /// its last poll's, a clone, a `Context` of a clone, and a `run` of `Waker::noop` inside.
+/// Not a clone of an `Arc`'s waker or of `Waker::noop` against its original: the clone's
+/// vtable is another function's constant, whose address is the same only when the build
+/// puts both in one codegen unit, as a non-incremental build does and an incremental one
+/// may not. The executor's vtable is a `static`, so its clones compare reliably.
 pub async fn wakers(mut rx: Consumer, guard: Guard) -> u64 {
 	let relay = |id| Relay {
 		task: Waker::noop().clone(),
@@ -144,7 +148,6 @@ pub async fn wakers(mut rx: Consumer, guard: Guard) -> u64 {
 	let noop = Waker::noop();
 	let unit = Box::into_raw(Box::new(()));
 	let checks = [
-		a.will_wake(&a.clone()),
 		a.will_wake(&b),
 		a.data() == b.data(),
 		a.will_wake(&other),
@@ -153,9 +156,7 @@ pub async fn wakers(mut rx: Consumer, guard: Guard) -> u64 {
 		ptr::eq(a.vtable(), plain.vtable()),
 		a.will_wake(noop),
 		noop.will_wake(Waker::noop()),
-		noop.will_wake(&noop.clone()),
 		noop.data().is_null(),
-		one.task.will_wake(noop),
 		ptr::null::<()>() == ptr::dangling(),
 		ptr::dangling::<()>() == ptr::dangling(),
 		unit.cast_const() == ptr::dangling(),
