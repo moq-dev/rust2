@@ -92,6 +92,9 @@ pub struct Check<'a> {
 	pub manifest: &'a Path,
 	/// The cargo package whose library the driver handles.
 	pub package: &'a str,
+	/// The `Cargo.toml` of a package that depends on it, which cargo resolves it through
+	/// instead of its own workspace, if any, absolute.
+	pub root: Option<&'a Path>,
 	/// The target to check for, or `None` for the host.
 	pub target: Option<&'a str>,
 	/// Passed on to `cargo check`, such as `--features`.
@@ -113,7 +116,7 @@ impl Check<'_> {
 			cmd.current_dir(package_dir).envs(self.env.iter().copied());
 			cmd.arg(subcommand)
 				.arg("--manifest-path")
-				.arg(self.manifest)
+				.arg(self.root.unwrap_or(self.manifest))
 				.arg("--package")
 				.arg(self.package)
 				.arg("--target-dir")
@@ -196,7 +199,7 @@ fn resolution(args: &[String]) -> Vec<&str> {
 }
 
 /// The directory of the workspace `manifest`, or the current directory, belongs to.
-fn workspace_root(manifest: Option<&Path>) -> Result<PathBuf, String> {
+pub fn workspace_root(manifest: Option<&Path>) -> Result<PathBuf, String> {
 	let mut cmd = cargo();
 	cmd.args(["locate-project", "--workspace", "--message-format", "plain"]);
 	if let Some(manifest) = manifest {

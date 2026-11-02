@@ -30,6 +30,11 @@ export class Panic extends Error {
 	override name = "Panic";
 }
 
+/** An abort that runs no panic hook, as std's `rtabort!`: a `Panic`, so catching one catches both. */
+export class Abort extends Panic {
+	override name = "Abort";
+}
+
 /** Panic with `message`. */
 export function panic(message: string): never {
 	throw new Panic(message);
@@ -112,6 +117,14 @@ export function resultAsMut<T, E>(p: Place<Result<T, E>>): Place<T> | undefined 
 /** The place `get` reads and `set` writes. */
 export function place<T>(get: () => T, set: (value: T) => void): Place<T> {
 	return new Accessed(get, set);
+}
+
+/** The place of the `[u8; N]` whose bytes `view` is: read as the view, written into it. */
+export function bytesPlace(view: Uint8Array): Place<Uint8Array> {
+	return place(
+		() => view,
+		(value) => view.set(value),
+	);
 }
 
 // Raw pointers
@@ -314,16 +327,32 @@ export function sliceView<T>(s: T[], start: number, end: number): T[] {
 	return new Proxy(new Array<T>(end - start), view);
 }
 
+/**
+ * `slice::from_mut` or `array::from_mut`: a slice of the one value at `p`, read and
+ * written there, as a `sliceView` is of its array's.
+ */
+export function sliceOfPlace<T>(p: Place<T>): T[] {
+	const one = {
+		get 0() {
+			return p.v;
+		},
+		set 0(value: T) {
+			p.v = value;
+		},
+	};
+	return new Proxy(new Array<T>(1), new View(one, 0, 1));
+}
+
 /** What a `sliceView` answers to its own `View` by. */
 const VIEW = /* @__PURE__ */ Symbol("view");
 
 /** A `sliceView`'s traps: of `length` elements of `s` from `start`. */
 class View<T> implements ProxyHandler<T[]> {
-	readonly s: T[];
+	readonly s: { [index: number]: T };
 	readonly start: number;
 	readonly length: number;
 
-	constructor(s: T[], start: number, length: number) {
+	constructor(s: { [index: number]: T }, start: number, length: number) {
 		this.s = s;
 		this.start = start;
 		this.length = length;
@@ -500,6 +529,24 @@ export function sliceLastMut<T>(s: { [i: number]: T; length: number }): Place<T>
 export function sliceContains<T>(s: ArrayLike<T>, x: T, eq: (a: T, b: T) => boolean): boolean {
 	for (let i = 0; i < s.length; i++) if (eq(s[i], x)) return true;
 	return false;
+}
+
+/**
+ * `binary_search`: `Ok` of where an element `cmp` finds equal to `x` is, or else `Err` of
+ * where `x` would go, probing as std's does, so a run of equal elements gives std's index.
+ */
+export function sliceBinarySearch<T>(s: ArrayLike<T>, x: T, cmp: (a: T, b: T) => Ordering): Result<usize, usize> {
+	let size = s.length;
+	if (size === 0) return Err(0);
+	let base = 0;
+	while (size > 1) {
+		const half = Math.floor(size / 2);
+		const mid = base + half;
+		if (cmp(s[mid]!, x) !== 1) base = mid;
+		size -= half;
+	}
+	const order = cmp(s[base]!, x);
+	return order === 0 ? Ok(base) : Err(order === -1 ? base + 1 : base);
 }
 
 /** `swap`, panicking on either index past the end, `a` first, as std's indexing does. */
