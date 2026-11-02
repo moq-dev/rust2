@@ -181,8 +181,9 @@ jobs:
       - name: Clang
         run: nix develop .#clang --command bash -c 'export CC=gcc; just ffi test cpp && just ffi moq-cpp'
 
-  # The C++ header with the compilers the job above lacks, through the same checks, and on
-  # macOS the Swift with Apple's toolchain.
+  # The C++ header with the compilers the job above lacks, through the same checks, the
+  # Python on the platforms the job above lacks, and on macOS the Swift with Apple's
+  # toolchain.
   ffi-cpp:
     name: Export moq-net to C++ (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -231,6 +232,13 @@ jobs:
 
       - name: Test
         run: just ffi test cpp
+
+      # The Python, on the runner's CPython, which Windows names `python`: its proactor
+      # loop reads wakes through a task rather than a reader callback.
+      - name: Python
+        run: just ffi test python
+        env:
+          PYTHON: ${{ runner.os == 'Windows' && 'python' || 'python3' }}
 
       - name: Export
         run: just ffi moq-cpp

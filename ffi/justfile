@@ -46,7 +46,7 @@ run *args:
 census checkout="": (standin checkout)
     cargo run --locked --quiet -- --config moq/ffi.toml --manifest-path target/moq-ffi/Cargo.toml --census target/census
 
-# Time frame writes through the export, from C, C++, Kotlin, and Swift, and through moq's hand-written rs/moq-c, in the bench shell: nix develop .#bench.
+# Time frame writes through the export, from C, C++, Kotlin, Python, and Swift, and through moq's hand-written rs/moq-c, in the bench shell: nix develop .#bench.
 bench checkout="": (moq checkout)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -75,10 +75,11 @@ bench checkout="": (moq checkout)
         target/bench-export
         target/bench-export-cpp
         kotlin -Djava.library.path="$out/target/release" -cp "target/bench-kt:$KOTLINX_COROUTINES" ExportKt
+        PYTHONPATH="$out/python" python3 -P moq/bench/export.py
         if $swift; then target/bench-export-swift; fi
     done
 
-# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.swift against it, from the pinned moq revision or a checkout.
+# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, moq/moq.py, and moq/moq.swift against it, from the pinned moq revision or a checkout.
 moq checkout="": (moq-cpp checkout)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -90,6 +91,8 @@ moq checkout="": (moq-cpp checkout)
     rm -rf target/moq-kt
     kotlinc -Werror -cp "$KOTLINX_COROUTINES" "$out/kotlin/moq.kt" moq/moq.kt -d target/moq-kt
     kotlin -Djava.library.path="$out/target/release" -cp "target/moq-kt:$KOTLINX_COROUTINES" MoqKt
+    # The Python, through the CPython extension the python feature builds.
+    PYTHONPATH="$out/python" python3 -P -X dev -W error moq/moq.py
     if [ "{{ os() }}-{{ arch() }}" = linux-aarch64 ]; then
         echo "skipping moq/moq.swift: nixpkgs builds no Swift for aarch64-linux (quest/m2/uniffi-swift-arm.md)" >&2
     else
@@ -153,7 +156,17 @@ moq-export checkout="": (standin checkout)
     cp target/moq-ffi/Cargo.lock "$out/Cargo.lock"
     # A later nightly makes this future-compat lint a hard error; fail on it in moq's crates
     # and the glue now, while the pin can still move. rustc prints the native libraries.
-    RUSTFLAGS="-D recursion_depth_exceeding_limit --print=native-static-libs" cargo build --quiet --release --manifest-path "$out/Cargo.toml" --features kotlin 2>&1 | tee target/moq-build.log
+    export RUSTFLAGS="-D recursion_depth_exceeding_limit --print=native-static-libs"
+    # The CPython extension's symbols would leave the C programs' links undefined, so it
+    # builds apart, before the library they link, and moves beside the Python.
+    case "{{ os() }}" in
+        windows) lib=moq.dll ;;
+        macos) lib=libmoq.dylib ;;
+        *) lib=libmoq.so ;;
+    esac
+    cargo build --quiet --release --manifest-path "$out/Cargo.toml" --features python
+    mv "$out/target/release/$lib" "$out/python/$lib"
+    cargo build --quiet --release --manifest-path "$out/Cargo.toml" --features kotlin 2>&1 | tee target/moq-build.log
     sed -n 's/^note: native-static-libs: //p' target/moq-build.log > target/moq-native
 
 # Write target/moq-ffi, an empty library on every crate moq/ffi.toml exports, from the pinned moq revision or a checkout: the check builds with all of them, as moq-ffi's remainder will.

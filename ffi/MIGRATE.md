@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Every export writes `python/<prefix>.py`, so an export fails when two items take the same
+  Python name, such as a type `Foo` beside an error type's `FooException`, or when one
+  takes a name the Python's runtime uses unqualified, each starting with `_`: give it
+  another name with a `rename`. The crate it writes has a build script, and a `python`
+  feature that builds the CPython extension the Python loads.
 - Every export writes `swift/<prefix>.swift`, whose runtime claims the C names
   `<prefix>_atomic_load`, `<prefix>_atomic_store`, `<prefix>_atomic_add`,
   `<prefix>_atomic_exchange`, `<prefix>_atomic_cas`, and `<PREFIX>_ATOMICS_H`. An item that

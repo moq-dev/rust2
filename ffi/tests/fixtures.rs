@@ -1,7 +1,7 @@
 //! The api fixture is exported, built as a static library, and driven from C by
 //! `tests/api.c`, from C++ by `tests/api.cpp`, from Kotlin by `tests/api.kt` on the JVM
-//! and, shrunk by R8, on Android, and from Swift by `tests/api.swift`, whose transcripts must
-//! match the fixture's own script run natively.
+//! and, shrunk by R8, on Android, from Python by `tests/api.py`, and from Swift by
+//! `tests/api.swift`, whose transcripts must match the fixture's own script run natively.
 //! The reject fixture's export must fail at each item it cannot export.
 
 use std::env::consts::EXE_SUFFIX;
@@ -85,16 +85,27 @@ fn api() -> &'static Api {
 		// The workspace's lockfile pins what the export depends on.
 		std::fs::copy(manifest_dir().join("Cargo.lock"), out.join("Cargo.lock")).unwrap();
 		let target = scratch().join("api").join("glue");
-		let built = run(cargo()
-			.arg("build")
-			.arg("--quiet")
-			.arg("--manifest-path")
-			.arg(out.join("Cargo.toml"))
-			.arg("--target-dir")
-			.arg(&target)
-			.args(["--features", "kotlin"])
-			// Glue the exporter writes builds without warnings.
-			.env("RUSTFLAGS", "-D warnings --print=native-static-libs"));
+		let build = |feature: &str| {
+			run(cargo()
+				.arg("build")
+				.arg("--quiet")
+				.arg("--manifest-path")
+				.arg(out.join("Cargo.toml"))
+				.arg("--target-dir")
+				.arg(&target)
+				.args(["--features", feature])
+				// Glue the exporter writes builds without warnings.
+				.env("RUSTFLAGS", "-D warnings --print=native-static-libs"))
+		};
+		// The CPython extension's symbols would leave the C programs' links undefined, so
+		// it builds apart, before the library they link, and moves beside the Python.
+		build("python");
+		std::fs::rename(
+			target.join("debug").join(PYTHON_LIB),
+			out.join("python").join(PYTHON_LIB),
+		)
+		.unwrap();
+		let built = build("kotlin");
 		let native = String::from_utf8_lossy(&built.stderr)
 			.lines()
 			.find_map(|line| line.strip_prefix("note: native-static-libs: "))
@@ -472,6 +483,82 @@ fn kotlin(native: &str, vm: &dyn Fn(&[&str]) -> Command) {
 		let stderr = String::from_utf8_lossy(&output.stderr);
 		assert!(stderr.contains(message), "Kotlin {case} printed {stderr}");
 	}
+}
+
+/// The library `python/api.py` loads from beside itself.
+const PYTHON_LIB: &str = match (cfg!(windows), cfg!(target_os = "macos")) {
+	(true, _) => "api.dll",
+	(_, true) => "libapi.dylib",
+	_ => "libapi.so",
+};
+
+/// `tests/api.py`'s script, run by `PYTHON` or `python3`, prints the native transcript; then
+/// its futures, what frees what nobody closed, the values Python's types bound, and each
+/// contract it fails loud on.
+#[test]
+fn api_python() {
+	let api = api();
+	let python = |dir: &Path, args: &[&str]| {
+		let mut cmd = Command::new(std::env::var_os("PYTHON").unwrap_or_else(|| "python3".into()));
+		// `-P` keeps `tests/` off the path, where `api.py` is this script; dev mode and
+		// warnings as errors fail on what the runtime only warns of.
+		cmd.args(["-P", "-X", "dev", "-W", "error"])
+			.arg(manifest_dir().join("tests").join("api.py"))
+			.args(args)
+			.env("PYTHONPATH", dir);
+		cmd
+	};
+	let dir = api.out.join("python");
+	let py = run(&mut python(&dir, &[]));
+	assert_eq!(
+		String::from_utf8_lossy(&py.stdout),
+		api.transcript,
+		"the Python transcript differs from the native one"
+	);
+	for case in ["futures", "owned", "values"] {
+		run(&mut python(&dir, &[case]));
+	}
+	for (case, message) in [
+		("moved", "ValueError: Counter is closed"),
+		("boxed moved", "ValueError: Node is closed"),
+		("lent kept", "ValueError: Counter is closed"),
+		(
+			"lent moved",
+			"api_counter_into_label: a lent handle's value cannot move out",
+		),
+		("callback threw", "api_fixture::Log::log: a call into Python raised"),
+		("family", "ValueError: an IPv6 address has no Rust SocketAddrV4"),
+	] {
+		let output = python(&dir, &[case]).output().unwrap();
+		assert!(!output.status.success(), "Python {case} did not fail");
+		let stderr = String::from_utf8_lossy(&output.stderr);
+		assert!(stderr.contains(message), "Python {case} printed {stderr}");
+	}
+
+	// The same Python, with another contract than the library's in place of its own,
+	// refuses to load it.
+	let mismatched = scratch().join("api").join("python-mismatched");
+	let _ = std::fs::remove_dir_all(&mismatched);
+	std::fs::create_dir_all(&mismatched).unwrap();
+	std::fs::copy(dir.join(PYTHON_LIB), mismatched.join(PYTHON_LIB)).unwrap();
+	let source = std::fs::read_to_string(dir.join("api.py")).unwrap();
+	let at = source
+		.find("_n.contract() != 0x")
+		.expect("the Python checks its contract")
+		+ 19;
+	let flipped = match &source[at..at + 1] {
+		"0" => "1",
+		_ => "0",
+	};
+	let source = format!("{}{flipped}{}", &source[..at], &source[at + 1..]);
+	std::fs::write(mismatched.join("api.py"), source).unwrap();
+	let output = python(&mismatched, &[]).output().unwrap();
+	assert!(!output.status.success(), "a mismatched contract did not fail");
+	let stderr = String::from_utf8_lossy(&output.stderr);
+	assert!(
+		stderr.contains("api.py and the library are from different builds"),
+		"a mismatched contract printed {stderr}"
+	);
 }
 
 /// The contract a Kotlin file checks its library against.
