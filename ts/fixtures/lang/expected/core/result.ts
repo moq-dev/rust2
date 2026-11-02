@@ -13,6 +13,7 @@ import { eq$1horntk as float_parse_eq$1horntk } from "../core/num/float_parse.ts
 import { eq$1v93ipo as str_error_eq$1v93ipo, eq$1f3e51k as str_error_eq$1f3e51k } from "../core/str/error.ts";
 import { cmp$175ka5q as poll_cmp$175ka5q } from "../core/task/poll.ts";
 import { eq$0dhyfbb as time_eq$0dhyfbb } from "../core/time.ts";
+import type * as heap_Fault from "../heap.Fault.ts";
 import type * as locks_Tally from "../locks.Tally.ts";
 import * as Part from "../orders.Part.ts";
 import type * as returns_Error from "../returns.Error.ts";
@@ -716,6 +717,13 @@ export function mapOrElse$0jxx67n(self: rt.Result<rt.u8, rt.u16>, default_: (a0:
 		return f(self.value);
 	}
 	return default_(self.error);
+}
+
+export function mapErr$0fesv1f(self: rt.Result<rt.Layout, rt.LayoutError>, op: (a0: rt.LayoutError) => heap_Fault.Fault): rt.Result<rt.Layout, heap_Fault.Fault> {
+	if (self.ok) {
+		return self as rt.Result<rt.Layout, heap_Fault.Fault>;
+	}
+	return rt.Err(op(self.error));
 }
 
 export function mapErr$12w1s5x(self: rt.Result<rt.u32[], rt.u8>, _: (a0: rt.u8) => rt.u16): rt.Result<rt.u32[], rt.u16> {

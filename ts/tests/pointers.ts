@@ -55,17 +55,18 @@ unsure(() => {
 assert.equal(vec.length, 1);
 
 // Memory from `alloc`, which JS keeps as values once a cast types it: its bytes, typed as
-// values that don't fill it or as another type, and a pointer past the start of what it
-// holds cast back to bytes.
+// values that don't fill it or as another type of the same size, and a pointer past the
+// start of what it holds cast back to bytes.
 const block = rt.alloc({ size: 12, align: 4 });
 unsure(() => block.v);
-unsure(() => rt.allocAs(block, 8));
-const words = rt.allocAs<number>(block, 4);
-words.v = 1;
-assert.equal(rt.allocAs<number>(block, 4).v, 1);
-unsure(() => rt.allocAs(block, 2));
-unsure(() => rt.allocBytes(rt.ptrAdd(words, 1), 4));
+unsure(() => rt.allocAs(block, 8, "u64"));
+const words = rt.allocAs<number>(block, 4, "u32");
+words.v = 0xffffffff;
+assert.equal(rt.allocAs<number>(block, 4, "u32").v, 0xffffffff);
+unsure(() => rt.allocAs(block, 4, "i32"));
+unsure(() => rt.allocBytes(words, 4, "f32"));
+unsure(() => rt.allocBytes(rt.ptrAdd(words, 1), 4, "u32"));
 // Grown, it keeps its values, and resized to part of one, fails.
-const grown = rt.realloc(rt.allocBytes(words, 4), 16);
-assert.deepEqual(Array.from(grown.array ?? []), [1, undefined, undefined, undefined]);
+const grown = rt.realloc(rt.allocBytes(words, 4, "u32"), 16);
+assert.deepEqual(Array.from(grown.array ?? []), [0xffffffff, undefined, undefined, undefined]);
 unsure(() => rt.realloc(grown, 6));

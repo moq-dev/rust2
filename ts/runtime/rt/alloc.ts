@@ -59,13 +59,14 @@ export function fmtLayoutErrorDisplay(_: LayoutError, f: Formatter): FmtResult {
 }
 
 /**
- * Memory from `alloc`: `size` bytes, which hold the `T`s in `array` once a pointer to it
- * is cast to one to `T`s of `elem` bytes. A pointer to its bytes is the block.
+ * Memory from `alloc`: `size` bytes, which hold the values of type `type`, `elem` bytes
+ * each, in `array` once a cast of a pointer to it types it. A pointer to its bytes is the block.
  */
 export class Block implements Place<number> {
 	readonly size: number;
 	array: unknown[] | undefined;
 	elem = 0;
+	type = "";
 
 	constructor(size: number) {
 		this.size = size;
@@ -93,28 +94,31 @@ export function alloc(layout: Layout): Block {
 }
 
 /**
- * The pointer `p` to the bytes of a block, cast to one to the `T`s of `elem` bytes it
- * holds: the first of a new array of as many as fit, or of the array it holds already.
+ * The pointer `p` to the bytes of a block, cast to one to the values of Rust type `type`,
+ * `elem` bytes each, it holds: the first of a new array of as many as fit, or of the array
+ * it holds already, of values of that type.
  */
-export function allocAs<T>(p: Place<number>, elem: number): Place<T> {
+export function allocAs<T>(p: Place<number>, elem: number, type: string): Place<T> {
 	if (!(p instanceof Block)) {
 		throw new Error("rust2-ts: a pointer cast from one to bytes to one to values, which isn't memory from `alloc`");
 	}
 	if (!p.array) {
-		if (p.size % elem !== 0) throw new Error(`rust2-ts: memory from \`alloc\` of ${p.size} bytes, as values of ${elem}`);
+		if (p.size % elem !== 0) throw new Error(`rust2-ts: memory from \`alloc\` of ${p.size} bytes, as \`${type}\`s`);
 		p.array = new Array(p.size / elem);
 		p.elem = elem;
+		p.type = type;
 		BLOCKS.set(p.array, p);
 	}
-	if (p.elem !== elem) throw new Error(`rust2-ts: memory from \`alloc\` holding values of ${p.elem} bytes, as values of ${elem}`);
+	if (p.type !== type) throw new Error(`rust2-ts: memory from \`alloc\` holding \`${p.type}\`s, as \`${type}\`s`);
 	return new AtIndex(p.array as T[], 0);
 }
 
 /**
- * The pointer `p` to the first of the values of `elem` bytes memory from `alloc`, or a
- * `Vec`, holds, cast to one to its bytes: the block, which only `dealloc` and `realloc` take.
+ * The pointer `p` to the first of the values of Rust type `type`, `elem` bytes each, that
+ * memory from `alloc`, or a `Vec`, holds, cast to one to its bytes: the block, which only
+ * `dealloc` and `realloc` take.
  */
-export function allocBytes(p: Place<unknown>, elem: number): Block {
+export function allocBytes(p: Place<unknown>, elem: number, type: string): Block {
 	if (!(p instanceof AtIndex) || p.index !== 0 || !Array.isArray(p.array)) {
 		throw new Error("rust2-ts: a pointer cast to one to bytes, which isn't to the start of memory from `alloc` or a `Vec`'s");
 	}
@@ -125,8 +129,10 @@ export function allocBytes(p: Place<unknown>, elem: number): Block {
 		block = new Block(array.length * elem);
 		block.array = array;
 		block.elem = elem;
+		block.type = type;
 		BLOCKS.set(array, block);
 	}
+	if (block.type !== type) throw new Error(`rust2-ts: memory from \`alloc\` holding \`${block.type}\`s, as \`${type}\`s`);
 	return block;
 }
 
@@ -144,10 +150,11 @@ export function realloc(block: Block, size: usize): Block {
 	const next = new Block(size);
 	const array = block.array;
 	if (array) {
-		if (size % block.elem !== 0) throw new Error(`rust2-ts: memory from \`alloc\` of ${size} bytes, as values of ${block.elem}`);
+		if (size % block.elem !== 0) throw new Error(`rust2-ts: memory from \`alloc\` of ${size} bytes, as \`${block.type}\`s`);
 		next.array = array.slice(0, size / block.elem);
 		next.array.length = size / block.elem;
 		next.elem = block.elem;
+		next.type = block.type;
 		BLOCKS.set(next.array, next);
 		dealloc(block);
 	}

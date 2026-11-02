@@ -41,7 +41,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		};
 		let p = self.operand(op, span, out);
 		let size = crate::lower::iter::size_of(self.b, elem, span);
-		Some(Expr::rt(f, vec![p, size]))
+		// The type, not only its size: JS keeps `u32`s and `i32`s, for one, as the same numbers.
+		let elem = self.b.t.erased(elem);
+		Some(Expr::rt(f, vec![p, size, Expr::Str(elem.to_string())]))
 	}
 
 	/// A call of `cast` on a pointer, if it is a cast of memory from `alloc`, as [`Self::alloc_cast`] has it.

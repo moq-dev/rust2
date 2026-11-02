@@ -21,6 +21,7 @@ import * as Fixed from "./generics.Fixed.ts";
 import type * as generics_Run from "./generics.Run.ts";
 import type * as Ticked from "./generics.Ticked.ts";
 import * as Wrap from "./generics.Wrap.ts";
+import * as Spill from "./heap.Spill.ts";
 import type * as Bumped from "./iters.Bumped.ts";
 import type * as joins_Logged from "./joins.Logged.ts";
 import type * as Hop from "./keys.Hop.ts";
@@ -178,6 +179,10 @@ export function copy$Option_tuple2_ref_sync_Mutex_u8_u8(v: [rt.Mutex<rt.u8>, rt.
 
 export function copy$Option_tuple2_u64_u64(v: [rt.u64, rt.u64] | undefined): [rt.u64, rt.u64] | undefined {
 	return v === undefined ? v : copy$tuple2_u64_u64(v);
+}
+
+export function copy$Option_tuple2_u8_u16(v: [rt.u8, rt.u16] | undefined): [rt.u8, rt.u16] | undefined {
+	return v === undefined ? v : copy$tuple2_u8_u16(v);
 }
 
 export function copy$Option_tuple2_u8_u8(v: [rt.u8, rt.u8] | undefined): [rt.u8, rt.u8] | undefined {
@@ -1063,6 +1068,18 @@ export function drop$generics_Run_generics_Ticked(_1: generics_Run.Run<Ticked.Ti
 	} else if (_1.tag === "Fixed") {
 		rt.dropAll(_1.array as Ticked.Ticked[]);
 	}
+}
+
+export function drop$heap_Spill_Option_tuple2_u8_u16(_1: Spill.Spill<[rt.u8, rt.u16] | undefined>): void {
+	Spill.drop$ops_Drop_Option_tuple2_u8_u16(_1);
+}
+
+export function drop$heap_Spill_sync_Arc_u8(_1: Spill.Spill<rt.Arc<rt.u8>>): void {
+	Spill.drop$ops_Drop_sync_Arc_u8(_1);
+}
+
+export function drop$heap_Spill_u32(_1: Spill.Spill<rt.u32>): void {
+	Spill.drop$ops_Drop_u32(_1);
 }
 
 export function drop$pointers_List_String(_1: List.List<string>): void {
