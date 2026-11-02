@@ -516,6 +516,21 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				self.set_borrowed(&c, old, span, out);
 				done(Expr::undefined(), false)
 			}
+			// What `clone_from` leaves where the `&mut` borrows a boxed slice or text.
+			("Clone", "clone_from")
+				if targ(0).is_some_and(|t| {
+					library::box_slice(tcx, t).is_some() || t.boxed_ty().is_some_and(|t| t.is_str())
+				}) =>
+			{
+				let place = self.borrowed_place(&args[0].node, span, out)?;
+				let source = self.operand(&args[1].node, span, out);
+				let value = match library::box_slice(tcx, targ(0)?) {
+					Some(elem) => library::box_slice_clone_from(self.b, place.0.clone(), source, elem, span)?,
+					None => source,
+				};
+				self.set_borrowed(&place, value, span, out);
+				done(Expr::undefined(), false)
+			}
 			// `*self = source.clone()`, as std's `Clone` for a `T: Clone` has `clone_from` and
 			// its `ToOwned` has `clone_into`, cloning before it drops what it writes over. A
 			// list's maps, as it clones each element into one of its own nodes.
