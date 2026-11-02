@@ -104,8 +104,9 @@ pub fn spills(data: &[u8], out: &mut Vec<u8>) {
 	out.push(Arc::strong_count(&shared) as u8);
 }
 
-/// Storage of `MaybeUninit`s read and freed as what each holds, and memory with bytes past
-/// its last whole value, which `realloc` grows by too few bytes to hold one more.
+/// Storage of `MaybeUninit`s read and freed as what each holds, memory with bytes past its
+/// last whole value, which `realloc` grows by too few bytes to hold one more, and pointers
+/// freed through `cast`.
 pub fn remnants(data: &[u8], out: &mut Vec<u8>) {
 	let layout = Layout::array::<MaybeUninit<u32>>(data.len() + 1).unwrap();
 	let slots = NonNull::new(unsafe { alloc::alloc(layout) })
@@ -131,6 +132,22 @@ pub fn remnants(data: &[u8], out: &mut Vec<u8>) {
 	let kept = unsafe { [grown.as_ptr().read(), grown.as_ptr().add(1).read()] };
 	out.extend(kept.iter().flat_map(|x| x.to_le_bytes()));
 	unsafe { alloc::dealloc(grown.as_ptr() as *mut u8, Layout::from_size_align_unchecked(11, 4)) };
+
+	let one = Layout::new::<u8>();
+	let byte = NonNull::new(unsafe { alloc::alloc(one) })
+		.unwrap()
+		.cast::<MaybeUninit<u8>>();
+	unsafe { byte.as_ptr().write(MaybeUninit::new(first as u8)) };
+	let two = unsafe { alloc::realloc(byte.as_ptr().cast::<u8>(), one, 2) };
+	let two = NonNull::new(two).unwrap().cast::<MaybeUninit<u8>>();
+	unsafe {
+		two.as_ptr().add(1).write(MaybeUninit::new(7));
+		out.extend([
+			two.as_ptr().read().assume_init(),
+			two.as_ptr().add(1).read().assume_init(),
+		]);
+		alloc::dealloc(two.cast::<u8>().as_ptr(), Layout::array::<u8>(2).unwrap());
+	}
 }
 
 /// `Layout`s made of sizes and alignments up to wasm32's `isize::MAX`, and of arrays of

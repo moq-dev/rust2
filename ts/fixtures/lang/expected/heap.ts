@@ -96,8 +96,9 @@ export function spills(data: rt.ByteSlice, out: rt.ByteVec): void {
 }
 
 /**
- * Storage of `MaybeUninit`s read and freed as what each holds, and memory with bytes past
- * its last whole value, which `realloc` grows by too few bytes to hold one more.
+ * Storage of `MaybeUninit`s read and freed as what each holds, memory with bytes past its
+ * last whole value, which `realloc` grows by too few bytes to hold one more, and pointers
+ * freed through `cast`.
  */
 export function remnants(data: rt.ByteSlice, out: rt.ByteVec): void {
 	const pointer = rt.alloc(rt.resultUnwrap(rt.layoutArray(rt.usizeAdd(data.length, 1), 4, 4), rt.fmtLayoutErrorDebug));
@@ -130,6 +131,17 @@ export function remnants(data: rt.ByteSlice, out: rt.ByteVec): void {
 		return rt.u32ToBeBytes(x2).reverse();
 	}, (value: Uint8Array) => rt.iterSlice(value), false, 4), undefined, true);
 	rt.dealloc(rt.allocBytes(grown2, 4, "u32"));
+	const one: rt.Layout = { size: 1, align: 1 };
+	const pointer4 = rt.alloc(one);
+	const byte: rt.Place<rt.u8> = rt.allocAs(rt.optionUnwrap(pointer4 === rt.NULL ? undefined : pointer4), 1, "u8");
+	byte.v = first & 0xff;
+	const pointer5 = rt.realloc(rt.allocBytes(byte, 1, "u8"), 2);
+	const two2: rt.Place<rt.u8> = rt.allocAs(rt.optionUnwrap(pointer5 === rt.NULL ? undefined : pointer5), 1, "u8");
+	rt.ptrAdd(two2, 1).v = 7;
+	rt.iterExtendBytes(out, rt.iterSlice(Uint8Array.of(two2.v, rt.ptrAdd(two2, 1).v)), undefined, true);
+	const _107: rt.Place<rt.u8> = rt.allocBytes(two2, 1, "u8");
+	rt.resultUnwrap(rt.layoutArray(2, 1, 1), rt.fmtLayoutErrorDebug);
+	rt.dealloc(_107);
 }
 
 /**

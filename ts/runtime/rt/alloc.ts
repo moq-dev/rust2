@@ -136,17 +136,25 @@ export function allocBytes(p: Place<unknown>, elem: number, type: string): Block
 	return block;
 }
 
-/** `alloc::dealloc` of `block`, whose values JS frees once nothing holds them. */
-export function dealloc(block: Block): void {
+/** The block the pointer `p` to bytes, which `dealloc` or `realloc` takes, is. */
+function blockOf(p: Place<number>): Block {
+	if (!(p instanceof Block)) throw new Error("rust2-ts: memory freed or grown that isn't from `alloc`");
+	return p;
+}
+
+/** `alloc::dealloc` of the block `p`, whose values JS frees once nothing holds them. */
+export function dealloc(p: Place<number>): void {
+	const block = blockOf(p);
 	if (block.array) BLOCKS.delete(block.array);
 	block.array = undefined;
 }
 
 /**
- * `alloc::realloc` of `block` to `size` bytes: a new block holding the values the old one
+ * `alloc::realloc` of the block `p` to `size` bytes: a new block holding the values the old one
  * did, as many as fit, and holes past them, which Rust leaves uninitialized.
  */
-export function realloc(block: Block, size: usize): Block {
+export function realloc(p: Place<number>, size: usize): Block {
+	const block = blockOf(p);
 	const next = new Block(size);
 	const array = block.array;
 	if (array) {

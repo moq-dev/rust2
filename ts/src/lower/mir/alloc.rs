@@ -134,13 +134,28 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		})
 	}
 
-	/// Whether `arg` is read only here, and is the cast of `op` alone.
+	/// Whether `arg` is read only here, and is the cast of `op` alone, by `as` or `cast`,
+	/// and a `NonNull`'s through `as_ptr`.
 	fn cast_of(&self, arg: &Operand<'tcx>, op: &Operand<'tcx>) -> bool {
 		let Some(local): Option<Local> = arg.place().and_then(|p| p.as_local()) else {
 			return false;
 		};
-		self.uses[local] == 1
-			&& self.traced(arg).is_some()
-			&& matches!(self.def_rvalue(local), Some(Rvalue::Cast(mir::CastKind::PtrToPtr, cast, _)) if std::ptr::eq(cast, op))
+		if self.uses[local] != 1 || self.traced(arg).is_none() {
+			return false;
+		}
+		if self.def_at[local].is_some() {
+			return matches!(self.def_rvalue(local), Some(Rvalue::Cast(mir::CastKind::PtrToPtr, cast, _)) if std::ptr::eq(cast, op));
+		}
+		let Some((def_id, _, args)) = self.def_call(local) else {
+			return false;
+		};
+		match library::key(self.tcx, def_id) {
+			Some((owner, name)) => match (owner.as_str(), name.as_str()) {
+				("ptr" | "NonNull", "cast") => std::ptr::eq(&args[0].node, op),
+				("NonNull", "as_ptr") => self.cast_of(&args[0].node, op),
+				_ => false,
+			},
+			None => false,
+		}
 	}
 }
