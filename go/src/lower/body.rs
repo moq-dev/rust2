@@ -770,6 +770,12 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 		if !(ty.is_integral() || ty.is_char() || ty.is_raw_ptr() || ty.is_ref()) {
 			return self.err(span, format!("`{op:?}` of `{ty}`"));
 		}
+		// Go compares a pointer only by address, and a slice not at all.
+		if let Some(pointee) = ty.builtin_deref(true)
+			&& (!pointee.is_sized(self.tcx, self.t.env()) || !matches!(op, BinOp::Eq | BinOp::Ne))
+		{
+			return self.err(span, format!("`{op:?}` of `{ty}`"));
+		}
 		let sign = if signed { "S" } else { "U" };
 		match op {
 			BinOp::Add | BinOp::AddUnchecked => format!("({x} + {y})"),

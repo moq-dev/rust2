@@ -16,4 +16,6 @@ a type with a const parameter is not supported at library/core/src/array/iter.rs
 a scalar constant of type `f32` is not supported at fixtures/reject/src/lib.rs:50:2
 `Mul` of `f32` is not supported at fixtures/reject/src/lib.rs:50:2
 `Vec::capacity`, which Go's growth would make differ from Rust's is not supported at fixtures/reject/src/lib.rs:55:30
+`Eq` of `*const [u8]` is not supported at fixtures/reject/src/lib.rs:71:2
+`Lt` of `*const u8` is not supported at fixtures/reject/src/lib.rs:76:2
 an unsizing of `&mut std::array::iter::iter_inner::PolymorphicIter<[std::mem::MaybeUninit<u8>; 4]>` to `&mut std::array::iter::iter_inner::PolymorphicIter<[std::mem::MaybeUninit<u8>]>` is not supported at library/core/src/array/iter.rs:33:9

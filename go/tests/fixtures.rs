@@ -270,6 +270,25 @@ fn fmt() {
 	differential("fmt", fmt::run, "Run", cases);
 }
 
+/// Capacity requests either side of `isize::MAX` bytes, of zero-sized and sized elements,
+/// and constants' bytes. A sized request that fits would only abort natively, out of memory.
+#[test]
+fn vecs() {
+	let mut cases = Vec::new();
+	for capacity in [0u64, 1, 4, 1 << 59, (1 << 60) - 1, 1 << 60, 1 << 63, u64::MAX] {
+		for pick in 0..2u8 {
+			if pick == 1 && (4..(1 << 60)).contains(&capacity) {
+				continue;
+			}
+			let mut case = vec![pick];
+			case.extend_from_slice(&capacity.to_be_bytes());
+			cases.push(case);
+		}
+	}
+	cases.push(vec![2]);
+	differential("vecs", vecs::run, "Run", cases);
+}
+
 /// Constructs outside the subset each fail translation with a span, as
 /// `fixtures/reject/expected.txt` lists them, and no output is written.
 #[test]

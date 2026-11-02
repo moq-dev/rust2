@@ -181,16 +181,16 @@ pub fn call<'tcx>(
 	dest_ty: Ty<'tcx>,
 	span: Span,
 ) -> Option<Bound> {
-	// An intrinsic's operator applies to its arguments as they are, which Go would fold.
-	let intrinsic = matches!(instance.def, InstanceKind::Intrinsic(_));
+	let tys: Vec<Ty<'tcx>> = args.iter().map(|op| op.ty(fx.mir_decls(), fx.tcx)).collect();
+	// A binding converts and operates on its integers as they are, which Go would fold.
 	let a: Vec<String> = args
 		.iter()
-		.map(|op| match intrinsic {
+		.zip(&tys)
+		.map(|(op, ty)| match ty.is_integral() {
 			true => fx.runtime(op, span),
 			false => fx.operand(op, span),
 		})
 		.collect();
-	let tys: Vec<Ty<'tcx>> = args.iter().map(|op| op.ty(fx.mir_decls(), fx.tcx)).collect();
 	call_with(fx, instance, a, &tys, dest_ty, span)
 }
 

@@ -65,3 +65,13 @@ pub fn linked(value: u8) -> u8 {
 	let node = Node { next: None, value };
 	node.value
 }
+
+/// Go compares a slice's pointer and length not at all.
+pub fn compared(a: *const [u8], b: *const [u8]) -> bool {
+	a == b
+}
+
+/// Go orders no pointers.
+pub fn ordered(a: *const u8, b: *const u8) -> bool {
+	a < b
+}

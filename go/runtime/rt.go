@@ -285,7 +285,11 @@ func vecPop[T any](v *[]T) Option[T] {
 // panics where Rust's would allocate more than `isize::MAX` bytes. Its capacity is only a
 // hint: Go's growth is not Rust's, so the translation reads no capacity back.
 func vecWithCapacity[T any](n uint, size uint64) []T {
-	if size != 0 && uint64(n) > (1<<63-1)/size {
+	if size == 0 {
+		// Rust allocates nothing for any capacity of these.
+		return make([]T, 0)
+	}
+	if uint64(n) > (1<<63-1)/size {
 		panic(RustPanic{"capacity overflow"})
 	}
 	return make([]T, 0, n)

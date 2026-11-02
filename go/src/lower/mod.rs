@@ -27,19 +27,24 @@ const RUNTIME: &[(&str, &str)] = &[
 ];
 
 /// The names a runtime file declares at the package level, which translated items must
-/// not take: each `func` but a method, `type`, `var`, and `const`, alone or grouped.
+/// not take: each `func` but a method, `type`, `var`, `const`, and `import`, alone or
+/// grouped, an import by its path's last element.
 fn runtime_names(text: &str) -> Vec<String> {
 	let ident = |s: &str| -> String {
 		s.chars()
 			.take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
 			.collect()
 	};
+	let declared = |s: &str| match s.strip_prefix('"') {
+		Some(path) => ident(path.rsplit('/').next().unwrap_or_default()),
+		None => ident(s),
+	};
 	let mut names = Vec::new();
 	let mut group = false;
 	for line in text.lines() {
 		if group {
 			match line.strip_prefix('\t') {
-				Some(rest) => names.push(ident(rest)),
+				Some(rest) => names.push(declared(rest)),
 				None => group = line != ")",
 			}
 			continue;
@@ -48,9 +53,9 @@ fn runtime_names(text: &str) -> Vec<String> {
 			continue;
 		};
 		match (keyword, rest) {
-			("type" | "var" | "const", "(") => group = true,
+			("type" | "var" | "const" | "import", "(") => group = true,
 			("func", rest) if rest.starts_with('(') => {}
-			("func" | "type" | "var" | "const", rest) => names.push(ident(rest)),
+			("func" | "type" | "var" | "const" | "import", rest) => names.push(declared(rest)),
 			_ => {}
 		}
 	}
@@ -289,6 +294,11 @@ mod tests {
 			"alignCenter",
 			"Option",
 			"Formatter",
+			"binary",
+			"bits",
+			"fmt",
+			"utf8",
+			"strconv",
 		] {
 			assert!(names.contains(name), "{name} is not reserved");
 		}
