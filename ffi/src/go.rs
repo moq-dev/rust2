@@ -1050,8 +1050,9 @@ impl<'a> Gen<'a> {
 		for method in &callback.methods {
 			let member = pascal(&abi::snake(method.name()));
 			members.push(member.clone());
-			let params: Vec<String> = (method.params.iter())
-				.map(|p| format!("{} {}", local(&p.name), self.go(&p.ty)))
+			let names = locals(method.params.iter().map(|p| p.name.as_str()));
+			let params: Vec<String> = (method.params.iter().zip(&names))
+				.map(|(p, name)| format!("{name} {}", self.go(&p.ty)))
 				.collect();
 			let ret = match method.ok {
 				Type::Unit => String::new(),
@@ -1277,12 +1278,13 @@ impl<'a> Gen<'a> {
 		if function.future {
 			params.push(("ctx".to_string(), "context.Context".to_string()));
 		}
-		for (k, param) in function.params.iter().enumerate() {
+		let names = locals(function.params.iter().map(|p| p.name.as_str()));
+		for (k, (param, name)) in function.params.iter().zip(&names).enumerate() {
 			let (_, c) = c_params.next().expect("each parameter has its C one");
 			if let Type::Closure(..) = param.ty {
 				c_params.next().expect("a closure has its data");
 			}
-			let name = local(&param.name);
+			let name = name.clone();
 			params.push((name.clone(), self.go(&param.ty)));
 			if moved(abi, &param.ty) {
 				after.push(self.close(&param.ty, &name, 0));
@@ -1424,9 +1426,8 @@ impl<'a> Gen<'a> {
 		}
 
 		let mut text = function.docs.clone();
-		for param in &function.params {
+		for (param, name) in function.params.iter().zip(&names) {
 			if let Type::Closure(lent, _) = &param.ty {
-				let name = local(&param.name);
 				text.push_str(&format!("\n\nRust calls {name} only during the call, from any goroutine's thread."));
 				if lent.iter().any(|p| matches!(p.base(), Type::Object(_))) {
 					text.push_str(&format!(
@@ -1669,6 +1670,25 @@ fn local(name: &str) -> String {
 		true => format!("{camel}_"),
 		false => camel,
 	}
+}
+
+/// The Go names of parameters, each [`local`], distinct even where Rust's differ only in
+/// underscores: a later one takes the lowest free number after it.
+fn locals<'a>(names: impl IntoIterator<Item = &'a str>) -> Vec<String> {
+	let names: Vec<String> = names.into_iter().map(local).collect();
+	let mut taken: BTreeSet<String> = BTreeSet::new();
+	(names.iter())
+		.map(|name| {
+			let mut unique = name.clone();
+			let mut n = 2;
+			while taken.contains(&unique) || (unique != *name && names.contains(&unique)) {
+				unique = format!("{name}{n}");
+				n += 1;
+			}
+			taken.insert(unique.clone());
+			unique
+		})
+		.collect()
 }
 
 /// A C field as cgo names it: one Go reads as a keyword takes a leading `_`.
