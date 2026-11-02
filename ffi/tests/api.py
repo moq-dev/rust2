@@ -556,6 +556,21 @@ def futures():
 		pass
 	check(text(loop.run_until_complete(asyncio.wait_for(channel.recv(), 5))) == "once", "the send landed once")
 
+	# Python run while a closing future is freed, as by its drop's callback, finds it ended.
+	class Polls(api.Log):
+		def log(self, level, line):
+			return True
+
+		def close(self):
+			try:
+				later.poll(api._n.Queue())
+				check(False, "a future polled while it is freed raises")
+			except ValueError:
+				pass
+
+	later = api.log_later(Polls())
+	later.close()
+
 	# A waker woken from another thread calls back on its loop, once for wakes that land
 	# before the loop gets to them.
 	wakes = []

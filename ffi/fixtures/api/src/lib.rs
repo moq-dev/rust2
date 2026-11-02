@@ -574,6 +574,12 @@ pub fn filter(lines: Vec<u8>, mut keep: impl FnMut(u8, &str) -> bool + Send) -> 
 	})
 }
 
+/// Logs a line once polled, returning whether it was kept: the future holds `log` until it
+/// is dropped.
+pub fn log_later(log: Box<dyn Log>) -> impl Future<Output = bool> + use<> {
+	async move { log.log(0, "later") }
+}
+
 /// Holds a foreign implementation as a trait object, dropping it with itself.
 pub struct Logger {
 	sink: Box<dyn Log>,

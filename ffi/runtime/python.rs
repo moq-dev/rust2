@@ -1480,11 +1480,12 @@ unsafe fn future_close(future: *mut Future) {
 			(*future).closing = true;
 			return;
 		}
+		// Ended before the free releases the GIL, as Python may run during it.
+		(*future).poll = None;
 		if let Some(free) = (*future).free.take() {
 			let raw = std::mem::replace(&mut (*future).raw, null_mut());
 			call(|| free(raw));
 		}
-		(*future).poll = None;
 		(*future).node = None;
 		for held in std::mem::take(&mut (*future).held) {
 			release(held.ptr().cast());
