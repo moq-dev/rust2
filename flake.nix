@@ -297,8 +297,10 @@
               typescript
               bun
               esbuild
-              # rust2-ffi's tests compile its generated Kotlin and run it on the JVM.
+              # rust2-ffi's tests compile its generated Kotlin and run it on the JVM, and its
+              # generated Go through cgo.
               kotlin
+              go
             ];
             RUST2_TS_TOOLCHAIN = tsToolchain;
             RUST2_TS_SYSROOT = rust2-ts-std;
