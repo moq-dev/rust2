@@ -117,22 +117,31 @@ extension Native {
 		buf.ptr == nil ? nil : string(lent: buf)
 	}
 
-	/// A path Rust returned, which on Unix may hold bytes no `String` holds: those trap.
+	/// A path Rust returned, copied, then freed.
 	static func path(_ buf: Buf) -> Swift.String {
 		defer { free(buf) }
+		return path(lent: buf)
+	}
+
+	static func path(option buf: Buf) -> Swift.String? {
+		buf.ptr == nil ? nil : path(buf)
+	}
+
+	/// A path from Rust, copied, which on Unix may hold bytes no `String` holds: those trap.
+	static func path(lent buf: Buf) -> Swift.String {
 		var bytes = UnsafeBufferPointer(start: buf.ptr, count: buf.len).makeIterator()
 		var parser = Unicode.UTF8.ForwardParser()
 		while true {
 			switch parser.parseScalar(from: &bytes) {
 			case .valid: continue
 			case .emptyInput: return string(lent: buf)
-			case .error: fatalError("a path Rust returned is not UTF-8")
+			case .error: fatalError("a path from Rust is not UTF-8")
 			}
 		}
 	}
 
-	static func path(option buf: Buf) -> Swift.String? {
-		buf.ptr == nil ? nil : path(buf)
+	static func path(lentOption buf: Buf) -> Swift.String? {
+		buf.ptr == nil ? nil : path(lent: buf)
 	}
 
 	static func scalar(_ code: UInt32) -> Unicode.Scalar {
@@ -142,12 +151,29 @@ extension Native {
 		return scalar
 	}
 
+	/// Rust's longest `Duration`: `u64::MAX` seconds and 999,999,999 nanoseconds.
+	static var longest: Swift.Duration {
+		.seconds(Int64.max) * 2 + .seconds(1) + .nanoseconds(999_999_999)
+	}
+
 	static func duration(_ value: Swift.Duration) -> CDuration {
-		let (secs, attos) = value.components
-		if secs < 0 || attos < 0 {
+		if value < .zero {
 			fatalError("a negative duration has no Rust Duration")
 		}
-		return CDuration(secs: UInt64(secs), nanos: UInt32(attos / 1_000_000_000))
+		if value > longest {
+			fatalError("a duration past Rust's Duration::MAX")
+		}
+		// In halves, since `components` gives Int64's seconds, and Rust's are UInt64's.
+		let half = value / 2
+		let (secs, attos) = half.components
+		let odd = (value - half * 2).components.attoseconds
+		var nanos = (attos * 2 + odd) / 1_000_000_000
+		var whole = UInt64(secs) * 2
+		if nanos >= 1_000_000_000 {
+			nanos -= 1_000_000_000
+			whole += 1
+		}
+		return CDuration(secs: whole, nanos: UInt32(nanos))
 	}
 
 	static func duration(_ value: CDuration) -> Swift.Duration {
@@ -433,6 +459,8 @@ extension Native {
 		_ poll: (OpaquePointer?, CWaker) throws -> T?
 	) async throws -> T {
 		defer { free(raw) }
+		// A task cancelled already takes nothing, even what is ready.
+		try Task.checkCancellation()
 		if let output = try poll(raw, idle) {
 			return output
 		}

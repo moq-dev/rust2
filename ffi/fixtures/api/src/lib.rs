@@ -1326,6 +1326,17 @@ pub fn stray() -> std::path::PathBuf {
 	]))
 }
 
+/// Lends [`stray`]'s path to `visit`.
+#[cfg(unix)]
+pub fn visit_stray(visit: impl Fn(&std::path::Path)) {
+	visit(&stray());
+}
+
+/// `duration` plus `by`, unless past [`Duration::MAX`]: Rust's seconds are a `u64`.
+pub fn extended(duration: Duration, by: Duration) -> Option<Duration> {
+	duration.checked_add(by)
+}
+
 /// Each path's parent, if it has one.
 pub fn parents(paths: Vec<std::path::PathBuf>) -> Vec<Option<std::path::PathBuf>> {
 	paths

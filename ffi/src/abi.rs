@@ -371,7 +371,7 @@ impl<'a> Abi<'a> {
 	}
 
 	/// A type's name within the prefix, for naming the structs and instances built from it.
-	fn key(&self, ty: &Type) -> String {
+	pub fn key(&self, ty: &Type) -> String {
 		let strip = |name: String| name[self.prefix.len() + 1..].to_string();
 		match ty {
 			Type::Unit => "unit".to_string(),

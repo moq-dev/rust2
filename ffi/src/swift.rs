@@ -427,10 +427,12 @@ impl<'a> Gen<'a> {
 	/// for its call: bytes and text copied, and a scalar as it is.
 	fn lift_lent(&mut self, ty: &Type, e: &str) -> String {
 		match ty {
-			Type::Str | Type::String | Type::Path | Type::PathBuf => format!("Native.string(lent: {e})"),
+			Type::Str | Type::String => format!("Native.string(lent: {e})"),
+			Type::Path | Type::PathBuf => format!("Native.path(lent: {e})"),
 			Type::Slice | Type::Vec | Type::Bytes => format!("Native.data(lent: {e})"),
 			Type::Option(inner) => match inner.base() {
-				Type::Str | Type::String | Type::Path | Type::PathBuf => format!("Native.string(lentOption: {e})"),
+				Type::Str | Type::String => format!("Native.string(lentOption: {e})"),
+				Type::Path | Type::PathBuf => format!("Native.path(lentOption: {e})"),
 				Type::Slice | Type::Vec | Type::Bytes => format!("Native.data(lentOption: {e})"),
 				_ => self.lift(ty, e),
 			},
@@ -1272,13 +1274,9 @@ impl<'a> Gen<'a> {
 				Thrown::Itself
 			}
 			_ => {
+				// Named by its key, as its C structs are, so two types never share one.
+				let name = format!("{}Error", pascal(&self.abi.key(err)));
 				let sw = self.sw(err);
-				let stripped: String = sw
-					.trim_start_matches("Swift.")
-					.chars()
-					.filter(|c| c.is_ascii_alphanumeric())
-					.collect();
-				let name = format!("{stripped}Error");
 				if !self.thrown.contains_key(&name) {
 					self.claim(&name, format!("the error of `{sw}`"));
 					self.thrown.insert(name.clone(), err.clone());

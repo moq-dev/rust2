@@ -305,6 +305,12 @@ func script() {
 		print(describe(event))
 	}
 	check(advance(.init_(1)) == .init_(0) && advance(.init_(0)) == .done, "a variant named init crosses")
+	// Rust's seconds are a u64, past Int64's that Swift's components give.
+	let rustMax = Duration.seconds(Int64.max) * 2 + .seconds(1) + .nanoseconds(999_999_999)
+	let past = Duration.seconds(Int64.max) + .seconds(1)
+	check(extended(past, past - .nanoseconds(1)) == rustMax, "a duration past Int64's seconds crosses")
+	check(extended(rustMax - .nanoseconds(3), .nanoseconds(3)) == rustMax, "Rust's longest duration crosses")
+	check(extended(rustMax, .nanoseconds(1)) == nil, "Rust refuses a duration past its longest")
 
 	// A `Copy` handle passed by value is copied, so it stays usable.
 	let stamp = Stamp.fromMillis(2500)
@@ -579,6 +585,24 @@ func futures() {
 		check(text(payload) == "kept", "a cancelled receive loses nothing")
 	}
 
+	// A task cancelled before its call takes nothing, even a payload ready at the first poll.
+	do {
+		let threw = Cell(false)
+		channel.send(Data("ready".utf8))
+		let task = q.launch {
+			do {
+				_ = try await channel.recv()
+			} catch is CancellationError {
+				threw.value = true
+			}
+		}
+		task.cancel()
+		q.drain()
+		check(threw.value, "a cancelled task's receive throws")
+		let payload = block { try await channel.recv() }
+		check(text(payload) == "ready", "a cancelled task's receive takes nothing")
+	}
+
 	// Cancelling a task that waits for no wake resumes it.
 	do {
 		let threw = Cell(false)
@@ -681,6 +705,8 @@ func broken(_ which: String) {
 	// No String holds a path that is not UTF-8.
 	case "stray":
 		_ = stray()
+	case "lent stray":
+		visitStray { _ in }
 	default:
 		check(false, "no case \(which)")
 	}
