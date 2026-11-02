@@ -334,8 +334,18 @@ pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 		let dangling = NonNull::<u16>::dangling().as_ptr();
 		out.push(dangling.wrapping_sub(1).is_null() as u8);
 		out.push(dangling.wrapping_add(usize::MAX).is_null() as u8);
-		out.push(dangling.wrapping_sub(usize::from(n)).wrapping_add(usize::from(n)).is_null() as u8);
-		out.push(NonNull::<u64>::dangling().as_ptr().wrapping_offset(isize::from(n % 3) - 1).is_null() as u8);
+		out.push(
+			dangling
+				.wrapping_sub(usize::from(n))
+				.wrapping_add(usize::from(n))
+				.is_null() as u8,
+		);
+		out.push(
+			NonNull::<u64>::dangling()
+				.as_ptr()
+				.wrapping_offset(isize::from(n % 3) - 1)
+				.is_null() as u8,
+		);
 	}
 }
 
