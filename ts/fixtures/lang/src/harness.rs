@@ -276,6 +276,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("refs::adapted", |_, data, out| refs::adapted(data, out)),
 		("borrows::maps", |_, data, out| borrows::maps(data, out)),
 		("locks::mapped", |_, data, out| locks::mapped(data, out)),
+		("boxes::impls", boxes::impls),
 		("conversions::conversions", conversions::conversions),
 		("borrows::tries", |_, data, out| borrows::tries(data, out)),
 		("locks::mutex_mapped", |_, data, out| locks::mutex_mapped(data, out)),
