@@ -29,9 +29,9 @@ export function vecs(data: rt.ByteSlice, out: rt.ByteVec): void {
 	emit(rt.ptrSlice(p, len), out);
 	const end: rt.Place<rt.u32> = rt.ptrAdd(p, len);
 	const last: rt.Place<rt.u32> = rt.ptrAdd(end, -1);
-	const _54: rt.Place<rt.u32> = rt.ptrWrappingAdd(last, -1, 4);
+	const _54: rt.Place<rt.u32> = rt.ptrWrappingAdd(last, -1, 4, 4);
 	_54.v = rt.u32Add(_54.v, 1);
-	const _56: rt.Place<rt.u32> = rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, 1, 4), -1, 4);
+	const _56: rt.Place<rt.u32> = rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, 1, 4, 4), -1, 4, 4);
 	_56.v = rt.u32Add(_56.v, 5);
 	rt.byteVecPush(out, rt.ptrOffsetFrom(end, p) & 0xff);
 	rt.byteVecPush(out, rt.ptrOffsetFrom(p, last) & 0xff);
@@ -204,7 +204,8 @@ export function inline(data: rt.ByteSlice, out: rt.ByteVec): void {
  * Pointers wrapped around wasm32's 32-bit addresses and back, to a value in no array, as
  * the array of one Rust treats it as, and into a mutable part of an array, measured from
  * the array, the pointer an empty slice keeps, within a shared part, which JS copies,
- * memory nothing wrote copied, null moved and back, and the crate's functions named as std's.
+ * memory nothing wrote copied, null and dangling pointers moved by address, and the crate's
+ * functions named as std's.
  */
 export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 	let _189!: rt.Result<[rt.u32, rt.u32], rt.u8>;
@@ -213,11 +214,11 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 		const bytes: Uint8Array = Uint8Array.of(n, 1, 2, 3);
 		const p: rt.Place<rt.u8> = rt.byteSliceAsPtr(rt.byteSliceFrom(bytes));
 		const q: rt.Place<rt.u16> = rt.sliceAsPtr([n as rt.u16, 7, 8]);
-		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, 4294967295, 1), 1, 1).v);
-		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, 2147483648, 1), 2147483648, 1).v);
-		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, -4294967295, 1), -1, 1).v);
-		rt.iterExtendBytes(out, rt.iterSlice(rt.u16ToBeBytes(rt.ptrWrappingAdd(rt.ptrWrappingAdd(q, 2147483648, 2), 1, 2).v).reverse()), undefined, true);
-		rt.iterExtendBytes(out, rt.iterSlice(rt.u16ToBeBytes(rt.ptrWrappingAdd(rt.ptrWrappingAdd(rt.ptrWrappingAdd(q, 3221225472, 2), 1 << 30, 2), 2, 2).v).reverse()), undefined, true);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, 4294967295, 1, 1), 1, 1, 1).v);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, 2147483648, 1, 1), 2147483648, 1, 1).v);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(p, -4294967295, 1, 1), -1, 1, 1).v);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u16ToBeBytes(rt.ptrWrappingAdd(rt.ptrWrappingAdd(q, 2147483648, 2, 2), 1, 2, 2).v).reverse()), undefined, true);
+		rt.iterExtendBytes(out, rt.iterSlice(rt.u16ToBeBytes(rt.ptrWrappingAdd(rt.ptrWrappingAdd(rt.ptrWrappingAdd(q, 3221225472, 2, 2), 1 << 30, 2, 2), 2, 2, 2).v).reverse()), undefined, true);
 		let lone: rt.u32 = rt.u32Add(n as rt.u32, 42);
 		const at: rt.Place<rt.u32> = rt.place(() => lone, (value) => lone = value);
 		const _63: rt.u32[] = rt.ptrSlice(at, 1);
@@ -282,9 +283,14 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 		}
 		rt.byteVecPush(out, _195);
 		const null_: rt.Place<rt.u32> = rt.NULL;
-		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(null_, 1, 4), -1, 4) === rt.NULL ? 1 : 0);
-		rt.byteVecPush(out, rt.ptrWrappingAdd(null_, n as rt.usize, 4) === rt.NULL ? 1 : 0);
-		rt.byteVecPush(out, rt.ptrWrappingAdd(null_, 1 << 30, 4) === rt.NULL ? 1 : 0);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(null_, 1, 4, 4), -1, 4, 4) === rt.NULL ? 1 : 0);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(null_, n as rt.usize, 4, 4) === rt.NULL ? 1 : 0);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(null_, 1 << 30, 4, 4) === rt.NULL ? 1 : 0);
+		const dangling: rt.Place<rt.u16> = rt.DANGLING;
+		rt.byteVecPush(out, rt.ptrWrappingAdd(dangling, -1, 2, 2) === rt.NULL ? 1 : 0);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(dangling, 4294967295, 2, 2) === rt.NULL ? 1 : 0);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(dangling, -((n as rt.usize)), 2, 2), n as rt.usize, 2, 2) === rt.NULL ? 1 : 0);
+		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.DANGLING, rt.isizeSub(rt.u8Rem(n, 3) as rt.isize, 1), 8, 8) === rt.NULL ? 1 : 0);
 	}
 }
 
