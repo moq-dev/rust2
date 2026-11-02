@@ -3,7 +3,7 @@
 import * as rt from "./rt.ts";
 import { drop$heap_Spill_Option_tuple2_u8_u16, drop$heap_Spill_sync_Arc_u8, drop$heap_Spill_u32 } from "./lib.ts";
 import { thenSome$0j2n934 } from "./core/bool.ts";
-import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, mapOr$0hi5qhf as option_mapOr$0hi5qhf, okOr$169x1m6 as option_okOr$169x1m6 } from "./core/option.ts";
+import { unwrapOr$0r2bmpr as option_unwrapOr$0r2bmpr, mapOr$0hi5qhf as option_mapOr$0hi5qhf, mapOr$1qo6t0j as option_mapOr$1qo6t0j, okOr$169x1m6 as option_okOr$169x1m6 } from "./core/option.ts";
 import { mapErr$0fesv1f as result_mapErr$0fesv1f } from "./core/result.ts";
 import * as heap_Fault from "./heap.Fault.ts";
 import * as Spill from "./heap.Spill.ts";
@@ -93,6 +93,43 @@ export function spills(data: rt.ByteSlice, out: rt.ByteVec): void {
 	drop$heap_Spill_Option_tuple2_u8_u16(pairs);
 	drop$heap_Spill_u32(ints);
 	shared[Symbol.dispose]();
+}
+
+/**
+ * Storage of `MaybeUninit`s read and freed as what each holds, and memory with bytes past
+ * its last whole value, which `realloc` grows by too few bytes to hold one more.
+ */
+export function remnants(data: rt.ByteSlice, out: rt.ByteVec): void {
+	const pointer = rt.alloc(rt.resultUnwrap(rt.layoutArray(rt.usizeAdd(data.length, 1), 4, 4), rt.fmtLayoutErrorDebug));
+	const slots: rt.Place<rt.u32> = rt.allocAs(rt.optionUnwrap(pointer === rt.NULL ? undefined : pointer), 4, "u32");
+	const iter: rt.Iter<[rt.usize, rt.u8]> = rt.iterEnumerate(rt.iterSlice(rt.byteSliceView(data)));
+	while (true) {
+		const _16: [rt.usize, rt.u8] | rt.Done = iter.next();
+		if (_16 === rt.DONE) {
+			break;
+		}
+		const i: rt.usize = _16[0];
+		const b: rt.u8 = _16[1];
+		rt.ptrAdd(slots, i).v = (((((b as rt.u32)) << 8) >>> 0) | 1) >>> 0;
+	}
+	const words: rt.Place<rt.u32> = slots;
+	rt.iterExtendBytes(out, rt.iterFlatMap(rt.iterSlice(rt.ptrSlice(words, data.length)), (x: rt.u32): Uint8Array => {
+		return rt.u32ToBeBytes(x).reverse();
+	}, (value: Uint8Array) => rt.iterSlice(value), false, 4), undefined, true);
+	rt.dealloc(rt.allocBytes(words, 4, "u32"));
+	const pointer2 = rt.alloc(rt.resultUnwrap(rt.layoutFromSizeAlign(9, 4), rt.fmtLayoutErrorDebug));
+	const pair: rt.Place<rt.u32> = rt.allocAs(rt.optionUnwrap(pointer2 === rt.NULL ? undefined : pointer2), 4, "u32");
+	const first: rt.u32 = option_mapOr$1qo6t0j(rt.byteSliceFirst(data), 0, (a0: rt.u8): rt.u32 => {
+		return a0 as rt.u32;
+	});
+	pair.v = first;
+	rt.ptrAdd(pair, 1).v = rt.u32Mul(first, 3);
+	const pointer3 = rt.realloc(rt.allocBytes(pair, 4, "u32"), 11);
+	const grown2: rt.Place<rt.u32> = rt.allocAs(rt.optionUnwrap(pointer3 === rt.NULL ? undefined : pointer3), 4, "u32");
+	rt.iterExtendBytes(out, rt.iterFlatMap(rt.iterSlice([grown2.v, rt.ptrAdd(grown2, 1).v]), (x2: rt.u32): Uint8Array => {
+		return rt.u32ToBeBytes(x2).reverse();
+	}, (value: Uint8Array) => rt.iterSlice(value), false, 4), undefined, true);
+	rt.dealloc(rt.allocBytes(grown2, 4, "u32"));
 }
 
 /**

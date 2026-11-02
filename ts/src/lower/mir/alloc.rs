@@ -43,7 +43,8 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		let p = self.operand(op, span, out);
 		let size = crate::lower::iter::size_of(self.b, elem, span);
 		// The type, not only its size: JS keeps `u32`s and `i32`s, for one, as the same numbers.
-		let elem = self.b.t.erased(elem);
+		// A `MaybeUninit` is what it holds, as a cast between them keeps the pointer.
+		let elem = self.b.t.erased(self.b.t.uninit_inner(elem));
 		Some(Expr::rt(f, vec![p, size, Expr::Str(elem.to_string())]))
 	}
 
@@ -57,7 +58,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		out: &mut Vec<Stmt>,
 	) -> Option<Expr> {
 		let (owner, name) = library::key(self.tcx, def_id)?;
-		if !matches!(owner.as_str(), "ptr" | "NonNull") || name != "cast" {
+		if !library::is_std(self.tcx, def_id) || !matches!(owner.as_str(), "ptr" | "NonNull") || name != "cast" {
 			return None;
 		}
 		let mut types = gargs.types();

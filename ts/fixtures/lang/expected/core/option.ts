@@ -1513,6 +1513,13 @@ export function mapOr$1m2xzon(self: rt.u8 | undefined, default_: boolean, f: (a0
 	return f(self);
 }
 
+export function mapOr$1qo6t0j(self: rt.u8 | undefined, default_: rt.u32, _: (a0: rt.u8) => rt.u32): rt.u32 {
+	if (self === undefined) {
+		return default_;
+	}
+	return self as rt.u32;
+}
+
 export function mapOr$18ph0j9(self: undefined | rt.None, default_: rt.u8, f: (a0: undefined) => rt.u8): rt.u8 {
 	if (self === rt.None) {
 		return default_;

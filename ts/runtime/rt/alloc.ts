@@ -102,9 +102,9 @@ export function allocAs<T>(p: Place<number>, elem: number, type: string): Place<
 	if (!(p instanceof Block)) {
 		throw new Error("rust2-ts: a pointer cast from one to bytes to one to values, which isn't memory from `alloc`");
 	}
+	// As many as fit, past which bytes nothing can read are left over.
 	if (!p.array) {
-		if (p.size % elem !== 0) throw new Error(`rust2-ts: memory from \`alloc\` of ${p.size} bytes, as \`${type}\`s`);
-		p.array = new Array(p.size / elem);
+		p.array = new Array(Math.floor(p.size / elem));
 		p.elem = elem;
 		p.type = type;
 		BLOCKS.set(p.array, p);
@@ -150,9 +150,9 @@ export function realloc(block: Block, size: usize): Block {
 	const next = new Block(size);
 	const array = block.array;
 	if (array) {
-		if (size % block.elem !== 0) throw new Error(`rust2-ts: memory from \`alloc\` of ${size} bytes, as \`${block.type}\`s`);
-		next.array = array.slice(0, size / block.elem);
-		next.array.length = size / block.elem;
+		const n = Math.floor(size / block.elem);
+		next.array = array.slice(0, n);
+		next.array.length = n;
 		next.elem = block.elem;
 		next.type = block.type;
 		BLOCKS.set(next.array, next);

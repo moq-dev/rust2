@@ -292,6 +292,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("elements::edges", |_, data, out| elements::edges(data, out)),
 		("heap::spills", |_, data, out| heap::spills(data, out)),
 		("heap::layouts", |_, data, out| heap::layouts(data, out)),
+		("heap::remnants", |_, data, out| heap::remnants(data, out)),
 	]
 }
 

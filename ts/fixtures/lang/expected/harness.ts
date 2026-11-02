@@ -31,6 +31,7 @@ import { ints, strings, derived, written as fmt_written, counts as fmt_counts, r
 import { folds } from "./folds.ts";
 import { methods, runs } from "./generics.ts";
 import { values as hashes_values, random, bytes as hashes_bytes } from "./hashes.ts";
+import { spills, remnants, layouts } from "./heap.ts";
 import { hints, reserves } from "./hints.ts";
 import { holds } from "./holds.ts";
 import { u8Op, u16Op, u32Op, u64Op, u128Op, usizeOp, i8Op, i16Op, i32Op, i64Op, i128Op, isizeOp, i8Neg, i16Neg, i32Neg, i64Neg, i128Neg, isizeNeg, cast as ints_cast, convert, parses as ints_parses, widenings } from "./ints.ts";
@@ -288,6 +289,12 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		inline(data101, out102);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["elements::edges", (_2202: rt.u8, data102: rt.ByteSlice, out103: rt.ByteVec): undefined => {
 		elements_edges(data102, out103);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["heap::spills", (_2203: rt.u8, data103: rt.ByteSlice, out104: rt.ByteVec): undefined => {
+		spills(data103, out104);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["heap::layouts", (_2204: rt.u8, data104: rt.ByteSlice, out105: rt.ByteVec): undefined => {
+		layouts(data104, out105);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["heap::remnants", (_2205: rt.u8, data105: rt.ByteSlice, out106: rt.ByteVec): undefined => {
+		remnants(data105, out106);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]];
 }
 

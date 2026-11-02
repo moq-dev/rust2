@@ -2,7 +2,7 @@
 //! freed by `dealloc`, as smallvec's spilled storage is, and the `Layout`s it is laid out by.
 
 use std::alloc::{self, Layout};
-use std::mem;
+use std::mem::{self, MaybeUninit};
 use std::ptr::{self, NonNull};
 use std::sync::Arc;
 
@@ -102,6 +102,35 @@ pub fn spills(data: &[u8], out: &mut Vec<u8>) {
 	out.extend(pairs.as_slice().iter().map(|p| p.map_or(0, |(a, b)| a ^ b as u8)));
 	drop(arcs);
 	out.push(Arc::strong_count(&shared) as u8);
+}
+
+/// Storage of `MaybeUninit`s read and freed as what each holds, and memory with bytes past
+/// its last whole value, which `realloc` grows by too few bytes to hold one more.
+pub fn remnants(data: &[u8], out: &mut Vec<u8>) {
+	let layout = Layout::array::<MaybeUninit<u32>>(data.len() + 1).unwrap();
+	let slots = NonNull::new(unsafe { alloc::alloc(layout) })
+		.unwrap()
+		.cast::<MaybeUninit<u32>>();
+	for (i, &b) in data.iter().enumerate() {
+		unsafe { slots.as_ptr().add(i).write(MaybeUninit::new(u32::from(b) << 8 | 1)) };
+	}
+	let words = slots.cast::<u32>();
+	let read = unsafe { std::slice::from_raw_parts(words.as_ptr(), data.len()) };
+	out.extend(read.iter().flat_map(|x| x.to_le_bytes()));
+	unsafe { alloc::dealloc(words.as_ptr() as *mut u8, layout) };
+
+	let odd = Layout::from_size_align(9, 4).unwrap();
+	let pair = NonNull::new(unsafe { alloc::alloc(odd) }).unwrap().cast::<u32>();
+	let first = data.first().copied().map_or(0, u32::from);
+	unsafe {
+		pair.as_ptr().write(first);
+		pair.as_ptr().add(1).write(first * 3);
+	}
+	let grown = unsafe { alloc::realloc(pair.as_ptr() as *mut u8, odd, 11) };
+	let grown = NonNull::new(grown).unwrap().cast::<u32>();
+	let kept = unsafe { [grown.as_ptr().read(), grown.as_ptr().add(1).read()] };
+	out.extend(kept.iter().flat_map(|x| x.to_le_bytes()));
+	unsafe { alloc::dealloc(grown.as_ptr() as *mut u8, Layout::from_size_align_unchecked(11, 4)) };
 }
 
 /// `Layout`s made of sizes and alignments up to wasm32's `isize::MAX`, and of arrays of

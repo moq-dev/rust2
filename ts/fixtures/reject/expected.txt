@@ -72,9 +72,8 @@ unsupported call to `std::any::TypeId::of::<u8>` at fixtures/reject/src/lib.rs:5
 unsupported call to `<std::any::TypeId as std::cmp::PartialEq>::eq` at fixtures/reject/src/lib.rs:538:2
 a cast from a pointer to `u32` to one to `u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:555:27
 a pointer's address, which JS has no counterpart of at fixtures/reject/src/lib.rs:560:17
-unsupported call to `std::alloc::Layout::new::<u8>` at fixtures/reject/src/lib.rs:565:15
-unsupported call to `std::alloc::alloc` at fixtures/reject/src/lib.rs:567:11
-unsupported call to `std::alloc::dealloc` at fixtures/reject/src/lib.rs:570:3
+a byte of memory from `alloc`, which JS keeps as the values a cast of its pointer types it as at fixtures/reject/src/lib.rs:568:3
+a byte of memory from `alloc`, which JS keeps as the values a cast of its pointer types it as at fixtures/reject/src/lib.rs:569:11
 a raw pointer to `std::vec::Vec<u8>` behind a reference, which is the object and not where it is kept at fixtures/reject/src/lib.rs:577:10
 union `Bits`, whose fields overlap in `u32` and `f64`, which JS keeps apart at fixtures/reject/src/lib.rs:588:10
 comparing pointers to `u32`, each a place JS makes of its own at fixtures/reject/src/lib.rs:596:2
@@ -219,6 +218,12 @@ a pointer reaching past a shared slice JS copies, which JS keeps apart from what
 a slice reaching past a value in no array, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2237:6
 a pointer reaching past a value in no array, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2238:27
 a pointer reaching past a shared slice JS copies, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2239:21
+a byte of memory from `alloc`, which JS keeps as the values a cast of its pointer types it as at fixtures/reject/src/lib.rs:2252:3
+a cast from a pointer to `u8` to one to `u32`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:2253:15
+a cast from a pointer to `u8` to one to `Halves`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:2254:16
+a cast from a pointer to `u32` to one to `u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:2256:15
+unsupported call to `std::alloc::alloc_zeroed` at fixtures/reject/src/lib.rs:2263:13
+a cast from a pointer to `u8` to one to `u32`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:2263:12
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:125:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:145:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:173:2
