@@ -8,6 +8,11 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 export PATH := if env("RUST2_TS_TOOLCHAIN", "") == "" { env("PATH") } else { env("RUST2_TS_TOOLCHAIN") / "bin:" + env("PATH") }
 
+# The moq revision these recipes export by default, behind `just ts moq`'s: moq's later API
+# needs moq/ffi.toml to follow it, and past moq-dev/moq#7032 moq-tokio's `Send` check
+# overflows the recursion limit `moq-export` denies.
+moq_rev := "30f25c04e6d0288d87893dc609ba582518be2cf6"
+
 default:
     @just --list
 
@@ -37,7 +42,7 @@ fix:
 run *args:
     cargo run --locked --quiet -- {{ args }}
 
-# Census each package moq/ffi.toml exports into target/census/<package>.md, from the moq revision `just ts moq` pins or a checkout.
+# Census each package moq/ffi.toml exports into target/census/<package>.md, from the pinned moq revision or a checkout.
 census checkout="": (standin checkout)
     cargo run --locked --quiet -- --config moq/ffi.toml --manifest-path target/moq-ffi/Cargo.toml --census target/census
 
@@ -65,7 +70,7 @@ bench checkout="": (moq checkout)
         PYTHONPATH="$out/python" python3 -P moq/bench/export.py
     done
 
-# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.py against it, from the moq revision `just ts moq` pins or a checkout.
+# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.py against it, from the pinned moq revision or a checkout.
 moq checkout="": (moq-cpp checkout)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -120,14 +125,14 @@ moq-export checkout="": (standin checkout)
     cargo build --quiet --release --manifest-path "$out/Cargo.toml" --features kotlin 2>&1 | tee target/moq-build.log
     sed -n 's/^note: native-static-libs: //p' target/moq-build.log > target/moq-native
 
-# Write target/moq-ffi, an empty library on every crate moq/ffi.toml exports, from the moq revision `just ts moq` pins or a checkout: the check builds with all of them, as moq-ffi's remainder will.
+# Write target/moq-ffi, an empty library on every crate moq/ffi.toml exports, from the pinned moq revision or a checkout: the check builds with all of them, as moq-ffi's remainder will.
 [private]
 standin checkout="":
     #!/usr/bin/env bash
     set -euo pipefail
     src="{{ checkout }}"
     if [ -z "$src" ]; then
-        (cd ../ts && just moq-pin)
+        (cd ../ts && just moq-pin {{ moq_rev }})
         src=../ts/target/moq
     fi
     src=$(realpath "$src")

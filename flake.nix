@@ -306,13 +306,11 @@
             RUST2_TS_SYSROOT = rust2-ts-std;
             KOTLINX_COROUTINES = "${kotlinx-coroutines}";
           };
-          # `just ts bench` adds Chrome and Firefox as engines, and wasm-bindgen for moq-wasm's
-          # package, which must match the moq revision's or fails. Apart for their size.
+          # `just ts bench` adds Chrome and Firefox as engines. Apart for their size.
           devShells.bench = self.devShells.${system}.default.overrideAttrs (old: {
             nativeBuildInputs = old.nativeBuildInputs ++ [
               pkgs.chromium
               pkgs.firefox
-              pkgs.wasm-bindgen-cli
             ];
             # `just ffi bench` builds moq's rs/moq-c, whose VAAPI bindings run bindgen.
             LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
