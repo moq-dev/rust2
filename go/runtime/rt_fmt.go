@@ -90,7 +90,12 @@ type Argument struct {
 
 func argumentOf(f func(*Formatter) fmtResult) Argument { return Argument{fmt: f} }
 
-func argumentCount(n uint) Argument { return Argument{count: uint16(n)} }
+func argumentCount(n uint) Argument {
+	if n > 1<<16-1 {
+		panic(RustPanic{"Formatting argument out of range"})
+	}
+	return Argument{count: uint16(n)}
+}
 
 // Arguments is `fmt::Arguments`: its template, as core encodes it, and its arguments; or
 // a string literal alone.
@@ -164,9 +169,12 @@ func write(out sink, a Arguments) fmtResult {
 	}
 }
 
-func formatBytes(a Arguments) []uint8 {
+// format is `alloc::fmt::format`, which panics if a formatting implementation fails.
+func format(a Arguments) []uint8 {
 	var buf []uint8
-	write(byteSink{&buf}, a)
+	if write(byteSink{&buf}, a).tag != 0 {
+		panic(RustPanic{"a formatting trait implementation returned an error when the underlying stream did not: Error"})
+	}
 	return buf
 }
 
@@ -178,7 +186,13 @@ func displayBytes(f func(*Formatter) fmtResult) []uint8 {
 	return buf
 }
 
-func rustPanicFmt(a Arguments) RustPanic { return RustPanic{string(formatBytes(a))} }
+// rustPanicFmt is a panic's message, which keeps what was written before a formatting
+// implementation failed, as std's does.
+func rustPanicFmt(a Arguments) RustPanic {
+	var buf []uint8
+	write(byteSink{&buf}, a)
+	return RustPanic{string(buf)}
+}
 
 func (f *Formatter) writeStr(s []uint8) fmtResult { return f.out.writeStr(s) }
 

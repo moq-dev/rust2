@@ -1,7 +1,8 @@
 //! Constants: rustc evaluates each, and its value is written at each use, as Rust
 //! inlines it.
 
-use rustc_middle::mir::interpret::{GlobalAlloc, Scalar};
+use rustc_abi::Size;
+use rustc_middle::mir::interpret::{AllocId, GlobalAlloc, Scalar, alloc_range};
 use rustc_middle::mir::{self, ConstValue};
 use rustc_middle::ty::{self, Ty};
 use rustc_span::Span;
@@ -107,7 +108,56 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 				_ => self.err(span, format!("a slice constant of type `{ty}`")),
 			},
 			ConstValue::ZeroSized => format!("{}{{}}", self.ty(ty, span)),
-			ConstValue::Indirect { .. } => self.err(span, format!("a constant of type `{ty}` in memory")),
+			ConstValue::Indirect { alloc_id, offset } => self.in_memory(alloc_id, offset, ty, span),
+		}
+	}
+}
+
+impl<'a, 'tcx> Fx<'a, 'tcx> {
+	/// The value of a scalar or a reference of type `ty` at `offset` in a constant's
+	/// memory, as a promoted `&1` or `&"text"` holds it.
+	fn in_memory(&mut self, alloc_id: AllocId, offset: Size, ty: Ty<'tcx>, span: Span) -> String {
+		let tcx = self.tcx;
+		let GlobalAlloc::Memory(alloc) = tcx.global_alloc(alloc_id) else {
+			return self.err(span, format!("a constant of type `{ty}` outside memory"));
+		};
+		let ptr = tcx.data_layout.pointer_size();
+		// A pointer is read with what it points to, and an integer without.
+		let read =
+			|at: Size, size: Size, pointer: bool| alloc.inner().read_scalar(&tcx, alloc_range(at, size), pointer).ok();
+		match ty.kind() {
+			ty::Ref(_, inner, _) if matches!(inner.kind(), ty::Str | ty::Slice(_)) => {
+				// A pointer to the bytes, then their length.
+				let (Some(Scalar::Ptr(to, _)), Some(Scalar::Int(len))) =
+					(read(offset, ptr, true), read(offset + ptr, ptr, false))
+				else {
+					return self.err(span, format!("a constant of type `{ty}` in memory"));
+				};
+				let (prov, start) = to.prov_and_relative_offset();
+				let GlobalAlloc::Memory(bytes) = tcx.global_alloc(prov.alloc_id()) else {
+					return self.err(span, format!("a constant of type `{ty}` pointing outside memory"));
+				};
+				let start = start.bytes() as usize;
+				let len = len.to_target_usize(tcx) as usize;
+				match inner.kind() {
+					ty::Str => bytes_lit(
+						bytes
+							.inner()
+							.inspect_with_uninit_and_ptr_outside_interpreter(start..start + len),
+					),
+					_ => self.err(span, format!("a slice constant of type `{ty}` in memory")),
+				}
+			}
+			ty::Bool | ty::Char | ty::Int(_) | ty::Uint(_) | ty::Ref(..) => {
+				let Ok(layout) = tcx.layout_of(self.t_env().as_query_input(ty)) else {
+					return self.err(span, format!("a constant of type `{ty}` without a layout"));
+				};
+				match read(offset, layout.size, ty.is_ref()) {
+					Some(scalar) => self.const_value(ConstValue::Scalar(scalar), ty, span),
+					None => self.err(span, format!("a constant of type `{ty}` in memory")),
+				}
+			}
+			_ => self.err(span, format!("a constant of type `{ty}` in memory")),
 		}
 	}
 }

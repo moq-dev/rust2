@@ -216,6 +216,9 @@ func replace[T any](p *T, v T) T {
 
 func ptrTo[T any](v T) *T { return &v }
 
+// val is v as a value, not a constant, for an expression Go would otherwise fold.
+func val[T any](v T) T { return v }
+
 func clz[T integer](x T) uint {
 	w := bitsOf[T]()
 	return uint(bits.LeadingZeros64(uint64(x)&(^uint64(0)>>(64-w)))) - (64 - w)
@@ -276,6 +279,16 @@ func vecPop[T any](v *[]T) Option[T] {
 	x := (*v)[n-1]
 	*v = (*v)[:n-1]
 	return Option[T]{tag: 1, Some: struct{ F0 T }{x}}
+}
+
+// vecWithCapacity is `Vec::with_capacity` of elements Rust lays out in `size` bytes, which
+// panics where Rust's would allocate more than `isize::MAX` bytes. Its capacity is only a
+// hint: Go's growth is not Rust's, so the translation reads no capacity back.
+func vecWithCapacity[T any](n uint, size uint64) []T {
+	if size != 0 && uint64(n) > (1<<63-1)/size {
+		panic(RustPanic{"capacity overflow"})
+	}
+	return make([]T, 0, n)
 }
 
 func vecTruncate[T any](v *[]T, n uint) {

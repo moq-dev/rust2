@@ -11,9 +11,9 @@ pub fn run(input: &[u8]) -> Vec<u8> {
 	let Some((&pick, data)) = input.split_first() else {
 		return out;
 	};
-	let cases: [Case; 15] = [
+	let cases: [Case; 16] = [
 		u8_op, u16_op, u32_op, u64_op, usize_op, i8_op, i16_op, i32_op, i64_op, isize_op, i8_neg, i16_neg, i32_neg,
-		i64_neg, isize_neg,
+		i64_neg, isize_neg, constants,
 	];
 	let (op, data) = data.split_first().map_or((0, &[][..]), |(&op, data)| (op, data));
 	cases[usize::from(pick) % cases.len()](op, data, &mut out);
@@ -147,3 +147,12 @@ neg!(i16_neg, i16);
 neg!(i32_neg, i32);
 neg!(i64_neg, i64);
 neg!(isize_neg, isize);
+
+/// Casts of constants, which wrap where Go would fold them and refuse the overflow.
+fn constants(_: u8, _: &[u8], out: &mut Vec<u8>) {
+	out.push(256u16 as u8);
+	out.push(-1i8 as u8);
+	out.extend_from_slice(&(-129i32 as i8).to_be_bytes());
+	out.extend_from_slice(&(u64::MAX as i32).to_be_bytes());
+	out.extend_from_slice(&(i64::MIN as u16).to_be_bytes());
+}

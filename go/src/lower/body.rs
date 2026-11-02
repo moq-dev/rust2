@@ -508,7 +508,7 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 			Rvalue::Cast(kind, op, to) => self.cast(*kind, op, *to, span),
 			Rvalue::BinaryOp(op, ops) => self.binary(*op, &ops.0, &ops.1, dest_ty, span),
 			Rvalue::UnaryOp(op, operand) => {
-				let v = self.operand(operand, span);
+				let v = self.runtime(operand, span);
 				let from = self.operand_ty(operand);
 				match op {
 					UnOp::Not if from.is_bool() => format!("!{v}"),
@@ -621,9 +621,19 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 		&self.mir.local_decls
 	}
 
+	/// An operand Go evaluates at run time: a constant made a value through `val`, since
+	/// Go refuses an expression of constants that overflows, where Rust's wraps.
+	pub fn runtime(&mut self, op: &Operand<'tcx>, span: Span) -> String {
+		let v = self.operand(op, span);
+		match op {
+			Operand::Constant(_) => format!("val({v})"),
+			_ => v,
+		}
+	}
+
 	fn cast(&mut self, kind: CastKind, op: &Operand<'tcx>, to: Ty<'tcx>, span: Span) -> String {
 		let from = self.operand_ty(op);
-		let v = self.operand(op, span);
+		let v = self.runtime(op, span);
 		let go = self.ty(to, span);
 		match kind {
 			CastKind::IntToInt => match from.kind() {
@@ -725,8 +735,20 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 
 	fn binary(&mut self, op: BinOp, a: &Operand<'tcx>, b: &Operand<'tcx>, dest_ty: Ty<'tcx>, span: Span) -> String {
 		let ty = self.operand_ty(a);
-		let x = self.operand(a, span);
-		let y = self.operand(b, span);
+		// Go folds two constants, refusing an overflow, and refuses a constant divisor of
+		// zero or a negative shift, where Rust panics before or wraps at run time.
+		let both = matches!((a, b), (Operand::Constant(_), Operand::Constant(_)));
+		let x = match both {
+			true => self.runtime(a, span),
+			false => self.operand(a, span),
+		};
+		let y = match matches!(
+			op,
+			BinOp::Div | BinOp::Rem | BinOp::Shl | BinOp::Shr | BinOp::ShlUnchecked | BinOp::ShrUnchecked
+		) {
+			true => self.runtime(b, span),
+			false => self.operand(b, span),
+		};
 		let signed = ty.is_signed();
 		let bits = match ty.is_integral() {
 			true => int_bits(self.tcx, ty),

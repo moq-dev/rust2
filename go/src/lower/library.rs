@@ -11,91 +11,6 @@ use rustc_span::Span;
 
 use super::body::{Fx, int_bits};
 
-/// Names the runtime declares at the package level.
-pub const RUNTIME_NAMES: &[&str] = &[
-	"tuple1",
-	"tuple2",
-	"tuple3",
-	"tuple4",
-	"tuple5",
-	"tuple6",
-	"tuple7",
-	"tuple8",
-	"Option",
-	"Result",
-	"Ordering",
-	"fmtError",
-	"RustPanic",
-	"rustPanic",
-	"panicBounds",
-	"signed",
-	"unsigned",
-	"integer",
-	"addU",
-	"subU",
-	"mulU",
-	"addS",
-	"subS",
-	"mulS",
-	"satAddU",
-	"satSubU",
-	"satAddS",
-	"satSubS",
-	"cmp3",
-	"boolTo",
-	"replace",
-	"ptrTo",
-	"sliceIter",
-	"sliceIterNext",
-	"vecPop",
-	"vecTruncate",
-	"sliceCopyFrom",
-	"sliceCopyWithin",
-	"sliceIndexFail",
-	"utf8Check",
-	"be16",
-	"be32",
-	"be64",
-	"le16",
-	"le32",
-	"le64",
-	"fromBe16",
-	"fromBe32",
-	"fromBe64",
-	"fromLe16",
-	"fromLe32",
-	"fromLe64",
-	"rotl",
-	"rotr",
-	"clz",
-	"ctz",
-	"popcount",
-	"bswap",
-	"Formatter",
-	"Arguments",
-	"Argument",
-	"argumentOf",
-	"argumentCount",
-	"argumentsStr",
-	"fmtDyn",
-	"DebugBuilder",
-	"fmtUint",
-	"fmtSint",
-	"fmtUintDebug",
-	"fmtSintDebug",
-	"fmtHex",
-	"formatBytes",
-	"displayBytes",
-	"rustPanicFmt",
-	"sink",
-	"byteSink",
-	"padAdapter",
-	"fmtOk",
-	"fmtErr",
-	"fmtResult",
-	"newFormatter",
-];
-
 /// A library type Go holds as a type of its own.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Mapped {
@@ -173,13 +88,20 @@ pub fn fmt_trait(tcx: TyCtxt<'_>, did: DefId) -> bool {
 /// Why dropping a value of `ty` is refused, if it runs code: a `Drop` impl translation does
 /// not run. Freeing memory is Go's collector's.
 pub fn drop_refused<'tcx>(tcx: TyCtxt<'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>) -> Option<String> {
-	if !ty.needs_drop(tcx, env) {
+	refused_in(tcx, env, ty, &mut Vec::new())
+}
+
+/// `drop_refused` of `ty` inside the types in `seen`: a type met again, as a recursive
+/// one's is, adds nothing to what its first visit checks.
+fn refused_in<'tcx>(tcx: TyCtxt<'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>, seen: &mut Vec<Ty<'tcx>>) -> Option<String> {
+	if !ty.needs_drop(tcx, env) || seen.contains(&ty) {
 		return None;
 	}
+	seen.push(ty);
 	match ty.kind() {
 		ty::Adt(adt, args) => {
 			if matches!(mapped(tcx, adt.did()), Some(Mapped::Vec | Mapped::Box)) {
-				return drop_refused(tcx, env, args.type_at(0));
+				return refused_in(tcx, env, args.type_at(0), seen);
 			}
 			if adt.has_dtor(tcx) {
 				return Some(format!("which runs `{}`'s `Drop` impl,", path(tcx, adt.did())));
@@ -187,19 +109,19 @@ pub fn drop_refused<'tcx>(tcx: TyCtxt<'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>)
 			for field in adt.all_fields() {
 				let fty = field.ty(tcx, args).skip_norm_wip();
 				let fty = tcx.normalize_erasing_regions(env, ty::Unnormalized::new_wip(fty));
-				if let Some(why) = drop_refused(tcx, env, fty) {
+				if let Some(why) = refused_in(tcx, env, fty, seen) {
 					return Some(why);
 				}
 			}
 			None
 		}
-		ty::Tuple(tys) => tys.iter().find_map(|t| drop_refused(tcx, env, t)),
-		ty::Array(elem, _) | ty::Slice(elem) => drop_refused(tcx, env, *elem),
+		ty::Tuple(tys) => tys.iter().find_map(|t| refused_in(tcx, env, t, seen)),
+		ty::Array(elem, _) | ty::Slice(elem) => refused_in(tcx, env, *elem, seen),
 		ty::Closure(_, args) => args
 			.as_closure()
 			.upvar_tys()
 			.iter()
-			.find_map(|t| drop_refused(tcx, env, t)),
+			.find_map(|t| refused_in(tcx, env, t, seen)),
 		_ => Some("which drops what translation can't,".into()),
 	}
 }
@@ -259,7 +181,15 @@ pub fn call<'tcx>(
 	dest_ty: Ty<'tcx>,
 	span: Span,
 ) -> Option<Bound> {
-	let a: Vec<String> = args.iter().map(|op| fx.operand(op, span)).collect();
+	// An intrinsic's operator applies to its arguments as they are, which Go would fold.
+	let intrinsic = matches!(instance.def, InstanceKind::Intrinsic(_));
+	let a: Vec<String> = args
+		.iter()
+		.map(|op| match intrinsic {
+			true => fx.runtime(op, span),
+			false => fx.operand(op, span),
+		})
+		.collect();
 	let tys: Vec<Ty<'tcx>> = args.iter().map(|op| op.ty(fx.mir_decls(), fx.tcx)).collect();
 	call_with(fx, instance, a, &tys, dest_ty, span)
 }
@@ -303,11 +233,16 @@ pub fn call_with<'tcx>(
 		"<alloc::boxed::Box>::new" => expr(format!("ptrTo({})", a[0])),
 		"alloc::boxed::box_assume_init_into_vec_unsafe" => expr(format!("(*{})[:]", a[0])),
 		"<alloc::vec::Vec>::new" => expr(format!("{}(nil)", dest(fx))),
-		"<alloc::vec::Vec>::with_capacity" => expr(format!("make({}, 0, {})", dest(fx), a[0])),
+		"<alloc::vec::Vec>::with_capacity" => {
+			let size = tcx.layout_of(fx.t_env().as_query_input(targ(0))).ok()?.size.bytes();
+			expr(format!("vecWithCapacity[{}]({}, {size})", fx.ty(targ(0), span), a[0]))
+		}
 		"<alloc::vec::Vec>::push" => stmt(format!("*{0} = append(*{0}, {1})", a[0], a[1])),
 		"<alloc::vec::Vec>::pop" => expr(format!("vecPop({})", a[0])),
 		"<alloc::vec::Vec>::len" => expr(format!("uint(len(*{}))", a[0])),
-		"<alloc::vec::Vec>::capacity" => expr(format!("uint(cap(*{}))", a[0])),
+		"<alloc::vec::Vec>::capacity" => {
+			expr(fx.err(span, "`Vec::capacity`, which Go's growth would make differ from Rust's"))
+		}
 		"<alloc::vec::Vec>::is_empty" => expr(format!("len(*{}) == 0", a[0])),
 		"<alloc::vec::Vec>::truncate" => {
 			fx_drop_check(fx, targ(0), span);
@@ -473,7 +408,7 @@ pub fn call_with<'tcx>(
 		}
 		"alloc::fmt::format" => {
 			let string = dest(fx);
-			expr(format!("{string}{{vec: formatBytes({})}}", a[0]))
+			expr(format!("{string}{{vec: format({})}}", a[0]))
 		}
 		"<T as alloc::string::ToString>::to_string" => {
 			let call = fmt_call(fx, "Display", targ(0), &a[0], span)?;

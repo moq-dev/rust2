@@ -49,3 +49,19 @@ pub fn owned(v: [u8; 4]) -> u32 {
 pub fn float(a: f32) -> f32 {
 	a * 2.0
 }
+
+/// Go's growth is not Rust's, so a capacity read back would differ.
+pub fn capacity() -> usize {
+	Vec::<u8>::with_capacity(4).capacity()
+}
+
+/// A recursive type whose drop runs no `Drop` impl, which translates beside those refused.
+pub struct Node {
+	next: Option<Box<Node>>,
+	value: u8,
+}
+
+pub fn linked(value: u8) -> u8 {
+	let node = Node { next: None, value };
+	node.value
+}

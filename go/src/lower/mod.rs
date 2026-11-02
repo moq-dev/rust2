@@ -26,6 +26,38 @@ const RUNTIME: &[(&str, &str)] = &[
 	("rt_fmt.go", include_str!("../../runtime/rt_fmt.go")),
 ];
 
+/// The names a runtime file declares at the package level, which translated items must
+/// not take: each `func` but a method, `type`, `var`, and `const`, alone or grouped.
+fn runtime_names(text: &str) -> Vec<String> {
+	let ident = |s: &str| -> String {
+		s.chars()
+			.take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+			.collect()
+	};
+	let mut names = Vec::new();
+	let mut group = false;
+	for line in text.lines() {
+		if group {
+			match line.strip_prefix('\t') {
+				Some(rest) => names.push(ident(rest)),
+				None => group = line != ")",
+			}
+			continue;
+		}
+		let Some((keyword, rest)) = line.split_once(' ') else {
+			continue;
+		};
+		match (keyword, rest) {
+			("type" | "var" | "const", "(") => group = true,
+			("func", rest) if rest.starts_with('(') => {}
+			("func" | "type" | "var" | "const", rest) => names.push(ident(rest)),
+			_ => {}
+		}
+	}
+	names.retain(|name| !name.is_empty());
+	names
+}
+
 /// Translate the crate from the config's roots, or `None` after reporting what it
 /// refuses. Each file is a name and its text.
 pub fn translate(tcx: TyCtxt<'_>, config: &Config) -> Option<Vec<(String, String)>> {
@@ -146,7 +178,7 @@ impl<'tcx> Translator<'tcx> {
 					.or_default() += 1;
 			}
 		}
-		let mut taken: HashSet<String> = library::RUNTIME_NAMES.iter().map(|s| s.to_string()).collect();
+		let mut taken: HashSet<String> = RUNTIME.iter().flat_map(|(_, text)| runtime_names(text)).collect();
 		taken.extend(names::PREDECLARED.iter().map(|s| s.to_string()));
 		Self {
 			tcx,
@@ -234,5 +266,32 @@ impl<'tcx> Translator<'tcx> {
 	/// Declare a type in the file of `krate`.
 	fn declare(&mut self, krate: CrateNum, name: &str, decl: String) {
 		self.out.entry(krate).or_default().types.push((name.to_string(), decl));
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	/// Every package-level runtime name, grouped or not, and none of its methods.
+	#[test]
+	fn runtime_names() {
+		let names: HashSet<String> = RUNTIME
+			.iter()
+			.flat_map(|(_, text)| super::runtime_names(text))
+			.collect();
+		for name in [
+			"write",
+			"then",
+			"bitsOf",
+			"val",
+			"flagWidth",
+			"alignCenter",
+			"Option",
+			"Formatter",
+		] {
+			assert!(names.contains(name), "{name} is not reserved");
+		}
+		assert!(!names.contains("writeStr"), "a method is reserved");
 	}
 }

@@ -253,7 +253,21 @@ fn codec() {
 /// its width where native Rust panics.
 #[test]
 fn ints() {
-	differential("ints", ints::run, "Run", cases(15, 32, 20_000));
+	differential("ints", ints::run, "Run", cases(16, 32, 20_000));
+}
+
+/// Formatting's failures, and counts at each edge of what one holds.
+#[test]
+fn fmt() {
+	let mut cases = Vec::new();
+	for pick in 0..6u8 {
+		for count in [0u64, 1, 2, 5, 6, 65_534, 65_535, 65_536, 1 << 32, u64::MAX] {
+			let mut case = vec![pick];
+			case.extend_from_slice(&count.to_be_bytes());
+			cases.push(case);
+		}
+	}
+	differential("fmt", fmt::run, "Run", cases);
 }
 
 /// Constructs outside the subset each fail translation with a span, as
