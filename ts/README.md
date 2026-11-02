@@ -9,7 +9,13 @@ rust2-ts --config ts.toml (--out dir | --census file.md) [--manifest-path Cargo.
 It runs `cargo check` on the package with itself as `RUSTC_WRAPPER`, for
 `wasm32-unknown-unknown`, against std checked from source with every function's MIR. The flake's
 package and dev shell check it once per toolchain and pass it as `RUST2_TS_SYSROOT`; without
-that, each target directory checks it with `-Zbuild-std`, which needs the toolchain's `rust-src`. Every crate compiles as rustc
+that, each target directory checks it with `-Zbuild-std`, which needs the toolchain's `rust-src`. Where the
+package builds with getrandom or uuid, which refuse wasm32 until a binary picks their source of randomness, cargo checks it
+as a dependency of a root package that picks `crypto.getRandomValues` by the feature each documents, as a browser's binary
+would, in a workspace that resolves as the package's own: its lockfile, patches, and dev profile, and its paths,
+relative to its root as rustc reads a member's. `--features` and `--no-default-features` pass to that dependency;
+`--all-features`, a feature of the package's dependency, and a `"*"` dev-profile override, which skips workspace members
+but would reach the package there, are refused. Every crate compiles as rustc
 would; the configured library is also translated, after type and borrow checking, starting from its roots and following
 what they reach. Every crate it depends on but std's translates with it as one program,
 as far as the roots reach: each compiles with every function's MIR, and its types and
@@ -969,8 +975,8 @@ comes up `Short` and retries, iterator chains over bytes, a `BTreeMap` of 16, 25
 4096 keys, and timestamps converted between timescales as moq-net's `Timestamp::convert`
 does, whose products pass 2^53, then added by its `checked_add` and ordered by its `Ord`,
 whose cross products do too, and integers sorted, searched for their greatest and least,
-and kept in a `BinaryHeap`. Each runs four ways: natively, as wasm32 at moq-wasm's
-size-optimized profile, hand-written (moq's `js/net` in `bench/moq.ts` and its `Timestamp`
+and kept in a `BinaryHeap`. Each runs four ways: natively, as wasm32 at the
+size-optimized profile moq's WASM shipped with, hand-written (moq's `js/net` in `bench/moq.ts` and its `Timestamp`
 in `bench/timestamp.ts`, ES iterator helpers in `bench/iter.ts`, a sorted array in
 `bench/sorted.ts`, `bigint` in `bench/rescale.ts`, as moq's `js/hang` converts
 timescales, and typed arrays and a heap of its own in `bench/order.ts`), and translated; every route's output must match
@@ -1008,4 +1014,4 @@ workloads still settle into one of two speeds per worker, up to 2x apart, so on 
 their A/A stayed 6-35% wide while the median workload's was 1-3%. The report's
 A/A line also gives the noise of a family's geometric mean, the steadier gauge.
 
-The bench shell adds Chromium, Firefox, and the wasm-bindgen that builds moq-wasm's package.
+The bench shell adds Chromium and Firefox.
