@@ -897,6 +897,8 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		| ("hint", "must_use")
 		| ("From", "from")
 		| ("Into", "into")
+		| ("TryFrom", "try_from")
+		| ("TryInto", "try_into")
 		// What a panic would drop, which aborts.
 		| ("Result", "unwrap" | "expect" | "unwrap_err")
 		| ("Vec", "insert")
@@ -1378,8 +1380,8 @@ fn mapping<'tcx>(
 			{
 				return Some(cow_cloned(b, "IntoOwned", value, elem, span));
 			}
-			// A boxed slice clones what it borrows, moves an array's or a `Vec`'s elements, and
-			// owns the `Vec` a `Cow` gives up.
+			// A boxed slice clones what it borrows, moves an array's or a `Vec`'s elements, owns
+			// the `Vec` a `Cow` gives up, and takes a boxed text's bytes.
 			if let Some(elem) = box_slice(tcx, to) {
 				return match targ(gargs, 1).kind() {
 					ty::Ref(_, s, _) if s.is_slice() => slice_boxed(b, value, elem, span),
@@ -1388,6 +1390,8 @@ fn mapping<'tcx>(
 					_ if cow_slice(tcx, from).is_some() => {
 						Some(vec_boxed(cow_cloned(b, "IntoOwned", value, elem, span), elem))
 					}
+					// A `Box<str>`'s bytes.
+					_ if string(tcx, from) => Some(Expr::rt("stringAsBytes", vec![value])),
 					_ => None,
 				};
 			}
@@ -1434,6 +1438,37 @@ fn mapping<'tcx>(
 				let mut values = args;
 				let value = b.convert(values.pop()?, from, to, span, out);
 				return Some(Expr::rt("Ok", vec![value]));
+			}
+			// A boxed slice or a `Vec` of `N` elements is a boxed array of them, and else
+			// itself again.
+			if let Some(ty::Array(elem, n)) = to.boxed_ty().map(|t| t.kind())
+				&& (box_slice(tcx, from) == Some(*elem) || b.t.std_of(from) == Some(Std::Vec))
+			{
+				let n = n.try_to_target_usize(tcx)?;
+				let mut values = args;
+				let from_value = match values.pop()? {
+					v if v.is_path() => v,
+					v => b.spill(v, "boxed", out),
+				};
+				let boxed = match b.t.std_of(from) {
+					Some(Std::Vec) => vec_boxed(from_value.clone(), *elem),
+					_ => from_value.clone(),
+				};
+				// The bytes keep their buffer, as std keeps the allocation.
+				let array = match is_u8(*elem) {
+					true => Expr::rt("byteSliceView", vec![boxed]),
+					false => boxed,
+				};
+				return Some(Expr::Cond(
+					Box::new(
+						from_value
+							.clone()
+							.member("length")
+							.binary("===", Expr::lit(n.to_string())),
+					),
+					Box::new(Expr::rt("Ok", vec![array])),
+					Box::new(Expr::rt("Err", vec![from_value])),
+				));
 			}
 			let (Some(int), Some(_)) = (Int::of(to), Int::of(from)) else {
 				return None;
@@ -1873,7 +1908,7 @@ fn mapping<'tcx>(
 			if is_u8(elem) {
 				return Some(rt2(args, "byteSlice", "fill"));
 			}
-			let clone = clone_into(b, elem, &name, span);
+			let clone = clone_into(b, elem, "slice::fill", span);
 			let mut values = args;
 			// A value its own clone, which nothing drops, is JS's `fill`.
 			if matches!(&clone, Expr::Lit(l) if l == "undefined") && !b.t.drops(elem) {
@@ -1901,7 +1936,7 @@ fn mapping<'tcx>(
 		}
 		("slice", "clone_from_slice") => {
 			let mut values = args;
-			values.push(clone_into(b, targ(gargs, 0), &name, span));
+			values.push(clone_into(b, targ(gargs, 0), "slice::clone_from_slice", span));
 			Expr::rt("sliceCloneFromSlice", values)
 		}
 		("PartialEq", "eq") if byte_slice(targ(gargs, 0)) && byte_slice(targ(gargs, 1)) => {
@@ -2148,6 +2183,8 @@ fn mapping<'tcx>(
 			let v = args.pop()?;
 			vec_view(v, targ(gargs, 0))
 		}
+		// A box is what it holds.
+		("AsRef", "as_ref") | ("AsMut", "as_mut") if b.t.std_of(targ(gargs, 0)) == Some(Std::Box) => args.pop()?,
 		("Deref", "deref") | ("DerefMut", "deref_mut") => {
 			let ty = targ(gargs, 0);
 			let v = args.pop()?;
@@ -2175,7 +2212,8 @@ fn mapping<'tcx>(
 		}
 
 		// Strings.
-		("String" | "str", "as_bytes") => Expr::rt("stringAsBytes", args),
+		// A `Box<str>`'s bytes are their own, as `as_bytes` gives them.
+		("String" | "str", "as_bytes") | ("str", "into_boxed_bytes") => Expr::rt("stringAsBytes", args),
 		("String", "from_utf8") => Expr::rt("stringFromUtf8", args),
 		// `str::from_utf8` is `core::str::converts::from_utf8`, or `str`'s own.
 		("converts" | "str", "from_utf8") => Expr::rt("strFromUtf8", args),
@@ -2507,17 +2545,36 @@ fn owned<'tcx>(b: &mut Body<'_, '_, 'tcx>, value: Expr, ty: Ty<'tcx>, span: Span
 	}
 }
 
+/// The `Box<[elem]>` that `clone_from` of `source` leaves in place of `slot`: `slot`, each
+/// element written by its `clone_from` as `clone_from_slice` writes them, where the lengths
+/// match, and else a clone of `source`, made before `slot`'s elements drop.
+pub(super) fn box_slice_clone_from<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	slot: Expr,
+	source: Expr,
+	elem: Ty<'tcx>,
+	span: Span,
+) -> Option<Expr> {
+	if matches!(elem.kind(), ty::Uint(ty::UintTy::U8)) {
+		return Some(Expr::rt("byteBoxSliceCloneFrom", vec![slot, source]));
+	}
+	let clone = clone_into(b, elem, "Box::clone_from", span);
+	let drop = b.t.droppers([elem], span)?;
+	let values = super::iter::tail(vec![slot, source], [vec![clone], drop].concat());
+	Some(Expr::rt("boxSliceCloneFrom", values))
+}
+
 /// What clones an `elem` into a slot of a slice, as `fill` and `clone_from_slice` do by
 /// `clone_from`: a copy for a `TrivialClone`, or else `clone_fn`, where `clone_from` does
-/// as `*self = source.clone()` does. Refused for any other `clone_from`.
-fn clone_into<'tcx>(b: &mut Body<'_, '_, 'tcx>, elem: Ty<'tcx>, name: &str, span: Span) -> Expr {
+/// as `*self = source.clone()` does. Refused for any other `clone_from`, naming `path`.
+fn clone_into<'tcx>(b: &mut Body<'_, '_, 'tcx>, elem: Ty<'tcx>, path: &str, span: Span) -> Expr {
 	if super::iter::implements(b.t, elem, "TrivialClone") {
 		return b.t.copy_fn(elem, span).unwrap_or_else(Expr::undefined);
 	}
 	if !clone_from_clones(b.t, elem) {
 		return b.err(
 			span,
-			format!("`slice::{name}` of `{elem}`, whose `clone_from` is its own, which is not supported yet"),
+			format!("`{path}` of `{elem}`, whose `clone_from` is its own, which is not supported yet"),
 		);
 	}
 	super::collections::clone_fn(b, elem, span)
