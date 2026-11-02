@@ -286,6 +286,8 @@ export function edges(data: rt.ByteSlice, out: rt.ByteVec): void {
 		rt.byteVecPush(out, rt.ptrWrappingAdd(rt.ptrWrappingAdd(null_, 1, 4, 4), -1, 4, 4) === rt.NULL ? 1 : 0);
 		rt.byteVecPush(out, rt.ptrWrappingAdd(null_, n as rt.usize, 4, 4) === rt.NULL ? 1 : 0);
 		rt.byteVecPush(out, rt.ptrWrappingAdd(null_, 1 << 30, 4, 4) === rt.NULL ? 1 : 0);
+		const _226: [rt.Place<rt.u32>, rt.Place<rt.u32>] = [rt.ptrWrappingAdd(null_, rt.usizeAdd(n as rt.usize, 1), 4, 4), rt.ptrWrappingAdd(null_, rt.usizeAdd(n as rt.usize, 1), 4, 4)];
+		rt.byteVecPush(out, rt.ptrOffsetFrom(_226[0], _226[1]) & 0xff);
 		const dangling: rt.Place<rt.u16> = rt.DANGLING;
 		rt.byteVecPush(out, rt.ptrWrappingAdd(dangling, -1, 2, 2) === rt.NULL ? 1 : 0);
 		rt.byteVecPush(out, rt.ptrWrappingAdd(dangling, 4294967295, 2, 2) === rt.NULL ? 1 : 0);
