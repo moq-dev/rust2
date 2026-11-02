@@ -159,6 +159,14 @@ export function byteVecAsPtr(v: ByteVec): Place<number> {
 	return new AtIndex(v.data, 0);
 }
 
+/** What a null pointer, moved by wrapping arithmetic, points into: nothing, which no read reaches. */
+const NOWHERE: never[] = [];
+
+/** The pointer `index` elements into `array`, null where that is where null is. */
+function indexed<T>(array: { [i: number]: T }, index: number): Place<T> {
+	return array === NOWHERE && index === 0 ? NULL : new AtIndex(array, index);
+}
+
 /** The array of one element that a pointer to a value in no array points into, by its place. */
 const LONE = /* @__PURE__ */ new WeakMap<Place<unknown>, unknown[]>();
 
@@ -196,6 +204,7 @@ class Lone<T> implements ProxyHandler<T[]> {
  */
 function elemOf<T>(p: Place<T>): AtIndex<T> {
 	if (p instanceof AtIndex) return p;
+	if (p === NULL) return new AtIndex(NOWHERE as T[], 0);
 	let lone = LONE.get(p) as T[] | undefined;
 	if (!lone) {
 		lone = new Proxy(new Array<T>(1), new Lone(p));
@@ -219,8 +228,8 @@ function wrapIndex(index: number, n: number, size: number): number {
 /** `p.add(n)` and `p.offset(n)`: `n` elements past where `p` points. */
 export function ptrAdd<T>(p: Place<T>, n: number): Place<T> {
 	if (n === 0) return p;
-	const at = elemOf(p);
-	return new AtIndex(at.array, at.index + n);
+	const e = elemOf(p);
+	return indexed(e.array, e.index + n);
 }
 
 /**
@@ -229,8 +238,8 @@ export function ptrAdd<T>(p: Place<T>, n: number): Place<T> {
  */
 export function ptrWrappingAdd<T>(p: Place<T>, n: number, size: number): Place<T> {
 	if (n === 0) return p;
-	const at = elemOf(p);
-	return new AtIndex(at.array, wrapIndex(at.index, n | 0, size));
+	const e = elemOf(p);
+	return indexed(e.array, wrapIndex(e.index, n | 0, size));
 }
 
 /** `p.offset_from(origin)`: how many elements `p` is past `origin`, in the same array. */
@@ -256,7 +265,8 @@ export function ptrCopy<T>(src: Place<T>, dst: Place<T>, n: number, copy?: (valu
 		return;
 	}
 	const values = Array.from({ length: n }, (_, i) => from.array[from.index + i]);
-	for (let i = 0; i < n; i++) to.array[to.index + i] = copy ? copy(values[i]) : values[i];
+	// Memory nothing wrote yet is copied as it is, which no value's copy can read.
+	for (let i = 0; i < n; i++) to.array[to.index + i] = copy && values[i] !== undefined ? copy(values[i]) : values[i];
 }
 
 /** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` elements from `p`. */

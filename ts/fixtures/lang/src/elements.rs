@@ -254,7 +254,8 @@ pub fn inline(data: &[u8], out: &mut Vec<u8>) {
 
 /// Pointers wrapped around wasm32's 32-bit addresses and back, to a value in no array, as
 /// the array of one Rust treats it as, and into a mutable part of an array, measured from
-/// the array, the pointer an empty slice keeps, and within a shared part, which JS copies.
+/// the array, the pointer an empty slice keeps, within a shared part, which JS copies,
+/// memory nothing wrote copied, null moved and back, and the crate's functions named as std's.
 pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 	for &n in data {
 		let bytes = [n, 1, 2, 3];
@@ -307,6 +308,41 @@ pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 			out.push(*first.add(1) as u8);
 			out.push(first.add(2).offset_from(first) as u8);
 			out.push(slice::from_raw_parts(first.add(1), 1)[0] as u8);
+		}
+		// The crate's own functions named as std's, which are only theirs.
+		let (x, mut y) = (u32::from(n), n);
+		out.push(mine::ptr::offset_from(&raw const x, &raw const x) as u8);
+		out.push(mine::raw::from_raw_parts_mut(&raw mut y, 2));
+		// Memory nothing wrote, copied before it is written.
+		let src = [const { MaybeUninit::<Result<(u32, u32), u8>>::uninit() }; 2];
+		let mut dst = [const { MaybeUninit::<Result<(u32, u32), u8>>::uninit() }; 2];
+		unsafe {
+			ptr::copy_nonoverlapping(src.as_ptr(), dst.as_mut_ptr(), 2);
+			dst[1].write(if n & 1 == 0 { Ok((x, 1)) } else { Err(n) });
+			out.push(match dst[1].assume_init() {
+				Ok((a, b)) => (a + b) as u8,
+				Err(e) => e,
+			});
+		}
+		// A null pointer moved and back, and around wasm32's addresses to null.
+		let null = ptr::null::<u32>();
+		out.push(null.wrapping_add(1).wrapping_sub(1).is_null() as u8);
+		out.push(null.wrapping_add(usize::from(n)).is_null() as u8);
+		out.push(null.wrapping_add(1 << 30).is_null() as u8);
+	}
+}
+
+/// Functions of the crate's named as std's pointer functions.
+mod mine {
+	pub mod ptr {
+		pub fn offset_from(a: *const u32, b: *const u32) -> isize {
+			unsafe { *a as isize + *b as isize }
+		}
+	}
+
+	pub mod raw {
+		pub fn from_raw_parts_mut(p: *mut u8, n: usize) -> u8 {
+			unsafe { *p }.wrapping_add(n as u8)
 		}
 	}
 }
