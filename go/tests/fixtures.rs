@@ -289,6 +289,13 @@ fn vecs() {
 	differential("vecs", vecs::run, "Run", cases);
 }
 
+/// Fields and variants whose escaped names could meet, and constant memory, which each
+/// use shares.
+#[test]
+fn items() {
+	differential("items", items::run, "Run", cases(2, 4, 1_000));
+}
+
 /// Constructs outside the subset each fail translation with a span, as
 /// `fixtures/reject/expected.txt` lists them, and no output is written.
 #[test]

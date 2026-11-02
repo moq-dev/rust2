@@ -2,6 +2,7 @@
 //! inlines it.
 
 use rustc_abi::Size;
+use rustc_hir::def_id::LOCAL_CRATE;
 use rustc_middle::mir::interpret::{AllocId, GlobalAlloc, Scalar, alloc_range};
 use rustc_middle::mir::{self, ConstValue};
 use rustc_middle::ty::{self, Ty};
@@ -77,10 +78,11 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 							let bytes = alloc
 								.inner()
 								.inspect_with_uninit_and_ptr_outside_interpreter(start..start + len as usize);
-							return format!(
-								"&[{len}]uint8{{{}}}",
+							let value = format!(
+								"[{len}]uint8{{{}}}",
 								bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", ")
 							);
+							return format!("&{}", self.shared((prov.alloc_id(), offset.bytes(), len, ty), value));
 						}
 						let value = self.const_value(
 							ConstValue::Indirect {
@@ -92,7 +94,7 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 						);
 						match inner.kind() {
 							ty::Str | ty::Slice(_) | ty::Dynamic(..) => value,
-							_ => format!("ptrTo({value})"),
+							_ => format!("&{}", self.shared((prov.alloc_id(), offset.bytes(), 0, ty), value)),
 						}
 					}
 					_ => self.err(
@@ -101,9 +103,9 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 					),
 				}
 			}
-			ConstValue::Slice { .. } => match val.try_get_slice_bytes_for_diagnostics(tcx) {
+			ConstValue::Slice { alloc_id, .. } => match val.try_get_slice_bytes_for_diagnostics(tcx) {
 				Some(bytes) if matches!(ty.builtin_deref(true).map(|t| t.kind()), Some(ty::Str | ty::Slice(_))) => {
-					bytes_lit(bytes)
+					self.shared((alloc_id, 0, bytes.len() as u64, ty), bytes_lit(bytes))
 				}
 				_ => self.err(span, format!("a slice constant of type `{ty}`")),
 			},
@@ -114,6 +116,19 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 }
 
 impl<'a, 'tcx> Fx<'a, 'tcx> {
+	/// The package-level variable holding `value`, the constant memory `key` names by its
+	/// allocation, offset, length, and type: each use of one allocation is the same
+	/// memory, as Rust's references to it are.
+	fn shared(&mut self, key: (AllocId, u64, u64, Ty<'tcx>), value: String) -> String {
+		if let Some(name) = self.t.allocs.get(&key) {
+			return name.clone();
+		}
+		let name = self.t.fresh("constant");
+		self.t.allocs.insert(key, name.clone());
+		self.t.declare(LOCAL_CRATE, &name, format!("var {name} = {value}\n"));
+		name
+	}
+
 	/// The value of a scalar or a reference of type `ty` at `offset` in a constant's
 	/// memory, as a promoted `&1` or `&"text"` holds it.
 	fn in_memory(&mut self, alloc_id: AllocId, offset: Size, ty: Ty<'tcx>, span: Span) -> String {
@@ -140,11 +155,14 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 				let start = start.bytes() as usize;
 				let len = len.to_target_usize(tcx) as usize;
 				match inner.kind() {
-					ty::Str => bytes_lit(
-						bytes
-							.inner()
-							.inspect_with_uninit_and_ptr_outside_interpreter(start..start + len),
-					),
+					ty::Str => {
+						let value = bytes_lit(
+							bytes
+								.inner()
+								.inspect_with_uninit_and_ptr_outside_interpreter(start..start + len),
+						);
+						self.shared((prov.alloc_id(), start as u64, len as u64, ty), value)
+					}
 					_ => self.err(span, format!("a slice constant of type `{ty}` in memory")),
 				}
 			}

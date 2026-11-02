@@ -30,6 +30,7 @@ toml = "1.1.8"
 codec = { path = "fixtures/codec" }
 fmt = { path = "fixtures/fmt" }
 ints = { path = "fixtures/ints" }
+items = { path = "fixtures/items" }
 vecs = { path = "fixtures/vecs" }
 
 [lints]

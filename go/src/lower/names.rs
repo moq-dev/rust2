@@ -144,16 +144,20 @@ pub fn ident(name: &str) -> String {
 	out
 }
 
-/// A field's Go name: its Rust name, or `F<i>` for a tuple's, kept off Go's keywords and
-/// the enum's `tag`.
+/// A field's Go name: its Rust name, or `F<i>` for a tuple's, escaped as [`escaped`].
 pub fn field(name: &str, index: usize) -> String {
 	if name.parse::<usize>().is_ok() || name.is_empty() {
 		return format!("F{index}");
 	}
-	match name {
-		"tag" => "tag_".into(),
-		_ if PREDECLARED.contains(&name) => format!("{name}_"),
-		_ => name.to_string(),
+	escaped(name)
+}
+
+/// A field's or variant's name kept off Go's keywords and the enum's `tag`, by a trailing
+/// `_`, which a name ending in one takes too, so two names never escape to one.
+pub fn escaped(name: &str) -> String {
+	match name == "tag" || name.ends_with('_') || PREDECLARED.contains(&name) {
+		true => format!("{name}_"),
+		false => name.to_string(),
 	}
 }
 

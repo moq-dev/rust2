@@ -249,10 +249,7 @@ impl<'tcx> Translator<'tcx> {
 
 /// The Go field holding a variant's fields.
 pub fn variant_field(name: &str) -> String {
-	match name {
-		"tag" => "tag_".into(),
-		_ => name.to_string(),
-	}
+	names::escaped(name)
 }
 
 /// A local item's module path, with its name: `lite_Version`.

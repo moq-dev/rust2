@@ -48,6 +48,10 @@ name = "ints"
 version = "0.0.0"
 
 [[package]]
+name = "items"
+version = "0.0.0"
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -108,6 +112,7 @@ dependencies = [
  "codec",
  "fmt",
  "ints",
+ "items",
  "rust2-driver",
  "serde",
  "toml",
