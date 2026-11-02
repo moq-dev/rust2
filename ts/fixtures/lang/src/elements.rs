@@ -330,6 +330,9 @@ pub fn edges(data: &[u8], out: &mut Vec<u8>) {
 		out.push(null.wrapping_add(1).wrapping_sub(1).is_null() as u8);
 		out.push(null.wrapping_add(usize::from(n)).is_null() as u8);
 		out.push(null.wrapping_add(1 << 30).is_null() as u8);
+		// Two pointers at the same address off null, which are none apart.
+		let (p, q) = (null.wrapping_add(usize::from(n) + 1), null.wrapping_add(usize::from(n) + 1));
+		out.push(unsafe { p.offset_from(q) } as u8);
 		// A dangling pointer, at its alignment, moved to null and past it.
 		let dangling = NonNull::<u16>::dangling().as_ptr();
 		out.push(dangling.wrapping_sub(1).is_null() as u8);

@@ -263,7 +263,8 @@ export function ptrWrappingAdd<T>(p: Place<T>, n: number, size: number, align: n
 
 /** `p.offset_from(origin)`: how many elements `p` is past `origin`, in the same array. */
 export function ptrOffsetFrom<T>(p: Place<T>, origin: Place<T>): number {
-	if (p === origin) return 0;
+	// Equal addresses are none apart, in no allocation as in one.
+	if (p === origin || (p instanceof Address && origin instanceof Address && p.addr === origin.addr)) return 0;
 	const [a, b] = [elemOf(p), elemOf(origin)];
 	if (a.array !== b.array) throw new Error("rust2-ts: `offset_from` of pointers JS keeps in different arrays");
 	return a.index - b.index;
