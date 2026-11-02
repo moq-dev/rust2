@@ -1,0 +1,17 @@
+# The profile every crate compiles with, one `--config` per line, which cargo's
+# fingerprint sees.
+#
+# Every function's MIR, which a `cargo check` encodes for no dependency's functions
+# otherwise, without the checks of undefined behavior around raw pointers that Go has no
+# use for, and with every call where the source has it, since a call is what a binding or
+# a std function's translation stands in for.
+profile.dev.rustflags = ["-Zalways-encode-mir", "-Zub-checks=no", "-Zinline-mir=no"]
+# std's own crates, checked from source with every function's MIR, as the prebuilt std
+# encodes few. Without the overflow checks and debug assertions a debug build would add,
+# so std's own arithmetic wraps where the prebuilt std's does.
+profile.dev.package.core.overflow-checks = false
+profile.dev.package.core.debug-assertions = false
+profile.dev.package.alloc.overflow-checks = false
+profile.dev.package.alloc.debug-assertions = false
+profile.dev.package.std.overflow-checks = false
+profile.dev.package.std.debug-assertions = false

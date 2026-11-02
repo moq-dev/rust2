@@ -1,0 +1,37 @@
+[package]
+name = "rust2-go"
+description = "Translate a Rust subset to pure Go"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/moq-dev/rust2"
+# Distributed through the flake: it only builds on the pinned nightly.
+publish = false
+
+[package.metadata.rust-analyzer]
+rustc_private = true
+
+[workspace]
+# Its own workspace, apart from the repo's: the driver builds on ts's pinned nightly,
+# which rust-toolchain.toml links.
+members = ["fixtures/*"]
+resolver = "3"
+
+[workspace.lints.clippy]
+# Every suppression says why, so the next lint audit can judge it.
+allow_attributes_without_reason = "warn"
+
+[dependencies]
+rust2-driver = { path = "../driver" }
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "1.1.8"
+
+[dev-dependencies]
+codec = { path = "fixtures/codec" }
+fmt = { path = "fixtures/fmt" }
+ints = { path = "fixtures/ints" }
+items = { path = "fixtures/items" }
+vecs = { path = "fixtures/vecs" }
+
+[lints]
+workspace = true

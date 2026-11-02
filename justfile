@@ -6,6 +6,9 @@ mod ts
 # The C exporter, its own workspace on the TypeScript driver's nightly: `just ffi <recipe>`.
 mod ffi
 
+# The Go translator, its own workspace on the TypeScript driver's nightly: `just go <recipe>`.
+mod go
+
 # The drivers' shared front end and rust2-lint, its own workspace on the TypeScript driver's nightly: `just driver <recipe>`.
 mod driver
 
@@ -28,6 +31,7 @@ check:
     cargo clippy --locked --workspace --all-targets -- -D warnings
     just ts check
     just ffi check
+    just go check
     just driver check
     just uniffi check
 
@@ -41,6 +45,7 @@ test:
     bash .claude/hooks/direnv.test.sh
     just ts test
     just ffi test
+    just go test
     just driver test
     just uniffi test
 
@@ -64,4 +69,5 @@ fix:
     cargo fmt --all
     just ts fix
     just ffi fix
+    just go fix
     just driver fix

@@ -1,0 +1,2 @@
+package = "vecs"
+roots = ["run"]

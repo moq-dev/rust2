@@ -1,0 +1,4 @@
+# The codec fixture's C ABI: only its entry points, as the rest is no API.
+package = "codec"
+prefix = "codec"
+exclude = ["SessionError", "Timescale", "Version", "stats"]
