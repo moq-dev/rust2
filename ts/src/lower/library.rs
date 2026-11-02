@@ -156,6 +156,11 @@ pub enum Std {
 	PeekMut,
 	/// `rt.Entry`: a map's `Entry`, `OccupiedEntry`, or `VacantEntry`.
 	Entry,
+	/// `rt.HashTable`: hashbrown's `HashTable`, an `rt.HashMap` of its items by the hash its
+	/// caller gives.
+	HashTable,
+	/// `rt.TableEntry`: a `HashTable`'s `Entry`, `OccupiedEntry`, `VacantEntry`, or `AbsentEntry`.
+	TableEntry,
 	/// `rt.Ordering`: its discriminant, -1, 0, or 1.
 	Ordering,
 	/// `rt.Hasher`: `DefaultHasher`, which hash collections hash their keys with.
@@ -907,11 +912,9 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		// `get_or_init::<T, F>` drops its function uncalled if the cell is set.
 		("OnceCell" | "OnceLock", "get_or_init" | "get_or_try_init") => &[1],
 		// A guard's map calls its function, filtered or not.
-		(
-			"Ref" | "RefMut" | "MutexGuard" | "MappedMutexGuard" | "RwLockReadGuard" | "RwLockWriteGuard"
-			| "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
-			"map" | "filter_map" | "try_map" | "map_split",
-		) => &[],
+		_ if maps_guard(owner, name) => &[],
+		// A guard it leaks or downgrades keeps its borrow or lock.
+		("Ref" | "RefMut", "leak") | ("RwLockWriteGuard", "downgrade") => &[],
 		("Once", "call_once" | "call_once_force") => &[0],
 		("Arc" | "Rc", "new_cyclic") => &[1],
 		// `pop_if::<F>` drops its test uncalled if there is no element.
@@ -921,6 +924,24 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		("LocalKey", "with" | "try_with" | "initialize_with" | "with_borrow_mut") => &[1],
 		_ => return None,
 	})
+}
+
+/// Whether `owner::name` is a guard's map, filtered, tried, or split, to parts of what it lends.
+pub fn maps_guard(owner: &str, name: &str) -> bool {
+	matches!(
+		(owner, name),
+		(
+			"Ref"
+				| "RefMut"
+				| "MutexGuard"
+				| "MappedMutexGuard"
+				| "RwLockReadGuard"
+				| "RwLockWriteGuard"
+				| "MappedRwLockReadGuard"
+				| "MappedRwLockWriteGuard",
+			"map" | "filter_map" | "try_map" | "map_split",
+		)
+	)
 }
 
 /// Whether the mapping of `owner::name` tells an `Option`'s `None` from its `Some` where
@@ -981,6 +1002,7 @@ pub(super) fn none_last(owner: &str, name: &str) -> bool {
 			)
 			| ("BinaryHeap", "pop" | "peek")
 			| ("HashSet", "get" | "take" | "replace")
+			| ("HashTable", "find")
 			| (
 				"BTreeSet",
 				"first" | "last" | "pop_first" | "pop_last" | "get" | "take" | "replace"
@@ -1220,7 +1242,7 @@ pub fn call<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, args: Vec<Expr>
 		Ok(e) => return e,
 		Err(args) => args,
 	};
-	if !is_std(tcx, call.def_id) {
+	if !is_std(tcx, call.def_id) && !super::stock::as_std(tcx, call.def_id) {
 		return None;
 	}
 	let (owner, name) = key(tcx, call.def_id)?;

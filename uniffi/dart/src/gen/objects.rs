@@ -310,9 +310,17 @@ pub fn generate_object(obj: &Object, type_helper: &dyn TypeHelperRenderer) -> da
                 if (_isDisposed) {
                     return;
                 }
+                // Reserve status storage before closing, so allocation failure
+                // leaves the handle owned and disposal retryable.
+                final status = calloc<RustCallStatus>();
                 _isDisposed = true;
                 _$finalizer_cls_name.detach(this);
-                rustCall((status) => $ffi_object_free_name(_ptr, status));
+                try {
+                    $ffi_object_free_name(_ptr, status);
+                    checkCallStatus(NullRustCallStatusErrorHandler(), status);
+                } finally {
+                    calloc.free(status);
+                }
             }
 
             $to_string_method
@@ -393,9 +401,17 @@ fn generate_callback_trait_rust_impl(
                 if (_isDisposed) {
                     return;
                 }
+                // Reserve status storage before closing, so allocation failure
+                // leaves the handle owned and disposal retryable.
+                final status = calloc<RustCallStatus>();
                 _isDisposed = true;
                 $(&finalizer_field).detach(this);
-                rustCall((status) => $ffi_object_free_name(_ptr, status));
+                try {
+                    $ffi_object_free_name(_ptr, status);
+                    checkCallStatus(NullRustCallStatusErrorHandler(), status);
+                } finally {
+                    calloc.free(status);
+                }
             }
 
             $(for method in concrete_methods => $method)
@@ -814,9 +830,17 @@ fn generate_trait_object(obj: &Object, type_helper: &dyn TypeHelperRenderer) -> 
                 if (_isDisposed) {
                     return;
                 }
+                // Reserve status storage before closing, so allocation failure
+                // leaves the handle owned and disposal retryable.
+                final status = calloc<RustCallStatus>();
                 _isDisposed = true;
                 $(&finalizer_field).detach(this);
-                rustCall((status) => $ffi_object_free_name(_ptr, status));
+                try {
+                    $ffi_object_free_name(_ptr, status);
+                    checkCallStatus(NullRustCallStatusErrorHandler(), status);
+                } finally {
+                    calloc.free(status);
+                }
             }
 
             $(for method in concrete_methods => $method)

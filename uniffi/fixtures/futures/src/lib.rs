@@ -497,6 +497,12 @@ async fn as_string_using_trait(obj: Arc<dyn AsyncParser>, delay_ms: i32, value: 
     obj.as_string(delay_ms, value).await
 }
 
+// Blocks the calling thread on an async callback, as a sync callback using `pollster` would.
+#[uniffi::export]
+fn as_string_using_trait_blocking(obj: Arc<dyn AsyncParser>, delay_ms: i32, value: i32) -> String {
+    futures::executor::block_on(obj.as_string(delay_ms, value))
+}
+
 #[uniffi::export]
 async fn try_from_string_using_trait(
     obj: Arc<dyn AsyncParser>,

@@ -123,7 +123,7 @@ crate translation reaches is refused, and so are two versions of one crate it re
 | a type's function | a function of the type's module, taking `self` first: `Decoder.slice(dec, 4)` after `import * as Decoder` |
 | `Arc<T>`, `Rc<T>`, `Weak<T>`, `Mutex<T>` | `rt.Arc` for either, with its strong and weak counts, and `new_cyclic`'s `Weak` upgrading only once its value is made, `get_mut` lending its value only while no other `Arc` or `Weak` shares it, `make_mut` cloning it into a new `rt.Arc` while another `Arc` shares it, or moving it there while only `Weak`s do, which then dangle, and `into_inner` giving it only from the last strong `Arc`, after which its `Weak`s no longer upgrade; `rt.Weak`, counted in its `rt.Arc` until it drops, and of no `Arc` once made by `Weak::new`; `rt.Mutex`, its own guard, which a lock gives as `Ok` and the guard's drop unlocks: locking it again while held panics and `try_lock` gives `WouldBlock`, as wasm32's do, and a guard's `map` and `filter_map` make `rt.MutexMap`s, each where the part it lends is, which hold the mutex locked until they drop, and a panic aborts, so nothing poisons it and `thread::panicking` is `false`; a `Mutex`'s, a `RefCell`'s, and an `RwLock`'s `into_inner` gives its value and `get_mut` lends it, or an `rt.Place` of it where JS copies it |
 | `PoisonError<T>`, `TryLockError<T>` | the `T` it holds; `rt.TryLockError<T>`, tagged as `Bound` is |
-| `Cell<T>`, `UnsafeCell<T>`, `RefCell<T>`, `RwLock<T>` | `rt.Cell`, the place holding its value in `v`, for either of the first two: `UnsafeCell::get`'s pointer is the cell where it is an `rt.Place`, and otherwise the object in `v`, refused where the crate may put another cell or object in its place; `rt.RefCell` for either of the others, its own guard, counting its borrows: borrowing it while that conflicts panics as `RefCell`'s does, and locking it so aborts as wasm32's `RwLock` does; `try_borrow` and `try_borrow_mut` fail with `rt.BorrowError` and `rt.BorrowMutError` instead, a clone borrows the cell, `Ref::clone` counts another borrow of it, and a guard's `map`, `filter_map`, `try_map`, and `map_split`, an `RwLock` guard's included, make `rt.RefMap`s, each where a part it lends is, which a write through a mapped `RefMut` reaches in place, sharing the cell's borrow until the last drops; refused for a part of a sized type JS can't write in place, such as a binding's |
+| `Cell<T>`, `UnsafeCell<T>`, `RefCell<T>`, `RwLock<T>` | `rt.Cell`, the place holding its value in `v`, for either of the first two: `UnsafeCell::get`'s pointer is the cell where it is an `rt.Place`, and otherwise the object in `v`, refused where the crate may put another cell or object in its place; `rt.RefCell` for either of the others, its own guard, counting its borrows: borrowing it while that conflicts panics as `RefCell`'s does, and locking it so aborts as wasm32's `RwLock` does; `try_borrow` and `try_borrow_mut` fail with `rt.BorrowError` and `rt.BorrowMutError` instead, a clone borrows the cell, `Ref::clone` counts another borrow of it, and a guard's `map`, `filter_map`, `try_map`, and `map_split`, an `RwLock` guard's included, make `rt.RefMap`s, each where a part it lends is, which a write through a mapped `RefMut` reaches in place, sharing the cell's borrow until the last drops; `RwLockWriteGuard::downgrade` keeps the lock as one read, and `Ref::leak` and `RefMut::leak` keep the borrow until `RefCell::undo_leak` ends it; refused for a part of a sized type JS can't write in place, such as a binding's |
 | `thread_local!`, `LocalKey<T>` | an `rt.LocalKey`, a module's value, which makes its value on first use from the `const` or the expression and never drops it, as wasm32's do; `with` calls its function on that value, `try_with` never fails, the `Cell` and `RefCell` helpers lower from std, and a `RefCell` key's `set` and `with_borrow_mut` borrow it as `borrow_mut` does |
 | `OnceCell<T>`, `OnceLock<T>` | `rt.OnceCell` and `rt.OnceLock`, holding the `Option<T>` in `v`, which is the place `get_mut` lends where JS copies the value; a `OnceLock` initialized from within its own initialization panics, as wasm32's does, and `get_or_try_init`'s error leaves either empty |
 | `Once`, `OnceState` | `rt.Once`, an `rt.OnceLock` that holds `true` once `call_once` or `call_once_force` ran its function, and panics as wasm32's does if run again from within it; `rt.OnceState`, that `Once`, which a panic never poisons, as it aborts |
@@ -137,6 +137,8 @@ crate translation reaches is refused, and so are two versions of one crate it re
 | `bytes::Bytes` | `rt.ByteSlice`, as `&[u8]` is: its clones and slices share bytes that never change |
 | `bytes::BytesMut` | `rt.BytesMut`: a window of storage, which what it splits off and freezes share without overlapping |
 | `rand::rngs::ThreadRng` | `rt.ThreadRng`, which holds no state |
+| `hashbrown::HashMap`, `HashSet` | `rt.HashMap<K, V>` and `rt.HashSet<K>`, as std's, which are hashbrown's |
+| `hashbrown::HashTable<T>` | `rt.HashTable<T>`: an `rt.HashMap` of nothing to each item, under the hash its caller gives; its entries are `rt.TableEntry<T>`, the place of the item an occupied one holds |
 
 `Vec<u8>` storage and `[x; N]` byte arrays up to 1 KiB share 8 KiB `ArrayBuffer`s, as Node's
 `Buffer` pool does, so the `buffer` behind a view holds other bytes too: read it through
@@ -525,9 +527,31 @@ of them:
   as `bytes` does, and into a `BytesMut` is refused, as `bytes` picks those methods by its
   capacity. The provided `copy_to_bytes` of the crate's own `Buf`, whose `BytesMut` has
   the capacity it asks for, reads it chunk by chunk through its methods.
-  The rest of `bytes`, such as the other provided methods of the crate's own `Buf` and the
-  impls forwarding through a `&mut` or a `Box`, translates from its MIR, refused where
-  that is.
+  The impls forwarding through a `&mut` or a `Box` translate from `bytes`' MIR, and the
+  `BufMut` methods they don't forward map as the buffer's own, but `put` and `put_bytes`,
+  which grow it as their provided bodies do, 64 bytes at a time once it is full. `put` of
+  the crate's own `Buf` through them into a `BytesMut` is refused, as `bytes` advances it
+  by the room left in the capacity.
+  The rest of `bytes`, such as the other provided methods of the crate's own `Buf`,
+  translates from its MIR, refused where that is.
+- `hashbrown`'s `HashMap` and `HashSet` are std's, which wrap them, and map as std's do,
+  hashbrown's own methods included: `allocation_size` is a slot and a control byte for each
+  entry the capacity holds, and its `Entry` is std's. Its `HashTable` keeps each item
+  under the hash the caller gives, a `u64` past 2^53 included, chained by the caller's
+  equality, which the runtime calls on each item under that hash, rather than on those
+  hashbrown's tag bytes pick. It never calls a method's `hasher`, as it never moves an
+  item. `find`, `find_mut`, `find_entry`, `entry`, `insert_unique`, `retain`, `iter`,
+  `iter_mut`, `drain`, `clear`, `len`, `clone`, `Debug`, and what reads and sets capacity
+  map, and so do its entries' `insert`, `or_insert`, `or_insert_with`, `and_modify`,
+  `get`, `get_mut`, `into_mut`, `remove`, and `into_table`. What reads hashbrown's
+  buckets, such as `find_bucket_index` and `iter_hash`, is refused, as are
+  `get_many_mut`, `extract_if`, and `try_reserve`. hashbrown's `DefaultHashBuilder` and
+  `DefaultHasher` are std's `RandomState` and `DefaultHasher`: foldhash's state is seeded
+  at random as std's is, so which hash a key gets is never observable. A crate's own
+  `Hasher`, such as `hashlink`'s default over hashbrown's, is refused
+  ([a crate's own hasher](/quest/m2/ts-model/own-hasher.md)). Nothing of hashbrown
+  translates, so `hashlink`, which keeps its entries in a `HashTable`, translates over the
+  runtime's.
 - `rand::rng()` is an `rt.ThreadRng`, whose `random` of an integer or `bool` and
   `random_range` of an integer range map to `rt/rand.ts`. Each value comes from
   `crypto.getRandomValues`, uniform as `rand`'s are, though no seed reproduces them, as
@@ -743,7 +767,13 @@ they need.
   it takes 0.5-0.8x the time two sorted arrays did, from 16 keys to 4096, in Node, Bun,
   and Chrome; 64 keys a node measured best of 16 to 128. A hash map's JS primitive keys
   are a JS `Map`'s, the engine's own hash table; its other keys go into a second `Map`
-  by their translated hash, chained by `Eq`. `VecDeque` is a ring buffer over an array
+  by their translated hash, chained by `Eq`. A hash map, set, or table holds only what std
+  guarantees of its capacity, at least its length and what `with_capacity` and `reserve`
+  ask for, doubling as inserts grow it, and keeps it as it holds fewer or clears, as a
+  table keeps its allocation; hashbrown's exact bucket counts are not followed (decided
+  with the maintainer on 2026-11-01). It holds one, as `cap`, only where an operation
+  sets it or a removal reads it, so an insert never reads or writes one, and reading it
+  doubles it from 3 while short of the length. `VecDeque` is a ring buffer over an array
   whose length is a power of two. A `Vec`, `VecDeque`, and `BinaryHeap` hold what std
   guarantees of their capacity: at least their length and what `with_capacity`,
   `reserve`, and `reserve_exact` ask for, and std's exactly where its doubling fixes it,
@@ -811,7 +841,7 @@ an iterator adaptor, and values that drop in some iterators ([drop order](/quest
 function without a mapping of its own that makes or reads an `Option` whose `None` is
 `rt.None`, as `Iterator::scan` of `Option`s does, an `Option` of an `Option` of `()` or another
 `Option`, an instance of a generic type whose field is an `Option` of a type parameter
-that can be `undefined`, a `String`'s or hash collection's `capacity`, looking up a key by
+that can be `undefined`, a `String`'s `capacity`, looking up a key by
 another type it borrows as through the crate's own `Borrow`, a `&mut` to a value JS
 copies that std makes, other than a map's, or hands a closure, as `iter_mut` and
 `and_modify` do, one into a `Result`'s payload passed on or kept, `Hasher::write` of bytes, the adaptors
@@ -889,13 +919,18 @@ built natively for wasm32 and run beside its translation on the same inputs by
   impls, beside values that drop inside std's types. Its caller is hand-written TS (`tests/task.ts`): a FIFO executor that runs a
   script of spawns, sends, polls, and drops, and logs every poll, wake, and drop, as the
   fixture's native executor does. The logs must match byte for byte.
-- `stock` calls `bytes`, `rand`, and `tracing` with no config, against native Rust, whose
+- `stock` calls `bytes`, `hashbrown`, `rand`, and `tracing` with no config, and `hashlink`
+  over `hashbrown`, against native Rust, whose
   `rand::rng()` reads the fixture's own getrandom backend on wasm32. It checks `Bytes`'s
   slices and panics, how each is made and printed, that no event evaluates a field, and
   that each random value is in its range, every value of a small range drawn. It splits,
   freezes, grows, and writes a `BytesMut` by ops its input picks, ending with every
-  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, a buffer of
-  its own included. `caller.ts` names the inputs that reserve at the edges of
+  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, through a
+  `&mut` and a `Box` too, a buffer of its own included, ending with each vector's
+  capacity. It changes hashbrown's maps and sets, keyed by JS primitives and by
+  tuples, and `HashTable`s of tuples and of numbers, whose places it writes, under hashes
+  that collide and that pass 2^53, checks their capacity by std's guarantees, and writes a
+  `hashlink::LinkedHashMap` in its own order. `caller.ts` names the inputs that reserve at the edges of
   `BytesMut`'s 512 MiB limit.
 - `bind` binds `buf::Blob`, a renamed dependency's type with `unsafe` inside, and a function and a type of its own that read through raw
   pointers, the type dropping an `Arc` where Rust drops it, to the TS in `bind/`. It keys
