@@ -13,8 +13,8 @@ plain install and cross-compiling, so a pure-Go moq is worth researching. The cg
 exporter stays moq's Go route until a translation matches it.
 
 The spike ([moq-dev/rust2#410](https://github.com/moq-dev/rust2/pull/410)) translated
-moq's codec held to rust2-ts's bar: 35,273 codec cases and 117,953 integer cases match
-native Rust, panics included. It runs 5 to 120 times slower than cgo on batched loops,
+moq's codec held to rust2-ts's bar: 35,273 codec cases and 124,193 integer cases match
+native Rust, panics included. It runs 2 to 113 times slower than cgo on batched loops,
 and beats it only on a single short call, where cgo's crossing dominates. Stripped, it
 adds 324 KB to a Go binary where cgo adds 1.15 MB and a libc dependency.
 

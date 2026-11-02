@@ -7,8 +7,8 @@ through cgo, and the differential tests still pass.
 
 ## Plan
 
-The spike measured why it is 5 to 120 times slower, decoding a QUIC varint in 150 ns where
-cgo takes 1.2 ns, with 2 allocations per 1,024 varints:
+The spike measured why it is 2 to 113 times slower, decoding a 2-byte QUIC varint in 150
+to 185 ns where cgo takes 1.2 to 1.6 ns, with 2 allocations per 1,024 varints:
 
 - **Every MIR local is a Go variable** declared at the top: 240 of `read_quic`'s 981
   instructions zero 16 bytes each, as Go keeps a struct too large for registers in memory.
