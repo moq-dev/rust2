@@ -2,7 +2,7 @@
 // Node, Bun, Chrome, and Firefox, and reports the numbers with each route's bundle size.
 //
 // usage: bun main.ts --translated <dir> --wasm <file> --native <bin> --moq <checkout>
-//                    --moq-wasm <dir> --task <dir> --task-wasm <file> --task-native <bin>
+//                    --task <dir> --task-wasm <file> --task-native <bin>
 //                    --out <dir> [--sample-ms 2] [--rounds 25] [--seed <u32>] [--route <name>=<dir>]
 //
 // The task fixture's async handoff runs beside the codec, against moq's way with promises.
@@ -30,7 +30,6 @@ const { values: args } = parseArgs({
 		wasm: { type: "string" },
 		native: { type: "string" },
 		moq: { type: "string" },
-		"moq-wasm": { type: "string" },
 		task: { type: "string" },
 		"task-wasm": { type: "string" },
 		"task-native": { type: "string" },
@@ -160,13 +159,11 @@ await Promise.all([
 	extra && Bun.write(join(out, "task-route.js"), extra.task),
 ]);
 
-const moqWasm = arg("moq-wasm");
 const sizes = [
 	{ route: "wasm", files: [wasmBytes] },
 	{ route: "hand-written", files: [handBundle] },
 	{ route: "translated", files: [translation] },
 	...(extra ? [{ route: extra.name, files: [extra.codec] }] : []),
-	{ route: "moq-wasm package", files: [await read(join(moqWasm, "moq_bg.wasm")), await read(join(moqWasm, "moq.js"))] },
 ].map(measureSize);
 
 // The task fixture: its channel, its async functions, and their runtime, as each route ships them.
@@ -366,7 +363,7 @@ function render(): string {
 		`of ${rounds} samples of at least ${sampleMs} ms, ± half their interquartile range. Each round runs`,
 		`the JS routes and workloads in a new random order, from seed ${seed}. \`native\` is a release`,
 		"build on the host, its workloads in a fixed order. `wasm` is the same",
-		"Rust at moq-wasm's size-optimized profile, run with its input already in memory;",
+		"Rust at the size-optimized profile moq's WASM shipped with, run with its input already in memory;",
 		"copying the input in and the output out are timed apart. `hand-written` is moq's",
 		"`js/net`, called as its own benchmarks call it, for `iter/` the same chain with ES",
 		"iterator helpers (`bench/iter.ts`), for `btree/` a sorted array (`bench/sorted.ts`), for `hash/` a `Map` (`bench/hashed.ts`), and",
@@ -380,8 +377,7 @@ function render(): string {
 		"",
 		"## Bundle size",
 		"",
-		"Bytes for the same workloads, as timed: minified by Bun where JS. `moq-wasm package` is what moq",
-		"ships as WASM today, its bindgen glue included: the whole consume path, not only the codec.",
+		"Bytes for the same workloads, as timed: minified by Bun where JS.",
 		"",
 		"| route | raw | gzip |",
 		"| --- | ---: | ---: |",
