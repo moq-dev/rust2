@@ -302,6 +302,8 @@
               # rust2-go's tests build and run its output against native Rust.
               go
             ];
+            # ... and its generated Swift, where nixpkgs builds Swift: not on aarch64-linux.
+            nativeBuildInputs = pkgs.lib.optional (!pkgs.swift.meta.broken) pkgs.swift;
             RUST2_TS_TOOLCHAIN = tsToolchain;
             RUST2_TS_SYSROOT = rust2-ts-std;
             KOTLINX_COROUTINES = "${kotlinx-coroutines}";

@@ -16,6 +16,7 @@ import { chunks } from "./chunks.ts";
 import { iters as clones_iters } from "./clones.ts";
 import { hashMaps, sets, btreeMaps, deques as collections_deques, vecs as collections_vecs, stores, optionals, setOps, unlikeEqs, ownNes, cellEqs, unlikeCompares, refOrders } from "./collections.ts";
 import { combinators } from "./combinators.ts";
+import { conversions } from "./conversions.ts";
 import { arcs as counts_arcs, clonedArcs, cyclicArcs, uniqueArcs, clonedRcs, cyclicRcs, rcs, uniqueRcs, copies as counts_copies } from "./counts.ts";
 import { cows, slices as cows_slices, bytes as cows_bytes } from "./cows.ts";
 import { cycles } from "./cycles.ts";
@@ -261,18 +262,18 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 		borrows_maps(data91, out92);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::mapped", (_2192: rt.u8, data92: rt.ByteSlice, out93: rt.ByteVec): undefined => {
 		mapped(data92, out93);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::tries", (_2193: rt.u8, data93: rt.ByteSlice, out94: rt.ByteVec): undefined => {
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["conversions::conversions", conversions as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::tries", (_2193: rt.u8, data93: rt.ByteSlice, out94: rt.ByteVec): undefined => {
 		tries(data93, out94);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::mutex_mapped", (_2194: rt.u8, data94: rt.ByteSlice, out95: rt.ByteVec): undefined => {
 		mutexMapped(data94, out95);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::printed", (_2195: rt.u8, data95: rt.ByteSlice, out96: rt.ByteVec): undefined => {
 		locks_printed(data95, out96);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::vecs", (a0152: rt.u8, a1152: rt.ByteSlice, a2152: rt.ByteVec): undefined => {
-		capacity_vecs(a0152, a1152.data, a1152.start, a1152.length, a2152);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::deques", (a0153: rt.u8, a1153: rt.ByteSlice, a2153: rt.ByteVec): undefined => {
-		capacity_deques(a0153, a1153.data, a1153.start, a1153.length, a2153);
-	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::heaps", (a0154: rt.u8, a1154: rt.ByteSlice, a2154: rt.ByteVec): undefined => {
-		capacity_heaps(a0154, a1154.data, a1154.start, a1154.length, a2154);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::vecs", (a0153: rt.u8, a1153: rt.ByteSlice, a2153: rt.ByteVec): undefined => {
+		capacity_vecs(a0153, a1153.data, a1153.start, a1153.length, a2153);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::deques", (a0154: rt.u8, a1154: rt.ByteSlice, a2154: rt.ByteVec): undefined => {
+		capacity_deques(a0154, a1154.data, a1154.start, a1154.length, a2154);
+	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::heaps", (a0155: rt.u8, a1155: rt.ByteSlice, a2155: rt.ByteVec): undefined => {
+		capacity_heaps(a0155, a1155.data, a1155.start, a1155.length, a2155);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::collects", collects as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["capacity::maps", capacity_maps as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["locks::downgraded", (_2196: rt.u8, data96: rt.ByteSlice, out97: rt.ByteVec): undefined => {
 		downgraded(data96, out97);
 	}] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["borrows::leaks", (_2197: rt.u8, data97: rt.ByteSlice, out98: rt.ByteVec): undefined => {
