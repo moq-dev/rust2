@@ -46,7 +46,7 @@ run *args:
 census checkout="": (standin checkout)
     cargo run --locked --quiet -- --config moq/ffi.toml --manifest-path target/moq-ffi/Cargo.toml --census target/census
 
-# Time frame writes through the export, from C, C++, Kotlin, and Swift, and through moq's hand-written rs/moq-c, in the bench shell: nix develop .#bench.
+# Time frame writes through the export, from C, C++, Kotlin, Swift, and Go, and through moq's hand-written rs/moq-c, in the bench shell: nix develop .#bench.
 bench checkout="": (moq checkout)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -60,6 +60,10 @@ bench checkout="": (moq checkout)
     cc -O2 -std=c11 -Wall -Wextra -Werror -I "$out/include" moq/bench/export.c "$out/target/release/libmoq.a" -lpthread -ldl -lm -o target/bench-export
     cc -O2 -std=c11 -Wall -Wextra -Werror -I "$moqc/include" moq/bench/moq-c.c "$src/target/release/libmoq.a" -lpthread -ldl -lm -o target/bench-moq-c
     c++ -O2 -std=c++17 -Wall -Wextra -Werror -I "$out/include" moq/bench/export.cpp "$out/target/release/libmoq.a" -lpthread -ldl -lm -o target/bench-export-cpp
+    {{ just_executable() }} go-module bench-go moq/bench/export.go
+    read -ra native < target/moq-native
+    export CGO_LDFLAGS="$PWD/$out/target/release/libmoq.a ${native[*]}" GOFLAGS=-buildvcs=false
+    (cd target/bench-go && go build -o bench .)
     rm -rf target/bench-kt
     kotlinc -Werror -cp "$KOTLINX_COROUTINES" "$out/kotlin/moq.kt" moq/bench/export.kt -d target/bench-kt
     swift=true
@@ -76,9 +80,10 @@ bench checkout="": (moq checkout)
         target/bench-export-cpp
         kotlin -Djava.library.path="$out/target/release" -cp "target/bench-kt:$KOTLINX_COROUTINES" ExportKt
         if $swift; then target/bench-export-swift; fi
+        target/bench-go/bench
     done
 
-# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.swift against it, from the pinned moq revision or a checkout.
+# Export moq's crates' C ABI, build it, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, moq/moq.swift, and moq/moq.go against it, from the pinned moq revision or a checkout.
 moq checkout="": (moq-cpp checkout)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -95,6 +100,10 @@ moq checkout="": (moq-cpp checkout)
     else
         {{ just_executable() }} moq-swift-run
     fi
+    # The Go, through cgo, linking the library and what it needs besides.
+    {{ just_executable() }} go-module moq-go moq/moq.go
+    export CGO_LDFLAGS="$PWD/$out/target/release/libmoq.a ${native[*]}" GOFLAGS=-buildvcs=false
+    (cd target/moq-go && go vet ./... && go run .)
 
 # Export and build moq's crates' C ABI as `just ffi moq` does, and run only moq/moq.cpp against it, built by $CXX or the platform's compiler: MSVC's on Windows, from a developer environment.
 moq-cpp checkout="": (moq-export checkout)
@@ -141,6 +150,20 @@ swift-module *flags:
 swift-target macos:
     #!/usr/bin/env bash
     if [ "{{ os() }}" = macos ]; then echo "-target $(uname -m)-apple-macos{{ macos }}"; fi
+
+# Lay out target/<dir> as a Go module whose main package is <main>, beside the export's moq package, linking the library through cgo.
+[private]
+go-module dir main:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    out=target/export/moq
+    dir=target/{{ dir }}
+    rm -rf "$dir"
+    mkdir -p "$dir/moq" "$dir/include"
+    cp "$out/go/moq.go" "$dir/moq/"
+    cp "$out/include/moq.h" "$dir/include/"
+    cp {{ main }} "$dir/main.go"
+    printf 'module moqtest\n\ngo 1.24\n' > "$dir/go.mod"
 
 # Export moq's crates' C ABI into target/export/moq and build it, with the libraries a program linking it needs besides in target/moq-native.
 [private]

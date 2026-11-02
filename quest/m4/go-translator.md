@@ -5,7 +5,7 @@
 A spike translates moq's codec from its MIR to pure Go, with no cgo, as
 [rust2-ts](/ts/README.md) began, and records whether a Go translator should follow:
 differential tests against native Rust pass, and a Go benchmark measures the translation
-against the [exporter's cgo bindings](/quest/m1/ffi-export/go.md) on the same workloads.
+against the [exporter's cgo bindings](/ffi/README.md#go) on the same workloads.
 
 ## Plan
 

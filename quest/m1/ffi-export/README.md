@@ -55,9 +55,9 @@ than `ctypes`; the others call C natively. moq's packages switch to them in moq'
 
 - [moq-clock's C names once it moves into kio](/quest/m1/ffi-export/crates.md) - `moq_now` and `moq_origin` become the clock's, after moq moves it into `kio::clock`
 - [Sessions on sans-IO QUIC](/quest/m1/ffi-export/session-quic.md) - bindings move UDP datagrams and drive the session's poll themselves, over moq's runtime-free QUIC driver once it lands
+- [Kotlin and Swift: boxed options and parameters apart](/quest/m1/ffi-export/fixture-shapes.md) - the generated Kotlin and Swift compile an object's option behind a box or one-tuple, and parameters whose names differ only in underscores
 - [C++ bindings on MSVC](/quest/m1/ffi-export/cpp.md) - the nightly's MSVC job passes the C++ checks
 - [Waiting: moq-tokio within the recursion limit](/quest/m1/ffi-export/recursion-limit.md) - the exporter's moq pin moves past moq-dev/moq#7032 once moq-tokio's `Send` check fits the limit
 - [Python bindings](/quest/m1/ffi-export/python.md) - a generated CPython extension, skipping the C ABI as Kotlin's JNI does
-- [Go bindings](/quest/m1/ffi-export/go.md) - Go over the C ABI through cgo
 - [Dart bindings](/quest/m1/ffi-export/dart.md) - Dart over the C ABI through `dart:ffi`
 - [A moq checkout per pin](/quest/m1/ffi-export/moq-checkouts.md) - `just ts` and `just ffi` check out their own moq revisions, so both run at once

@@ -24,11 +24,11 @@ to what the library builds with on any platform, read off cargo's resolution, wh
 it was declared (the manifest, cargo's config, `--config`, or the environment), keyed by
 its source's URL.
 A `[replace]` from the source it replaces, which no `[patch]` can carry, is an error.
-Beside the C header, `include/<prefix>.hpp` holds the same API in C++, and
+Beside the C header, `include/<prefix>.hpp` holds the same API in C++,
 `kotlin/<prefix>.kt` holds it in Kotlin, over JNI functions the crate builds with
 `--features kotlin`, and `kotlin/<prefix>.pro` the R8 and ProGuard rules keeping what
-those functions look up by name, and `swift/<prefix>.swift` holds it in Swift, over the C
-header as a clang module.
+those functions look up by name, `swift/<prefix>.swift` holds it in Swift, over the C
+header as a clang module, and `go/<prefix>.go` holds it in Go, over the C ABI through cgo.
 
 ```toml
 # ffi.toml, beside the package's Cargo.toml unless --manifest-path says otherwise.
@@ -318,6 +318,58 @@ in either language mode.
 - A **waker** is a `@Sendable () -> Void`, which Rust may call from any thread.
 - **The contract** is checked once, at the first call into the library: a Swift file and a
   library from different builds trap.
+## Go
+
+`<prefix>.go` is the Go package `<prefix>` over the C header through cgo, for Go 1.24 or
+later. It includes `<prefix>.h` from `../include`, as the export lays them out, or from its
+own directory, and links the library through `CGO_LDFLAGS`.
+
+- **Names** are the C names without the prefix, in Pascal case: `moq_track_producer` is
+  `TrackProducer`, and its method `moq_track_producer_append_group` is
+  `TrackProducer.AppendGroup`. A function of a type that takes no receiver is a function of
+  the package named through its type (`CounterSeededPoint`), but `new`, which is
+  `NewCounter`. A constant keeps its upper case (`LIMIT`), and one that is not a `bool` or
+  integer is a function of that name (`GREETINGS()`). A method named `Close` or `Error`
+  takes a trailing `_`, and a parameter named as a Go keyword, a predeclared name, or a
+  package the code uses takes one too.
+- **Objects** are pointers to structs owning their handle. `Close()` frees it once no call
+  holds it, and a call after it panics; one never closed is closed once the GC collects
+  it, through `runtime.AddCleanup`. A `self` method, or passing the object by value, closes
+  it once the call returns. `Clone` is `Clone()`, and a `pub` field a getter, `First()`,
+  and a setter, `SetFirst(v)`.
+- **Records** are structs, and **plain enums** an `int32` type with a constant per
+  variant (`ShapeSquare`). An enum with data is an interface each variant's struct
+  implements (`EventMoved{V0: p}`), sealed so only the package's do; its methods are the
+  interface's. Positional fields are `V0`, `V1`, and so on. `Display` is `String()`,
+  `Debug` `GoString()`, `PartialEq` `Equal(other)`, all through Rust's, and `Default` a
+  function of the package, `PointDefault()`.
+- **Bytes** passed in are a `[]byte`, and text a `string`, each read in place: Go's memory,
+  pinned where C reads it through other memory. Bytes Rust returns are copied once into a
+  `[]byte`, and text into a `string`, and Rust's freed at the call. A path is a `string`
+  of the OS's bytes, which need not be UTF-8. `Option<T>` is `*T`, or for an object its
+  pointer, nil for `None`. A tuple is `Tuple2[A, B]` and so on, but a tuple of one is its
+  element, and one returned whole is the function's results. `Duration` is
+  `time.Duration`: a negative one passed in, or one Rust returns past its 292 years,
+  panics. A socket address is a `netip.AddrPort`, whose zone names an IPv6 scope by its
+  number or its interface's name; one Rust returns with an IPv6 flow label, which
+  `netip` does not keep, panics. A `Vec<T>` or `&[T]` is a `[]T`.
+- **Errors**: a `Result` returns an `error` last. An exported error type is returned as
+  itself, implementing `error` with its `Display`, else its `Debug`, and any other in a struct
+  `<T>Error{Value}`, such as `StringError`.
+- **Traits** are interfaces. Once Rust drops an implementation, it is closed if it is an
+  `io.Closer`.
+- **Closures** lent for a call are funcs, which Rust calls only during the call, from any
+  thread. An object it lends is closed once the call returns.
+- **Futures** are calls taking a `context.Context` first, which block until the future is
+  ready. The call polls it once before it waits, and makes the waker it waits on only if
+  that poll pends; a wake from any thread signals the waiting goroutine, which polls
+  again, so a wake never polls inside Rust, and one that lands before the wait is kept. A
+  context done before the call, or while it waits, returns its error and frees the future,
+  which cancels it in Rust and loses nothing: the next call takes what it would have.
+  Each call is its own future, so it has one poller, and its context bounds only it.
+- A **waker** is a `func()`, which Rust may call from any thread.
+- **The contract** is checked when the package loads, before any other call: a Go file and
+  a library from different builds panic.
 
 ## IR
 
@@ -327,12 +379,13 @@ its Rust path, its span, and its docs. A type is in the exact form Rust takes or
 (`&str` apart from `String`, `Box<dyn Trait>` apart from `impl Trait`), so a generator can
 borrow where Rust borrows. [`src/abi.rs`](src/abi.rs) decides the C ABI from it once,
 names and signatures, so [`src/c.rs`](src/c.rs), [`src/cpp.rs`](src/cpp.rs),
-[`src/kotlin.rs`](src/kotlin.rs), [`src/swift.rs`](src/swift.rs), and
-[`src/glue.rs`](src/glue.rs) agree; the runtime the glue includes is
+[`src/kotlin.rs`](src/kotlin.rs), [`src/swift.rs`](src/swift.rs), [`src/go.rs`](src/go.rs),
+and [`src/glue.rs`](src/glue.rs) agree; the runtime the glue includes is
 [`runtime/rt.rs`](runtime/rt.rs), the one the C++ header includes
 [`runtime/rt.hpp`](runtime/rt.hpp), the ones Kotlin and its JNI glue include
-[`runtime/rt.kt`](runtime/rt.kt) and [`runtime/jni.rs`](runtime/jni.rs), and the one the
-Swift includes [`runtime/rt.swift`](runtime/rt.swift).
+[`runtime/rt.kt`](runtime/rt.kt) and [`runtime/jni.rs`](runtime/jni.rs), the one the
+Swift includes [`runtime/rt.swift`](runtime/rt.swift), and the one the Go includes
+[`runtime/rt.go`](runtime/rt.go).
 
 ## Census
 
@@ -345,13 +398,13 @@ refusal, which is a bug in the exporter's inference rather than in the crate.
 ## Tests
 
 ```bash
-just ffi test     # export the fixtures, build them, and drive api from C, C++, Kotlin, and Swift
-just ffi moq      # export moq's crates at the pinned revision, build them, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.swift
+just ffi test     # export the fixtures, build them, and drive api from C, C++, Kotlin, Swift, and Go
+just ffi moq      # export moq's crates at the pinned revision, build them, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, moq/moq.swift, and moq/moq.go
 just ffi moq-cpp  # the same export, running only moq/moq.cpp
 just ffi moq-swift  # the same export, running only moq/moq.swift
 just ffi census   # census each into target/census
 nix develop .#android --command just ffi android  # the Kotlin test, shrunk by R8, on the Android device adb reaches
-nix develop .#bench --command just ffi bench  # frame writes and reads, through the export from C, C++, Kotlin, and Swift, and moq's rs/moq-c
+nix develop .#bench --command just ffi bench  # frame writes and reads, through the export from C, C++, Kotlin, Swift, and Go, and moq's rs/moq-c
 ```
 
 The `api` fixture covers each rule once, and names the `dep` fixture's types, which
@@ -362,8 +415,8 @@ runs the script through the C++ header at C++17, 20, and 23, with exceptions and
 at 17 and 23, then checks its futures: a wake that lands during a poll, a cancel between a
 wake and its poll that loses nothing, and a coroutine resumed or destroyed. `tests/api.kt`
 runs the script through the Kotlin on the JVM, checks its futures the same way, and breaks
-each runtime check, which must throw or abort with its message. `just ffi android` runs the
-same on ART: the Kotlin and `tests/api.kt`, shrunk by R8 into an app's dex with only the
+each runtime check, which must throw or abort with its message. `just ffi android` runs
+the same on ART: the Kotlin and `tests/api.kt`, shrunk by R8 into an app's dex with only the
 generated rules keeping what JNI looks up, against the library built by the NDK for the
 device's ABI, which ANDROID_HOME and ANDROID_NDK_HOME locate. Nightly runs it on an
 x86_64 emulator at API 24, the oldest moq's Android library supports, and at API 35.
@@ -371,8 +424,12 @@ x86_64 emulator at API 24, the oldest moq's Android library supports, and at API
 language mode and type-checked in Swift 5's, checks its futures the same way and that
 releasing frees, and breaks each runtime check, which must trap or abort with its message.
 It runs with nixpkgs' Swift on Linux, which builds none for aarch64-linux
-([quest](/quest/m2/uniffi-swift-arm.md)), and nightly with Apple's on macOS. The `reject`
-fixture's expected errors, each with its notes, are `fixtures/reject/expected.txt`.
+([quest](/quest/m2/uniffi-swift-arm.md)), and nightly with Apple's on macOS.
+`tests/api.go` runs the script through the Go after `go vet`, checks its futures the same
+way, plus a context done before the call, a deadline, and a handle closed during a call,
+checks that bytes cross both ways and that the GC frees an object never closed, and breaks
+each runtime check, which must panic with its message; a Go file from another build must
+fail its contract check. The `reject` fixture's expected errors, each with its notes, are `fixtures/reject/expected.txt`.
 moq's crates export through `target/moq-ffi`, an empty library on each that `just ffi moq`
 writes in place of moq-ffi's remainder. `moq/moq.c` publishes and subscribes to a moq-net
 track in one process, polling each read, scopes an origin to moq-pattern's patterns and
@@ -382,8 +439,10 @@ serves a broadcast from a moq-tokio server bound to port 0 to a client that read
 QUIC, both on moq-tokio's fallback runtime, whose threads wake C's. `moq/moq.cpp` does the
 same through the C++ header, short of the catalog's field, at C++17 without exceptions or
 RTTI, as OBS builds it, serving on an executor's thread and blocking on each read, and
-`moq/moq.kt` through the Kotlin, serving in a coroutine and suspending on each read, and
-`moq/moq.swift` through the Swift, serving in a task and awaiting each read.
+`moq/moq.kt` through the Kotlin, serving in a coroutine and suspending on each read,
+`moq/moq.swift` through the Swift, serving in a task and awaiting each read, and
+`moq/moq.go` through the Go, running the origin's driver on a goroutine of its own and
+serving on another, each read blocking under a context.
 
 The C++ builds take `CXX`, or `c++`, with every warning an error and `-Wshadow`, which
 stands in for MSVC's warnings that a name hides another. On Windows they take MSVC's `cl`

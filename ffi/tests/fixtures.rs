@@ -1,7 +1,7 @@
 //! The api fixture is exported, built as a static library, and driven from C by
 //! `tests/api.c`, from C++ by `tests/api.cpp`, from Kotlin by `tests/api.kt` on the JVM
-//! and, shrunk by R8, on Android, and from Swift by `tests/api.swift`, whose transcripts must
-//! match the fixture's own script run natively.
+//! and, shrunk by R8, on Android, from Swift by `tests/api.swift`, and from Go by
+//! `tests/api.go`, whose transcripts must match the fixture's own script run natively.
 //! The reject fixture's export must fail at each item it cannot export.
 
 use std::env::consts::EXE_SUFFIX;
@@ -591,6 +591,101 @@ fn swiftc(module: &Path, macos: u8) -> Command {
 		cmd.arg("-target").arg(format!("{arch}-apple-macos{macos}"));
 	}
 	cmd.args(["-warnings-as-errors", "-I"]).arg(module);
+	cmd
+}
+
+/// The generated Go, vetted and built through cgo against the static library, runs
+/// `tests/api.go`'s script, its futures, and what closing and the GC free, then fails loud
+/// on each broken contract and on a library of another contract.
+#[test]
+fn api_go() {
+	let api = api();
+	// A module of the generated package beside the header, as the export lays them out,
+	// and the test.
+	let module = scratch().join("api").join("go");
+	let _ = std::fs::remove_dir_all(&module);
+	let package = module.join("api");
+	std::fs::create_dir_all(&package).unwrap();
+	std::fs::create_dir_all(module.join("include")).unwrap();
+	std::fs::copy(api.out.join("go").join("api.go"), package.join("api.go")).unwrap();
+	std::fs::copy(
+		api.out.join("include").join("api.h"),
+		module.join("include").join("api.h"),
+	)
+	.unwrap();
+	std::fs::copy(manifest_dir().join("tests").join("api.go"), module.join("main.go")).unwrap();
+	std::fs::write(module.join("go.mod"), "module apitest\n\ngo 1.24\n").unwrap();
+	let exe = module.join(format!("api-test{EXE_SUFFIX}"));
+	run(&mut go(&module, api, &["vet", "./..."]));
+	run(go(&module, api, &["build", "-o"]).arg(&exe));
+	let output = run(&mut Command::new(&exe));
+	assert_eq!(
+		String::from_utf8_lossy(&output.stdout),
+		api.transcript,
+		"the Go transcript differs from the native one"
+	);
+	run(Command::new(&exe).arg("futures"));
+	run(Command::new(&exe).arg("owned"));
+	for (case, message) in [
+		("moved", "Counter is closed"),
+		("boxed moved", "Node is closed"),
+		("lent kept", "Counter is closed"),
+		(
+			"lent moved",
+			"api_counter_into_label: a lent handle's value cannot move out",
+		),
+		("family", "an address that is not IPv4 has no Rust SocketAddrV4"),
+		("text", "api_greet: a string is not UTF-8"),
+		("callback panicked", "a log failed"),
+		("duration", "a Rust Duration past time.Duration's longest"),
+	] {
+		let output = Command::new(&exe).arg(case).output().unwrap();
+		assert!(!output.status.success(), "Go {case} did not fail");
+		let stderr = String::from_utf8_lossy(&output.stderr);
+		assert!(stderr.contains(message), "Go {case} printed {stderr}");
+	}
+
+	// The same package, with another contract than the library's in place of its own,
+	// refuses it when it loads.
+	let generated = std::fs::read_to_string(package.join("api.go")).unwrap();
+	let at = generated
+		.find("api_contract() != 0x")
+		.expect("the Go checks its contract")
+		+ "api_contract() != 0x".len();
+	let mut mismatched = generated.clone();
+	let digit = if &generated[at..at + 1] == "0" { "1" } else { "0" };
+	mismatched.replace_range(at..at + 1, digit);
+	std::fs::write(package.join("api.go"), mismatched).unwrap();
+	std::fs::write(
+		module.join("main.go"),
+		"package main\n\nimport \"apitest/api\"\n\nfunc main() {\n\tapi.Dropped()\n}\n",
+	)
+	.unwrap();
+	run(go(&module, api, &["build", "-o"]).arg(&exe));
+	let output = Command::new(&exe).output().unwrap();
+	assert!(!output.status.success(), "a mismatched contract did not fail");
+	let stderr = String::from_utf8_lossy(&output.stderr);
+	assert!(
+		stderr.contains("api.go and the library are from different builds"),
+		"a mismatched contract printed {stderr}"
+	);
+}
+
+/// The go command in `module`, linking cgo against the api fixture's static library.
+fn go(module: &Path, api: &Api, args: &[&str]) -> Command {
+	let mut ldflags = api.staticlib().into_os_string();
+	for lib in &api.native {
+		ldflags.push(" ");
+		ldflags.push(lib);
+	}
+	let mut cmd = Command::new("go");
+	cmd.args(args)
+		.current_dir(module)
+		.env("CGO_ENABLED", "1")
+		.env("CGO_LDFLAGS", ldflags)
+		// The module is no checkout of its own, and must build with the Go on PATH.
+		.env("GOFLAGS", "-buildvcs=false")
+		.env("GOTOOLCHAIN", "local");
 	cmd
 }
 
