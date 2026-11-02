@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Every export also writes `go/<prefix>.go`, the API in Go, so two items that take the same
+  Go name, or one named as the Go runtime's `Bound` or a `Tuple<N>`, fail the export until
+  one takes a `rename`.
 - Kotlin returns bytes as a `Bytes`, not a `ByteArray`: Rust's buffer as `bytes.buffer`, a
   read-only `ByteBuffer`, copied up to 1 KiB and otherwise a direct one lent uncopied
   until `bytes.close()` frees it. Read it in `use { }`, or copy it out with

@@ -18,6 +18,8 @@ type handle struct {
 	// Nil for a handle Rust lends, which it frees itself.
 	free func(unsafe.Pointer)
 	name string
+	// What closes an owned handle the GC finds unclosed.
+	cleanup runtime.Cleanup
 }
 
 func newHandle(raw unsafe.Pointer, free func(unsafe.Pointer), name string) *handle {
@@ -54,6 +56,8 @@ func (h *handle) close() {
 		}
 		next := (n | closed_) - held_
 		if h.state.CompareAndSwap(n, next) {
+			// A cleanup left registered until the GC slows each one registered after it.
+			h.cleanup.Stop()
 			if next < held_ && h.free != nil {
 				h.free(h.raw)
 			}

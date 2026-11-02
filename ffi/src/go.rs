@@ -96,7 +96,8 @@ pub fn generate(abi: &Abi<'_>, packages: &str, contract: u64) -> Result<String, 
 	Ok(out)
 }
 
-/// The names the runtime declares in the package, which an exported item would clash with.
+/// The names the runtime declares in the package, besides its `Tuple<N>` generics, which an
+/// exported item would clash with.
 const TAKEN: &[&str] = &["Bound", "BoundUnbounded", "BoundIncluded", "BoundExcluded"];
 
 /// A Go function: its doc comment, receiver, name, parameters, results, and body.
@@ -168,7 +169,10 @@ impl<'a> Gen<'a> {
 
 	/// Claim the package-level Go name `name` for `what`.
 	fn claim(&mut self, name: &str, what: String) {
-		if TAKEN.contains(&name) {
+		let tuple = name
+			.strip_prefix("Tuple")
+			.is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+		if tuple || TAKEN.contains(&name) {
 			self.errors.push(format!(
 				"{what} is `{name}` in Go, which its runtime names: rename it in the config"
 			));
@@ -1014,7 +1018,7 @@ impl<'a> Gen<'a> {
 			"{}type {name} struct {{\n\th *handle\n}}\n\n\
 			func free_{c}(p unsafe.Pointer) {{\n\tC.{c}_free((*C.{c})(p))\n}}\n\n\
 			// own_{c} owns a handle Rust returned, or is nil for none.\n\
-			func own_{c}(raw *C.{c}) *{name} {{\n\tif raw == nil {{\n\t\treturn nil\n\t}}\n\tv := &{name}{{h: newHandle(unsafe.Pointer(raw), free_{c}, \"{name}\")}}\n\truntime.AddCleanup(v, (*handle).close, v.h)\n\treturn v\n}}\n\n\
+			func own_{c}(raw *C.{c}) *{name} {{\n\tif raw == nil {{\n\t\treturn nil\n\t}}\n\tv := &{name}{{h: newHandle(unsafe.Pointer(raw), free_{c}, \"{name}\")}}\n\tv.h.cleanup = runtime.AddCleanup(v, (*handle).close, v.h)\n\treturn v\n}}\n\n\
 			// lend_{c} is a handle Rust lends for a call, which it frees itself.\n\
 			func lend_{c}(raw *C.{c}) *{name} {{\n\treturn &{name}{{h: newHandle(unsafe.Pointer(raw), nil, \"{name}\")}}\n}}\n\n\
 			func (self *{name}) handle_() *handle {{\n\tif self == nil {{\n\t\treturn nil\n\t}}\n\treturn self.h\n}}\n\n\
