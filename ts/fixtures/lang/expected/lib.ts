@@ -405,6 +405,13 @@ export function copy$mem_MaybeUninit_Option_tuple2_u8_u8(v: [rt.u8, rt.u8] | und
 	return v === undefined ? v : copy$tuple2_u8_u8(v);
 }
 
+export function copy$mem_MaybeUninit_Result_tuple2_u32_u32_u8(v: rt.Result<[rt.u32, rt.u32], rt.u8>): rt.Result<[rt.u32, rt.u32], rt.u8> {
+	if (v === undefined) {
+		return v;
+	}
+	return v.ok ? rt.Ok(copy$tuple2_u32_u32(v.value)) : rt.Err(v.error);
+}
+
 export function copy$mem_MaybeUninit_array_Option_tuple2_u8_u8(v: Array<[rt.u8, rt.u8] | undefined>): Array<[rt.u8, rt.u8] | undefined> {
 	if (v === undefined) {
 		return v;
