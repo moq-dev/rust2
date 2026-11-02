@@ -129,7 +129,10 @@ impl Crate<'_> {
 		let swift_dir = out.join("swift");
 		crate::driver::write(&swift_dir.join(format!("{}.swift", self.abi.prefix)), &swift.swift)?;
 		crate::driver::write(&swift_dir.join("module.modulemap"), &swift.modulemap)?;
-		crate::driver::write(&swift_dir.join(format!("{}_atomics.h", self.abi.prefix)), &swift.atomics)
+		crate::driver::write(
+			&swift_dir.join(format!("{}_atomics.h", self.abi.prefix)),
+			&swift.atomics,
+		)
 	}
 }
 

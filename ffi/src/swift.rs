@@ -997,16 +997,17 @@ impl<'a> Gen<'a> {
 		});
 		let mut params = vec!["data_".to_string()];
 		params.extend(ps);
-		format!(
-			"{{ {} in\n\t{}\n}}",
-			params.join(", "),
-			body.join("\n\t")
-		)
+		format!("{{ {} in\n\t{}\n}}", params.join(", "), body.join("\n\t"))
 	}
 
 	/// `function`'s Swift form and its member name, a member of `owner` (whose IR type is
 	/// `owner_ty`) if it has one.
-	fn function(&mut self, function: &Function, owner: Option<&Ty>, owner_ty: Option<&Type>) -> Option<(String, String)> {
+	fn function(
+		&mut self,
+		function: &Function,
+		owner: Option<&Ty>,
+		owner_ty: Option<&Type>,
+	) -> Option<(String, String)> {
 		let abi = self.abi;
 		let export = abi.export(function, owner);
 		let c_name = export.call.name.clone();
@@ -1077,7 +1078,10 @@ impl<'a> Gen<'a> {
 		}
 		let outs: Vec<(String, Ty)> = c_params.cloned().collect();
 		if arena {
-			prelude.insert(1.min(prelude.len()), "let a_ = Native.Arena()\ndefer { a_.finish() }".to_string());
+			prelude.insert(
+				1.min(prelude.len()),
+				"let a_ = Native.Arena()\ndefer { a_.finish() }".to_string(),
+			);
 		}
 		let after: Vec<String> = args.iter().flat_map(|a| a.after.clone()).collect();
 		if !after.is_empty() {
@@ -1098,10 +1102,7 @@ impl<'a> Gen<'a> {
 		if let Some((_, poll, free)) = &export.future {
 			inner.push(format!("{c_name}({})", exprs.join(", ")));
 			let poll_outs: Vec<(String, Ty)> = poll.params[2..].to_vec();
-			let mut body: Vec<String> = poll_outs
-				.iter()
-				.map(|(n, ty)| self.out_decl(n, ty))
-				.collect();
+			let mut body: Vec<String> = poll_outs.iter().map(|(n, ty)| self.out_decl(n, ty)).collect();
 			let mut call_args = vec!["f_".to_string(), "w_".to_string()];
 			call_args.extend(poll_outs.iter().map(|(n, _)| format!("&c_{n}_")));
 			let ready = match ok {
@@ -1113,7 +1114,10 @@ impl<'a> Gen<'a> {
 			let mut cases = vec![format!("case {upper}_POLL_READY: return .some({ready})")];
 			if let (Some(err), Some(thrown)) = (&err, &thrown) {
 				let lifted = self.lift(err, "c_err_");
-				cases.push(format!("case {upper}_POLL_ERROR: throw {}", thrown_value(thrown, &lifted)));
+				cases.push(format!(
+					"case {upper}_POLL_ERROR: throw {}",
+					thrown_value(thrown, &lifted)
+				));
 			}
 			cases.push("default: return nil".to_string());
 			body.push(format!(

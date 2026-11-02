@@ -500,7 +500,9 @@ fn api_swift() {
 	std::fs::create_dir_all(&dir).unwrap();
 	let module = api.out.join("swift");
 	let source = module.join("api.swift");
-	run(swiftc(&module, 13).args(["-swift-version", "5", "-typecheck"]).arg(&source));
+	run(swiftc(&module, 13)
+		.args(["-swift-version", "5", "-typecheck"])
+		.arg(&source));
 	run(swiftc(&module, 13)
 		.args(["-swift-version", "6", "-parse-as-library", "-module-name", "Api"])
 		.args(["-emit-module", "-emit-module-path"])
