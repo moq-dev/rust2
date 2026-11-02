@@ -43,6 +43,7 @@ fn try_run(args: &[String]) -> Result<ExitCode, String> {
 		tool: "rust2-ffi",
 		manifest: &args.manifest,
 		package: &config.package,
+		root: None,
 		// The host's, whatever cargo's config names: a C ABI is the platform's, and the
 		// exports are found on it.
 		target: Some(rustc_session::config::host_tuple()),

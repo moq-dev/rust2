@@ -25,6 +25,7 @@ extern crate rustc_span;
 extern crate rustc_target;
 extern crate rustc_trait_selection;
 
+mod browser;
 mod census;
 mod check;
 mod cli;

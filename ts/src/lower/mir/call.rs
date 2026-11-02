@@ -521,6 +521,54 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				self.set_borrowed(&c, old, span, out);
 				done(Expr::undefined(), false)
 			}
+			// `*self = source.clone()`, as std's `Clone` for a `T: Clone` has `clone_from` and
+			// its `ToOwned` has `clone_into`, cloning before it drops what it writes over. A
+			// list's maps, as it clones each element into one of its own nodes.
+			("Clone", "clone_from") | ("ToOwned", "clone_into")
+				if !self.b.t.translated(def_id, gargs) && self.b.t.std_of(targ(0)?) != Some(Std::LinkedList) =>
+			{
+				let ty = targ(0)?;
+				if !ty.is_sized(tcx, self.b.t.typing_env_pub()) {
+					return None;
+				}
+				if !library::clone_from_clones(self.b.t, ty) {
+					let msg = format!(
+						"`{owner}::{name}` of `{ty}`, whose `clone_from` is its own, which is not supported yet"
+					);
+					return done(self.err(span, msg), false);
+				}
+				let (target, source) = match name.as_str() {
+					"clone_from" => (&args[0].node, &args[1].node),
+					_ => (&args[1].node, &args[0].node),
+				};
+				let place = self.borrowed_place(target, span, out)?;
+				let source = self.operand(source, span, out);
+				let clone = crate::lower::collections::trait_fn(tcx, "Clone", "clone");
+				let clone = self
+					.b
+					.call_def(clone, tcx.mk_args(&[ty.into()]), vec![source], span, out);
+				let drops = self.b.t.drops(ty);
+				let old = self.swap_out(place, ty, clone, drops.then_some("old"), span, out);
+				if drops && let Some(drop) = self.b.t.drop_value(old, ty, span) {
+					out.push(StmtKind::Expr(drop).at(None));
+				}
+				done(Expr::undefined(), false)
+			}
+			// `&raw mut *r`, of the place `r` names where it is an alias of one.
+			("ptr", "from_mut") => {
+				let place = args[0].node.place()?;
+				let target = self.through_aliases(tcx.mk_place_deref(place));
+				let raw = rustc_middle::mir::Rvalue::RawPtr(rustc_middle::mir::RawPtrKind::Mut, target);
+				done(self.rvalue(&raw, dest, span, out)?, false)
+			}
+			// A slice or an array of the one value, or a cell of it, read and written where the
+			// `&mut` points.
+			("raw" | "array", "from_mut") | ("Cell", "from_mut")
+				if owner != "raw" || library::std_path(tcx, def_id) == ["slice", "raw", "from_mut"] =>
+			{
+				let made = self.one_of(owner == "Cell", targ(0)?, &args[0].node, span, out)?;
+				done(made, true)
+			}
 			// A range of numbers steps in place, with nothing between it and the loop.
 			("Iterator", "next") if super::small_range(tcx, targ(0)?) => {
 				let range = self.alias_place(&args[0].node)?;
@@ -1126,6 +1174,65 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				Some((err, None))
 			}
 		}
+	}
+
+	/// `slice::from_mut`, `array::from_mut`, or with `cell`, `Cell::from_mut` of `op`, a
+	/// `&mut` to a `ty`: of the `rt.Place` it is or of the place it names, or else in place
+	/// of the bytes or the object it is, which a cell reads a copy of, as a `Cell` only
+	/// moves or copies a value out. A slice of an object no place names is refused, as a
+	/// whole write of its element would give the slice another object, not the place, as
+	/// is a cell of an object JS can't write a whole value into.
+	fn one_of(
+		&mut self,
+		cell: bool,
+		ty: Ty<'tcx>,
+		op: &Operand<'tcx>,
+		span: Span,
+		out: &mut Vec<Stmt>,
+	) -> Option<Expr> {
+		let tcx = self.tcx;
+		let place = op.place().filter(|p| p.projection.is_empty())?;
+		let deref = tcx.mk_place_deref(place);
+		let of = |made: Expr| match cell {
+			true => Expr::rt("cellOfPlace", vec![made]),
+			false => Expr::rt("sliceOfPlace", vec![made]),
+		};
+		if !cell && matches!(ty.kind(), ty::Uint(ty::UintTy::U8)) {
+			return Some(self.err(
+				span,
+				"a slice of one byte's place, which a byte slice can view only in an array of bytes",
+			));
+		}
+		if self.in_bytes(deref) {
+			let slice = self.place_expr(deref, span, out);
+			let view = Expr::rt("byteSliceView", vec![slice]);
+			return Some(match cell {
+				true => Expr::rt("cellIn", vec![view]),
+				false => of(Expr::rt("bytesPlace", vec![view])),
+			});
+		}
+		if let Slot::Alias(Some(target)) = &self.slots[place.local]
+			&& assignable(target)
+			&& self.alias_of_place(place.local)
+		{
+			let target = target.clone();
+			let target = self.stable_target(deref, target, span, out);
+			return Some(of(self.place_of(target, None)));
+		}
+		if self.b.t.needs_place(ty) {
+			let made = self.operand(op, span, out);
+			return Some(of(made));
+		}
+		if cell && self.b.t.write_in(ty).is_some() {
+			let object = self.operand(op, span, out);
+			return Some(Expr::rt("cellIn", vec![object]));
+		}
+		Some(self.err(
+			span,
+			format!(
+				"a slice or a cell of a mutable reference to `{ty}` that names no place, which a whole write would replace only there"
+			),
+		))
 	}
 
 	/// The place the `&mut` receiver borrows, as the `&mut` the call returns: an alias of it

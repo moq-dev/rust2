@@ -40,7 +40,7 @@ toml = "1.1.8"
 [lints]
 workspace = true
 
-# moq's profile for moq-wasm, which ships size-optimized: the benchmark's WASM route.
+# The size-optimized profile moq's WASM shipped with: the benchmark's WASM route.
 [profile.wasm-release]
 inherits = "release"
 lto = "fat"

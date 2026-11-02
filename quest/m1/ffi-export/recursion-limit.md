@@ -14,5 +14,6 @@ quest in moq.
 
 ## Plan
 
-Once it passes on moq's `main`, bump the exporter's `moq_rev` and update the config to what
+Once it passes on moq's `main`, drop the exporter's own `moq_rev` for `just ts moq`'s, so the
+translator and the exporter share one moq pin again, and update the config to what
 `just ffi census` then refuses.

@@ -3,10 +3,10 @@
 
 use crate::{
 	args, arrays, ascii, atomics, borrows, bounds, boxes, capacity, captures, cells, chars, chunks, clones,
-	collections, combinators, counts, cows, cycles, defaults, durations, dyns, edits, errors, fields, floats, fmt,
-	folds, generics, hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks, methods, nested,
-	objects, orders, pointers, refs, results, returns, saturates, separated, shapes, singles, slices, splits, statics,
-	strs, tuples, utf8, wrappers, wraps, zeros,
+	collections, combinators, conversions, counts, cows, cycles, defaults, durations, dyns, edits, errors, fields,
+	floats, fmt, folds, generics, hashes, hints, holds, ints, iters, joins, keys, lengths, lists, locals, locks,
+	methods, nested, objects, orders, pointers, refs, results, returns, saturates, separated, shapes, singles, slices,
+	splits, statics, strs, tuples, utf8, wrappers, wraps, zeros,
 };
 
 /// The native side's entry: [`run`], except that a case starting with 0xff prints a
@@ -276,6 +276,7 @@ fn cases() -> Vec<(&'static str, Case)> {
 		("refs::adapted", |_, data, out| refs::adapted(data, out)),
 		("borrows::maps", |_, data, out| borrows::maps(data, out)),
 		("locks::mapped", |_, data, out| locks::mapped(data, out)),
+		("conversions::conversions", conversions::conversions),
 		("borrows::tries", |_, data, out| borrows::tries(data, out)),
 		("locks::mutex_mapped", |_, data, out| locks::mutex_mapped(data, out)),
 		("locks::printed", |_, data, out| locks::printed(data, out)),
