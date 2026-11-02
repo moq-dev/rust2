@@ -12,13 +12,15 @@ func perFrame(_ start: UInt64) -> Double {
 	Double(DispatchTime.now().uptimeNanoseconds - start) / Double(groups * frames)
 }
 
+/// A value a task sets and this thread reads once the task signals.
+final class Cell<T>: @unchecked Sendable {
+	var value: T?
+}
+
 /// `body`'s result, waiting on this thread for it to finish on the global executor.
 func block<T: Sendable>(_ body: @escaping @Sendable () async throws -> T) -> T {
-	final class Result: @unchecked Sendable {
-		var value: T?
-	}
 	let done = DispatchSemaphore(value: 0)
-	let result = Result()
+	let result = Cell<T>()
 	Task {
 		result.value = try! await body()
 		done.signal()
