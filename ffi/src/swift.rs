@@ -110,8 +110,9 @@ pub fn generate(abi: &Abi<'_>, packages: &str, contract: u64) -> Result<Output, 
 }
 
 /// The standard library's names the runtime and the generated code use unqualified, which
-/// an exported type or function would shadow. The runtime's own are the C ABI's: `Native`
-/// and `SocketAddr` are claimed as `<prefix>_native` and `<prefix>_socket_addr`.
+/// an exported type or function would shadow, and `Swift`, which qualifies the rest. The
+/// runtime's own are the C ABI's: `Native` and `SocketAddr` are claimed as
+/// `<prefix>_native` and `<prefix>_socket_addr`.
 const TAKEN: &[&str] = &[
 	"Array",
 	"Bool",
@@ -127,6 +128,7 @@ const TAKEN: &[&str] = &[
 	"Optional",
 	"Sendable",
 	"StaticString",
+	"Swift",
 	"Task",
 	"UInt",
 	"UInt16",
@@ -1276,10 +1278,14 @@ impl<'a> Gen<'a> {
 			_ => {
 				// Named by its key, as its C structs are, so two types never share one.
 				let name = format!("{}Error", pascal(&self.abi.key(err)));
-				let sw = self.sw(err);
-				if !self.thrown.contains_key(&name) {
-					self.claim(&name, format!("the error of `{sw}`"));
-					self.thrown.insert(name.clone(), err.clone());
+				let key = self.abi.key(err);
+				match self.thrown.get(&name) {
+					Some(seen) if self.abi.key(seen) == key => {}
+					// Another type whose key spells the same name in PascalCase: the claim fails.
+					_ => {
+						self.claim(&name, format!("the error type `{}`", self.sw(err)));
+						self.thrown.insert(name.clone(), err.clone());
+					}
 				}
 				Thrown::Wrapped(name)
 			}
