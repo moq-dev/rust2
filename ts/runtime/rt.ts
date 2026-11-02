@@ -1375,10 +1375,13 @@ function realloc(v: ByteVec, cap: number): void {
 	v.data = data;
 }
 
-/** The bytes of `v` as a `Vec<number>`, with its capacity, as a deque or heap takes it. */
+/**
+ * The bytes of `v` as a `Vec<number>`, with its capacity, as a deque or heap takes it:
+ * held, as `reserve` may have asked for it, though its length gives it now.
+ */
 export function byteVecToVec(v: ByteVec): number[] {
 	const out = Array.from(byteVecView(v));
-	capSet(out, out.length, v.data.length, 1);
+	capHold(out, v.data.length, 1);
 	return out;
 }
 

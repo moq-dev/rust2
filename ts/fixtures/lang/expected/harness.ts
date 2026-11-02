@@ -64,8 +64,8 @@ import { u8s as wraps_u8s, u16s as wraps_u16s, u32s as wraps_u32s, u64s as wraps
 import { zeros, impls as zeros_impls, keys as zeros_keys, unread, writes as zeros_writes } from "./zeros.ts";
 
 /**
- * Each case's name and what it runs. The first byte picks one modulo their count, so a
- * case added at the end moves no other.
+ * Each case's name and what it runs. The first two bytes, big-endian, pick one modulo
+ * their count, so a case added at the end moves no other.
  */
 export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined][] {
 	return [["ints::u8_op", u8Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::u16_op", u16Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::u32_op", u32Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::u64_op", u64Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::u128_op", u128Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::usize_op", usizeOp as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::i8_op", i8Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::i16_op", i16Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::i32_op", i32Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::i64_op", i64Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::i128_op", i128Op as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::isize_op", isizeOp as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::neg", neg as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::cast", cast as (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined] as [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined], ["ints::convert", (_2100: rt.u8, data: rt.ByteSlice, out: rt.ByteVec): undefined => {
@@ -284,24 +284,34 @@ export function cases(): [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) 
 /** Run one case. */
 export function run(input: rt.ByteSlice): rt.ByteVec {
 	const out: rt.ByteVec = new rt.ByteVec();
-	if (!(input.length >= 2)) {
+	if (!(input.length >= 3)) {
 		return out;
 	}
 	const cases_: [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined][] = cases();
-	cases_[rt.idx(cases_, rt.usizeRem(input.data[input.start] as rt.usize, cases_.length))][1](input.data[input.start + 1], new rt.ByteSlice(input.data, input.start + 2, input.length - 2), out);
+	cases_[rt.idx(cases_, rt.usizeRem(((input.data[input.start] << 8) | input.data[input.start + 1]) as rt.usize, cases_.length))][1](input.data[input.start + 2], new rt.ByteSlice(input.data, input.start + 3, input.length - 3), out);
 	return out;
 }
 
-/** The first byte that picks the case named `name`, which `caller.ts` targets by. */
-export function op(name: string): rt.u8 {
-	const _2: rt.usize | undefined = rt.iterPosition(rt.iterSlice(cases()), (_22: [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]): boolean => {
-		return _22[0] === name;
+/**
+ * The first two bytes, as one big-endian number, that pick the case named `name`, which
+ * `caller.ts` targets by.
+ */
+export function op(name: string): rt.u16 {
+	const _11: rt.usize | undefined = rt.iterPosition(rt.iterSlice(cases()), (_2: [string, (a0: rt.u8, a1: rt.ByteSlice, a2: rt.ByteVec) => undefined]): boolean => {
+		return _2[0] === name;
 	});
-	if (_2 === undefined) {
+	if (_11 !== undefined) {
+		const _20: rt.Result<rt.u16, rt.TryFromIntError> = rt.u16TryFrom(_11);
+		if (_20.ok) {
+			if ((_20.value >> 8) !== 255) {
+				return _20.value;
+			}
+		}
+		const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, name)];
+		rt.panicFmt(["case ", args4[0], " is past what two bytes pick"]);
+	} else {
 		const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtPad(f, name)];
 		rt.panicFmt(["no case ", args2[0]]);
-	} else {
-		return _2 & 0xff;
 	}
 }
 
