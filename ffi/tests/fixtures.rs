@@ -1,7 +1,7 @@
 //! The api fixture is exported, built as a static library, and driven from C by
 //! `tests/api.c`, from C++ by `tests/api.cpp`, from Kotlin by `tests/api.kt` on the JVM
-//! and, shrunk by R8, on Android, and from Go by `tests/api.go`, whose transcripts must
-//! match the fixture's own script run natively.
+//! and, shrunk by R8, on Android, from Swift by `tests/api.swift`, and from Go by
+//! `tests/api.go`, whose transcripts must match the fixture's own script run natively.
 //! The reject fixture's export must fail at each item it cannot export.
 
 use std::env::consts::EXE_SUFFIX;
@@ -484,6 +484,116 @@ fn kotlin_contract(kotlin: &Path) -> u64 {
 	u64::from_str_radix(hex, 16).unwrap()
 }
 
+/// The generated Swift, built as the module `Api` with warnings as errors in Swift 6's
+/// language mode and type-checked in Swift 5's, which moq's package builds in, runs
+/// `tests/api.swift`'s script, its futures, and what releasing frees, then fails loud on
+/// each broken contract and on a library of another contract.
+#[test]
+#[cfg_attr(
+	all(target_os = "linux", target_arch = "aarch64"),
+	ignore = "nixpkgs builds no Swift for aarch64-linux: quest/m2/uniffi-swift-arm.md"
+)]
+fn api_swift() {
+	let api = api();
+	let dir = scratch().join("api").join("swift");
+	let _ = std::fs::remove_dir_all(&dir);
+	std::fs::create_dir_all(&dir).unwrap();
+	let module = api.out.join("swift");
+	let source = module.join("api.swift");
+	run(swiftc(&module, 13)
+		.args(["-swift-version", "5", "-typecheck"])
+		.arg(&source));
+	run(swiftc(&module, 13)
+		.args(["-swift-version", "6", "-parse-as-library", "-module-name", "Api"])
+		.args(["-emit-module", "-emit-module-path"])
+		.arg(dir.join("Api.swiftmodule"))
+		.args(["-emit-library", "-static", "-o"])
+		.arg(dir.join("libApi.a"))
+		.arg(&source));
+	// The test's executor preference is macOS 15's.
+	let exe = dir.join("api-test");
+	run(swiftc(&module, 15)
+		.args(["-parse-as-library", "-I"])
+		.arg(&dir)
+		.arg(manifest_dir().join("tests").join("api.swift"))
+		.arg(dir.join("libApi.a"))
+		.arg(api.staticlib())
+		.args(&api.native)
+		.arg("-o")
+		.arg(&exe));
+	let swift = run(&mut Command::new(&exe));
+	assert_eq!(
+		String::from_utf8_lossy(&swift.stdout),
+		api.transcript,
+		"the Swift transcript differs from the native one"
+	);
+	run(Command::new(&exe).arg("futures"));
+	run(Command::new(&exe).arg("owned"));
+	for (case, message) in [
+		("moved", "Counter is closed"),
+		("boxed moved", "Node is closed"),
+		("lent kept", "Counter is closed"),
+		(
+			"lent moved",
+			"api_counter_into_label: a lent handle's value cannot move out",
+		),
+		("family", "api_nexts: an IPv6 socket address where IPv4 is taken"),
+		("stray", "a path from Rust is not UTF-8"),
+		("lent stray", "a path from Rust is not UTF-8"),
+	] {
+		let output = Command::new(&exe).arg(case).output().unwrap();
+		assert!(!output.status.success(), "Swift {case} did not fail");
+		let stderr = String::from_utf8_lossy(&output.stderr);
+		assert!(stderr.contains(message), "Swift {case} printed {stderr}");
+	}
+
+	// The same Swift, with another contract than the library's in place of its own, refuses
+	// it at the first call.
+	let generated = std::fs::read_to_string(&source).unwrap();
+	let at = generated
+		.find("api_contract() == 0x")
+		.expect("the Swift checks its contract")
+		+ "api_contract() == 0x".len();
+	let mut mismatched = generated.clone();
+	let digit = if &generated[at..at + 1] == "0" { "1" } else { "0" };
+	mismatched.replace_range(at..at + 1, digit);
+	let contract = dir.join("contract");
+	std::fs::create_dir_all(&contract).unwrap();
+	std::fs::write(contract.join("api.swift"), mismatched).unwrap();
+	std::fs::write(contract.join("main.swift"), "_ = dropped()\n").unwrap();
+	let exe = contract.join("contract");
+	run(swiftc(&module, 13)
+		.args(["-module-name", "Api"])
+		.arg(contract.join("api.swift"))
+		.arg(contract.join("main.swift"))
+		.arg(api.staticlib())
+		.args(&api.native)
+		.arg("-o")
+		.arg(&exe));
+	let output = Command::new(&exe).output().unwrap();
+	assert!(!output.status.success(), "a mismatched contract did not fail");
+	let stderr = String::from_utf8_lossy(&output.stderr);
+	assert!(
+		stderr.contains("api.swift and the library are from different builds"),
+		"a mismatched contract printed {stderr}"
+	);
+}
+
+/// swiftc, with warnings as errors, finding the C header's module in `module`, at this
+/// macOS deployment target on macOS: 13 is the oldest the generated `Swift.Duration` allows.
+fn swiftc(module: &Path, macos: u8) -> Command {
+	let mut cmd = Command::new("swiftc");
+	if cfg!(target_os = "macos") {
+		let arch = match std::env::consts::ARCH {
+			"aarch64" => "arm64",
+			arch => arch,
+		};
+		cmd.arg("-target").arg(format!("{arch}-apple-macos{macos}"));
+	}
+	cmd.args(["-warnings-as-errors", "-I"]).arg(module);
+	cmd
+}
+
 /// The generated Go, vetted and built through cgo against the static library, runs
 /// `tests/api.go`'s script, its futures, and what closing and the GC free, then fails loud
 /// on each broken contract and on a library of another contract.
@@ -523,6 +633,7 @@ fn api_go() {
 		("family", "an address that is not IPv4 has no Rust SocketAddrV4"),
 		("text", "api_greet: a string is not UTF-8"),
 		("callback panicked", "a log failed"),
+		("duration", "a Rust Duration past time.Duration's longest"),
 	] {
 		let output = Command::new(&exe).arg(case).output().unwrap();
 		assert!(!output.status.success(), "Go {case} did not fail");

@@ -15,6 +15,8 @@ Decided with the maintainer on 2026-10-26, from
 [#93](https://github.com/moq-dev/rust2/pull/93): swiftc 6.3.3 is marked broken on
 aarch64-linux in the pinned nixpkgs, where its gold link fails, so the job moved to
 x86_64. Then bump the `nixpkgs` input in its own change, move the job back, and
-drop the workflow comment. Never allow the broken package.
+drop the workflow comment. The default shell then has Swift on aarch64-linux too, so
+drop rust2-ffi's skips there as well: `api_swift`'s `ignore`, and the Swift's in
+`just ffi moq` and `just ffi bench`. Never allow the broken package.
 
 Public API: none.

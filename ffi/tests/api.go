@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/netip"
 	"os"
 	"runtime"
@@ -471,6 +472,9 @@ func script() {
 	}), ",", ""), "[]"))
 	// A path that is no UTF-8 is a Go string all the same.
 	check(api.Stray() == "\xff", "a path that is not UTF-8 crosses as its bytes")
+	var lent string
+	api.VisitStray(func(path string) { lent = path })
+	check(lent == "\xff", "a path Rust lends that is not UTF-8 crosses as its bytes")
 	words := api.Words(" one two  three ")
 	fmt.Printf("words %d %s\n", len(words), list(words, quoted))
 	fmt.Printf("sentence %s %s\n", api.Sentence(&words), api.Sentence(nil))
@@ -528,6 +532,11 @@ func futures() {
 	// A wake that lands while the future polls, before it returns pending, is kept: the
 	// call polls again rather than waiting for a wake that already happened.
 	check(must(api.Yielded(ctx, 7)) == 7, "a wake during the poll polls again")
+
+	// A future's output of None is nil.
+	half := must(api.Halved(ctx, 4))
+	check(half != nil && *half == 2, "a future's Some output reads back")
+	check(must(api.Halved(ctx, 3)) == nil, "a future's None output is nil")
 
 	// Cancelled between its wake and its poll, a receive loses nothing: the payload stays
 	// for the next.
@@ -657,6 +666,9 @@ func broken(which string) {
 		api.Greet("\xff", api.ShapeSquare)
 	case "callback panicked":
 		api.Emit(panicking{}, []byte{1})
+	// A Rust Duration longer than Go's longest.
+	case "duration":
+		api.Extended(math.MaxInt64, 1)
 	default:
 		check(false, "no case "+which)
 	}

@@ -30,6 +30,7 @@ mod glue;
 mod go;
 mod ir;
 mod kotlin;
+mod swift;
 
 use std::process::ExitCode;
 
