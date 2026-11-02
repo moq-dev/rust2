@@ -12,6 +12,18 @@ Decided with the maintainer on 2026-11-01: Go users avoid cgo, which breaks `go 
 plain install and cross-compiling, so a pure-Go moq is worth researching. The cgo
 exporter stays moq's Go route until a translation matches it.
 
+Decided with the maintainer on 2026-11-01, settling
+[#410](https://github.com/moq-dev/rust2/pull/410):
+
+- **Continue as research,** [speed](/quest/m4/go/speed.md) first, then
+  [coverage](/quest/m4/go/coverage.md). If speed cannot bring every `just go bench`
+  workload within 2x of cgo, delete `go/` and this epic, keeping the measurements in the
+  PR that does.
+- **Share rust2-ts's front end piece by piece,** as Go needs each piece, starting with
+  the control-flow structuring in `ts/src/lower/mir/cfg.rs`. No shared crate lands ahead
+  of a Go use. About a quarter of `ts/src` would serve Go, nearly all of it inside files
+  whose lowering returns TypeScript's AST.
+
 The spike ([moq-dev/rust2#410](https://github.com/moq-dev/rust2/pull/410)) translated
 moq's codec held to rust2-ts's bar: 35,273 codec cases and 124,193 integer cases match
 native Rust, panics included. It runs 2 to 113 times slower than cgo on batched loops,

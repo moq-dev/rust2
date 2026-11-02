@@ -18,4 +18,5 @@ a scalar constant of type `f32` is not supported at fixtures/reject/src/lib.rs:5
 `Vec::capacity`, which Go's growth would make differ from Rust's is not supported at fixtures/reject/src/lib.rs:55:30
 `Eq` of `*const [u8]` is not supported at fixtures/reject/src/lib.rs:71:2
 `Lt` of `*const u8` is not supported at fixtures/reject/src/lib.rs:76:2
+a reference into constant memory that another reference points into at another offset or type is not supported at fixtures/reject/src/lib.rs:86:15
 an unsizing of `&mut std::array::iter::iter_inner::PolymorphicIter<[std::mem::MaybeUninit<u8>; 4]>` to `&mut std::array::iter::iter_inner::PolymorphicIter<[std::mem::MaybeUninit<u8>]>` is not supported at library/core/src/array/iter.rs:33:9

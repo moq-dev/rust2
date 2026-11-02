@@ -75,3 +75,14 @@ pub fn compared(a: *const [u8], b: *const [u8]) -> bool {
 pub fn ordered(a: *const u8, b: *const u8) -> bool {
 	a < b
 }
+
+/// One constant's array and its second byte, which Go's two variables could not alias.
+const PAIR: (&[u8; 3], &u8) = {
+	let a = b"abc";
+	(a, &a[1])
+};
+
+pub fn aliased() -> bool {
+	let (a, b) = PAIR;
+	std::ptr::eq(&a[1], b)
+}

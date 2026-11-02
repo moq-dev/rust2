@@ -82,7 +82,10 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 								"[{len}]uint8{{{}}}",
 								bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", ")
 							);
-							return format!("&{}", self.shared((prov.alloc_id(), offset.bytes(), len, ty), value));
+							return format!(
+								"&{}",
+								self.shared(prov.alloc_id(), (offset.bytes(), len, ty), value, span)
+							);
 						}
 						let value = self.const_value(
 							ConstValue::Indirect {
@@ -94,7 +97,10 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 						);
 						match inner.kind() {
 							ty::Str | ty::Slice(_) | ty::Dynamic(..) => value,
-							_ => format!("&{}", self.shared((prov.alloc_id(), offset.bytes(), 0, ty), value)),
+							_ => format!(
+								"&{}",
+								self.shared(prov.alloc_id(), (offset.bytes(), 0, ty), value, span)
+							),
 						}
 					}
 					_ => self.err(
@@ -105,7 +111,7 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 			}
 			ConstValue::Slice { alloc_id, .. } => match val.try_get_slice_bytes_for_diagnostics(tcx) {
 				Some(bytes) if matches!(ty.builtin_deref(true).map(|t| t.kind()), Some(ty::Str | ty::Slice(_))) => {
-					self.shared((alloc_id, 0, bytes.len() as u64, ty), bytes_lit(bytes))
+					self.shared(alloc_id, (0, bytes.len() as u64, ty), bytes_lit(bytes), span)
 				}
 				_ => self.err(span, format!("a slice constant of type `{ty}`")),
 			},
@@ -116,15 +122,22 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 }
 
 impl<'a, 'tcx> Fx<'a, 'tcx> {
-	/// The package-level variable holding `value`, the constant memory `key` names by its
-	/// allocation, offset, length, and type: each use of one allocation is the same
-	/// memory, as Rust's references to it are.
-	fn shared(&mut self, key: (AllocId, u64, u64, Ty<'tcx>), value: String) -> String {
-		if let Some(name) = self.t.allocs.get(&key) {
-			return name.clone();
+	/// The package-level variable holding `value`, the constant memory `alloc` holds at
+	/// `at`, an offset, length, and type: each use of one allocation is the same memory,
+	/// as Rust's references to it are. A second reference into it at another offset or
+	/// type is refused, since a Go variable apart from the first could not alias it.
+	fn shared(&mut self, alloc: AllocId, at: (u64, u64, Ty<'tcx>), value: String, span: Span) -> String {
+		if let Some((first, name)) = self.t.allocs.get(&alloc) {
+			return match *first == at {
+				true => name.clone(),
+				false => self.err(
+					span,
+					"a reference into constant memory that another reference points into at another offset or type",
+				),
+			};
 		}
 		let name = self.t.fresh("constant");
-		self.t.allocs.insert(key, name.clone());
+		self.t.allocs.insert(alloc, (at, name.clone()));
 		self.t.declare(LOCAL_CRATE, &name, format!("var {name} = {value}\n"));
 		name
 	}
@@ -161,7 +174,7 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 								.inner()
 								.inspect_with_uninit_and_ptr_outside_interpreter(start..start + len),
 						);
-						self.shared((prov.alloc_id(), start as u64, len as u64, ty), value)
+						self.shared(prov.alloc_id(), (start as u64, len as u64, ty), value, span)
 					}
 					_ => self.err(span, format!("a slice constant of type `{ty}` in memory")),
 				}

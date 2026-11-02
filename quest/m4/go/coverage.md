@@ -17,8 +17,8 @@ The spike refuses each of these with its span (`go/fixtures/reject/expected.txt`
 - **Trait objects** of traits other than `Display` and `Debug`, and unions.
 - **Const generics,** such as an array's by-value iterator.
 - **Pointers:** a wide pointer's `==`, which compares address and length, and any
-  pointer's ordering, which Go lacks; and a constant allocation referenced at two offsets,
-  which becomes two Go variables, so `ptr::eq` on them differs from native.
+  pointer's ordering, which Go lacks; and a constant allocation referenced at two offsets
+  or types, which needs one Go variable and references derived into it by its layout.
 - **`Vec::capacity`,** which Go's growth would make differ from Rust's.
 - **std's collections:** `HashMap`, `BTreeMap`, `VecDeque`, translated from std's MIR or
   bound to the runtime as rust2-ts's are.

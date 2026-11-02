@@ -162,9 +162,9 @@ pub struct Translator<'tcx> {
 	/// Every local ADT's name, to tell which names must be qualified by their module.
 	local_names: HashMap<String, usize>,
 	out: BTreeMap<CrateNum, CrateOut>,
-	/// The package-level variable holding each piece of constant memory, by its allocation,
-	/// offset, length, and type.
-	allocs: HashMap<(rustc_middle::mir::interpret::AllocId, u64, u64, Ty<'tcx>), String>,
+	/// The package-level variable holding each constant allocation, and the offset,
+	/// length, and type it holds it at.
+	allocs: HashMap<rustc_middle::mir::interpret::AllocId, ((u64, u64, Ty<'tcx>), String)>,
 	/// Each refusal reported, so a construct met again at the same place is reported once.
 	reported: HashSet<(Span, String)>,
 	failed: bool,
