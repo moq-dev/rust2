@@ -26,6 +26,7 @@
 //! `fmt::Fault` an error only `caller.ts` prints.
 
 #![feature(
+	cell_leak,
 	iter_order_by,
 	mapped_lock_guards,
 	once_cell_try,
