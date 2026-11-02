@@ -111,7 +111,7 @@ export async function measure(
 	const { progress, sampleMs } = options;
 	const want = workloads.map((workload) => {
 		const output = wasm.call(workload.input);
-		if (output === "panic") throw new Error(`${workload.name} ${workload.op} panics in native Rust`);
+		if (!(output instanceof Uint8Array)) throw new Error(`${workload.name} ${workload.op} traps in native Rust`);
 		return hex(output);
 	});
 	// Each subject's timings, one per body, which every round's worker lists alike.

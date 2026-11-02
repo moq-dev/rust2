@@ -371,7 +371,7 @@ impl<'a> Abi<'a> {
 	}
 
 	/// A type's name within the prefix, for naming the structs and instances built from it.
-	fn key(&self, ty: &Type) -> String {
+	pub fn key(&self, ty: &Type) -> String {
 		let strip = |name: String| name[self.prefix.len() + 1..].to_string();
 		match ty {
 			Type::Unit => "unit".to_string(),
@@ -601,8 +601,8 @@ impl<'a> Abi<'a> {
 			.map(|r| r.span)
 			.or_else(|| api.objects.first().map(|o| o.span))
 			.unwrap_or(rustc_span::DUMMY_SP);
-		// C's runtime, then what C++'s adds in the namespace its types share, and Kotlin's
-		// in its package.
+		// C's runtime, then what C++'s adds in the namespace its types share, Kotlin's in its
+		// package, and Swift's in its module and the atomics header its runtime adds.
 		for runtime in [
 			"contract",
 			"buf",
@@ -619,10 +619,15 @@ impl<'a> Abi<'a> {
 			"detail",
 			"native",
 			"bytes",
+			"atomic_load",
+			"atomic_store",
+			"atomic_add",
+			"atomic_exchange",
+			"atomic_cas",
 		] {
 			self.claim(self.rt(runtime), "the runtime".to_string(), crate_span);
 		}
-		for constant in ["CONTRACT", "POLL_PENDING", "POLL_READY", "POLL_ERROR"] {
+		for constant in ["CONTRACT", "POLL_PENDING", "POLL_READY", "POLL_ERROR", "ATOMICS_H"] {
 			let name = format!("{}_{constant}", self.prefix.to_uppercase());
 			self.claim(name, "the runtime".to_string(), crate_span);
 		}
