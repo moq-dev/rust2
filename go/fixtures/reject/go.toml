@@ -1,0 +1,2 @@
+package = "reject"
+roots = ["missing", "generic", "wide", "dropped", "dynamic", "unioned", "owned", "float"]

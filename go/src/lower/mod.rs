@@ -115,6 +115,8 @@ pub struct Translator<'tcx> {
 	/// Every local ADT's name, to tell which names must be qualified by their module.
 	local_names: HashMap<String, usize>,
 	out: BTreeMap<CrateNum, CrateOut>,
+	/// Each refusal reported, so a construct met again at the same place is reported once.
+	reported: HashSet<(Span, String)>,
 	failed: bool,
 }
 
@@ -142,6 +144,7 @@ impl<'tcx> Translator<'tcx> {
 			types: HashMap::new(),
 			local_names,
 			out: BTreeMap::new(),
+			reported: HashSet::new(),
 			failed: false,
 		}
 	}
@@ -153,7 +156,10 @@ impl<'tcx> Translator<'tcx> {
 	/// Report a construct translation refuses.
 	fn err(&mut self, span: Span, msg: impl Into<String>) {
 		self.failed = true;
-		self.tcx.dcx().span_err(span, format!("rust2-go: {}", msg.into()));
+		let msg = msg.into();
+		if self.reported.insert((span, msg.clone())) {
+			self.tcx.dcx().span_err(span, format!("rust2-go: {msg}"));
+		}
 	}
 
 	/// A root function, by its path from the crate root, exported to Go callers.

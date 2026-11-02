@@ -28,3 +28,7 @@ toml = "1.1.8"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+codec = { path = "fixtures/codec" }
+ints = { path = "fixtures/ints" }

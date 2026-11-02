@@ -41,9 +41,6 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 					_ => self.err(span, format!("a constant of type `{ty}`")),
 				};
 			}
-			if let ConstValue::ZeroSized = val {
-				return format!("{}{{}}", self.ty(ty, span));
-			}
 			let Some(d) = tcx.try_destructure_mir_constant_for_user_output(val, ty) else {
 				return self.err(span, format!("a constant of type `{ty}` that can't be taken apart"));
 			};

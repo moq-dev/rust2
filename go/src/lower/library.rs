@@ -103,7 +103,7 @@ pub fn drop_refused<'tcx>(tcx: TyCtxt<'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>)
 				return drop_refused(tcx, env, args.type_at(0));
 			}
 			if adt.has_dtor(tcx) {
-				return Some(format!("whose `Drop` impl translation does not run yet ({})", path(tcx, adt.did())));
+				return Some(format!("which runs `{}`'s `Drop` impl,", path(tcx, adt.did())));
 			}
 			for field in adt.all_fields() {
 				let fty = field.ty(tcx, args).skip_norm_wip();
@@ -117,7 +117,7 @@ pub fn drop_refused<'tcx>(tcx: TyCtxt<'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>)
 		ty::Tuple(tys) => tys.iter().find_map(|t| drop_refused(tcx, env, t)),
 		ty::Array(elem, _) | ty::Slice(elem) => drop_refused(tcx, env, *elem),
 		ty::Closure(_, args) => args.as_closure().upvar_tys().iter().find_map(|t| drop_refused(tcx, env, t)),
-		_ => Some("which translation can't drop".into()),
+		_ => Some("which drops what translation can't,".into()),
 	}
 }
 
@@ -130,10 +130,12 @@ pub enum Bound {
 
 /// The key a call is bound by: a free function's path, or `<Self>::name` for an inherent
 /// method, or `<Self as Trait>::name` for a trait's, with `Self` by its head, `[T]` for a
-/// slice and `T` for a parameter.
+/// slice and `T` for a parameter. A closure has none, and binds nothing.
 fn key(tcx: TyCtxt<'_>, did: DefId) -> String {
+	let Some(name) = tcx.opt_item_name(did) else {
+		return String::new();
+	};
 	let parent = tcx.parent(did);
-	let name = tcx.item_name(did);
 	match tcx.def_kind(parent) {
 		DefKind::Impl { of_trait } => {
 			let self_ty = tcx.type_of(parent).instantiate_identity().skip_norm_wip();

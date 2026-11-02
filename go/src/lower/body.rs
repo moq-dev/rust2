@@ -94,9 +94,13 @@ pub struct GoPlace<'tcx> {
 impl<'a, 'tcx> Fx<'a, 'tcx> {
 	/// Report a construct translation refuses, here and where it was reached from.
 	pub fn err(&mut self, span: Span, msg: impl Into<String>) -> String {
-		let msg = format!("rust2-go: {} is not supported", msg.into());
+		let msg = format!("{} is not supported", msg.into());
 		self.ok = false;
 		self.t.failed = true;
+		if !self.t.reported.insert((span, msg.clone())) {
+			return "struct{}{}".into();
+		}
+		let msg = format!("rust2-go: {msg}");
 		let mut diag = self.tcx.dcx().struct_span_err(span, msg);
 		if !self.local {
 			diag = diag.with_span_note(self.reached, "reached from here");
