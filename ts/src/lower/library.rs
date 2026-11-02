@@ -919,11 +919,9 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		// `get_or_init::<T, F>` drops its function uncalled if the cell is set.
 		("OnceCell" | "OnceLock", "get_or_init" | "get_or_try_init") => &[1],
 		// A guard's map calls its function, filtered or not.
-		(
-			"Ref" | "RefMut" | "MutexGuard" | "MappedMutexGuard" | "RwLockReadGuard" | "RwLockWriteGuard"
-			| "MappedRwLockReadGuard" | "MappedRwLockWriteGuard",
-			"map" | "filter_map" | "try_map" | "map_split",
-		) => &[],
+		_ if maps_guard(owner, name) => &[],
+		// A guard it leaks or downgrades keeps its borrow or lock.
+		("Ref" | "RefMut", "leak") | ("RwLockWriteGuard", "downgrade") => &[],
 		("Once", "call_once" | "call_once_force") => &[0],
 		("Arc" | "Rc", "new_cyclic") => &[1],
 		// `pop_if::<F>` drops its test uncalled if there is no element.
@@ -933,6 +931,24 @@ fn discards(owner: &str, name: &str) -> Option<&'static [usize]> {
 		("LocalKey", "with" | "try_with" | "initialize_with" | "with_borrow_mut") => &[1],
 		_ => return None,
 	})
+}
+
+/// Whether `owner::name` is a guard's map, filtered, tried, or split, to parts of what it lends.
+pub fn maps_guard(owner: &str, name: &str) -> bool {
+	matches!(
+		(owner, name),
+		(
+			"Ref"
+				| "RefMut"
+				| "MutexGuard"
+				| "MappedMutexGuard"
+				| "RwLockReadGuard"
+				| "RwLockWriteGuard"
+				| "MappedRwLockReadGuard"
+				| "MappedRwLockWriteGuard",
+			"map" | "filter_map" | "try_map" | "map_split",
+		)
+	)
 }
 
 /// Whether the mapping of `owner::name` tells an `Option`'s `None` from its `Some` where

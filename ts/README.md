@@ -9,7 +9,13 @@ rust2-ts --config ts.toml (--out dir | --census file.md) [--manifest-path Cargo.
 It runs `cargo check` on the package with itself as `RUSTC_WRAPPER`, for
 `wasm32-unknown-unknown`, against std checked from source with every function's MIR. The flake's
 package and dev shell check it once per toolchain and pass it as `RUST2_TS_SYSROOT`; without
-that, each target directory checks it with `-Zbuild-std`, which needs the toolchain's `rust-src`. Every crate compiles as rustc
+that, each target directory checks it with `-Zbuild-std`, which needs the toolchain's `rust-src`. Where the
+package builds with getrandom or uuid, which refuse wasm32 until a binary picks their source of randomness, cargo checks it
+as a dependency of a root package that picks `crypto.getRandomValues` by the feature each documents, as a browser's binary
+would, in a workspace that resolves as the package's own: its lockfile, patches, and dev profile, and its paths,
+relative to its root as rustc reads a member's. `--features` and `--no-default-features` pass to that dependency;
+`--all-features`, a feature of the package's dependency, and a `"*"` dev-profile override, which skips workspace members
+but would reach the package there, are refused. Every crate compiles as rustc
 would; the configured library is also translated, after type and borrow checking, starting from its roots and following
 what they reach. Every crate it depends on but std's translates with it as one program,
 as far as the roots reach: each compiles with every function's MIR, and its types and
@@ -124,7 +130,7 @@ crate translation reaches is refused, and so are two versions of one crate it re
 | a type's function | a function of the type's module, taking `self` first: `Decoder.slice(dec, 4)` after `import * as Decoder` |
 | `Arc<T>`, `Rc<T>`, `Weak<T>`, `Mutex<T>` | `rt.Arc` for either, with its strong and weak counts, and `new_cyclic`'s `Weak` upgrading only once its value is made, `get_mut` lending its value only while no other `Arc` or `Weak` shares it, `make_mut` cloning it into a new `rt.Arc` while another `Arc` shares it, or moving it there while only `Weak`s do, which then dangle, and `into_inner` giving it only from the last strong `Arc`, after which its `Weak`s no longer upgrade; `rt.Weak`, counted in its `rt.Arc` until it drops, and of no `Arc` once made by `Weak::new`; `rt.Mutex`, its own guard, which a lock gives as `Ok` and the guard's drop unlocks: locking it again while held panics and `try_lock` gives `WouldBlock`, as wasm32's do, and a guard's `map` and `filter_map` make `rt.MutexMap`s, each where the part it lends is, which hold the mutex locked until they drop, and a panic aborts, so nothing poisons it and `thread::panicking` is `false`; a `Mutex`'s, a `RefCell`'s, and an `RwLock`'s `into_inner` gives its value and `get_mut` lends it, or an `rt.Place` of it where JS copies it |
 | `PoisonError<T>`, `TryLockError<T>` | the `T` it holds; `rt.TryLockError<T>`, tagged as `Bound` is |
-| `Cell<T>`, `UnsafeCell<T>`, `RefCell<T>`, `RwLock<T>` | `rt.Cell`, the place holding its value in `v`, for either of the first two: `UnsafeCell::get`'s pointer is the cell where it is an `rt.Place`, and otherwise the object in `v`, refused where the crate may put another cell or object in its place; `rt.RefCell` for either of the others, its own guard, counting its borrows: borrowing it while that conflicts panics as `RefCell`'s does, and locking it so aborts as wasm32's `RwLock` does; `try_borrow` and `try_borrow_mut` fail with `rt.BorrowError` and `rt.BorrowMutError` instead, a clone borrows the cell, `Ref::clone` counts another borrow of it, and a guard's `map`, `filter_map`, `try_map`, and `map_split`, an `RwLock` guard's included, make `rt.RefMap`s, each where a part it lends is, which a write through a mapped `RefMut` reaches in place, sharing the cell's borrow until the last drops; refused for a part of a sized type JS can't write in place, such as a binding's |
+| `Cell<T>`, `UnsafeCell<T>`, `RefCell<T>`, `RwLock<T>` | `rt.Cell`, the place holding its value in `v`, for either of the first two: `UnsafeCell::get`'s pointer is the cell where it is an `rt.Place`, and otherwise the object in `v`, refused where the crate may put another cell or object in its place; `rt.RefCell` for either of the others, its own guard, counting its borrows: borrowing it while that conflicts panics as `RefCell`'s does, and locking it so aborts as wasm32's `RwLock` does; `try_borrow` and `try_borrow_mut` fail with `rt.BorrowError` and `rt.BorrowMutError` instead, a clone borrows the cell, `Ref::clone` counts another borrow of it, and a guard's `map`, `filter_map`, `try_map`, and `map_split`, an `RwLock` guard's included, make `rt.RefMap`s, each where a part it lends is, which a write through a mapped `RefMut` reaches in place, sharing the cell's borrow until the last drops; `RwLockWriteGuard::downgrade` keeps the lock as one read, and `Ref::leak` and `RefMut::leak` keep the borrow until `RefCell::undo_leak` ends it; refused for a part of a sized type JS can't write in place, such as a binding's |
 | `thread_local!`, `LocalKey<T>` | an `rt.LocalKey`, a module's value, which makes its value on first use from the `const` or the expression and never drops it, as wasm32's do; `with` calls its function on that value, `try_with` never fails, the `Cell` and `RefCell` helpers lower from std, and a `RefCell` key's `set` and `with_borrow_mut` borrow it as `borrow_mut` does |
 | `OnceCell<T>`, `OnceLock<T>` | `rt.OnceCell` and `rt.OnceLock`, holding the `Option<T>` in `v`, which is the place `get_mut` lends where JS copies the value; a `OnceLock` initialized from within its own initialization panics, as wasm32's does, and `get_or_try_init`'s error leaves either empty |
 | `Once`, `OnceState` | `rt.Once`, an `rt.OnceLock` that holds `true` once `call_once` or `call_once_force` ran its function, and panics as wasm32's does if run again from within it; `rt.OnceState`, that `Once`, which a panic never poisons, as it aborts |
@@ -527,9 +533,13 @@ of them:
   as `bytes` does, and into a `BytesMut` is refused, as `bytes` picks those methods by its
   capacity. The provided `copy_to_bytes` of the crate's own `Buf`, whose `BytesMut` has
   the capacity it asks for, reads it chunk by chunk through its methods.
-  The rest of `bytes`, such as the other provided methods of the crate's own `Buf` and the
-  impls forwarding through a `&mut` or a `Box`, translates from its MIR, refused where
-  that is.
+  The impls forwarding through a `&mut` or a `Box` translate from `bytes`' MIR, and the
+  `BufMut` methods they don't forward map as the buffer's own, but `put` and `put_bytes`,
+  which grow it as their provided bodies do, 64 bytes at a time once it is full. `put` of
+  the crate's own `Buf` through them into a `BytesMut` is refused, as `bytes` advances it
+  by the room left in the capacity.
+  The rest of `bytes`, such as the other provided methods of the crate's own `Buf`,
+  translates from its MIR, refused where that is.
 - `hashbrown`'s `HashMap` and `HashSet` are std's, which wrap them, and map as std's do,
   hashbrown's own methods included: `allocation_size` is a slot and a control byte for each
   entry the capacity holds, and its `Entry` is std's. Its `HashTable` keeps each item
@@ -923,8 +933,9 @@ built natively for wasm32 and run beside its translation on the same inputs by
   slices and panics, how each is made and printed, that no event evaluates a field, and
   that each random value is in its range, every value of a small range drawn. It splits,
   freezes, grows, and writes a `BytesMut` by ops its input picks, ending with every
-  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, a buffer of
-  its own included. It changes hashbrown's maps and sets, keyed by JS primitives and by
+  piece's bytes, and reads and writes through `Buf` and `BufMut` generically, through a
+  `&mut` and a `Box` too, a buffer of its own included, ending with each vector's
+  capacity. It changes hashbrown's maps and sets, keyed by JS primitives and by
   tuples, and `HashTable`s of tuples and of numbers, whose places it writes, under hashes
   that collide and that pass 2^53, checks their capacity by std's guarantees, and writes a
   `hashlink::LinkedHashMap` in its own order. `caller.ts` names the inputs that reserve at the edges of
@@ -966,8 +977,8 @@ comes up `Short` and retries, iterator chains over bytes, a `BTreeMap` of 16, 25
 4096 keys, and timestamps converted between timescales as moq-net's `Timestamp::convert`
 does, whose products pass 2^53, then added by its `checked_add` and ordered by its `Ord`,
 whose cross products do too, and integers sorted, searched for their greatest and least,
-and kept in a `BinaryHeap`. Each runs four ways: natively, as wasm32 at moq-wasm's
-size-optimized profile, hand-written (moq's `js/net` in `bench/moq.ts` and its `Timestamp`
+and kept in a `BinaryHeap`. Each runs four ways: natively, as wasm32 at the
+size-optimized profile moq's WASM shipped with, hand-written (moq's `js/net` in `bench/moq.ts` and its `Timestamp`
 in `bench/timestamp.ts`, ES iterator helpers in `bench/iter.ts`, a sorted array in
 `bench/sorted.ts`, `bigint` in `bench/rescale.ts`, as moq's `js/hang` converts
 timescales, and typed arrays and a heap of its own in `bench/order.ts`), and translated; every route's output must match
@@ -1005,4 +1016,4 @@ workloads still settle into one of two speeds per worker, up to 2x apart, so on 
 their A/A stayed 6-35% wide while the median workload's was 1-3%. The report's
 A/A line also gives the noise of a family's geometric mean, the steadier gauge.
 
-The bench shell adds Chromium, Firefox, and the wasm-bindgen that builds moq-wasm's package.
+The bench shell adds Chromium and Firefox.

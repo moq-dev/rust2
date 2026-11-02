@@ -4,7 +4,8 @@
 //! cloned, written through `get_mut`, taken apart, tried, and borrowed through mapped and
 //! cloned guards, each released as it drops; guards mapped, filtered, and split to parts
 //! JS copies and parts it doesn't, written through, released as the last drops; and
-//! guards tried on their parts, given back beside an error, and printed.
+//! guards tried on their parts, given back beside an error, and printed; and guards leaked,
+//! which keep the cell borrowed until `undo_leak`, and mapped to the whole of its bytes.
 
 use std::cell::{Cell, Ref, RefCell, RefMut};
 use std::sync::{Arc, Mutex};
@@ -599,6 +600,103 @@ pub fn tries(data: &[u8], out: &mut Vec<u8>) {
 	out.extend_from_slice(&last.bytes);
 	drop(last);
 	flush(&log, out);
+}
+
+/// Each byte an operation on `RefCell`s through guards leaked, which keep the cell borrowed
+/// until `undo_leak`, and guards mapped, filtered, and tried to the whole of the bytes a
+/// cell holds, its value the operand; each puts what it read through them and whether the
+/// cell is still borrowed, and borrows again while a leak holds it, which panics.
+pub fn leaks(data: &[u8], out: &mut Vec<u8>) {
+	let mut pair = RefCell::new((0u16, Vec::new()));
+	let mut number = RefCell::new(0u32);
+	let mut quad = RefCell::new([1u8, 2, 3, 4]);
+	for &op in data {
+		match op % 4 {
+			// Leaked shared, whole and mapped, so another shared borrow works until it is undone.
+			0 => {
+				let whole = Ref::leak(pair.borrow());
+				let other = pair.borrow();
+				out.extend_from_slice(&[whole.0 as u8 ^ other.1.len() as u8, borrowed(&pair)]);
+				drop(other);
+				let bytes = Ref::leak(Ref::map(pair.borrow(), |p| &p.1));
+				out.extend_from_slice(bytes);
+				out.push(borrowed(&pair));
+				pair.undo_leak();
+				out.push(borrowed(&pair));
+			}
+			// Leaked exclusive, to a number JS copies and to a value it doesn't, written
+			// through and whole, until it is undone.
+			1 => {
+				let n = RefMut::leak(number.borrow_mut());
+				*n += u32::from(op);
+				out.push(borrowed(&number));
+				*number.undo_leak() ^= 1;
+				out.extend_from_slice(&[borrowed(&number), *number.borrow() as u8]);
+				let whole = RefMut::leak(pair.borrow_mut());
+				whole.0 += u16::from(op);
+				whole.1.push(op);
+				if op >> 4 == 0xf {
+					*whole = (u16::from(op), vec![op]);
+				}
+				out.push(borrowed(&pair));
+				pair.undo_leak().1.push(0xfc);
+				out.push(borrowed(&pair));
+				let bytes = RefMut::leak(RefMut::map(pair.borrow_mut(), |p| &mut p.1));
+				bytes.push(op);
+				out.push(borrowed(&pair));
+				out.extend_from_slice(&pair.get_mut().1);
+			}
+			// The whole of the bytes a cell holds, written through a guard mapped to them and
+			// that one's map, written whole, read through a shared one's, filtered, tried,
+			// and leaked.
+			2 => {
+				let mut bytes = RefMut::map(quad.borrow_mut(), |q| q);
+				bytes[usize::from(op & 3)] ^= op;
+				let mut again = RefMut::map(bytes, |q| q);
+				if op >> 4 == 0xf {
+					*again = [op; 4];
+				}
+				out.push(borrowed(&quad));
+				drop(again);
+				let read = Ref::map(quad.borrow(), |q| q);
+				out.extend_from_slice(&*read);
+				out.push(borrowed(&quad));
+				drop(read);
+				match RefMut::filter_map(quad.borrow_mut(), |q| (q[0] & 1 == 0).then_some(q)) {
+					Ok(mut q) => {
+						q[1] = q[1].wrapping_add(op);
+						out.push(borrowed(&quad));
+					}
+					Err(whole) => out.push(whole[0] ^ borrowed(&quad)),
+				}
+				match Ref::try_map(quad.borrow(), |q| if q[2] & 1 == 0 { Ok(q) } else { Err(q[2]) }) {
+					Ok(q) => out.extend_from_slice(&*q),
+					Err((whole, e)) => out.push(whole[3] ^ e),
+				}
+				let leaked = RefMut::leak(RefMut::map(quad.borrow_mut(), |q| q));
+				leaked.rotate_left(1);
+				out.push(borrowed(&quad));
+				out.extend_from_slice(quad.undo_leak());
+			}
+			// Borrowed again while a leak holds it, which panics.
+			_ => match op >> 4 {
+				0xe => {
+					let _ = Ref::leak(pair.borrow());
+					let _w = pair.borrow_mut();
+				}
+				0xf => {
+					let _ = RefMut::leak(number.borrow_mut());
+					let _r = number.borrow();
+				}
+				_ => out.push(borrowed(&pair)),
+			},
+		}
+	}
+	let last = pair.into_inner();
+	out.push(last.0 as u8);
+	out.extend_from_slice(&last.1);
+	out.push(number.into_inner() as u8);
+	out.extend_from_slice(&quad.into_inner());
 }
 
 /// Whether `cell` is borrowed exclusively, as 2, shared, as 1, or not at all.

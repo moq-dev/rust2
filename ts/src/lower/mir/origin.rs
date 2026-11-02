@@ -63,6 +63,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		gargs: GenericArgsRef<'tcx>,
 		args: &[Spanned<Operand<'tcx>>],
 	) -> Option<String> {
+		if !library::is_std(self.tcx, def_id) {
+			return None;
+		}
 		let (owner, name) = library::key(self.tcx, def_id)?;
 		let arg = |i: usize| args.get(i).map(|a| &a.node);
 		let pointee = gargs.types().next()?;
@@ -291,7 +294,8 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		pointee(from).is_some() && pointee(from) == pointee(self.mir.local_decls[local].ty)
 	}
 
-	/// The function, its generic arguments, and its arguments, of the call that assigns `local`.
+	/// The function, its generic arguments, and its arguments, of the call of std's that
+	/// assigns `local`.
 	pub(super) fn def_call(
 		&self,
 		local: Local,
@@ -307,7 +311,7 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		let ty::FnDef(def_id, gargs) = *func.ty(&self.mir.local_decls, self.tcx).kind() else {
 			return None;
 		};
-		Some((def_id, gargs.skip_binder(), args))
+		library::is_std(self.tcx, def_id).then_some((def_id, gargs.skip_binder(), args))
 	}
 
 	/// The block whose call assigns `local`.

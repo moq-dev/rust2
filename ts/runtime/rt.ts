@@ -160,6 +160,27 @@ export function byteVecAsPtr(v: ByteVec): Place<number> {
 	return new AtIndex(v.data, 0);
 }
 
+/** A pointer wrapping arithmetic moved off null or a dangling one: an address no memory is at. */
+class Address implements Place<never> {
+	readonly addr: number;
+
+	constructor(addr: number) {
+		this.addr = addr;
+	}
+
+	get v(): never {
+		return nowhere();
+	}
+
+	set v(_: never) {
+		nowhere();
+	}
+}
+
+function nowhere(): never {
+	throw new Error("rust2-ts: a read or write through a pointer to no memory");
+}
+
 /** The array of one element that a pointer to a value in no array points into, by its place. */
 const LONE = /* @__PURE__ */ new WeakMap<Place<unknown>, unknown[]>();
 
@@ -197,6 +218,7 @@ class Lone<T> implements ProxyHandler<T[]> {
  */
 function elemOf<T>(p: Place<T>): AtIndex<T> {
 	if (p instanceof AtIndex) return p;
+	if (p === NULL) return new AtIndex([] as T[], 0);
 	let lone = LONE.get(p) as T[] | undefined;
 	if (!lone) {
 		lone = new Proxy(new Array<T>(1), new Lone(p));
@@ -220,23 +242,30 @@ function wrapIndex(index: number, n: number, size: number): number {
 /** `p.add(n)` and `p.offset(n)`: `n` elements past where `p` points. */
 export function ptrAdd<T>(p: Place<T>, n: number): Place<T> {
 	if (n === 0) return p;
-	const at = elemOf(p);
-	return new AtIndex(at.array, at.index + n);
+	const e = elemOf(p);
+	return new AtIndex(e.array, e.index + n);
 }
 
 /**
  * `p.wrapping_add(n)` and `wrapping_offset`, `n` an offset of `size`-byte elements read
- * as wasm32's `isize`, wrapping as a 32-bit address does.
+ * as wasm32's `isize`, wrapping as a 32-bit address does. Null is at address 0, and a
+ * dangling pointer at `align`, which the arithmetic moves by address.
  */
-export function ptrWrappingAdd<T>(p: Place<T>, n: number, size: number): Place<T> {
+export function ptrWrappingAdd<T>(p: Place<T>, n: number, size: number, align: number): Place<T> {
 	if (n === 0) return p;
-	const at = elemOf(p);
-	return new AtIndex(at.array, wrapIndex(at.index, n | 0, size));
+	if (p === NULL || p === DANGLING || p instanceof Address) {
+		const base = p === NULL ? 0 : p === DANGLING ? align : (p as Address).addr;
+		const addr = Number((BigInt(base) + BigInt(n | 0) * BigInt(size)) & 0xffffffffn);
+		return addr === 0 ? NULL : addr === align ? DANGLING : (new Address(addr) as Place<T>);
+	}
+	const e = elemOf(p);
+	return new AtIndex(e.array, wrapIndex(e.index, n | 0, size));
 }
 
 /** `p.offset_from(origin)`: how many elements `p` is past `origin`, in the same array. */
 export function ptrOffsetFrom<T>(p: Place<T>, origin: Place<T>): number {
-	if (p === origin) return 0;
+	// Equal addresses are none apart, in no allocation as in one.
+	if (p === origin || (p instanceof Address && origin instanceof Address && p.addr === origin.addr)) return 0;
 	const [a, b] = [elemOf(p), elemOf(origin)];
 	if (a.array !== b.array) throw new Error("rust2-ts: `offset_from` of pointers JS keeps in different arrays");
 	return a.index - b.index;
@@ -257,7 +286,8 @@ export function ptrCopy<T>(src: Place<T>, dst: Place<T>, n: number, copy?: (valu
 		return;
 	}
 	const values = Array.from({ length: n }, (_, i) => from.array[from.index + i]);
-	for (let i = 0; i < n; i++) to.array[to.index + i] = copy ? copy(values[i]) : values[i];
+	// Memory nothing wrote yet is copied as it is, which no value's copy can read.
+	for (let i = 0; i < n; i++) to.array[to.index + i] = copy && values[i] !== undefined ? copy(values[i]) : values[i];
 }
 
 /** `slice::from_raw_parts` and `ptr::slice_from_raw_parts` of `len` elements from `p`. */

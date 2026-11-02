@@ -649,10 +649,13 @@ pub fn call<'tcx>(
 					_ => n,
 				};
 				match name.starts_with("wrapping") {
-					true => {
-						let size = super::iter::size_of(b, pointee(), span);
-						Expr::rt("ptrWrappingAdd", vec![p, n, size])
-					}
+					true => match super::iter::layout(b, pointee(), span) {
+						Ok((size, align)) => Expr::rt(
+							"ptrWrappingAdd",
+							vec![p, n, Expr::lit(size.to_string()), Expr::lit(align.to_string())],
+						),
+						Err(e) => e,
+					},
 					false => Expr::rt("ptrAdd", vec![p, n]),
 				}
 			}

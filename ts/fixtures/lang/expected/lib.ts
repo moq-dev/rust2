@@ -410,6 +410,13 @@ export function copy$mem_MaybeUninit_Option_tuple2_u8_u8(v: [rt.u8, rt.u8] | und
 	return v === undefined ? v : copy$tuple2_u8_u8(v);
 }
 
+export function copy$mem_MaybeUninit_Result_tuple2_u32_u32_u8(v: rt.Result<[rt.u32, rt.u32], rt.u8>): rt.Result<[rt.u32, rt.u32], rt.u8> {
+	if (v === undefined) {
+		return v;
+	}
+	return v.ok ? rt.Ok(copy$tuple2_u32_u32(v.value)) : rt.Err(v.error);
+}
+
 export function copy$mem_MaybeUninit_array_Option_tuple2_u8_u8(v: Array<[rt.u8, rt.u8] | undefined>): Array<[rt.u8, rt.u8] | undefined> {
 	if (v === undefined) {
 		return v;
@@ -892,6 +899,12 @@ export function drop$Result_cell_RefMut_borrows_Tagged_cell_BorrowMutError(_1: r
 	}
 }
 
+export function drop$Result_cell_RefMut_tuple2_u16_Vec_u8_cell_BorrowMutError(_1: rt.Result<rt.RefCell<[rt.u16, rt.ByteVec]>, rt.BorrowMutError>): void {
+	if (_1.ok) {
+		rt.refMutRelease(_1.value);
+	}
+}
+
 export function drop$Result_cell_RefMut_u32_cell_BorrowMutError(_1: rt.Result<rt.RefCell<rt.u32>, rt.BorrowMutError>): void {
 	if (_1.ok) {
 		rt.refMutRelease(_1.value);
@@ -929,6 +942,12 @@ export function drop$Result_cell_Ref_ref_str_tuple2_cell_Ref_tuple2_u8_ref_str_u
 		rt.refRelease(_1.value);
 	} else {
 		drop$tuple2_cell_Ref_tuple2_u8_ref_str_u8(_1.error);
+	}
+}
+
+export function drop$Result_cell_Ref_tuple2_u16_Vec_u8_cell_BorrowError(_1: rt.Result<rt.RefCell<[rt.u16, rt.ByteVec]>, rt.BorrowError>): void {
+	if (_1.ok) {
+		rt.refRelease(_1.value);
 	}
 }
 
@@ -978,6 +997,14 @@ export function drop$Result_sync_MappedRwLockWriteGuard_u64_sync_MappedRwLockWri
 	}
 }
 
+export function drop$Result_sync_MutexGuard_array4_u8_sync_TryLockError_sync_MutexGuard_array4_u8(_1: rt.Result<rt.Mutex<Uint8Array>, rt.TryLockError<rt.Mutex<Uint8Array>>>): void {
+	if (_1.ok) {
+		rt.mutexUnlock(_1.value);
+	} else {
+		drop$sync_TryLockError_sync_MutexGuard_array4_u8(_1.error);
+	}
+}
+
 export function drop$Result_sync_MutexGuard_locks_Tally_sync_TryLockError_sync_MutexGuard_locks_Tally(_1: rt.Result<rt.Mutex<locks_Tally.Tally>, rt.TryLockError<rt.Mutex<locks_Tally.Tally>>>): void {
 	if (_1.ok) {
 		rt.mutexUnlock(_1.value);
@@ -994,6 +1021,14 @@ export function drop$Result_sync_MutexGuard_u32_sync_TryLockError_sync_MutexGuar
 	}
 }
 
+export function drop$Result_sync_RwLockReadGuard_array4_u8_sync_TryLockError_sync_RwLockReadGuard_array4_u8(_1: rt.Result<rt.RefCell<Uint8Array>, rt.TryLockError<rt.RefCell<Uint8Array>>>): void {
+	if (_1.ok) {
+		rt.refRelease(_1.value);
+	} else {
+		drop$sync_TryLockError_sync_RwLockReadGuard_array4_u8(_1.error);
+	}
+}
+
 export function drop$Result_sync_RwLockReadGuard_locks_Tally_sync_TryLockError_sync_RwLockReadGuard_locks_Tally(_1: rt.Result<rt.RefCell<locks_Tally.Tally>, rt.TryLockError<rt.RefCell<locks_Tally.Tally>>>): void {
 	if (_1.ok) {
 		rt.refRelease(_1.value);
@@ -1002,11 +1037,35 @@ export function drop$Result_sync_RwLockReadGuard_locks_Tally_sync_TryLockError_s
 	}
 }
 
+export function drop$Result_sync_RwLockReadGuard_u32_sync_TryLockError_sync_RwLockReadGuard_u32(_1: rt.Result<rt.RefCell<rt.u32>, rt.TryLockError<rt.RefCell<rt.u32>>>): void {
+	if (_1.ok) {
+		rt.refRelease(_1.value);
+	} else {
+		drop$sync_TryLockError_sync_RwLockReadGuard_u32(_1.error);
+	}
+}
+
+export function drop$Result_sync_RwLockWriteGuard_array4_u8_sync_TryLockError_sync_RwLockWriteGuard_array4_u8(_1: rt.Result<rt.RefCell<Uint8Array>, rt.TryLockError<rt.RefCell<Uint8Array>>>): void {
+	if (_1.ok) {
+		rt.refMutRelease(_1.value);
+	} else {
+		drop$sync_TryLockError_sync_RwLockWriteGuard_array4_u8(_1.error);
+	}
+}
+
 export function drop$Result_sync_RwLockWriteGuard_locks_Tally_sync_TryLockError_sync_RwLockWriteGuard_locks_Tally(_1: rt.Result<rt.RefCell<locks_Tally.Tally>, rt.TryLockError<rt.RefCell<locks_Tally.Tally>>>): void {
 	if (_1.ok) {
 		rt.refMutRelease(_1.value);
 	} else {
 		drop$sync_TryLockError_sync_RwLockWriteGuard_locks_Tally(_1.error);
+	}
+}
+
+export function drop$Result_sync_RwLockWriteGuard_u32_sync_TryLockError_sync_RwLockWriteGuard_u32(_1: rt.Result<rt.RefCell<rt.u32>, rt.TryLockError<rt.RefCell<rt.u32>>>): void {
+	if (_1.ok) {
+		rt.refMutRelease(_1.value);
+	} else {
+		drop$sync_TryLockError_sync_RwLockWriteGuard_u32(_1.error);
 	}
 }
 
@@ -1098,6 +1157,12 @@ export function drop$statics_Lock_tuple2_u8_Rc_unit(_1: statics_Lock.Lock<[rt.u8
 	statics_Lock.drop$ops_Drop_tuple2_u8_Rc_unit(_1);
 }
 
+export function drop$sync_TryLockError_sync_MutexGuard_array4_u8(_1: rt.TryLockError<rt.Mutex<Uint8Array>>): void {
+	if (_1.tag === "Poisoned") {
+		rt.mutexUnlock((_1 as { tag: "Poisoned"; _0: rt.Mutex<Uint8Array> })._0);
+	}
+}
+
 export function drop$sync_TryLockError_sync_MutexGuard_locks_Tally(_1: rt.TryLockError<rt.Mutex<locks_Tally.Tally>>): void {
 	if (_1.tag === "Poisoned") {
 		rt.mutexUnlock((_1 as { tag: "Poisoned"; _0: rt.Mutex<locks_Tally.Tally> })._0);
@@ -1110,15 +1175,39 @@ export function drop$sync_TryLockError_sync_MutexGuard_u32(_1: rt.TryLockError<r
 	}
 }
 
+export function drop$sync_TryLockError_sync_RwLockReadGuard_array4_u8(_1: rt.TryLockError<rt.RefCell<Uint8Array>>): void {
+	if (_1.tag === "Poisoned") {
+		rt.refRelease((_1 as { tag: "Poisoned"; _0: rt.RefCell<Uint8Array> })._0);
+	}
+}
+
 export function drop$sync_TryLockError_sync_RwLockReadGuard_locks_Tally(_1: rt.TryLockError<rt.RefCell<locks_Tally.Tally>>): void {
 	if (_1.tag === "Poisoned") {
 		rt.refRelease((_1 as { tag: "Poisoned"; _0: rt.RefCell<locks_Tally.Tally> })._0);
 	}
 }
 
+export function drop$sync_TryLockError_sync_RwLockReadGuard_u32(_1: rt.TryLockError<rt.RefCell<rt.u32>>): void {
+	if (_1.tag === "Poisoned") {
+		rt.refRelease((_1 as { tag: "Poisoned"; _0: rt.RefCell<rt.u32> })._0);
+	}
+}
+
+export function drop$sync_TryLockError_sync_RwLockWriteGuard_array4_u8(_1: rt.TryLockError<rt.RefCell<Uint8Array>>): void {
+	if (_1.tag === "Poisoned") {
+		rt.refMutRelease((_1 as { tag: "Poisoned"; _0: rt.RefCell<Uint8Array> })._0);
+	}
+}
+
 export function drop$sync_TryLockError_sync_RwLockWriteGuard_locks_Tally(_1: rt.TryLockError<rt.RefCell<locks_Tally.Tally>>): void {
 	if (_1.tag === "Poisoned") {
 		rt.refMutRelease((_1 as { tag: "Poisoned"; _0: rt.RefCell<locks_Tally.Tally> })._0);
+	}
+}
+
+export function drop$sync_TryLockError_sync_RwLockWriteGuard_u32(_1: rt.TryLockError<rt.RefCell<rt.u32>>): void {
+	if (_1.tag === "Poisoned") {
+		rt.refMutRelease((_1 as { tag: "Poisoned"; _0: rt.RefCell<rt.u32> })._0);
 	}
 }
 

@@ -389,6 +389,11 @@ pub fn bytes_mut_put(buf: &mut bytes::BytesMut, src: Counted) {
 	bytes::BufMut::put(buf, src);
 }
 
+/// Through a `&mut`, `bytes` advances it by the room left in the `BytesMut`'s capacity.
+pub fn bytes_mut_put_through(mut buf: &mut bytes::BytesMut, src: Counted) {
+	bytes::BufMut::put(&mut buf, src);
+}
+
 /// A `Buf` whose `copy_to_bytes` differs from its `chunk` and `advance`.
 pub struct Counted(pub bytes::Bytes);
 

@@ -86,16 +86,19 @@ pub fn mapped(tcx: TyCtxt<'_>, did: DefId) -> bool {
 
 /// Whether `instance`, a provided method of `Buf` or `BufMut`, maps for its `Self`, which
 /// [`mapped`] can't tell from the method alone: one the mapping names, of a buffer whose
-/// impl maps, and `copy_to_bytes` of any other, whose `BytesMut::put` reads a capacity.
-/// The others lower from their MIR, as for the crate's own buffers.
+/// impl maps or that a `&mut` or a `Box` writes through, and `copy_to_bytes` of any
+/// other, whose `BytesMut::put` reads a capacity. The others lower from their MIR, as for
+/// the crate's own buffers.
 pub fn maps<'tcx>(tcx: TyCtxt<'tcx>, instance: Instance<'tcx>) -> bool {
 	let did = instance.def_id();
 	if tcx.crate_name(did.krate).as_str() != "bytes" || tcx.trait_of_assoc(did).is_none() {
 		return false;
 	}
 	let name = tcx.item_name(did);
-	match mapped_self(tcx, instance.args.type_at(0)) {
+	let ty = instance.args.type_at(0);
+	match mapped_self(tcx, ty) {
 		true => BUF.contains(&name.as_str()) || BUF_MUT.contains(&name.as_str()),
+		false if Buffer::through(tcx, ty).is_some() => BUF_MUT.contains(&name.as_str()),
 		false => name.as_str() == "copy_to_bytes",
 	}
 }
@@ -220,6 +223,21 @@ impl Buffer {
 				Some(Self::Slice)
 			}
 			_ => None,
+		}
+	}
+
+	/// The buffer that `ty`, `&mut`s and `Box`es of a `Vec<u8>` or a `BytesMut`, writes
+	/// through, whose impls forward all but some of `BufMut`'s provided methods.
+	fn through<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> Option<Self> {
+		let inner = match ty.kind() {
+			ty::Ref(_, inner, ty::Mutability::Mut) => *inner,
+			ty::Adt(adt, args) if library::Std::of(tcx, adt.did()) == Some(Std::Box) => args.type_at(0),
+			_ => return None,
+		};
+		match Self::of(tcx, inner) {
+			Some(buffer @ (Self::Vec | Self::BytesMut)) if !inner.has_param() => Some(buffer),
+			Some(_) => None,
+			None => Self::through(tcx, inner),
 		}
 	}
 }
@@ -357,7 +375,13 @@ fn bytes<'tcx>(
 		Some(Std::BytesMut) => return bytes_mut(b, call, name, args, out),
 		_ => {}
 	}
-	let Some(buffer) = Buffer::of(tcx, targ(call.args, 0)) else {
+	let ty = targ(call.args, 0);
+	if owner == "BufMut"
+		&& let Some(buffer) = Buffer::through(tcx, ty)
+	{
+		return buf_mut_through(b, call, ty, buffer, name, args);
+	}
+	let Some(buffer) = Buffer::of(tcx, ty) else {
 		return match (owner, name) {
 			("Buf", "copy_to_bytes") => provided_copy_to_bytes(b, call, args),
 			_ => None,
@@ -365,7 +389,7 @@ fn bytes<'tcx>(
 	};
 	match owner {
 		"Buf" => buf(b, call, buffer, name, args),
-		"BufMut" => buf_mut(b, call, buffer, name, args),
+		"BufMut" => buf_mut(b, call, buffer, false, name, args),
 		_ => None,
 	}
 }
@@ -525,11 +549,43 @@ fn buf<'tcx>(
 	})
 }
 
-/// A method of `BufMut` on a buffer the mapping writes.
+/// A provided method of `BufMut` that `&mut`s and `Box`es of `buffer` don't forward, on
+/// `ty`, one of them: the buffer's own method, but for `put` and `put_bytes`.
+fn buf_mut_through<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	call: &Call<'tcx>,
+	mut ty: Ty<'tcx>,
+	buffer: Buffer,
+	name: &str,
+	mut args: Vec<Expr>,
+) -> Option<Expr> {
+	let tcx = b.t.tcx;
+	// `self`'s value, down to a reference to the buffer, which is the buffer's object.
+	let input = *b.t.sig(call.def_id, call.args).inputs().first()?;
+	let mut this = b.t.pointee_value(input, args.first()?.clone());
+	loop {
+		let inner = match ty.kind() {
+			ty::Ref(_, inner, _) => *inner,
+			_ => ty.boxed_ty()?,
+		};
+		if Buffer::of(tcx, inner).is_some() {
+			break;
+		}
+		this = b.t.pointee_value(ty, this);
+		ty = inner;
+	}
+	args[0] = this;
+	buf_mut(b, call, buffer, true, name, args)
+}
+
+/// A method of `BufMut` on a buffer the mapping writes, `through` a `&mut` or a `Box` if
+/// it is a provided one they don't forward, whose `put` and `put_bytes` grow the buffer
+/// by `chunk_mut`'s 64 bytes at a time rather than by what they write.
 fn buf_mut<'tcx>(
 	b: &mut Body<'_, '_, 'tcx>,
 	call: &Call<'tcx>,
 	buffer: Buffer,
+	through: bool,
 	name: &str,
 	args: Vec<Expr>,
 ) -> Option<Expr> {
@@ -551,7 +607,8 @@ fn buf_mut<'tcx>(
 		"has_remaining_mut" => this.member("length").binary("<", isize_max),
 		"put_slice" if buffer == Buffer::BytesMut => Expr::rt("bytesMutExtend", vec![this, args.next()?]),
 		"put_slice" => Expr::rt("byteVecExtendFromSlice", vec![this, args.next()?]),
-		"put" => put(b, call, buffer, this, args.next()?)?,
+		"put" => put(b, call, buffer, through, this, args.next()?)?,
+		"put_bytes" if through => rt("PutFillChunked", vec![this, args.next()?, args.next()?]),
 		"put_bytes" => rt("PutFill", vec![this, args.next()?, args.next()?]),
 		_ => {
 			let (ty, le) = scalar(name.strip_prefix("put_")?);
@@ -577,10 +634,17 @@ fn buf_mut<'tcx>(
 	})
 }
 
-/// `BufMut::put` of a `Buf` into a buffer the mapping writes: all of it, read whole from
-/// a buffer the mapping reads, and otherwise through its own methods, as `bytes` reads it
-/// into a `Vec<u8>`.
-fn put<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, buffer: Buffer, this: Expr, src: Expr) -> Option<Expr> {
+/// `BufMut::put` of a `Buf` into a buffer the mapping writes, `through` a `&mut` or a
+/// `Box` by the provided body: all of it, read whole from a buffer the mapping reads, and
+/// otherwise through its own methods, as `bytes` reads it into a `Vec<u8>`.
+fn put<'tcx>(
+	b: &mut Body<'_, '_, 'tcx>,
+	call: &Call<'tcx>,
+	buffer: Buffer,
+	through: bool,
+	this: Expr,
+	src: Expr,
+) -> Option<Expr> {
 	let tcx = b.t.tcx;
 	let ty = targ(call.args, 1);
 	let source = Buffer::of(tcx, ty);
@@ -591,6 +655,8 @@ fn put<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, buffer: Buffer, this
 	};
 	if let Some(bytes) = bytes {
 		let f = match (buffer, source) {
+			(Buffer::BytesMut, _) if through => "bytesMutPutChunked",
+			(_, _) if through => "byteVecPutChunked",
 			(Buffer::BytesMut, Some(Buffer::Slice)) => "bytesMutExtend",
 			(Buffer::BytesMut, _) => "bytesMutPutStorage",
 			_ => "byteVecExtendFromSlice",
@@ -604,10 +670,14 @@ fn put<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, buffer: Buffer, this
 		return Some(b.err(call.span, msg));
 	}
 	// Into a `BytesMut`, `bytes` calls its `copy_to_bytes` or its `chunk` and `advance` by
-	// whether the capacity is zero.
+	// whether the capacity is zero, and through a `&mut`, advances it by the room left.
 	if buffer == Buffer::BytesMut {
+		let how = match through {
+			true => "advances it by the room left in a capacity",
+			false => "picks the methods it calls by a capacity",
+		};
 		let msg = format!(
-			"`BufMut::put` of `{ty}` into a `BytesMut`, which picks the methods it calls by a capacity that depends on whether the other handles of its storage dropped, which is not supported"
+			"`BufMut::put` of `{ty}` into a `BytesMut`, which {how} that depends on whether the other handles of its storage dropped, which is not supported"
 		);
 		return Some(b.err(call.span, msg));
 	}
@@ -617,10 +687,11 @@ fn put<'tcx>(b: &mut Body<'_, '_, 'tcx>, call: &Call<'tcx>, buffer: Buffer, this
 		buf_method(b, call, ty, "chunk")?,
 		buf_method(b, call, ty, "advance")?,
 	);
-	Some(Expr::rt(
-		"byteVecPutBuf",
-		vec![this, src, has, remaining, chunk, advance],
-	))
+	let f = match through {
+		true => "byteVecPutBufChunked",
+		false => "byteVecPutBuf",
+	};
+	Some(Expr::rt(f, vec![this, src, has, remaining, chunk, advance]))
 }
 
 /// `Buf::copy_to_bytes` as `bytes` provides it, of a buffer the mapping doesn't read: it
