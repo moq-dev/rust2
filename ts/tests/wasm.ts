@@ -11,11 +11,15 @@ interface Exports {
 	message_len(): number;
 }
 
+/**
+ * How a call ended: its output, a panic with the message the module saved before it
+ * trapped, or an abort, which trapped without running the panic hook.
+ */
+export type Outcome = Uint8Array | { panic: string } | "abort";
+
 export class Wasm {
 	#module: WebAssembly.Module;
 	#exports: Exports;
-	/** The message of the last panic, which the module saved before it trapped. */
-	panicMessage = "";
 
 	constructor(module: WebAssembly.Module) {
 		this.#module = module;
@@ -38,18 +42,19 @@ export class Wasm {
 		return new Uint8Array(this.#exports.memory.buffer, this.#exports.output(), len).slice();
 	}
 
-	/** All three, or "panic" if the entry trapped, with its message in `panicMessage`. */
-	call(input: Uint8Array): Uint8Array | "panic" {
+	/** All three, or how the entry trapped. */
+	call(input: Uint8Array): Outcome {
 		try {
 			this.input(input);
 			return this.output(this.run());
 		} catch (err) {
 			if (!(err instanceof WebAssembly.RuntimeError)) throw err;
-			const message = new Uint8Array(this.#exports.memory.buffer, this.#exports.message(), this.#exports.message_len());
-			this.panicMessage = new TextDecoder().decode(message);
+			const ptr = this.#exports.message();
+			const panic = () => new TextDecoder().decode(new Uint8Array(this.#exports.memory.buffer, ptr, this.#exports.message_len()));
+			const outcome: Outcome = ptr === 0 ? "abort" : { panic: panic() };
 			// A trap leaves the instance mid-call: start a fresh one.
 			this.#exports = new WebAssembly.Instance(this.#module, {}).exports as unknown as Exports;
-			return "panic";
+			return outcome;
 		}
 	}
 }
