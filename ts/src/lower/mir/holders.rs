@@ -269,7 +269,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 					}
 					TerminatorKind::Drop { place, .. }
 						if held.all.contains(place.local)
-							&& self.runs_own_code(place.ty(&mir.local_decls, self.t.tcx).ty) =>
+							&& self.drops_own_code(place.ty(&mir.local_decls, self.t.tcx).ty) =>
 					{
 						held.escapes.push(at);
 					}
@@ -485,9 +485,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 		}
 		// Until found, as for an impl whose bounds come back to it, it may not be.
 		self.memo.borrow_mut().inert.insert(key, false);
-		let inert = args
-			.types()
-			.all(|t| !self.runs_own_code(t) || !t.needs_drop(tcx, self.env))
+		let inert = args.types().all(|t| !self.drops_own_code(t))
 			&& tcx
 				.clauses_of(did)
 				.instantiate(tcx, args)
@@ -549,7 +547,24 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 	/// keep what it is given: through the crate's own types, a trait object, a closure, or
 	/// a function pointer.
 	fn runs_own_code(&self, ty: Ty<'tcx>) -> bool {
-		self.t.reaches(self.env, ty, |t| match t.kind() {
+		self.t.reaches(self.env, ty, |t| self.own_code(t))
+	}
+
+	/// Whether dropping a value of `ty` may run the crate's code: it has drop glue and holds
+	/// what [`Self::runs_own_code`] counts, but a type parameter whose bounds in the body's
+	/// environment leave it no drop glue, as `Copy` does.
+	fn drops_own_code(&self, ty: Ty<'tcx>) -> bool {
+		let tcx = self.t.tcx;
+		ty.needs_drop(tcx, self.env)
+			&& self.t.reaches(self.env, ty, |t| match t.kind() {
+				ty::Param(_) => t.needs_drop(tcx, self.env),
+				_ => self.own_code(t),
+			})
+	}
+
+	/// Whether `ty` itself, not what it holds, is what [`Self::runs_own_code`] counts.
+	fn own_code(&self, ty: Ty<'tcx>) -> bool {
+		match ty.kind() {
 			ty::Adt(adt, _) => self.t.own(adt.did()),
 			ty::FnDef(def_id, args) => self.translated(*def_id, args.skip_binder()),
 			ty::Dynamic(..)
@@ -560,11 +575,24 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 			| ty::Param(_)
 			| ty::Alias(..) => true,
 			_ => false,
-		})
+		}
 	}
 
 	/// Whether a value of `ty` could hold a pointer or a reference, in any field of any type.
 	fn carries(&self, ty: Ty<'tcx>) -> bool {
+		self.holds_pointer(ty, true)
+	}
+
+	/// Whether code reading a value of `ty` could get a pointer or a reference out of it: as
+	/// [`Self::carries`], but for one a type parameter's value holds, which code generic
+	/// over it gets only as a whole value of that parameter, never a pointer itself.
+	fn shows_pointer(&self, ty: Ty<'tcx>) -> bool {
+		self.holds_pointer(ty, false)
+	}
+
+	/// Whether a value of `ty` could hold a pointer or a reference, in any field of any
+	/// type, and with `params`, in a type parameter's value.
+	fn holds_pointer(&self, ty: Ty<'tcx>, params: bool) -> bool {
 		let mut seen = FxHashSet::default();
 		let mut stack = vec![ty];
 		while let Some(ty) = stack.pop() {
@@ -587,6 +615,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 					adt.all_fields()
 						.map(|field| field_ty(self.t.tcx, self.env, field.did, args)),
 				),
+				ty::Param(_) if !params => {}
 				_ => return true,
 			}
 		}
@@ -704,9 +733,12 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 	}
 
 	/// The types a value of `ty` holds in place, through std's types too; `None` if its type
-	/// doesn't tell, as a type parameter's or a trait object's.
+	/// doesn't tell, as a trait object's. A type parameter's value holds none the body or
+	/// std's code can see: code generic over it sees inside only through its bounds, which
+	/// run the crate's code, and std's code that reinterprets memory is refused.
 	fn fields(&self, ty: Ty<'tcx>) -> Option<Vec<Ty<'tcx>>> {
 		Some(match ty.kind() {
+			ty::Param(_) => Vec::new(),
 			ty::Bool
 			| ty::Char
 			| ty::Int(_)
@@ -794,7 +826,7 @@ impl<'x, 'a, 'tcx> Trace<'x, 'a, 'tcx> {
 			Some(())
 		};
 		while let Some((local, deep)) = stack.pop() {
-			if !seen.insert((local, deep)) || deep && !self.carries(self.mir.local_decls[local].ty) {
+			if !seen.insert((local, deep)) || deep && !self.shows_pointer(self.mir.local_decls[local].ty) {
 				continue;
 			}
 			if defs[local].other {

@@ -176,5 +176,9 @@ roots = [
     "lazy_celled",
     "lazy_assigned",
     "key_celled",
+    "cloned_slots",
+    "dropped_slots",
+    "ranked_slots",
+    "touched_slots",
 ]
 printable = ["Meters"]
