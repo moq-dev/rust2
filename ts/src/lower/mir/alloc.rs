@@ -14,7 +14,8 @@ use crate::lower::pointer::Pointee;
 use crate::ts::{Expr, Stmt};
 
 /// Why the bytes of memory from `alloc` are refused.
-pub(super) const BYTES: &str = "a byte of memory from `alloc`, which JS keeps as the values a cast of its pointer types it as";
+pub(super) const BYTES: &str =
+	"a byte of memory from `alloc`, which JS keeps as the values a cast of its pointer types it as";
 
 impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 	/// The cast of the pointer `op` from one to `from` to one to `to`, if it is a cast of
@@ -73,8 +74,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 		let ty::RawPtr(pointee, _) = self.mir.local_decls[place.local].ty.kind() else {
 			return None;
 		};
-		(matches!(pointee.kind(), ty::Uint(ty::UintTy::U8)) && self.allocated(&Operand::Copy(mir::Place::from(place.local))))
-			.then_some(BYTES)
+		(matches!(pointee.kind(), ty::Uint(ty::UintTy::U8))
+			&& self.allocated(&Operand::Copy(mir::Place::from(place.local))))
+		.then_some(BYTES)
 	}
 
 	/// Whether the pointer `op` is one `alloc` or `realloc` returned, as the body shows.
