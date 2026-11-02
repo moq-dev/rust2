@@ -18,7 +18,6 @@ Each child reports its CPU saved, cold and warm, against `origin/main`.
 
 ## Required
 
-- [The task fixture outside the gate](/quest/m0/checks/task-fixture.md) - the `task` differential passes on every host, not only in the gate's container
 - [A cheaper differential](/quest/m0/checks/differential.md) - fixtures' wasm builds at opt-level 1 under single-threaded Node, and `stable_names` reuses `lang`'s translation
 - [Checks by the diff](/quest/m0/checks/dispatch.md) - `just ci` runs only the projects a change touches, as moq's `sh/dispatch.sh` does, with a nightly `just gate`
 - [A warm gate](/quest/m0/checks/cache.md) - the land gate builds through mbx, as moq's does
