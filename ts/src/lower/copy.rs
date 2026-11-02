@@ -755,7 +755,7 @@ fn retargeted_in<'tcx>(
 	for (data, bb) in body.basic_blocks.iter().zip(body.basic_blocks.indices()) {
 		if let mir::TerminatorKind::Call { func, args, .. } = &data.terminator().kind
 			&& let Some((i, _, rebinds)) = rebinding(args, func)
-			&& i < rebinds
+			&& rebinds.contains(&i)
 		{
 			let by = args[i].node.place().and_then(|p| p.as_local());
 			if by.is_some_and(|by| uses.get(&by) == Some(&vec![body.terminator_loc(bb)])) {
@@ -1111,8 +1111,8 @@ impl<'tcx> Visitor<'tcx> for BodyWrites<'_, '_, '_, 'tcx> {
 			}
 			let rebound = func
 				.const_fn_def()
-				.map_or(0, |(def_id, _)| super::pointer::rebinds(self.tcx, def_id));
-			for arg in args[..rebound].iter().filter_map(|a| a.node.place()) {
+				.map_or(&[][..], |(def_id, _)| super::pointer::rebinds(self.tcx, def_id));
+			for arg in rebound.iter().filter_map(|&i| args.get(i)?.node.place()) {
 				self.store_through(self.tcx.mk_place_deref(arg), location);
 			}
 		}

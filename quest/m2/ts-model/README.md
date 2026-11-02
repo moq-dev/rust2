@@ -3,7 +3,7 @@
 ## Goal
 
 [rust2-ts](/ts/README.md) translates moq-net's model layer, with the workspace crates it
-calls (kio, moq-clock, moq-pattern), as it translates the codec today, so moq can ship
+calls (kio, with its clock, and moq-pattern), as it translates the codec today, so moq can ship
 `@moq/net` as JavaScript translated from its Rust, in place of the handwritten package.
 
 ## Plan
@@ -49,5 +49,6 @@ Public API: the translator's output for moq-net's model.
 
 ## Required
 
+- [The std calls moq's main added to the model](/quest/m2/ts-model/main-std.md) - `VecDeque::range`, and `str::rsplit_once` and `split_terminator` by a `char`, translate
 - [A crate's own hasher](/quest/m2/ts-model/own-hasher.md) - hashlink's default hasher, a crate's own `Hasher`, hashes keys as native's does
 - [A crate's own iterator traits](/quest/m2/ts-model/iter-traits.md) - hashlink's double-ended, exact-size, and fused iterators, and their `size_hint`
