@@ -181,8 +181,9 @@ jobs:
       - name: Clang
         run: nix develop .#clang --command bash -c 'export CC=gcc; just ffi test cpp && just ffi moq-cpp'
 
-  # The C++ header with the compilers the job above lacks, through the same checks, and the
-  # Python on the platforms the job above lacks.
+  # The C++ header with the compilers the job above lacks, through the same checks, the
+  # Python on the platforms the job above lacks, and on macOS the Swift with Apple's
+  # toolchain.
   ffi-cpp:
     name: Export moq-net to C++ (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -241,6 +242,12 @@ jobs:
 
       - name: Export
         run: just ffi moq-cpp
+
+      # The Swift through the checks the merge gate runs with nixpkgs' Swift on Linux, then
+      # moq's session, reusing the builds above.
+      - name: Swift
+        if: runner.os == 'macOS'
+        run: just ffi test swift && just ffi moq-swift
 
   # The Kotlin on ART, shrunk by R8 as an app shrinks it. x86_64, as moq's Android build:
   # this image ships the Android SDK and NDK, and its KVM runs an x86_64 emulator at speed.

@@ -47,8 +47,9 @@ impl Crate<'_> {
 	}
 
 	/// Write the crate into `out`: `Cargo.toml`, `src/`, `include/<prefix>.h` and `.hpp`,
-	/// `kotlin/<prefix>.kt`, whose JNI functions the crate's `kotlin` feature builds, and
-	/// `python/<prefix>.py`, whose CPython extension its `python` feature builds.
+	/// `kotlin/<prefix>.kt`, whose JNI functions the crate's `kotlin` feature builds,
+	/// `python/<prefix>.py`, whose CPython extension its `python` feature builds, and
+	/// `swift/<prefix>.swift` with the clang module it imports the header through.
 	pub fn write(&self, out: &Path) -> Result<(), String> {
 		// Cargo unifies in what the configured package enables in each other export.
 		let dependencies: String = (self.exports.iter())
@@ -117,6 +118,7 @@ impl Crate<'_> {
 		let cpp = crate::cpp::header(self.abi, &self.packages())?;
 		let kotlin = crate::kotlin::generate(self.abi, &self.packages(), contract)?;
 		let python = crate::python::generate(self.abi, &self.packages(), contract)?;
+		let swift = crate::swift::generate(self.abi, &self.packages(), contract)?;
 		let mut generator = Gen {
 			abi: self.abi,
 			packages: self.packages(),
@@ -146,6 +148,13 @@ impl Crate<'_> {
 		crate::driver::write(
 			&out.join("python").join(format!("{}.py", self.abi.prefix)),
 			&python.python,
+		)?;
+		let swift_dir = out.join("swift");
+		crate::driver::write(&swift_dir.join(format!("{}.swift", self.abi.prefix)), &swift.swift)?;
+		crate::driver::write(&swift_dir.join("module.modulemap"), &swift.modulemap)?;
+		crate::driver::write(
+			&swift_dir.join(format!("{}_atomics.h", self.abi.prefix)),
+			&swift.atomics,
 		)
 	}
 }

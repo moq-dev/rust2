@@ -57,6 +57,5 @@ than `ctypes`; the others call C natively. moq's packages switch to them in moq'
 - [Sessions on sans-IO QUIC](/quest/m1/ffi-export/session-quic.md) - bindings move UDP datagrams and drive the session's poll themselves, over moq's runtime-free QUIC driver once it lands
 - [C++ bindings on MSVC](/quest/m1/ffi-export/cpp.md) - the nightly's MSVC job passes the C++ checks
 - [Waiting: moq-tokio within the recursion limit](/quest/m1/ffi-export/recursion-limit.md) - the exporter's moq pin moves past moq-dev/moq#7032 once moq-tokio's `Send` check fits the limit
-- [Swift bindings](/quest/m1/ffi-export/swift.md) - Swift over the C ABI as a clang module, tested on Linux and Apple
 - [Go bindings](/quest/m1/ffi-export/go.md) - Go over the C ABI through cgo
 - [Dart bindings](/quest/m1/ffi-export/dart.md) - Dart over the C ABI through `dart:ffi`

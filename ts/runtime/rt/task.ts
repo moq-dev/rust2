@@ -4,7 +4,7 @@
 // A value whose drop JS can observe has `[Symbol.dispose]`, which runs its `Drop` impl
 // and drops its fields. `None` is `undefined`, which drops as nothing.
 
-import { type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, ptrWrite, type Result, vecAssign } from "../rt.ts";
+import { Abort, type Debug, debugTupleField, debugTupleFinish, Err, type FmtResult, type Formatter, fmtDebugTuple, fmtPad, type None, OK, Ok, Panic, panic, type Place, place, ptrWrite, type Result, vecAssign } from "../rt.ts";
 
 // Drops
 
@@ -435,14 +435,14 @@ export function refCellReplace<T>(cell: RefCell<T>, value: T): T {
 
 /** `RwLock::read`: a shared guard, which aborts while a write is held, as wasm32's does. */
 export function rwLockRead<T>(lock: RefCell<T>): RefCell<T> {
-	if (lock.borrows < 0) panic("rwlock locked for writing");
+	if (lock.borrows < 0) throw new Abort("rwlock locked for writing");
 	lock.borrows++;
 	return lock;
 }
 
 /** `RwLock::write`: an exclusive guard, which aborts while any other is held, as wasm32's does. */
 export function rwLockWrite<T>(lock: RefCell<T>): RefCell<T> {
-	if (lock.borrows !== 0) panic("rwlock locked for reading");
+	if (lock.borrows !== 0) throw new Abort("rwlock locked for reading");
 	lock.borrows = -1;
 	return lock;
 }
@@ -644,6 +644,28 @@ export class Cell<T> implements Place<T>, Disposable {
 	[Symbol.dispose](): void {
 		drop(this.v);
 	}
+}
+
+/** `Cell::from_mut` of the place `p`: a cell of it, which nothing drops, as nothing owns it. */
+export function cellOfPlace<T>(p: Place<T>): Cell<T> {
+	return p as Cell<T>;
+}
+
+/**
+ * `Cell::from_mut` of the object or the bytes a `&mut` is: a read is a copy, as a `Cell`
+ * only moves or copies its value out, and a write lands in place, a JS array's taking
+ * the new one's length.
+ */
+export function cellIn<T extends object>(p: T): Cell<T> {
+	const copy = (): T => {
+		if (ArrayBuffer.isView(p) || Array.isArray(p)) return (p as unknown as T[]).slice() as T;
+		return Object.assign(Object.create(Object.getPrototypeOf(p)) as T, p);
+	};
+	const write = (value: T): void => {
+		if (Array.isArray(p)) vecAssign(p, value as unknown[]);
+		else ptrWrite(p, value);
+	};
+	return cellOfPlace(place(copy, write));
 }
 
 /**

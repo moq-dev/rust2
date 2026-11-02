@@ -28,7 +28,8 @@ Beside the C header, `include/<prefix>.hpp` holds the same API in C++, and
 `kotlin/<prefix>.kt` holds it in Kotlin, over JNI functions the crate builds with
 `--features kotlin`, and `kotlin/<prefix>.pro` the R8 and ProGuard rules keeping what
 those functions look up by name. `python/<prefix>.py` holds it in Python, over a CPython
-extension the crate builds with `--features python`.
+extension the crate builds with `--features python`, and `swift/<prefix>.swift` holds it in
+Swift, over the C header as a clang module.
 
 ```toml
 # ffi.toml, beside the package's Cargo.toml unless --manifest-path says otherwise.
@@ -297,13 +298,13 @@ function in-process, so a call is one crossing, which releases the GIL while Rus
   `default()`. Constants are module or class attributes, made anew on each read unless a
   literal.
 - **Bytes** passed in are any buffer: `bytes` is read in place, and others, which Python
-  may change while Rust reads, are copied. Bytes Rust returns,
-  or a record holds, are a read-only `memoryview` lending Rust's buffer until it and its
-  views are released. Those Rust lends a closure or trait method are copied into `bytes`.
-  Strings are `str`, `Option<T>` `T | None`, a tuple a `tuple`, `Duration`
-  `datetime.timedelta`, truncated to the microsecond, with `timedelta.max` for any longer and
-for `Duration::MAX`, a `Range` a `range`, and an `Err` a raised
-  `<E>Exception` holding it in `error`, whose `str` is its `Display`.
+  may change while Rust reads, are copied. Bytes Rust returns, or a record holds, are a
+  read-only `memoryview` lending Rust's buffer until it and its views are released. Those
+  Rust lends a closure or trait method are copied into `bytes`. Strings are `str`,
+  `Option<T>` `T | None`, a tuple a `tuple`, `Duration` `datetime.timedelta`, truncated to
+  the microsecond, with `timedelta.max` for any longer and for `Duration::MAX`, a `Range` a
+  `range`, and an `Err` a raised `<E>Exception` holding it in `error`, whose `str` is its
+  `Display`.
 - A **path** is a `str`, or any path passed in, which crosses as `os.fsencode` encodes it, so
   one that is not UTF-8 keeps its bytes. A `SocketAddr` is the `socket` module's tuple,
   `(host, port)` or `(host, port, flowinfo, scope_id)`, of that family for `V4` or `V6`.
@@ -326,6 +327,52 @@ for `Duration::MAX`, a `Range` a `range`, and an `Err` a raised
 - **The contract** is checked when the module imports, before any other call: a Python
   file and a library from different builds raise `ImportError`.
 
+## Swift
+
+`swift/<prefix>.swift` is Swift over the C ABI, for Apple's platforms and Linux. It imports
+the header as the clang module `<Prefix>FFI`, which `swift/module.modulemap` declares
+beside `swift/<prefix>_atomics.h`, the atomics its runtime needs that Swift's standard
+library has only from macOS 15: a build puts `swift/` on its import path and links the
+static library. It needs Swift 6 and, for `Swift.Duration`, macOS 13 or iOS 16, and builds
+in either language mode.
+
+- **Names** are as Kotlin's, at the module's top level: types in PascalCase without the
+  prefix, members in camelCase without their type's name (`TrackProducer.appendGroup`). A
+  keyword is quoted in backticks, and a member named as one Swift gives its type, such as
+  `init`, takes a trailing `_`. Parameters have no labels, so a call reads as Rust's, and a
+  constructor such as `new` stays a static function: `Counter.new(1)`.
+- **Objects** are final classes owning their handle, freed in `deinit`, or sooner by
+  `close()` once no call holds it; a call after it traps. A `self` method, or passing the
+  object by value, closes it once the call returns. `Clone` is `clone()`, and `PartialEq`
+  is `==`. A field is a computed property, and its setter a function, `setFirst(value)`,
+  since setting an object moves it in and closes its handle, which an assignment would
+  hide. An object is `Sendable`, since Rust checks each borrow at run time.
+- **Records** are structs and **enums** Swift enums, with a variant's data as associated
+  values, all `Sendable`. `PartialEq` is `==`, through Rust's; `Display` is `description`,
+  `Debug` `debugDescription`, and `Default` a static `default()`.
+- **Bytes** are `Data`. Passed in at a call's top level, Rust reads Swift's own; nested in
+  another value, they are copied in. Bytes Rust returns lend its buffer until Swift
+  releases the `Data`, though `Data` copies a few bytes inline, freeing Rust's at once.
+  Strings are `String`, copied, `char` `Unicode.Scalar`, `usize` `UInt`, `Option<T>` `T?`,
+  a tuple a Swift tuple, though a tuple of one is its element, and `Duration`
+  `Swift.Duration`. An `Err` is thrown: an exported type as itself, which conforms to
+  `Swift.Error`, and any other in a generated `<T>Error` holding it.
+- A **path** is a `String`: one Rust returns that is not UTF-8 traps. A `SocketAddr`,
+  `SocketAddrV4`, or `SocketAddrV6` is the runtime's `SocketAddr`, its IP's 4 or 16 bytes
+  and its port, flow label, and scope, whose family Rust checks. A `Vec<T>` or `&[T]` is
+  an array, and passing a `Vec` by value closes each object in it once the call returns.
+- **Traits** are `Sendable` protocols, which Rust releases once it drops an implementation.
+- **Closures** lent for a call are `@Sendable` function types, which Rust calls only during
+  the call, from any thread. An object it lends is closed once the call returns.
+- **Futures** are `async throws` functions, which resume on the task's executor, never
+  inside a wake. Cancelling the task frees the future, losing nothing, and throws
+  `CancellationError`. Each call is its own future, so it has one poller. The call polls it
+  once before suspending, and makes the signal it parks on only if that poll pends; the
+  signal latches a wake that lands before it parks.
+- A **waker** is a `@Sendable () -> Void`, which Rust may call from any thread.
+- **The contract** is checked once, at the first call into the library: a Swift file and a
+  library from different builds trap.
+
 ## IR
 
 [`src/ir.rs`](src/ir.rs) is the API as each generator reads it, with no language decided:
@@ -334,13 +381,14 @@ its Rust path, its span, and its docs. A type is in the exact form Rust takes or
 (`&str` apart from `String`, `Box<dyn Trait>` apart from `impl Trait`), so a generator can
 borrow where Rust borrows. [`src/abi.rs`](src/abi.rs) decides the C ABI from it once,
 names and signatures, so [`src/c.rs`](src/c.rs), [`src/cpp.rs`](src/cpp.rs),
-[`src/kotlin.rs`](src/kotlin.rs), [`src/python.rs`](src/python.rs), and
-[`src/glue.rs`](src/glue.rs) agree; the runtime the glue includes is
-[`runtime/rt.rs`](runtime/rt.rs), the one the C++ header includes
+[`src/kotlin.rs`](src/kotlin.rs), [`src/python.rs`](src/python.rs),
+[`src/swift.rs`](src/swift.rs), and [`src/glue.rs`](src/glue.rs) agree; the runtime the
+glue includes is [`runtime/rt.rs`](runtime/rt.rs), the one the C++ header includes
 [`runtime/rt.hpp`](runtime/rt.hpp), the ones Kotlin and its JNI glue include
-[`runtime/rt.kt`](runtime/rt.kt) and [`runtime/jni.rs`](runtime/jni.rs), and the ones
-Python and its extension include [`runtime/rt.py`](runtime/rt.py) and
-[`runtime/python.rs`](runtime/python.rs).
+[`runtime/rt.kt`](runtime/rt.kt) and [`runtime/jni.rs`](runtime/jni.rs), the ones Python
+and its extension include [`runtime/rt.py`](runtime/rt.py) and
+[`runtime/python.rs`](runtime/python.rs), and the one the Swift includes
+[`runtime/rt.swift`](runtime/rt.swift).
 
 ## Census
 
@@ -353,12 +401,13 @@ refusal, which is a bug in the exporter's inference rather than in the crate.
 ## Tests
 
 ```bash
-just ffi test     # export the fixtures, build them, and drive api from C, C++, Kotlin, and Python
-just ffi moq      # export moq's crates at the pinned revision, build them, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, and moq/moq.py
+just ffi test     # export the fixtures, build them, and drive api from C, C++, Kotlin, Python, and Swift
+just ffi moq      # export moq's crates at the pinned revision, build them, and run moq/moq.c, moq/moq.cpp, moq/moq.kt, moq/moq.py, and moq/moq.swift
 just ffi moq-cpp  # the same export, running only moq/moq.cpp
+just ffi moq-swift  # the same export, running only moq/moq.swift
 just ffi census   # census each into target/census
 nix develop .#android --command just ffi android  # the Kotlin test, shrunk by R8, on the Android device adb reaches
-nix develop .#bench --command just ffi bench  # frame writes and reads, through the export from C, C++, Kotlin, and Python, and moq's rs/moq-c
+nix develop .#bench --command just ffi bench  # frame writes and reads, through the export from C, C++, Kotlin, Python, and Swift, and moq's rs/moq-c
 ```
 
 The `api` fixture covers each rule once, and names the `dep` fixture's types, which
@@ -377,7 +426,12 @@ x86_64 emulator at API 24, the oldest moq's Android library supports, and at API
 `tests/api.py` runs the script through the Python, in CPython's development mode with
 warnings as errors, checks its futures the same way, what frees an object or bytes nobody
 closed, and the values Python's types bound, and breaks each runtime check, which must raise or
-abort with its message; the Python with another contract must refuse the library. The `reject`
+abort with its message; the Python with another contract must refuse the library.
+`tests/api.swift` runs the script through the Swift, built as a module in Swift 6's
+language mode and type-checked in Swift 5's, checks its futures the same way and that
+releasing frees, and breaks each runtime check, which must trap or abort with its message.
+It runs with nixpkgs' Swift on Linux, which builds none for aarch64-linux
+([quest](/quest/m2/uniffi-swift-arm.md)), and nightly with Apple's on macOS. The `reject`
 fixture's expected errors, each with its notes, are `fixtures/reject/expected.txt`.
 moq's crates export through `target/moq-ffi`, an empty library on each that `just ffi moq`
 writes in place of moq-ffi's remainder. `moq/moq.c` publishes and subscribes to a moq-net
@@ -390,7 +444,8 @@ same through the C++ header, short of the catalog's field, at C++17 without exce
 RTTI, as OBS builds it, serving on an executor's thread and blocking on each read, and
 `moq/moq.kt` through the Kotlin, serving in a coroutine and suspending on each read, and
 `moq/moq.py` through the Python, running the origin's driver and the server as asyncio
-tasks and awaiting each read.
+tasks and awaiting each read, and `moq/moq.swift` through the Swift, serving in a task and
+awaiting each read.
 
 The C++ builds take `CXX`, or `c++`, with every warning an error and `-Wshadow`, which
 stands in for MSVC's warnings that a name hides another. On Windows they take MSVC's `cl`

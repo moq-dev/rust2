@@ -229,8 +229,8 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 }
 
 /// Whether std's `def_id` with `args` makes a raw pointer to what its first argument, a
-/// reference, points at: `UnsafeCell::get`, `MaybeUninit::as_ptr` and `as_mut_ptr`, and
-/// `NonNull::from` and `into`.
+/// reference, points at: `UnsafeCell::get`, `MaybeUninit::as_ptr` and `as_mut_ptr`,
+/// `ptr::from_ref` and `from_mut`, and `NonNull::from` and `into`.
 pub fn from_reference<'tcx>(
 	tcx: ty::TyCtxt<'tcx>,
 	def_id: rustc_hir::def_id::DefId,
@@ -240,7 +240,7 @@ pub fn from_reference<'tcx>(
 		return false;
 	};
 	match (owner.as_str(), name.as_str()) {
-		("UnsafeCell", "get") | ("MaybeUninit", "as_ptr" | "as_mut_ptr") => true,
+		("UnsafeCell", "get") | ("MaybeUninit", "as_ptr" | "as_mut_ptr") | ("ptr", "from_ref" | "from_mut") => true,
 		("From", "from") | ("Into", "into") => {
 			let (to, from) = match owner.as_str() {
 				"From" => (args.type_at(0), args.type_at(1)),
@@ -314,17 +314,20 @@ pub fn allocates(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> bool 
 		)
 }
 
-/// How many of std's `def_id`'s first arguments are `&mut`s whose lowering gives what
-/// they borrow another value, rather than writing into it, where one is an alias of a
-/// borrowed place: the place is assigned again. `mem::replace`'s value is no such one.
-pub fn rebinds(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> usize {
+/// Which of std's `def_id`'s arguments are `&mut`s whose lowering may give what they
+/// borrow another value, rather than writing into it, where one is an alias of a borrowed
+/// place: the place is assigned again, as `mem::replace`, `clone_from`, and `clone_into`
+/// assign it, and a whole write of what `slice::from_mut`, `array::from_mut`, or
+/// `Cell::from_mut` makes does. `mem::replace`'s value is no such one.
+pub fn rebinds(tcx: ty::TyCtxt<'_>, def_id: rustc_hir::def_id::DefId) -> &'static [usize] {
 	match super::library::key(tcx, def_id) {
-		Some((owner, name)) if owner == "mem" => match name.as_str() {
-			"replace" | "take" => 1,
-			"swap" => 2,
-			_ => 0,
+		Some((owner, name)) => match (owner.as_str(), name.as_str()) {
+			("mem", "replace" | "take") | ("Clone", "clone_from") | ("raw" | "array" | "Cell", "from_mut") => &[0],
+			("ToOwned", "clone_into") => &[1],
+			("mem", "swap") => &[0, 1],
+			_ => &[],
 		},
-		_ => 0,
+		_ => &[],
 	}
 }
 
@@ -436,6 +439,10 @@ pub fn call<'tcx>(
 			span,
 			"a raw pointer to a place of `()`, which has no address of its own",
 		),
+		("ptr", "from_ref") if b.t.identity_pointee(pointee()) => b.err(
+			span,
+			"a raw pointer to a place of `()`, which has no address of its own",
+		),
 		("From", "from") if pointer_self(b, call).is_some_and(|t| b.t.identity_pointee(t)) => b.err(
 			span,
 			"a raw pointer to a place of `()`, which has no address of its own",
@@ -501,6 +508,12 @@ pub fn call<'tcx>(
 				_ => arg(),
 			}
 		}
+		// As `NonNull::from` makes one, of a `[u8; N]` given as the view of its bytes.
+		("ptr", "from_ref") => match kind(b, pointee()) {
+			Some(Pointee::Place) => Expr::Object(vec![(crate::ts::Key::Name("v".into()), arg())]),
+			Some(Pointee::Bytes) => to_pointer(arg()),
+			_ => arg(),
+		},
 		("NonNull", "new") => {
 			let p = b.spill(arg(), "pointer", out);
 			Expr::Cond(
