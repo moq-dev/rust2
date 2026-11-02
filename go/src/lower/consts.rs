@@ -76,7 +76,10 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 							let bytes = alloc
 								.inner()
 								.inspect_with_uninit_and_ptr_outside_interpreter(start..start + len as usize);
-							return format!("&[{len}]uint8{{{}}}", bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", "));
+							return format!(
+								"&[{len}]uint8{{{}}}",
+								bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(", ")
+							);
 						}
 						let value = self.const_value(
 							ConstValue::Indirect {
@@ -91,7 +94,10 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 							_ => format!("ptrTo({value})"),
 						}
 					}
-					_ => self.err(span, format!("a constant of type `{ty}` pointing into a static or function")),
+					_ => self.err(
+						span,
+						format!("a constant of type `{ty}` pointing into a static or function"),
+					),
 				}
 			}
 			ConstValue::Slice { .. } => match val.try_get_slice_bytes_for_diagnostics(tcx) {

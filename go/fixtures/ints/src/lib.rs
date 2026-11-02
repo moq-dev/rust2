@@ -2,13 +2,16 @@
 //! hides nothing: overflow, division by zero, and shifts past the width panic as native
 //! Rust's do, with its messages.
 
+/// What a case runs: an operation, picked by the second byte, on the rest.
+type Case = fn(u8, &[u8], &mut Vec<u8>);
+
 /// Run the case the first byte picks: a width, then an operation on the rest.
 pub fn run(input: &[u8]) -> Vec<u8> {
 	let mut out = Vec::new();
 	let Some((&pick, data)) = input.split_first() else {
 		return out;
 	};
-	let cases: [fn(u8, &[u8], &mut Vec<u8>); 15] = [
+	let cases: [Case; 15] = [
 		u8_op, u16_op, u32_op, u64_op, usize_op, i8_op, i16_op, i32_op, i64_op, isize_op, i8_neg, i16_neg, i32_neg,
 		i64_neg, isize_neg,
 	];

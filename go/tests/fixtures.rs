@@ -1,10 +1,10 @@
 //! Each fixture under `fixtures/` is translated, vetted with `go vet`, and run on the
 //! same inputs as its native build, failing on any difference.
 
+use std::cell::RefCell;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::cell::RefCell;
 
 fn manifest_dir() -> PathBuf {
 	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -72,7 +72,9 @@ fn native(run: fn(&[u8]) -> Vec<u8>, input: &[u8]) -> Outcome {
 	static HOOK: std::sync::Once = std::sync::Once::new();
 	HOOK.call_once(|| {
 		std::panic::set_hook(Box::new(|info| {
-			let msg = info.payload_as_str().unwrap_or("a panic of a payload other than a message");
+			let msg = info
+				.payload_as_str()
+				.unwrap_or("a panic of a payload other than a message");
 			PANIC.set(Some(msg.to_string()));
 		}))
 	});
@@ -87,8 +89,15 @@ fn translation(out: &Path, entry: &str, cases: &[Vec<u8>]) -> Vec<Outcome> {
 	let main = out.join("differential");
 	std::fs::create_dir_all(&main).unwrap();
 	let text = std::fs::read_to_string(manifest_dir().join("tests/differential/main.go")).unwrap();
-	std::fs::write(main.join("main.go"), text.replace("fixture.Run(", &format!("fixture.{entry}("))).unwrap();
-	go(out, &["build", "-buildvcs=false", "-o", "differential/run", "./differential"]);
+	std::fs::write(
+		main.join("main.go"),
+		text.replace("fixture.Run(", &format!("fixture.{entry}(")),
+	)
+	.unwrap();
+	go(
+		out,
+		&["build", "-buildvcs=false", "-o", "differential/run", "./differential"],
+	);
 	let mut child = Command::new(main.join("run"))
 		.stdin(Stdio::piped())
 		.stdout(Stdio::piped())
@@ -168,7 +177,11 @@ fn cases(ops: u8, selectors: u8, count: usize) -> Vec<Vec<u8>> {
 	for op in 0..ops {
 		for k in 0..=64u32 {
 			for delta in [-1i64, 0, 1] {
-				let value = 1u64.checked_shl(k).unwrap_or(0).wrapping_add_signed(delta).to_be_bytes();
+				let value = 1u64
+					.checked_shl(k)
+					.unwrap_or(0)
+					.wrapping_add_signed(delta)
+					.to_be_bytes();
 				for selector in 0..selectors {
 					let mut case = vec![op, selector];
 					for _ in 0..3 {
@@ -216,7 +229,11 @@ fn differential(name: &str, run: fn(&[u8]) -> Vec<u8>, entry: &str, cases: Vec<V
 		}
 	}
 	let panics = want.iter().filter(|o| matches!(o, Outcome::Panic(_))).count();
-	println!("{name}: {} cases, {panics} panics, {} differences", cases.len(), failures.len());
+	println!(
+		"{name}: {} cases, {panics} panics, {} differences",
+		cases.len(),
+		failures.len()
+	);
 	assert!(
 		failures.is_empty(),
 		"{name}: {} cases, {panics} panics, {} differences:\n{}",

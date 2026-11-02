@@ -3,6 +3,10 @@
 //! that fixture's benchmark that code moq's wire format.
 
 #![allow(dead_code, reason = "a vendored subset of moq-net, which uses the rest")]
+#![allow(
+	clippy::allow_attributes_without_reason,
+	reason = "moq-net's sources, which rust2-ts's fixture builds with `async` where this is reached"
+)]
 
 pub mod bench;
 #[path = "../../../../ts/fixtures/codec/src/coding/mod.rs"]

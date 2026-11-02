@@ -26,9 +26,9 @@ rust2-driver = { path = "../driver" }
 serde = { version = "1.0.228", features = ["derive"] }
 toml = "1.1.8"
 
-[lints]
-workspace = true
-
 [dev-dependencies]
 codec = { path = "fixtures/codec" }
 ints = { path = "fixtures/ints" }
+
+[lints]
+workspace = true

@@ -73,7 +73,10 @@ impl<'tcx> Translator<'tcx> {
 			}
 			ty::Dynamic(preds, ..) => match preds.principal_def_id() {
 				Some(def_id) if library::fmt_trait(tcx, def_id) => "fmtDyn".into(),
-				_ => self.refuse(span, format!("`{ty}`, a trait object of a trait other than `Display` and `Debug`")),
+				_ => self.refuse(
+					span,
+					format!("`{ty}`, a trait object of a trait other than `Display` and `Debug`"),
+				),
 			},
 			ty::Closure(..) => self.closure_ty(ty, span),
 			ty::Param(p) if generic => names::ident(p.name.as_str()),
@@ -193,11 +196,19 @@ impl<'tcx> Translator<'tcx> {
 					let fty = self.field_ty(field.did, identity, tcx.def_span(field.did));
 					inner.push(format!("{} {fty}", names::field(field.name.as_str(), i)));
 				}
-				fields.push_str(&format!("\t{} struct{{ {} }}\n", variant_field(variant.name.as_str()), inner.join("; ")));
+				fields.push_str(&format!(
+					"\t{} struct{{ {} }}\n",
+					variant_field(variant.name.as_str()),
+					inner.join("; ")
+				));
 			}
 		}
 		let doc = format!("// {} is Rust's `{}`.\n", name, tcx.def_path_str(did));
-		self.declare(did.krate, &name, format!("{doc}type {name}{params} struct {{\n{fields}}}\n"));
+		self.declare(
+			did.krate,
+			&name,
+			format!("{doc}type {name}{params} struct {{\n{fields}}}\n"),
+		);
 		name
 	}
 
@@ -205,9 +216,13 @@ impl<'tcx> Translator<'tcx> {
 	fn field_ty(&mut self, field: DefId, identity: ty::GenericArgsRef<'tcx>, span: Span) -> String {
 		let tcx = self.tcx;
 		let fty = tcx.type_of(field).instantiate(tcx, identity).skip_norm_wip();
-		let fty = tcx.normalize_erasing_regions(ty::TypingEnv::post_analysis(tcx, field), ty::Unnormalized::new_wip(fty));
+		let fty =
+			tcx.normalize_erasing_regions(ty::TypingEnv::post_analysis(tcx, field), ty::Unnormalized::new_wip(fty));
 		if fty.has_aliases() {
-			return self.refuse(span, format!("a field of type `{fty}`, a projection Go generics can't name"));
+			return self.refuse(
+				span,
+				format!("a field of type `{fty}`, a projection Go generics can't name"),
+			);
 		}
 		self.go_ty(fty, span, true)
 	}
@@ -217,7 +232,9 @@ impl<'tcx> Translator<'tcx> {
 		if let Some(name) = self.types.get(&TypeKey::Mono(ty)) {
 			return name.clone();
 		}
-		let ty::Closure(def_id, args) = *ty.kind() else { unreachable!() };
+		let ty::Closure(def_id, args) = *ty.kind() else {
+			unreachable!()
+		};
 		let name = self.fresh(&format!("{}_env", names::item_base(self.tcx, def_id)));
 		self.types.insert(TypeKey::Mono(ty), name.clone());
 		let mut fields = String::new();
@@ -248,4 +265,3 @@ fn module_path(tcx: TyCtxt<'_>, did: DefId) -> String {
 		.collect::<Vec<_>>()
 		.join("_")
 }
-

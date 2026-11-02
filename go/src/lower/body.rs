@@ -49,7 +49,10 @@ fn instance_mir<'tcx>(t: &mut Translator<'tcx>, instance: Instance<'tcx>, reache
 	let def_id = instance.def_id();
 	let body = match instance.def {
 		InstanceKind::Item(_) if !tcx.is_mir_available(def_id) => {
-			t.err(reached, format!("calls `{}`, which has no MIR and no binding", tcx.def_path_str(def_id)));
+			t.err(
+				reached,
+				format!("calls `{}`, which has no MIR and no binding", tcx.def_path_str(def_id)),
+			);
 			return None;
 		}
 		InstanceKind::Item(_) if tcx.def_kind(def_id) == DefKind::Const => tcx.mir_for_ctfe(def_id).clone(),
@@ -194,7 +197,10 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 				writeln!(decls, "\t_ = {}", Self::local_name(arg)).unwrap();
 			}
 		}
-		let mut out = format!("// {name} is `{instance}`.\nfunc {name}({}){ret} {{\n", params.join(", "));
+		let mut out = format!(
+			"// {name} is `{instance}`.\nfunc {name}({}){ret} {{\n",
+			params.join(", ")
+		);
 		out.push_str(&prologue);
 		out.push_str(&decls);
 		for (bb, text) in blocks {
@@ -361,11 +367,16 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 				PlaceElem::Field(field, _) => match base.kind() {
 					// What a box and `MaybeUninit` hold is where they are.
 					ty::Adt(adt, _)
-						if matches!(library::mapped(self.tcx, adt.did()), Some(Mapped::Box | Mapped::Transparent))
-							&& field.as_usize() == usize::from(adt.is_union()) => {}
+						if matches!(
+							library::mapped(self.tcx, adt.did()),
+							Some(Mapped::Box | Mapped::Transparent)
+						) && field.as_usize() == usize::from(adt.is_union()) => {}
 					ty::Adt(adt, _) if library::mapped(self.tcx, adt.did()).is_some_and(|m| !m.is_runtime_layout()) => {
 						return GoPlace {
-							expr: self.err(span, format!("a field of `{base}`, which Go holds as a type of its own")),
+							expr: self.err(
+								span,
+								format!("a field of `{base}`, which Go holds as a type of its own"),
+							),
 							ty: base,
 						};
 					}
@@ -403,9 +414,11 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 				PlaceElem::ConstantIndex {
 					offset, from_end: true, ..
 				} => expr = format!("{expr}[len({expr})-{offset}]"),
-				PlaceElem::Subslice { from, to, from_end: true } if matches!(base.kind(), ty::Slice(_)) => {
-					expr = format!("{expr}[{from}:len({expr})-{to}]")
-				}
+				PlaceElem::Subslice {
+					from,
+					to,
+					from_end: true,
+				} if matches!(base.kind(), ty::Slice(_)) => expr = format!("{expr}[{from}:len({expr})-{to}]"),
 				// Part of an array, as an array: the place a pointer to it converted from a slice
 				// of it is, which aliases the array as Rust's does.
 				PlaceElem::Subslice { from, to, from_end } => {
@@ -562,7 +575,10 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 		{
 			return match mapped {
 				Mapped::Runtime("struct{}") => "struct{}{}".into(),
-				_ => self.err(span, format!("making a `{}` from its fields", self.tcx.def_path_str(adt.did()))),
+				_ => self.err(
+					span,
+					format!("making a `{}` from its fields", self.tcx.def_path_str(adt.did())),
+				),
 			};
 		}
 		let def = adt.variant(variant);
@@ -583,7 +599,9 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 		let mut types = Vec::new();
 		for (i, f) in def.fields.iter().enumerate() {
 			let fty = f.ty(self.tcx, args).skip_norm_wip();
-			let fty = self.tcx.normalize_erasing_regions(self.t.env(), ty::Unnormalized::new_wip(fty));
+			let fty = self
+				.tcx
+				.normalize_erasing_regions(self.t.env(), ty::Unnormalized::new_wip(fty));
 			let fgo = self.ty(fty, span);
 			types.push(format!("{} {fgo}", names::field(f.name.as_str(), i)));
 		}
@@ -651,7 +669,9 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 	/// pointee: the runtime's `fmtDyn`, calling the impl's `fmt`.
 	fn dyn_value(&mut self, from: Ty<'tcx>, to: Ty<'tcx>, v: String, span: Span) -> String {
 		let tcx = self.tcx;
-		let (Some(pointee), Some(ty::Dynamic(preds, ..))) = (from.builtin_deref(true), to.builtin_deref(true).map(|t| t.kind())) else {
+		let (Some(pointee), Some(ty::Dynamic(preds, ..))) =
+			(from.builtin_deref(true), to.builtin_deref(true).map(|t| t.kind()))
+		else {
 			return self.err(span, format!("a trait object made from `{from}`"));
 		};
 		let Some(trait_id) = preds.principal_def_id() else {
@@ -667,14 +687,24 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 	/// `fmt::Result`, which formatting functions return.
 	pub fn fmt_result_ty(&self) -> Ty<'tcx> {
 		let tcx = self.tcx;
-		let result = tcx.get_diagnostic_item(rustc_span::sym::Result).expect("std's `Result`");
+		let result = tcx
+			.get_diagnostic_item(rustc_span::sym::Result)
+			.expect("std's `Result`");
 		let error = self.fmt_error_ty().expect("`fmt::Error`");
-		Ty::new_adt(tcx, tcx.adt_def(result), tcx.mk_args(&[tcx.types.unit.into(), error.into()]))
+		Ty::new_adt(
+			tcx,
+			tcx.adt_def(result),
+			tcx.mk_args(&[tcx.types.unit.into(), error.into()]),
+		)
 	}
 
 	fn fmt_error_ty(&self) -> Option<Ty<'tcx>> {
 		let tcx = self.tcx;
-		let core = tcx.crates(()).iter().copied().find(|&c| tcx.crate_name(c).as_str() == "core")?;
+		let core = tcx
+			.crates(())
+			.iter()
+			.copied()
+			.find(|&c| tcx.crate_name(c).as_str() == "core")?;
 		let fmt = super::names::resolve_in(tcx, core, &["fmt", "Error"])?;
 		Some(tcx.type_of(fmt).instantiate_identity().skip_norm_wip())
 	}
@@ -682,7 +712,12 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 	/// `&mut Formatter`, which formatting functions take.
 	pub fn formatter_ref_ty(&self) -> Ty<'tcx> {
 		let tcx = self.tcx;
-		let core = tcx.crates(()).iter().copied().find(|&c| tcx.crate_name(c).as_str() == "core").expect("core");
+		let core = tcx
+			.crates(())
+			.iter()
+			.copied()
+			.find(|&c| tcx.crate_name(c).as_str() == "core")
+			.expect("core");
 		let f = super::names::resolve_in(tcx, core, &["fmt", "Formatter"]).expect("`fmt::Formatter`");
 		let ty = Ty::new_adt(tcx, tcx.adt_def(f), tcx.mk_args(&[tcx.lifetimes.re_erased.into()]));
 		Ty::new_mut_ref(tcx, tcx.lifetimes.re_erased, ty)
@@ -755,7 +790,11 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 				if ty.is_bool() {
 					let (zero, other) = (targets.target_for_value(0), targets.otherwise());
 					writeln!(out, "\tif {v} {{").unwrap();
-					let t = if targets.iter().any(|(val, _)| val == 1) { targets.target_for_value(1) } else { other };
+					let t = if targets.iter().any(|(val, _)| val == 1) {
+						targets.target_for_value(1)
+					} else {
+						other
+					};
 					self.goto(t, out);
 					writeln!(out, "\t}}").unwrap();
 					self.goto(zero, out);
@@ -871,7 +910,10 @@ impl<'a, 'tcx> Fx<'a, 'tcx> {
 				let instance = match Instance::try_resolve(tcx, self.t.env(), def_id, gargs.skip_binder()) {
 					Ok(Some(instance)) => instance,
 					_ => {
-						self.err(span, format!("a call of `{}` that does not resolve", tcx.def_path_str(def_id)));
+						self.err(
+							span,
+							format!("a call of `{}` that does not resolve", tcx.def_path_str(def_id)),
+						);
 						return;
 					}
 				};

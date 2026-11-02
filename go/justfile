@@ -1,0 +1,37 @@
+#!/usr/bin/env just --justfile
+#
+# The Go translator, invoked from the repo root as `just go <recipe>`. Its crates are
+# their own workspace on ts/rust-toolchain.toml's nightly, which the dev shell exports as
+# RUST2_TS_TOOLCHAIN; without it, rustup reads the same file through the link here.
+
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+export PATH := if env("RUST2_TS_TOOLCHAIN", "") == "" { env("PATH") } else { env("RUST2_TS_TOOLCHAIN") / "bin:" + env("PATH") }
+
+default:
+    @just --list
+
+# Lint and format-check the translator, its fixtures, and its runtime.
+check:
+    cargo clippy --locked --all-targets -- -D warnings
+    cargo fmt --all --check
+    cargo shear
+    cargo sort --workspace --check --no-format
+    test -z "$(gofmt -l runtime tests)"
+    cd runtime && go vet rt.go rt_fmt.go
+
+# Run the differential and refusal tests.
+test *args:
+    cargo test --locked {{ args }}
+
+# Apply formatters without changing program behavior.
+fix:
+    cargo clippy --locked --fix --allow-staged --allow-dirty --all-targets
+    cargo fmt --all
+    cargo shear --fix
+    cargo sort --workspace --no-format
+    gofmt -w runtime tests
+
+# Run the translator: `just go run --config <go.toml> --out <dir>`.
+run *args:
+    cargo run --locked --quiet -- {{ args }}

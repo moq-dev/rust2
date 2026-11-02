@@ -13,15 +13,87 @@ use super::body::{Fx, int_bits};
 
 /// Names the runtime declares at the package level.
 pub const RUNTIME_NAMES: &[&str] = &[
-	"tuple1", "tuple2", "tuple3", "tuple4", "tuple5", "tuple6", "tuple7", "tuple8", "Option", "Result", "Ordering",
-	"fmtError", "RustPanic", "rustPanic", "panicBounds", "signed", "unsigned", "integer", "addU", "subU", "mulU",
-	"addS", "subS", "mulS", "satAddU", "satSubU", "satAddS", "satSubS", "cmp3", "boolTo", "replace", "ptrTo",
-	"sliceIter", "sliceIterNext", "vecPop", "vecTruncate", "sliceCopyFrom", "sliceCopyWithin", "sliceIndexFail",
-	"utf8Check", "be16", "be32", "be64", "le16", "le32", "le64", "fromBe16", "fromBe32", "fromBe64", "fromLe16",
-	"fromLe32", "fromLe64", "rotl", "rotr", "clz", "ctz", "popcount", "bswap", "Formatter", "Arguments", "Argument",
-	"argumentOf", "argumentCount", "argumentsStr", "fmtDyn", "DebugBuilder", "fmtUint", "fmtSint", "fmtUintDebug",
-	"fmtSintDebug", "fmtHex", "formatBytes", "displayBytes", "rustPanicFmt", "sink", "byteSink", "padAdapter",
-	"fmtOk", "fmtErr", "fmtResult", "newFormatter",
+	"tuple1",
+	"tuple2",
+	"tuple3",
+	"tuple4",
+	"tuple5",
+	"tuple6",
+	"tuple7",
+	"tuple8",
+	"Option",
+	"Result",
+	"Ordering",
+	"fmtError",
+	"RustPanic",
+	"rustPanic",
+	"panicBounds",
+	"signed",
+	"unsigned",
+	"integer",
+	"addU",
+	"subU",
+	"mulU",
+	"addS",
+	"subS",
+	"mulS",
+	"satAddU",
+	"satSubU",
+	"satAddS",
+	"satSubS",
+	"cmp3",
+	"boolTo",
+	"replace",
+	"ptrTo",
+	"sliceIter",
+	"sliceIterNext",
+	"vecPop",
+	"vecTruncate",
+	"sliceCopyFrom",
+	"sliceCopyWithin",
+	"sliceIndexFail",
+	"utf8Check",
+	"be16",
+	"be32",
+	"be64",
+	"le16",
+	"le32",
+	"le64",
+	"fromBe16",
+	"fromBe32",
+	"fromBe64",
+	"fromLe16",
+	"fromLe32",
+	"fromLe64",
+	"rotl",
+	"rotr",
+	"clz",
+	"ctz",
+	"popcount",
+	"bswap",
+	"Formatter",
+	"Arguments",
+	"Argument",
+	"argumentOf",
+	"argumentCount",
+	"argumentsStr",
+	"fmtDyn",
+	"DebugBuilder",
+	"fmtUint",
+	"fmtSint",
+	"fmtUintDebug",
+	"fmtSintDebug",
+	"fmtHex",
+	"formatBytes",
+	"displayBytes",
+	"rustPanicFmt",
+	"sink",
+	"byteSink",
+	"padAdapter",
+	"fmtOk",
+	"fmtErr",
+	"fmtResult",
+	"newFormatter",
 ];
 
 /// A library type Go holds as a type of its own.
@@ -49,13 +121,20 @@ impl Mapped {
 	/// Whether its Go type is laid out as the translation lays out any ADT, so its fields
 	/// and variants are reached as theirs are.
 	pub fn is_runtime_layout(self) -> bool {
-		matches!(self, Mapped::Option | Mapped::Result | Mapped::Runtime("Ordering" | "fmtError"))
+		matches!(
+			self,
+			Mapped::Option | Mapped::Result | Mapped::Runtime("Ordering" | "fmtError")
+		)
 	}
 }
 
 /// An item's path, with its crate: `alloc::vec::Vec`.
 pub fn path(tcx: TyCtxt<'_>, did: DefId) -> String {
-	format!("{}{}", tcx.crate_name(did.krate), tcx.def_path(did).to_string_no_crate_verbose())
+	format!(
+		"{}{}",
+		tcx.crate_name(did.krate),
+		tcx.def_path(did).to_string_no_crate_verbose()
+	)
 }
 
 /// The Go type a library ADT stands for, if it is one.
@@ -116,7 +195,11 @@ pub fn drop_refused<'tcx>(tcx: TyCtxt<'tcx>, env: TypingEnv<'tcx>, ty: Ty<'tcx>)
 		}
 		ty::Tuple(tys) => tys.iter().find_map(|t| drop_refused(tcx, env, t)),
 		ty::Array(elem, _) | ty::Slice(elem) => drop_refused(tcx, env, *elem),
-		ty::Closure(_, args) => args.as_closure().upvar_tys().iter().find_map(|t| drop_refused(tcx, env, t)),
+		ty::Closure(_, args) => args
+			.as_closure()
+			.upvar_tys()
+			.iter()
+			.find_map(|t| drop_refused(tcx, env, t)),
 		_ => Some("which drops what translation can't,".into()),
 	}
 }
@@ -166,9 +249,7 @@ fn head<'tcx>(tcx: TyCtxt<'tcx>, ty: Ty<'tcx>) -> String {
 }
 
 /// The integer types, by their Rust names.
-const INTS: &[&str] = &[
-	"u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64", "isize",
-];
+const INTS: &[&str] = &["u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64", "isize"];
 
 /// The Go for a call of `instance` that a binding stands in for, if one does.
 pub fn call<'tcx>(
@@ -296,9 +377,10 @@ pub fn call_with<'tcx>(
 		"<[T]>::copy_within" => {
 			let range = instance.args.type_at(1);
 			match range.kind() {
-				ty::Adt(adt, _) if super::library::path(tcx, adt.did()) == "core::ops::range::Range" => {
-					stmt(format!("sliceCopyWithin({0}, {1}.start, {1}.end, {2})", a[0], a[1], a[2]))
-				}
+				ty::Adt(adt, _) if super::library::path(tcx, adt.did()) == "core::ops::range::Range" => stmt(format!(
+					"sliceCopyWithin({0}, {1}.start, {1}.end, {2})",
+					a[0], a[1], a[2]
+				)),
 				_ => {
 					fx.err(span, format!("`copy_within` of a `{range}`"));
 					return None;
@@ -342,9 +424,7 @@ pub fn call_with<'tcx>(
 		"<core::fmt::Formatter>::write_fmt" => expr(format!("{}.writeFmt({})", a[0], a[1])),
 		"<core::fmt::Formatter>::write_char" => expr(format!("{}.writeChar({})", a[0], a[1])),
 		"<core::fmt::Formatter>::pad" => expr(format!("{}.pad({})", a[0], a[1])),
-		"<core::fmt::Formatter>::pad_integral" => {
-			expr(format!("{}.padIntegral({}, {}, {})", a[0], a[1], a[2], a[3]))
-		}
+		"<core::fmt::Formatter>::pad_integral" => expr(format!("{}.padIntegral({}, {}, {})", a[0], a[1], a[2], a[3])),
 		"<core::fmt::Formatter>::alternate" => expr(format!("{}.alternate()", a[0])),
 		"<core::fmt::Formatter>::debug_struct" => expr(format!("{}.debugStruct({})", a[0], a[1])),
 		"<core::fmt::Formatter>::debug_tuple" => expr(format!("{}.debugTuple({})", a[0], a[1])),
@@ -374,9 +454,10 @@ pub fn call_with<'tcx>(
 			))
 		}
 		"<str as core::fmt::Display>::fmt" => expr(format!("{}.pad({})", a[1], a[0])),
-		"<bool as core::fmt::Display>::fmt" | "<bool as core::fmt::Debug>::fmt" => {
-			expr(format!("{1}.pad(map[bool][]uint8{{true: []uint8(\"true\"), false: []uint8(\"false\")}}[*{0}])", a[0], a[1]))
-		}
+		"<bool as core::fmt::Display>::fmt" | "<bool as core::fmt::Debug>::fmt" => expr(format!(
+			"{1}.pad(map[bool][]uint8{{true: []uint8(\"true\"), false: []uint8(\"false\")}}[*{0}])",
+			a[0], a[1]
+		)),
 		k if let Some((int, tr)) = int_fmt(k) => {
 			let ty = targ_self(tcx, did);
 			let bits = ty.map_or(64, |t| int_bits(tcx, t));
@@ -453,8 +534,14 @@ fn copy_check<'tcx>(fx: &mut Fx<'_, 'tcx>, elem: Ty<'tcx>, span: Span) {
 /// of the formatting trait `name`, through its binding if it has one.
 pub fn fmt_call<'tcx>(fx: &mut Fx<'_, 'tcx>, name: &str, ty: Ty<'tcx>, value: &str, span: Span) -> Option<String> {
 	let tcx = fx.tcx;
-	let trait_id = tcx.all_traits_including_private().find(|&t| path(tcx, t) == format!("core::fmt::{name}"))?;
-	let fmt = tcx.associated_items(trait_id).filter_by_name_unhygienic(rustc_span::sym::fmt).next()?.def_id;
+	let trait_id = tcx
+		.all_traits_including_private()
+		.find(|&t| path(tcx, t) == format!("core::fmt::{name}"))?;
+	let fmt = tcx
+		.associated_items(trait_id)
+		.filter_by_name_unhygienic(rustc_span::sym::fmt)
+		.next()?
+		.def_id;
 	let instance = match Instance::try_resolve(tcx, fx.t_env(), fmt, tcx.mk_args(&[ty.into()])) {
 		Ok(Some(instance)) => instance,
 		_ => {
@@ -465,7 +552,14 @@ pub fn fmt_call<'tcx>(fx: &mut Fx<'_, 'tcx>, name: &str, ty: Ty<'tcx>, value: &s
 	let fmt_ty = fx.fmt_result_ty();
 	let self_ty = Ty::new_imm_ref(tcx, tcx.lifetimes.re_erased, ty);
 	let f_ty = fx.formatter_ref_ty();
-	let body = match call_with(fx, instance, vec![value.to_string(), "f".into()], &[self_ty, f_ty], fmt_ty, span) {
+	let body = match call_with(
+		fx,
+		instance,
+		vec![value.to_string(), "f".into()],
+		&[self_ty, f_ty],
+		fmt_ty,
+		span,
+	) {
 		Some(Bound::Expr(e)) => e,
 		Some(Bound::Stmt(_)) => return None,
 		None => format!("{}({value}, f)", fx.t.func(instance, span)),
