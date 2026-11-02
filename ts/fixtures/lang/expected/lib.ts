@@ -14,6 +14,7 @@ import type * as counts_Noisy from "./counts.Noisy.ts";
 import type * as RcReleasing from "./counts.RcReleasing.ts";
 import type * as RcShared from "./counts.RcShared.ts";
 import type * as durations_Window from "./durations.Window.ts";
+import * as Inline from "./elements.Inline.ts";
 import type * as Couple from "./fields.Couple.ts";
 import type * as Either from "./generics.Either.ts";
 import * as Fixed from "./generics.Fixed.ts";
@@ -215,6 +216,10 @@ export function copy$array_Option_Option_array5_u8(v: Array<Uint8Array | undefin
 	return v.map(copy$Option_Option_array5_u8);
 }
 
+export function copy$array_Option_tuple2_u8_u8(v: Array<[rt.u8, rt.u8] | undefined>): Array<[rt.u8, rt.u8] | undefined> {
+	return v.map(copy$Option_tuple2_u8_u8);
+}
+
 export function copy$array_Option_u8(v: Array<rt.u8 | undefined>): Array<rt.u8 | undefined> {
 	return v.slice();
 }
@@ -403,6 +408,27 @@ export function copy$lengths_Tagged_array3_u8(v: lengths_Tagged.Tagged<Uint8Arra
 
 export function copy$locals_Twin(v: locals_Twin.Twin): locals_Twin.Twin {
 	return { _0: v._0, _1: v._1 };
+}
+
+export function copy$mem_MaybeUninit_Option_tuple2_u8_u8(v: [rt.u8, rt.u8] | undefined): [rt.u8, rt.u8] | undefined {
+	if (v === undefined) {
+		return v;
+	}
+	return v === undefined ? v : copy$tuple2_u8_u8(v);
+}
+
+export function copy$mem_MaybeUninit_Result_tuple2_u32_u32_u8(v: rt.Result<[rt.u32, rt.u32], rt.u8>): rt.Result<[rt.u32, rt.u32], rt.u8> {
+	if (v === undefined) {
+		return v;
+	}
+	return v.ok ? rt.Ok(copy$tuple2_u32_u32(v.value)) : rt.Err(v.error);
+}
+
+export function copy$mem_MaybeUninit_array_Option_tuple2_u8_u8(v: Array<[rt.u8, rt.u8] | undefined>): Array<[rt.u8, rt.u8] | undefined> {
+	if (v === undefined) {
+		return v;
+	}
+	return v.map(copy$mem_MaybeUninit_Option_tuple2_u8_u8);
 }
 
 export function copy$mem_MaybeUninit_array_array0_u8(v: Uint8Array[]): Uint8Array[] {
@@ -1112,6 +1138,14 @@ export function drop$cell_RefCell_Vec_Rc_counts_RcReleasing(value: rt.RefCell<rt
 
 export function drop$cell_RefCell_Vec_sync_Arc_counts_ArcReleasing(value: rt.RefCell<rt.Arc<ArcReleasing.ArcReleasing>[]>): void {
 	rt.dropAll(value.value);
+}
+
+export function drop$elements_Inline_Option_tuple2_u8_u8(_1: Inline.Inline<[rt.u8, rt.u8] | undefined>): void {
+	Inline.drop$ops_Drop_Option_tuple2_u8_u8(_1);
+}
+
+export function drop$elements_Inline_sync_Arc_u8(_1: Inline.Inline<rt.Arc<rt.u8>>): void {
+	Inline.drop$ops_Drop_sync_Arc_u8(_1);
 }
 
 export function drop$generics_Run_generics_Ticked(_1: generics_Run.Run<Ticked.Ticked>): void {

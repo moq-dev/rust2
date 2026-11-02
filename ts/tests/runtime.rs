@@ -294,3 +294,17 @@ fn unicode() {
 		path.display()
 	);
 }
+
+/// A pointer the translation can't follow fails where JS keeps apart what Rust's reaches,
+/// which `pointers.ts` checks.
+#[test]
+fn pointers_apart() {
+	let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+		.join("tests")
+		.join("pointers.ts");
+	let output = Command::new("node")
+		.arg(script)
+		.output()
+		.expect("running node, which the dev shell provides");
+	assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+}

@@ -1700,8 +1700,8 @@ pub fn swapped_in_loop(n: u32) -> u32 {
 }
 
 /// Pointer operations on arrays of bytes that read the address or other bytes than the
-/// array's: comparing addresses only, copying, offsetting, casting to another pointee,
-/// hashing, and ordering.
+/// array's: comparing addresses only, copying, offsetting, hashing, and ordering, beside
+/// pointers to their first bytes.
 pub fn byte_pointer_ops(mut a: [u8; 4], b: [u8; 4]) -> u64 {
 	use std::hash::{Hash, Hasher};
 	let p: *mut [u8; 4] = &mut a;
@@ -2151,6 +2151,94 @@ pub fn mapped_closure(add: u8) -> u8 {
 	let cell = std::cell::RefCell::new((move |x: u8| x + add, 0u8));
 	let f = std::cell::RefMut::map(cell.borrow_mut(), |pair| &mut pair.0);
 	f(1)
+}
+
+/// Pointers into arrays whose elements JS keeps as objects: a pointer to one is the
+/// object, which knows no array it is in.
+pub fn object_elements(v: &mut Vec<(u8, u8)>, a: [(u8, u8); 2]) -> u8 {
+	let p = v.as_mut_ptr();
+	unsafe {
+		let q = p.add(1);
+		std::ptr::copy(p, q, 1);
+		let s = std::slice::from_raw_parts(p, 2);
+		let first = (&raw const a).cast::<(u8, u8)>();
+		(*q).0 + s[1].1 + (*first).0 + q.offset_from(p) as u8
+	}
+}
+
+/// Pointers to values of no bytes, which std's `offset_from` panics on, and a slice of
+/// them from one, which has no array to be a view of.
+pub fn unit_elements(p: *const ()) -> usize {
+	unsafe { p.offset_from(p) as usize + std::slice::from_raw_parts(p, 3).len() }
+}
+
+/// A pointer to an element cast to one to an array of elements from it.
+pub fn element_to_array(v: &[u32]) -> u32 {
+	unsafe { (*(v.as_ptr() as *const [u32; 2]))[1] }
+}
+
+pub struct Lanes {
+	pub lanes: [u32; 3],
+}
+
+/// Pointers to elements of arrays that a later assignment gives another JS array, which a
+/// pointer into the first would not see: a variable's, and a struct's field.
+pub fn elements_replaced(n: u32, l: &mut Lanes) -> u32 {
+	let mut a = [n; 3];
+	let p = &raw mut a[1];
+	a = [0; 3];
+	let q = &raw mut l.lanes[2];
+	l.lanes = [1; 3];
+	unsafe { *p + *q + a[0] }
+}
+
+#[repr(C)]
+pub struct Halves {
+	pub low: u32,
+	pub high: u32,
+}
+
+/// `offset_from` of pointers the body shows JS keeps in different arrays: two made apart
+/// of one variable, two of a struct's fields, one into a shared subslice, a copy, against
+/// one into what it was taken of, and one into a shared slice of a byte, also a copy,
+/// against the byte's.
+pub fn pointers_apart(n: u32, h: Halves, byte: u8) -> isize {
+	let a = &raw const n;
+	let b = &raw const n;
+	let lanes = [n; 4];
+	let part = &lanes[1..3];
+	let at = &raw const byte;
+	unsafe {
+		let bytes = std::slice::from_raw_parts(at, 1);
+		a.offset_from(b)
+			+ (&raw const h.high).offset_from(&raw const h.low)
+			+ part.as_ptr().offset_from(lanes.as_ptr())
+			+ bytes.as_ptr().offset_from(at)
+	}
+}
+
+/// A raw and a mutable slice of a byte in no array, which no `Uint8Array` can share.
+pub fn lone_byte_slices(mut b: u8) -> u8 {
+	let raw = std::ptr::slice_from_raw_parts_mut(&raw mut b, 1);
+	let s = unsafe { std::slice::from_raw_parts_mut(&raw mut b, 1) };
+	s[0] = 1;
+	unsafe { (*raw)[0] }
+}
+
+/// Pointers, slices, and copies the body shows reach out of an array of one or a copied
+/// subslice, where Rust's reach the rest of what holds them.
+pub fn reached_out(h: Halves, lanes: [u32; 4]) -> u32 {
+	let part = &lanes[1..3];
+	let mut to = [0u32; 3];
+	unsafe {
+		std::ptr::copy_nonoverlapping(part.as_ptr(), to.as_mut_ptr(), 3);
+		let tail = lanes.get_unchecked(2..);
+		*part.as_ptr().sub(1)
+			+ std::slice::from_raw_parts(&raw const h.low, 2)[1]
+			+ *(&raw const h.high).sub(1)
+			+ *tail.as_ptr().offset(-2)
+			+ to[0]
+	}
 }
 
 /// A slice of one `u8`'s place, which no `rt.ByteSlice` views.

@@ -643,6 +643,13 @@ export function map$12l9avg(self: rt.u8 | undefined, f: (a0: rt.u8) => Ticked.Ti
 	return f(self);
 }
 
+export function map$1fmzefe(self: rt.u8 | undefined, f: (a0: rt.u8) => [rt.u8, rt.u8]): [rt.u8, rt.u8] | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
 export function map$1qp1ym6(self: rt.u8 | undefined, f: (a0: rt.u8) => rt.u32): rt.u32 | undefined {
 	if (self === undefined) {
 		return undefined;
@@ -792,13 +799,6 @@ export function map$0of9gds(self: rt.u8 | undefined, f: (a0: rt.u8) => Badge.Bad
 }
 
 export function map$1pb5zw8(self: rt.u8 | undefined, f: (a0: rt.u8) => [rt.u16, rt.u8]): [rt.u16, rt.u8] | undefined {
-	if (self === undefined) {
-		return undefined;
-	}
-	return f(self);
-}
-
-export function map$1fmzefe(self: rt.u8 | undefined, f: (a0: rt.u8) => [rt.u8, rt.u8]): [rt.u8, rt.u8] | undefined {
 	if (self === undefined) {
 		return undefined;
 	}

@@ -362,22 +362,37 @@ function itself<T>(value: T): T {
 	return value;
 }
 
-/** The place of index `i` of `a`. */
+/** The place of element `index` of `array`, which a raw pointer into it is too. */
 export class AtIndex<T> implements Place<T> {
-	private readonly a: { [i: number]: T };
-	private readonly i: number;
+	readonly array: { [i: number]: T };
+	readonly index: number;
 
-	constructor(a: { [i: number]: T }, i: number) {
-		this.a = a;
-		this.i = i;
+	constructor(array: { [i: number]: T }, index: number) {
+		this.array = array;
+		this.index = index;
 	}
 
 	get v(): T {
-		return this.a[this.i];
+		this.reach(1);
+		return this.array[this.index];
 	}
 
 	set v(value: T) {
-		this.a[this.i] = value;
+		this.reach(1);
+		this.array[this.index] = value;
+	}
+
+	/**
+	 * Fails where `n` elements from here run past either end of the array, which JS
+	 * doesn't keep Rust's memory around: a JS array grows by a write past its end, where a
+	 * `Vec`'s length stays until `set_len`, and a shared subslice is a copy, which a
+	 * pointer moved past it would read nothing of.
+	 */
+	reach(n: number): void {
+		const length = (this.array as ArrayLike<T>).length;
+		if (this.index < 0 || this.index + n > length) {
+			throw new Error("rust2-ts: a read or write through a pointer past the array JS keeps it in");
+		}
 	}
 }
 

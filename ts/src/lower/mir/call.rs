@@ -102,6 +102,9 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				self.call_def(def_id, gargs.skip_binder(), args, result, span, &mut pre),
 				true,
 			),
+			ty::FnDef(def_id, gargs) if let Some(why) = self.stray(def_id, gargs.skip_binder(), args) => {
+				(self.err(span, why), true)
+			}
 			ty::FnDef(def_id, gargs) => match self.intercept(def_id, gargs.skip_binder(), args, dest, span, &mut pre) {
 				Some(Some(done)) => done,
 				// Done: the destination is set.

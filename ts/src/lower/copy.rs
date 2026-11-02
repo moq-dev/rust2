@@ -128,10 +128,15 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 	/// copies its bytes: the JS objects it holds by value copied where the crate's code
 	/// writes into them in place.
 	pub fn snapshot(&mut self, value: Expr, ty: Ty<'tcx>, span: Span) -> Expr {
-		match self.changes(ty).then(|| self.shim(ty, span)).flatten() {
+		match self.snapshot_fn(ty, span) {
 			Some(copy) => copy.call(vec![value]),
 			None => value,
 		}
+	}
+
+	/// The function [`Self::snapshot`] calls on a `ty`, if it copies one.
+	pub fn snapshot_fn(&mut self, ty: Ty<'tcx>, span: Span) -> Option<Expr> {
+		self.changes(ty).then(|| self.shim(ty, span)).flatten()
 	}
 
 	/// `value`, copied if a `ty` is.

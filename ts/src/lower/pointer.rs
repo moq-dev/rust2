@@ -7,6 +7,10 @@
 //! value JS copies is, which a `Vec` or an `Arc` also is here: its JS object is what it
 //! owns, not where Rust keeps it. Null is `rt.NULL`, and a dangling pointer `rt.DANGLING`.
 //!
+//! An `rt.Place` into an array, slice, or `Vec` is the `rt.AtIndex` of its element, which
+//! pointer arithmetic moves within the array. A pointer to an element JS keeps as an
+//! object is that object, which knows no array it is in, so arithmetic on one is refused.
+//!
 //! A pointer to `()`, as std erases one, is an identity that compares as itself: null,
 //! `rt.DANGLING_UNIT`, or a waker's data. One to a place of `()` or from a reference to
 //! one is refused, as an `rt.Place` of it would be an identity of its own each borrow.
@@ -467,19 +471,9 @@ pub fn call<'tcx>(
 			}
 		}
 		("NonNull", "dangling") | ("ptr", "dangling" | "dangling_mut") => Expr::Rt("DANGLING".into()),
-		// The same pointer, as one to what a `MaybeUninit` holds or the other way.
 		("ptr" | "NonNull", "cast") => {
-			let to = targ(gargs, 1);
-			match b.t.uninit_inner(pointee()) == b.t.uninit_inner(to) {
-				true => arg(),
-				false => b.err(
-					span,
-					format!(
-						"a cast from a pointer to `{}` to one to `{to}`, which reads the bytes of one type as another",
-						pointee()
-					),
-				),
-			}
+			let p = arg();
+			cast(b, p, pointee(), targ(gargs, 1), span)
 		}
 		("ptr" | "NonNull", "addr" | "expose_provenance" | "with_addr" | "map_addr" | "without_provenance") => {
 			b.err(span, "a pointer's address, which JS has no counterpart of")
@@ -640,10 +634,159 @@ pub fn call<'tcx>(
 		("UnsafeCell", "get") if bytes(b, pointee()) => to_pointer(arg().member("v")),
 		("UnsafeCell", "get_mut") if b.t.needs_place(pointee()) => arg(),
 		("UnsafeCell", "get" | "get_mut" | "into_inner") => arg().member("v"),
+		// Pointers into an array: `rt.AtIndex`es, which a `Vec`'s and a slice's give.
+		("slice" | "Vec", "as_ptr" | "as_mut_ptr") => {
+			let elem = targ(gargs, 0);
+			let s = arg();
+			if let Some(why) = unmodeled(b, elem, "a pointer into") {
+				return Ok(Some(b.err(span, why)));
+			}
+			let byte = matches!(elem.kind(), ty::Uint(ty::UintTy::U8));
+			match (owner, byte) {
+				("slice", true) => Expr::rt("byteSliceAsPtr", vec![s]),
+				("Vec", true) => Expr::rt("byteVecAsPtr", vec![s]),
+				_ => Expr::rt("sliceAsPtr", vec![s]),
+			}
+		}
+		("ptr" | "NonNull", "add" | "sub" | "offset" | "wrapping_add" | "wrapping_sub" | "wrapping_offset") => {
+			let (p, n) = (arg(), arg());
+			if b.t.zero_sized(pointee()) {
+				// Every pointer to a value of no bytes is where it was.
+				out.push(StmtKind::Expr(n).at(None));
+				p
+			} else if let Some(why) = unmodeled(b, pointee(), "an offset of a pointer to") {
+				b.err(span, why)
+			} else {
+				let n = match name {
+					"sub" | "wrapping_sub" => Expr::unary("-", n),
+					_ => n,
+				};
+				match name.starts_with("wrapping") {
+					true => match super::iter::layout(b, pointee(), span) {
+						Ok((size, align)) => Expr::rt(
+							"ptrWrappingAdd",
+							vec![p, n, Expr::lit(size.to_string()), Expr::lit(align.to_string())],
+						),
+						Err(e) => e,
+					},
+					false => Expr::rt("ptrAdd", vec![p, n]),
+				}
+			}
+		}
+		("ptr" | "NonNull", "offset_from" | "offset_from_unsigned") => {
+			let (p, origin) = (arg(), arg());
+			match unmodeled(b, pointee(), "`offset_from` of pointers to") {
+				// std asserts that the pointee has bytes.
+				_ if b.t.zero_sized(pointee()) => b.err(
+					span,
+					format!("`offset_from` of pointers to `{}`, which has no bytes", pointee()),
+				),
+				Some(why) => b.err(span, why),
+				None => Expr::rt("ptrOffsetFrom", vec![p, origin]),
+			}
+		}
+		(
+			"ptr",
+			"copy"
+			| "copy_nonoverlapping"
+			| "copy_to"
+			| "copy_to_nonoverlapping"
+			| "copy_from"
+			| "copy_from_nonoverlapping",
+		)
+		| ("NonNull", "copy_to" | "copy_to_nonoverlapping" | "copy_from" | "copy_from_nonoverlapping") => {
+			let (x, y, n) = (arg(), arg(), arg());
+			let (src, dst) = match name {
+				"copy_from" | "copy_from_nonoverlapping" => (y, x),
+				_ => (x, y),
+			};
+			if b.t.zero_sized(pointee()) {
+				out.push(StmtKind::Expr(n).at(None));
+				Expr::undefined()
+			} else if let Some(why) = unmodeled(b, pointee(), "a copy between pointers to") {
+				b.err(span, why)
+			} else {
+				let mut args = vec![src, dst, n];
+				args.extend(b.t.snapshot_fn(pointee(), span));
+				Expr::rt("ptrCopy", args)
+			}
+		}
+		("raw", "from_raw_parts" | "from_raw_parts_mut")
+		| ("ptr", "slice_from_raw_parts" | "slice_from_raw_parts_mut")
+		| ("NonNull", "slice_from_raw_parts") => {
+			let (p, len) = (arg(), arg());
+			let slice = match unmodeled(b, pointee(), "a slice from a pointer to") {
+				_ if b.t.zero_sized(pointee()) => {
+					return Ok(Some(b.err(
+						span,
+						format!("a slice of `{}`, which has no bytes, from a pointer", pointee()),
+					)));
+				}
+				Some(why) => return Ok(Some(b.err(span, why))),
+				None if matches!(pointee().kind(), ty::Uint(ty::UintTy::U8)) => {
+					let shared = name == "from_raw_parts";
+					Expr::rt("ptrByteSlice", vec![p, len, Expr::lit(shared.to_string())])
+				}
+				None => Expr::rt("ptrSlice", vec![p, len]),
+			};
+			// A raw pointer to a slice is an `rt.Place` of it, as one to any value JS copies is.
+			match owner {
+				"raw" => slice,
+				_ => Expr::Object(vec![(Key::Name("v".into()), slice)]),
+			}
+		}
 		("mem", "forget") => Expr::undefined(),
 		_ => return Err(args.collect()),
 	};
 	Ok(Some(e))
+}
+
+/// Why pointers to `ty` can't point into an array, if they can't: an element JS keeps as
+/// an object or as bytes is what a pointer to it is, which knows no array it is in. Only an
+/// instance decides what a parameter is.
+fn unmodeled<'tcx>(b: &Body<'_, '_, 'tcx>, ty: Ty<'tcx>, what: &str) -> Option<String> {
+	if b.t.polymorphic() && ty.has_param() {
+		return None;
+	}
+	match b.t.pointee(ty) {
+		Pointee::Place => None,
+		Pointee::Object | Pointee::Bytes => Some(format!(
+			"{what} `{ty}`, which JS keeps as an object that knows no array it is in"
+		)),
+	}
+}
+
+/// The pointer `p` to `from`, as one to `to`: the same pointer, as one to what a
+/// `MaybeUninit` holds or the other way, or the pointer to the first element of the array
+/// or slice it points at.
+pub fn cast<'tcx>(b: &mut Body<'_, '_, 'tcx>, p: Expr, from: Ty<'tcx>, to: Ty<'tcx>, span: Span) -> Expr {
+	let (inner, into) = (b.t.uninit_inner(from), b.t.uninit_inner(to));
+	if inner == into {
+		return p;
+	}
+	let elem = match inner.kind() {
+		ty::Array(elem, _) | ty::Slice(elem) if b.t.uninit_inner(*elem) == into => Some(*elem),
+		_ => None,
+	};
+	let Some(elem) = elem else {
+		return b.err(
+			span,
+			format!("a cast from a pointer to `{from}` to one to `{to}`, which reads the bytes of one type as another"),
+		);
+	};
+	if let Some(why) = unmodeled(b, elem, "a pointer into an array of") {
+		return b.err(span, why);
+	}
+	// A pointer to a slice is an `rt.Place` of it, and one to an array the array, or the
+	// `rt.ByteSlice` of its bytes.
+	let s = match inner.kind() {
+		ty::Slice(_) => p.member("v"),
+		_ => p,
+	};
+	match b.t.pointee(inner) == Pointee::Bytes || inner.is_slice() && matches!(elem.kind(), ty::Uint(ty::UintTy::U8)) {
+		true => Expr::rt("byteSliceAsPtr", vec![s]),
+		false => Expr::rt("sliceAsPtr", vec![s]),
+	}
 }
 
 /// What a `PartialEq` or `Clone` call's `Self` points at, if it is a raw pointer or a

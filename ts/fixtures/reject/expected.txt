@@ -176,14 +176,12 @@ a raw pointer to `ByKeyTake` in `(u16, ByKeyTake)`, which the crate may put anot
 unsupported call to `core::str::<impl str>::as_bytes_mut` at fixtures/reject/src/lib.rs:1636:13
 `core::str::<impl str>::get_unchecked_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1637:13
 `std::str::from_utf8_mut` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:1642:20
-unsupported call to `std::ptr::copy::<[u8; 4]>` at fixtures/reject/src/lib.rs:1710:3
-unsupported call to `std::ptr::copy_nonoverlapping::<[u8; 4]>` at fixtures/reject/src/lib.rs:1711:3
+a copy between pointers to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1710:3
+a copy between pointers to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1711:3
 unsupported call to `std::ptr::addr_eq::<[u8; 4], [u8; 4]>` at fixtures/reject/src/lib.rs:1712:14
 comparing `*mut [u8; 4]` at fixtures/reject/src/lib.rs:1712:41
-a cast from a pointer to `[u8; 4]` to one to `u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:1713:17
-a cast from `*const [u8; 4]` to `*const u8`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:1713:33
-unsupported call to `std::ptr::mut_ptr::<impl *mut [u8; 4]>::add` at fixtures/reject/src/lib.rs:1713:56
-unsupported call to `std::ptr::const_ptr::<impl *const [u8; 4]>::offset` at fixtures/reject/src/lib.rs:1713:73
+an offset of a pointer to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1713:56
+an offset of a pointer to `[u8; 4]`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:1713:73
 a coercion of `*const [u8; 4]` to `*const [u8]`, a pointer to a slice at fixtures/reject/src/lib.rs:1714:28
 hashing `*const [u8; 4]` by its address, which JS has no counterpart of at fixtures/reject/src/lib.rs:1716:5
 unsupported call to `std::ptr::const_ptr::<impl *const [u8]>::len` at fixtures/reject/src/lib.rs:1717:58
@@ -199,16 +197,38 @@ const generic types are not supported: `Block` at fixtures/reject/src/lib.rs:210
 `clone_from` of `std::collections::LinkedList<Reused>`, whose items' `clone_from` is their own, which is not supported yet at fixtures/reject/src/lib.rs:2118:4
 `std::default::Default::default` with a mutable reference to a value JS copies, which its mapping would copy at fixtures/reject/src/lib.rs:2119:2
 a mapped guard of `{closure@fixtures/reject/src/lib.rs:2151:38: 2151:50}`, which JS can't write in place at fixtures/reject/src/lib.rs:2152:10
-a slice of one byte's place, which a byte slice can view only in an array of bytes at fixtures/reject/src/lib.rs:2158:2
-a slice or a cell of a mutable reference to `Reused` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2164:2
-`Clone::clone_from` of `std::vec::Vec<Reused>`, whose `clone_from` is its own, which is not supported yet at fixtures/reject/src/lib.rs:2169:4
-unsupported call to `std::mem::size_of_val::<dyn std::fmt::Debug>` at fixtures/reject/src/lib.rs:2174:2
-a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2180:10
-a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2188:10
-a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2196:10
-a slice or a cell of a mutable reference to `std::cell::LazyCell<u32>` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2206:3
-an assignment through a reference to `std::sync::LazyLock<u32>` at fixtures/reject/src/lib.rs:2211:2
-a slice or a cell of a mutable reference to `std::thread::LocalKey<u32>` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2217:2
+a pointer into `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2159:12
+an offset of a pointer to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2161:13
+a copy between pointers to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2162:3
+a slice from a pointer to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2163:11
+a pointer into an array of `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2164:30
+`offset_from` of pointers to `(u8, u8)`, which JS keeps as an object that knows no array it is in at fixtures/reject/src/lib.rs:2165:36
+`offset_from` of pointers to `()`, which has no bytes at fixtures/reject/src/lib.rs:2172:13
+a slice of `()`, which has no bytes, from a pointer at fixtures/reject/src/lib.rs:2172:39
+a cast from a pointer to `u32` to one to `[u32; 2]`, which reads the bytes of one type as another at fixtures/reject/src/lib.rs:2177:13
+a raw pointer to `[u32; 3]` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2188:10
+a raw pointer to `[u32; 3]` in `Lanes`, which the crate may put another object in place of at fixtures/reject/src/lib.rs:2190:10
+`offset_from` between a pointer into a value in no array and one into a value in no array, which JS keeps in different arrays at fixtures/reject/src/lib.rs:2213:5
+`offset_from` between a pointer into a value in no array and one into a value in no array, which JS keeps in different arrays at fixtures/reject/src/lib.rs:2214:26
+`offset_from` between a pointer into a shared slice JS copies and one into an array of this body's own, which JS keeps in different arrays at fixtures/reject/src/lib.rs:2215:20
+`offset_from` between a pointer into a shared slice JS copies and one into a value in no array, which JS keeps in different arrays at fixtures/reject/src/lib.rs:2216:21
+a raw or mutable slice of a byte in no array of bytes at fixtures/reject/src/lib.rs:2222:12
+a raw or mutable slice of a byte in no array of bytes at fixtures/reject/src/lib.rs:2223:19
+a copy reaching past a shared slice JS copies, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2234:3
+a pointer reaching past a shared slice JS copies, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2236:18
+a slice reaching past a value in no array, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2237:6
+a pointer reaching past a value in no array, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2238:27
+a pointer reaching past a shared slice JS copies, which JS keeps apart from what holds it in Rust at fixtures/reject/src/lib.rs:2239:21
+a slice of one byte's place, which a byte slice can view only in an array of bytes at fixtures/reject/src/lib.rs:2246:2
+a slice or a cell of a mutable reference to `Reused` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2252:2
+`Clone::clone_from` of `std::vec::Vec<Reused>`, whose `clone_from` is its own, which is not supported yet at fixtures/reject/src/lib.rs:2257:4
+unsupported call to `std::mem::size_of_val::<dyn std::fmt::Debug>` at fixtures/reject/src/lib.rs:2262:2
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2268:10
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2276:10
+a raw pointer to `(u32, u32)` in a variable assigned again while it may point there at fixtures/reject/src/lib.rs:2284:10
+a slice or a cell of a mutable reference to `std::cell::LazyCell<u32>` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2294:3
+an assignment through a reference to `std::sync::LazyLock<u32>` at fixtures/reject/src/lib.rs:2299:2
+a slice or a cell of a mutable reference to `std::thread::LocalKey<u32>` that names no place, which a whole write would replace only there at fixtures/reject/src/lib.rs:2305:2
 overriding `Iterator::fold`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:125:2
 an iterator of the crate implementing `DoubleEndedIterator`, which is not supported yet at fixtures/reject/src/lib.rs:145:1
 overriding `Iterator::size_hint`, which std's adaptors call in place of `next` or beside it at fixtures/reject/src/lib.rs:173:2

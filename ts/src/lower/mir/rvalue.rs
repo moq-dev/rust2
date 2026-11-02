@@ -114,6 +114,29 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 								"a raw pointer to `{pointee}` behind a reference, which is the object and not where it is kept"
 							),
 						),
+						// A pointer to an element is where it is in its array, which pointer
+						// arithmetic moves within.
+						[
+							array @ ..,
+							mir::ProjectionElem::Index(_) | mir::ProjectionElem::ConstantIndex { .. },
+						] => {
+							// It points into the array, which must stay where it is.
+							let array = Place {
+								local: place.local,
+								projection: tcx.mk_place_elems(array),
+							};
+							if let Some(why) = self.out_of_step(array, false) {
+								return Some(self.err(span, why));
+							}
+							let target = self.place_expr(*place, span, out);
+							let target = self.stable_target(*place, target, span, out);
+							match target.unlocated() {
+								Expr::Index(array, index) => {
+									Expr::rt("sliceAsPtr", vec![*array.clone(), *index.clone()])
+								}
+								_ => self.place_of(target, None),
+							}
+						}
 						_ => {
 							let target = self.place_expr(*place, span, out);
 							self.make_place(*place, target, span, out)
@@ -325,13 +348,14 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				| PointerCoercion::MutToConstPointer => self.operand(op, span, out),
 				_ => self.err(span, format!("unsupported pointer coercion {coercion:?}")),
 			},
-			// The same pointer, as one to the same pointee: `*mut T` as `*const T`, or a
-			// `MaybeUninit<T>` as the `T` it holds.
+			// The same pointer, as one to the same pointee, `*mut T` as `*const T` or a
+			// `MaybeUninit<T>` as the `T` it holds, or one to the first element of an array.
 			CastKind::PtrToPtr
 				if let (Some(a), Some(b)) = (from.builtin_deref(true), to.builtin_deref(true))
-					&& self.b.t.uninit_inner(a) == self.b.t.uninit_inner(b) =>
+					&& from.is_raw_ptr() =>
 			{
-				self.operand(op, span, out)
+				let p = self.operand(op, span, out);
+				crate::lower::pointer::cast(self.b, p, a, b, span)
 			}
 			CastKind::PtrToPtr => self.err(
 				span,
