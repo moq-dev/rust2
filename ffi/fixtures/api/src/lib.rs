@@ -1494,3 +1494,32 @@ pub fn nexts(
 	v6.set_port(v6.port() + 1);
 	(std::net::SocketAddrV4::new(*v4.ip(), v4.port() + 1), v6)
 }
+
+/// The count of the counter `held` holds, if any: an object in an option of a one-tuple.
+pub fn held_count(held: Option<(Counter,)>) -> Option<u64> {
+	held.map(|(counter,)| counter.get())
+}
+
+/// The count of the counter `boxed` holds, if any: an option of an object behind a box.
+pub fn boxed_count(boxed: Box<Option<Counter>>) -> Option<u64> {
+	boxed.map(|counter| counter.get())
+}
+
+/// Why [`refuse`] refused, which Rust returns only boxed.
+#[derive(Debug)]
+pub struct Refusal {
+	reason: String,
+}
+
+impl fmt::Display for Refusal {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "refused: {}", self.reason)
+	}
+}
+
+/// Always refuses, for `reason`.
+pub fn refuse(reason: &str) -> Result<u32, Box<Refusal>> {
+	Err(Box::new(Refusal {
+		reason: reason.to_string(),
+	}))
+}

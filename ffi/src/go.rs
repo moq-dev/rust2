@@ -344,7 +344,7 @@ impl<'a> Gen<'a> {
 				format!("lower_{c}(a_, {e})")
 			}
 			Type::Option(inner) => match inner.base() {
-				Type::Object(i) => format!("(*C.{})(a_.holdOption({e}.handle_()))", abi.object(*i)),
+				Type::Object(i) => format!("(*C.{})(a_.holdOption({e}))", abi.object(*i)),
 				Type::Str | Type::String | Type::Path | Type::PathBuf => format!("a_.bufStringOption({e})"),
 				Type::Slice | Type::Vec | Type::Bytes => format!("a_.bufBytesOption({e})"),
 				Type::List(elem) => {
@@ -385,7 +385,7 @@ impl<'a> Gen<'a> {
 				};
 				format!("lower_{c}({}{e})", self.arena_arg(ty))
 			}
-			Type::Object(i) => format!("(*C.{})(a_.hold({e}.h))", abi.object(*i)),
+			Type::Object(i) => format!("(*C.{})(a_.hold({e}))", abi.object(*i)),
 			Type::Callback(i, _) => format!("lower_{}({e})", abi.callback(*i)),
 			Type::Tuple(elements) => match &elements[..] {
 				[element] => {
@@ -673,7 +673,7 @@ impl<'a> Gen<'a> {
 		let arena = self.arena(ty);
 		// The receiver: a held handle, or the value lowered.
 		let (open, this) = match object {
-			true => ("h_ := self.h.hold()\ndefer self.h.release()\n".to_string(), format!("(*C.{c})(h_)")),
+			true => ("h_ := self.h.hold()\ndefer unhold_(self)\n".to_string(), format!("(*C.{c})(h_)")),
 			false => match arena {
 				true => (
 					format!("a_ := &arena_{{}}\ndefer a_.finish()\nc_self_ := lower_{c}(a_, self)\n"),
@@ -721,7 +721,7 @@ impl<'a> Gen<'a> {
 		if t.eq {
 			let body = match (object, arena) {
 				(true, _) => format!(
-					"{open}o_ := other.h.hold()\ndefer other.h.release()\nreturn bool(C.{c}_eq({this}, (*C.{c})(o_)))"
+					"{open}o_ := other.h.hold()\ndefer unhold_(other)\nreturn bool(C.{c}_eq({this}, (*C.{c})(o_)))"
 				),
 				(false, true) => format!("{open}c_other_ := lower_{c}(a_, other)\nreturn bool(C.{c}_eq({this}, &c_other_))"),
 				(false, false) => format!("{open}c_other_ := lower_{c}(other)\nreturn bool(C.{c}_eq({this}, &c_other_))"),
@@ -867,7 +867,7 @@ impl<'a> Gen<'a> {
 			.chain(api.enums.iter().flat_map(|e| &e.methods))
 			.chain(api.objects.iter().flat_map(|o| &o.methods))
 			.chain(&api.functions);
-		all.any(|f| f.err.as_ref().is_some_and(|e| strip_refs(e) == *ty))
+		all.any(|f| f.err.as_ref().is_some_and(|e| e.base() == ty))
 	}
 
 	fn enumeration(&mut self, i: usize) {
@@ -1251,7 +1251,7 @@ impl<'a> Gen<'a> {
 			go_receiver = Some(format!("self {go}"));
 			match c {
 				Ty::Handle { name, .. } => {
-					prelude.push("h_ := self.h.hold()\ndefer self.h.release()".to_string());
+					prelude.push("h_ := self.h.hold()\ndefer unhold_(self)".to_string());
 					args.push(format!("(*C.{name})(h_)"));
 					let copy = matches!(ty, Type::Object(i) if abi.api.objects[i].copy);
 					if receiver == Receiver::Owned && !copy {
@@ -1311,11 +1311,11 @@ impl<'a> Gen<'a> {
 				}
 				(ty, Ty::Handle { name: c, .. }) => {
 					let h = format!("h{k}_");
-					match ty {
+					match ty.base() {
 						Type::Option(_) => prelude.push(format!(
-							"var {h} unsafe.Pointer\nif {name} != nil {{\n\t{h} = {name}.h.hold()\n\tdefer {name}.h.release()\n}}"
+							"var {h} unsafe.Pointer\nif {name} != nil {{\n\t{h} = {name}.h.hold()\n\tdefer unhold_({name})\n}}"
 						)),
-						_ => prelude.push(format!("{h} := {name}.h.hold()\ndefer {name}.h.release()")),
+						_ => prelude.push(format!("{h} := {name}.h.hold()\ndefer unhold_({name})")),
 					}
 					args.push(format!("(*C.{c})({h})"));
 				}

@@ -475,6 +475,14 @@ func script() {
 	var lent string
 	api.VisitStray(func(path string) { lent = path })
 	check(lent == "\xff", "a path Rust lends that is not UTF-8 crosses as its bytes")
+	// An object in an option of a tuple of one, an option of one behind a box, and an error
+	// Rust returns only boxed.
+	held := api.NewCounter("held", 4)
+	check(api.HeldCount(nil) == nil && *api.HeldCount(&held) == 4, "an option of a tuple of an object crosses")
+	check(api.BoxedCount(nil) == nil && *api.BoxedCount(api.NewCounter("boxed", 5)) == 5, "a boxed option of an object crosses")
+	_, err = api.Refuse("why")
+	var refusal *api.Refusal
+	check(errors.As(err, &refusal) && err.Error() == "refused: why", "a boxed error is its type")
 	words := api.Words(" one two  three ")
 	fmt.Printf("words %d %s\n", len(words), list(words, quoted))
 	fmt.Printf("sentence %s %s\n", api.Sentence(&words), api.Sentence(nil))

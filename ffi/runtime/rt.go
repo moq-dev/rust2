@@ -262,16 +262,28 @@ func liftList_[CT, T any](ptr *CT, n C.size_t, lift func(CT) T) []T {
 	return out
 }
 
+// owner_ is an object, which owns the handle it is lent or Rust returned.
+type owner_ interface {
+	handle_() *handle
+}
+
+// unhold_ releases the hold a call took on o's handle. Deferred, it keeps o reachable until
+// the call returns, so the GC cannot close o's handle between the call reading and holding
+// it.
+func unhold_(o owner_) {
+	o.handle_().release()
+}
+
 // arena_ is what a call lowers nested values into, kept until it returns: the Go memory C
-// reads through it, pinned, and the handles it holds.
+// reads through it, pinned, and the objects whose handles it holds, kept reachable.
 type arena_ struct {
 	pins runtime.Pinner
-	held []*handle
+	held []owner_
 }
 
 func (a *arena_) finish() {
-	for _, h := range a.held {
-		h.release()
+	for _, o := range a.held {
+		o.handle_().release()
 	}
 	a.pins.Unpin()
 }
@@ -308,18 +320,18 @@ func (a *arena_) bufBytesOption(v *[]byte) cBuf {
 	return a.bufBytes(*v)
 }
 
-func (a *arena_) hold(h *handle) unsafe.Pointer {
-	raw := h.hold()
-	a.held = append(a.held, h)
+func (a *arena_) hold(o owner_) unsafe.Pointer {
+	raw := o.handle_().hold()
+	a.held = append(a.held, o)
 	return raw
 }
 
-// holdOption is the handle h holds, or nil for none.
-func (a *arena_) holdOption(h *handle) unsafe.Pointer {
-	if h == nil {
+// holdOption is the handle o holds, or nil for none.
+func (a *arena_) holdOption(o owner_) unsafe.Pointer {
+	if o.handle_() == nil {
 		return nil
 	}
-	return a.hold(h)
+	return a.hold(o)
 }
 
 // list_ is items as a C array, each lowered by lower, pinned until the call returns:
