@@ -71,7 +71,15 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 				("PartialOrd" | "Ord" | "PartialEq", _) | ("Hash", "hash") => true,
 				("slice", "iter" | "iter_mut") | ("array", "each_ref" | "each_mut") => true,
 				// Lowered from MIR, which writes through the slice.
-				("mem", "swap" | "replace" | "take") => true,
+				("mem", "swap" | "replace" | "take")
+				| ("Clone", "clone_from")
+				| ("ToOwned", "clone_into")
+				| ("raw" | "array" | "Cell" | "ptr", "from_mut") => true,
+				// `Clone::clone`, which takes the slice, and an array as a slice, which it is.
+				("ToOwned", "to_owned") => true,
+				("AsRef" | "AsMut" | "Borrow" | "BorrowMut", _) => {
+					args.type_at(0).is_array() && args.type_at(1).is_slice()
+				}
 				("IntoIterator", "into_iter") => self_ty.is_some_and(|s| {
 					let s = super::iter::unbox_ref(tcx, s).peel_refs();
 					matches!(s.kind(), ty::Slice(_) | ty::Array(..)) || t.std_of(s) == Some(Std::Vec)

@@ -173,5 +173,15 @@ roots = [
     "pointers_apart",
     "lone_byte_slices",
     "reached_out",
+    "byte_slice_of_place",
+    "slice_of_object",
+    "vec_clone_from",
+    "dyn_size",
+    "variable_cloned_from",
+    "variable_cloned_into",
+    "variable_celled",
+    "lazy_celled",
+    "lazy_assigned",
+    "key_celled",
 ]
 printable = ["Meters"]
