@@ -208,6 +208,10 @@ export function polling(waker: rt.Waker): boolean {
  * `Polling` does. First, wakers made from one `Arc` and from another, of two `Wake`
  * impls, `Waker::noop`, and pointers to `()`; then, each poll, the task's waker against
  * its last poll's, a clone, a `Context` of a clone, and a `run` of `Waker::noop` inside.
+ * Not a clone of an `Arc`'s waker or of `Waker::noop` against its original: the clone's
+ * vtable is another function's constant, whose address is the same only when the build
+ * puts both in one codegen unit, as a non-incremental build does and an incremental one
+ * may not. The executor's vtable is a `static`, so its clones compare reliably.
  */
 export function wakers(rx: Consumer.Consumer, guard: Guard.Guard): rt.Future<rt.u64> {
 	return new wakersFuture(rx, guard);
@@ -264,84 +268,69 @@ export class wakersFuture {
 						this.#other = new rt.ArcWaker(new rt.Arc(this.#relay(200)), Relay.wake$task_Wake as (a0: rt.Arc<Relay.Relay>) => undefined, (arc3: rt.Arc<Relay.Relay>) => arc3[Symbol.dispose](), Relay.wakeByRef$task_Wake as (a0: rt.Arc<Relay.Relay>) => undefined);
 						this.#plain = new rt.ArcWaker(new rt.Arc(new Plain.Plain(this.#relay(300))), Plain.wake$task_Wake as (a0: rt.Arc<Plain.Plain>) => undefined, (arc4: rt.Arc<Plain.Plain>) => arc4[Symbol.dispose]());
 						this.#noop = rt.NOOP_WAKER;
-						const unit: rt.Place<undefined> = rt.DANGLING_UNIT;
-						const _29: rt.Waker = this.#a.clone();
-						const _26: boolean = rt.willWake(this.#a, _29);
-						const _31: boolean = rt.willWake(this.#a, this.#b);
-						const _34: boolean = ((this.#a.data as rt.Place<undefined>)) === this.#b.data as rt.Place<undefined>;
-						const _39: boolean = rt.willWake(this.#a, this.#other);
-						const _42: boolean = ((this.#a.data as rt.Place<undefined>)) === this.#other.data as rt.Place<undefined>;
-						const _47: boolean = this.#a.vtable === this.#other.vtable;
-						const _54: boolean = this.#a.vtable === this.#plain.vtable;
-						const _61: boolean = rt.willWake(this.#a, this.#noop);
-						const _63: boolean = rt.willWake(this.#noop, rt.NOOP_WAKER);
-						const _143: rt.Waker = this.#noop;
-						const _67: rt.Waker = this.#noop.clone();
-						this.#checks = [_26, _31, _34, _39, _42, _47, _54, _61, _63, rt.willWake(_143, _67), ((this.#noop.data as rt.Place<undefined>)) === rt.NULL, rt.willWake(this.#one.value.task, this.#noop), rt.NULL === rt.DANGLING_UNIT, rt.DANGLING_UNIT === rt.DANGLING_UNIT, unit === rt.DANGLING_UNIT, rt.DANGLING_UNIT === rt.DANGLING_UNIT];
-						_67[Symbol.dispose]();
-						_29[Symbol.dispose]();
+						this.#checks = [rt.willWake(this.#a, this.#b), ((this.#a.data as rt.Place<undefined>)) === this.#b.data as rt.Place<undefined>, rt.willWake(this.#a, this.#other), ((this.#a.data as rt.Place<undefined>)) === this.#other.data as rt.Place<undefined>, this.#a.vtable === this.#other.vtable, this.#a.vtable === this.#plain.vtable, rt.willWake(this.#a, this.#noop), rt.willWake(this.#noop, rt.NOOP_WAKER), ((this.#noop.data as rt.Place<undefined>)) === rt.NULL, rt.NULL === rt.DANGLING_UNIT, rt.DANGLING_UNIT === rt.DANGLING_UNIT, rt.DANGLING_UNIT === rt.DANGLING_UNIT, rt.DANGLING_UNIT === rt.DANGLING_UNIT];
 						put$unit(rt.DANGLING_UNIT, undefined);
 						put$unit(rt.DANGLING_UNIT, undefined);
 						const arg = this.#checks;
 						const args2: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtList(arg, f, rt.fmtBool)];
-						const _100: string = rt.fmtFormat(["wakers ", args2[0]]);
-						Guard.note(this.#guard, _100);
+						const _88: string = rt.fmtFormat(["wakers ", args2[0]]);
+						Guard.note(this.#guard, _88);
 						lib_drop$tuple4_task_Waker_task_Waker_task_Waker_task_Waker([this.#a, this.#b, this.#other, this.#plain] as [rt.Waker, rt.Waker, rt.Waker, rt.Waker]);
 						this.#last = undefined as [rt.Place<undefined>, rt.WakerVTable] | undefined;
 						this.#total = 0;
-						bb0 = 65;
+						bb0 = 57;
 						continue;
 					}
 					if (this.#state === 1) {
 						rt.asyncFnResumed();
 					} else {
-						bb0 = 70;
+						bb0 = 62;
 						continue;
 					}
-				case 65:
+				case 57:
 					this.#pinned = new recvFuture$kio_Consumer(this.#rx);
 					this.#next = this.#pinned;
-					const _147: rt.Waker = this.#noop;
+					const _132: rt.Waker = this.#noop;
 					this.#awaitee = new rt.PollFn((cx: rt.Context): rt.Poll<rt.u64 | undefined> => {
 						const waker: rt.Waker = cx;
-						const _89: [rt.Place<undefined>, rt.WakerVTable] | undefined = [waker.data as rt.Place<undefined>, waker.vtable];
-						const same: boolean = rt.eqOption(rt.eqTuple([rt.same, rt.same]))(this.#last, _89);
+						const _83: [rt.Place<undefined>, rt.WakerVTable] | undefined = [waker.data as rt.Place<undefined>, waker.vtable];
+						const same: boolean = rt.eqOption(rt.eqTuple([rt.same, rt.same]))(this.#last, _83);
 						this.#last = [waker.data as rt.Place<undefined>, waker.vtable] as [rt.Place<undefined>, rt.WakerVTable];
 						return run$task_Poll_Option_u64_futures_wakers_closure0_closure1_closure0(waker, (): rt.Poll<rt.u64 | undefined> => {
 							const clone: rt.Waker = waker.clone();
 							const lent: rt.Context = clone;
-							const inner: [boolean, boolean] = run$tuple2_bool_bool_futures_wakers_closure0_closure1_closure0_closure0(_147, (): [boolean, boolean] => {
-								return [polling(_147), polling(waker)] as [boolean, boolean];
+							const inner: [boolean, boolean] = run$tuple2_bool_bool_futures_wakers_closure0_closure1_closure0_closure0(_132, (): [boolean, boolean] => {
+								return [polling(_132), polling(waker)] as [boolean, boolean];
 							});
 							const _153: boolean = polling(clone);
 							const _183: boolean = rt.willWake(lent, waker);
 							const _222: boolean = polling(waker);
 							const args4: rt.Fmt[] = [(f: rt.Formatter) => rt.fmtBool(same, f), (f: rt.Formatter) => rt.fmtBool(_153, f), (f: rt.Formatter) => rt.fmtBool(_183, f), (f: rt.Formatter) => rt.fmtTuple([(f: rt.Formatter) => rt.fmtBool(inner[0], f), (f: rt.Formatter) => rt.fmtBool(inner[1], f)], f), (f: rt.Formatter) => rt.fmtBool(_222, f)];
-							const _810: string = rt.fmtFormat(["same ", args4[0], " clone ", args4[1], " lent ", args4[2], " inner ", args4[3], " after ", args4[4]]);
-							Guard.note(this.#guard, _810);
+							const _85: string = rt.fmtFormat(["same ", args4[0], " clone ", args4[1], " lent ", args4[2], " inner ", args4[3], " after ", args4[4]]);
+							Guard.note(this.#guard, _85);
 							const _04: rt.Poll<rt.u64 | undefined> = this.#next.poll(cx);
 							clone[Symbol.dispose]();
 							return _04;
 						});
 					});
-					bb0 = 70;
+					bb0 = 62;
 					continue;
-				case 70:
-					const _126: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
-					if (_126 !== rt.Pending) {
-						const value: rt.u64 | undefined = _126;
+				case 62:
+					const _114: rt.Poll<rt.u64 | undefined> = this.#awaitee.poll(_2);
+					if (_114 !== rt.Pending) {
+						const value: rt.u64 | undefined = _114;
 						if (value === undefined) {
-							const _138: rt.u64 = this.#total;
+							const _126: rt.u64 = this.#total;
 							rt.drop(this.#pinned);
 							this.#one[Symbol.dispose]();
 							this.#guard[Symbol.dispose]();
 							this.#rx[Symbol.dispose]();
 							this.#state = 1;
-							return _138;
+							return _126;
 						}
 						this.#total = rt.u64Add(this.#total, value);
 						rt.drop(this.#pinned);
-						bb0 = 65;
+						bb0 = 57;
 						continue;
 					}
 					this.#state = 3;
