@@ -40,13 +40,13 @@ permissions:
 
 jobs:
   # The build runs in queue-build.yml so its runner group can admit that
-  # workflow alone; see that file. This calls the merge group's own copy until
-  # that file is on main, when the call moves to
-  # moq-dev/rust2/.github/workflows/queue-build.yml@main.
+  # workflow alone; see that file. It calls main's copy, not the merge group's,
+  # since the group admits that workflow only at refs/heads/main: a PR's edit to
+  # queue-build.yml runs only after it lands.
   build:
     name: Queue build
     if: github.event_name == 'merge_group'
-    uses: ./.github/workflows/queue-build.yml
+    uses: moq-dev/rust2/.github/workflows/queue-build.yml@main
 
   # The required context. A reusable workflow's jobs report as
   # `Queue build / Build`, so this job reports the build's result under the
