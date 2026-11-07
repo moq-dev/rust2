@@ -51,4 +51,3 @@ memory model for values whose address is reinterpreted, without a consumer.
 - [rust2-ts with no ts.toml](/quest/m3/ts-configless.md) - a crate's whole `pub` API translates with no config and no bound items
 - [A slice of one byte's place](/quest/m3/ts-byte-slice-place.md) - `slice::from_mut` of a `&mut u8` writes the byte where the caller holds it
 - [Browser APIs through wasm-bindgen](/quest/m3/ts-wasm-bindgen/README.md) - web-sys and js-sys imports become direct JS calls, so idiomatic crates such as web-rs's web-codecs translate as stock crates
-- [Fields typed by an associated type](/quest/m3/ts-assoc-type-fields.md) - a generic struct's field of `<T as Trait>::Item` translates at each instance

@@ -50,6 +50,28 @@ export function map$0ggarad(self: rs.u8 | undefined, f: (a0: rs.u8) => rs.Vec<Ti
 	return f(self);
 }
 
+export function map$132wgz4(self: rs.u8 | undefined, f: (a0: rs.u8) => boolean): boolean | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
+export function map$0ydco3f(self: rs.u8 | undefined, f: (a0: rs.u8) => rs.u16): rs.u16 | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
+export function map$057a36e(self: rs.u8 | undefined, f: (a0: rs.u8) => undefined): undefined | rs.None {
+	if (self === undefined) {
+		return rs.None;
+	}
+	f(self);
+	return undefined;
+}
+
 export function map$0600mq0(self: Dir.Dir | undefined, f: (a0: Dir.Dir) => Shape.Shape): Shape.Shape | undefined {
 	if (self === undefined) {
 		return undefined;

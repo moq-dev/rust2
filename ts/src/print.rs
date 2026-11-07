@@ -354,6 +354,7 @@ impl Refs {
 				self.ty(program, ret);
 			}
 			Type::Object(fields) => fields.iter().for_each(|(_, t)| self.ty(program, t)),
+			Type::Later(_) => unreachable!("unfilled projection arguments"),
 		}
 	}
 
@@ -1159,6 +1160,7 @@ impl Printer<'_> {
 					.collect();
 				format!("{{ {} }}", parts.join("; "))
 			}
+			Type::Later(_) => unreachable!("unfilled projection arguments"),
 		}
 	}
 

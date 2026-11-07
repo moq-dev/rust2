@@ -686,6 +686,9 @@ pub enum Type {
 	StrLit(String),
 	/// An object type; a `Some` key is a class field.
 	Object(Vec<(String, Type)>),
+	/// In a generic type's arguments, the projection arguments of an instance of a type
+	/// whose definition is still being typed, which [`Type::fill`] splices in once it is.
+	Later(usize),
 }
 
 impl Type {
@@ -699,7 +702,7 @@ impl Type {
 	pub fn takes(&self, f: &impl Fn(&Type) -> bool) -> bool {
 		match self {
 			Type::Func(params, ret) => params.iter().any(|t| t.any(f)) || ret.takes(f),
-			Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) => false,
+			Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) | Type::Later(_) => false,
 			Type::Rs(_, tys) | Type::Sym(_, tys) if !f(self) => tys.iter().any(|t| t.any(f)),
 			Type::Rs(_, tys) | Type::Sym(_, tys) | Type::Union(tys) | Type::Tuple(tys) => {
 				tys.iter().any(|t| t.takes(f))
@@ -714,7 +717,7 @@ impl Type {
 		let all = |tys: &[Type]| tys.iter().map(|t| t.subst(f)).collect();
 		match self {
 			Type::Param(name) => f(name).unwrap_or_else(|| self.clone()),
-			Type::Builtin(_) | Type::StrLit(_) => self.clone(),
+			Type::Builtin(_) | Type::StrLit(_) | Type::Later(_) => self.clone(),
 			Type::Rs(name, tys) => Type::Rs(name, all(tys)),
 			Type::Sym(sym, tys) => Type::Sym(*sym, all(tys)),
 			Type::Union(tys) => Type::Union(all(tys)),
@@ -729,7 +732,7 @@ impl Type {
 	pub fn any(&self, f: &impl Fn(&Type) -> bool) -> bool {
 		f(self)
 			|| match self {
-				Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) => false,
+				Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) | Type::Later(_) => false,
 				Type::Rs(_, tys) | Type::Sym(_, tys) | Type::Union(tys) | Type::Tuple(tys) => {
 					tys.iter().any(|t| t.any(f))
 				}
@@ -737,6 +740,49 @@ impl Type {
 				Type::Func(tys, ret) => ret.any(f) || tys.iter().any(|t| t.any(f)),
 				Type::Object(fields) => fields.iter().any(|(_, t)| t.any(f)),
 			}
+	}
+
+	/// It with each [`Type::Later`] replaced by the arguments `later` gives it, or `None`
+	/// if one reaches itself.
+	pub fn fill(&mut self, later: &impl Fn(usize) -> Vec<Type>) -> Option<()> {
+		self.fill_from(later, &mut Vec::new())
+	}
+
+	fn fill_from(&mut self, later: &impl Fn(usize) -> Vec<Type>, open: &mut Vec<usize>) -> Option<()> {
+		match self {
+			Type::Param(_) | Type::Builtin(_) | Type::StrLit(_) => Some(()),
+			Type::Later(_) => unreachable!("projection arguments outside a generic type's arguments"),
+			Type::Rs(_, tys) | Type::Union(tys) | Type::Tuple(tys) => {
+				tys.iter_mut().try_for_each(|t| t.fill_from(later, open))
+			}
+			Type::Sym(_, tys) => {
+				let mut filled = Vec::with_capacity(tys.len());
+				for mut t in std::mem::take(tys) {
+					let Type::Later(id) = t else {
+						t.fill_from(later, open)?;
+						filled.push(t);
+						continue;
+					};
+					if open.contains(&id) {
+						return None;
+					}
+					open.push(id);
+					for mut t in later(id) {
+						t.fill_from(later, open)?;
+						filled.push(t);
+					}
+					open.pop();
+				}
+				*tys = filled;
+				Some(())
+			}
+			Type::Array(t) => t.fill_from(later, open),
+			Type::Func(tys, ret) => {
+				tys.iter_mut().try_for_each(|t| t.fill_from(later, open))?;
+				ret.fill_from(later, open)
+			}
+			Type::Object(fields) => fields.iter_mut().try_for_each(|(_, t)| t.fill_from(later, open)),
+		}
 	}
 }
 

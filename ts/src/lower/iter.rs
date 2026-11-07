@@ -44,7 +44,7 @@ impl<'tcx> Translator<'_, 'tcx> {
 		let tcx = self.tcx;
 		let (_, item) = trait_items(tcx)?;
 		let projection = Ty::new_projection(tcx, ty::IsRigid::No, item, [ty]);
-		let env = self.defining.unwrap_or(self.typing_env_pub());
+		let env = self.defining.map_or(self.typing_env_pub(), |(_, env)| env);
 		tcx.try_normalize_erasing_regions(env, ty::Unnormalized::new_wip(projection))
 			.ok()
 	}

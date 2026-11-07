@@ -1015,11 +1015,15 @@ fn union(a: &[u128], b: &[u128]) -> Vec<u128> {
 }
 
 /// Whether a value of `ty` can change what it points at: it is or holds a `&mut` or a
-/// `*mut`, or hides what it holds.
+/// `*mut`, or hides what it holds, as a type whose fields hold ever deeper instances, past
+/// the crate's recursion limit, may.
 fn lends<'tcx>(tcx: TyCtxt<'tcx>, crates: &Crates<'tcx>, ty: Ty<'tcx>) -> bool {
 	let mut seen = FxHashSet::default();
-	let mut stack = vec![ty];
-	while let Some(ty) = stack.pop() {
+	let mut stack = vec![(ty, 0)];
+	while let Some((ty, depth)) = stack.pop() {
+		if depth > tcx.recursion_limit().0 {
+			return true;
+		}
 		for t in ty.walk().filter_map(|arg| arg.as_type()) {
 			match t.kind() {
 				ty::Ref(_, _, ty::Mutability::Mut)
@@ -1028,7 +1032,10 @@ fn lends<'tcx>(tcx: TyCtxt<'tcx>, crates: &Crates<'tcx>, ty: Ty<'tcx>) -> bool {
 				| ty::Alias(..)
 				| ty::Param(_) => return true,
 				ty::Adt(adt, args) if crates.translates(adt.did()) && seen.insert(t) => {
-					stack.extend(adt.all_fields().map(|field| field.ty(tcx, args).skip_norm_wip()));
+					stack.extend(
+						adt.all_fields()
+							.map(|field| (field.ty(tcx, args).skip_norm_wip(), depth + 1)),
+					);
 				}
 				_ => {}
 			}

@@ -3494,10 +3494,13 @@ impl<'tcx> Translator<'_, 'tcx> {
 
 	/// Whether `f` holds for any type a value of `ty` holds: its type arguments, which are
 	/// what std's types hold, and the fields of the crate's own types, normalized in `env`.
+	/// Fields nested past the crate's recursion limit, as a type whose fields hold it at
+	/// ever deeper arguments nests them, may hold anything.
 	pub(crate) fn reaches(&self, env: TypingEnv<'tcx>, ty: Ty<'tcx>, mut f: impl FnMut(Ty<'tcx>) -> bool) -> bool {
+		let limit = self.tcx.recursion_limit().0;
 		let mut seen = FxHashSet::default();
-		let mut stack = vec![ty];
-		while let Some(ty) = stack.pop() {
+		let mut stack = vec![(ty, 0)];
+		while let Some((ty, depth)) = stack.pop() {
 			for t in ty.walk().filter_map(|arg| arg.as_type()) {
 				if f(t) {
 					return true;
@@ -3506,7 +3509,13 @@ impl<'tcx> Translator<'_, 'tcx> {
 					&& self.own(adt.did())
 					&& seen.insert(t)
 				{
-					stack.extend(adt.all_fields().map(|field| field_ty(self.tcx, env, field.did, args)));
+					if depth >= limit {
+						return true;
+					}
+					stack.extend(
+						adt.all_fields()
+							.map(|field| (field_ty(self.tcx, env, field.did, args), depth + 1)),
+					);
 				}
 			}
 		}
