@@ -64,14 +64,13 @@ construct still open at `b3df54b6c`, all in m3:
   [#568](https://github.com/moq-dev/rust2/pull/568). `bytes`' `Buf::get_u16` and wider
   map to the runtime since [#447](https://github.com/moq-dev/rust2/pull/447).
 
-Census at the moq pin on 2026-11-06: model 82, kio 76, moq-net 409 refusals.
+Census at the moq pin on 2026-11-07: model 45, kio 72, moq-net 347 refusals.
 
 Public API: the translator's output.
 
 ## Required
 
 - [A Vec's spare capacity](/quest/m3/ts-unsafe/vec-spare-capacity.md) - writes through `as_mut_ptr` past the length, committed by `set_len`, translate for any `Vec<T>`
-- [A raw pointer behind a reference](/quest/m3/ts-unsafe/raw-behind-ref.md) - `&raw const *r` of a value JS copies points where the reference came from
 - [Vec::from_raw_parts of a typed allocation](/quest/m3/ts-unsafe/vec-from-raw-parts.md) - a `Vec` adopts an `alloc`ed array of `T`s, with its length, capacity, and drops
 - [Unions over a type parameter](/quest/m3/ts-unsafe/generic-unions.md) - each instance of a generic union is laid out with its own offsets
 - [Vec::drain from std's MIR](/quest/m3/ts-unsafe/vec-drain-mir.md) - std's `Drain` translates, replacing the runtime's port

@@ -70,114 +70,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			// A bounds check of a `&mut` slice reads its length through a raw pointer that
 			// only `PtrMetadata` reads, which reads the slice's.
 			Rvalue::RawPtr(mir::RawPtrKind::FakeForPtrMetadata, place) => self.place_expr(*place, span, out),
-			Rvalue::RawPtr(_, place) => {
-				if self.union_whole(*place, span).is_some() {
-					return Some(self.err(span, "a pointer to a union's field kept in more than one slot"));
-				}
-				if let Some(why) = self.out_of_step(*place, false) {
-					return Some(self.err(span, why));
-				}
-				let pointee = place.ty(&self.mir.local_decls, tcx).ty;
-				match self.b.t.pointee(pointee) {
-					Pointee::Object => self.place_expr(*place, span, out),
-					// `&raw mut *p` of a raw pointer is `p`; of a reference, the slice's start and
-					// length.
-					Pointee::Slice => match place.projection.as_slice() {
-						[rest @ .., mir::ProjectionElem::Deref]
-							if Place::ty_from(place.local, rest, &self.mir.local_decls, tcx)
-								.ty
-								.is_raw_ptr() =>
-						{
-							let base = Place {
-								local: place.local,
-								projection: tcx.mk_place_elems(rest),
-							};
-							self.place_expr(base, span, out)
-						}
-						_ => {
-							let value = self.place_expr(*place, span, out);
-							match crate::lower::pointer::slice_of_bytes(pointee) {
-								true => Expr::rs("rawByteSliceOf", vec![value]),
-								false => Expr::rs("rawSliceOf", vec![value]),
-							}
-						}
-					},
-					// A slice of all of an array, as a borrow of it is.
-					Pointee::Array => {
-						if let Some(e) = self.array_subslice(mir::BorrowKind::Shared, *place, span, out) {
-							return Some(e);
-						}
-						let value = self.place_expr(*place, span, out);
-						match self.in_array(*place) {
-							true => value,
-							false => self.b.t.array_rs(pointee, "From").call(vec![value]),
-						}
-					}
-					// `&raw mut *p` is `p`. A pointer to `()` is an identity, which only another
-					// pointer is: not the `rs.Place` of a place or of a `&mut`, each borrow's own.
-					Pointee::Place => match place.projection.as_slice() {
-						[rest @ .., mir::ProjectionElem::Deref]
-							if !self.box_pointer(place.local) && {
-								let base = Place::ty_from(place.local, rest, &self.mir.local_decls, tcx).ty;
-								match self.b.t.identity_pointee(pointee) {
-									true => base.is_raw_ptr(),
-									false => self.b.t.place_pointee(base).is_some(),
-								}
-							} =>
-						{
-							let base = Place {
-								local: place.local,
-								projection: tcx.mk_place_elems(rest),
-							};
-							self.place_expr(base, span, out)
-						}
-						// A reference to an `Arc`'s value, which is that value's one place.
-						[mir::ProjectionElem::Deref]
-							if let Some(p) = self.arc_raw(&Operand::Copy(Place::from(place.local)), span, out) =>
-						{
-							p
-						}
-						_ if self.b.t.identity_pointee(pointee) => self.err(
-							span,
-							"a raw pointer to a place of `()`, which has no address of its own",
-						),
-						// A reference to an object is the object, not the place holding it.
-						[.., mir::ProjectionElem::Deref] if !self.box_pointer(place.local) => self.err(
-							span,
-							format!(
-								"a raw pointer to `{pointee}` behind a reference, which is the object and not where it is kept"
-							),
-						),
-						// A pointer to an element is where it is in its array, which pointer
-						// arithmetic moves within.
-						[
-							array @ ..,
-							mir::ProjectionElem::Index(_) | mir::ProjectionElem::ConstantIndex { .. },
-						] => {
-							// It points into the array, which must stay where it is.
-							let array = Place {
-								local: place.local,
-								projection: tcx.mk_place_elems(array),
-							};
-							if let Some(why) = self.out_of_step(array, false) {
-								return Some(self.err(span, why));
-							}
-							let target = self.place_expr(*place, span, out);
-							let target = self.stable_target(*place, target, span, out);
-							match target.unlocated() {
-								Expr::Index(array, index) => {
-									Expr::rs("arrayAsPtr", vec![*array.clone(), *index.clone()])
-								}
-								_ => self.place_of(target, None),
-							}
-						}
-						_ => {
-							let target = self.place_expr(*place, span, out);
-							self.make_place(*place, target, span, out)
-						}
-					},
-				}
-			}
+			Rvalue::RawPtr(_, place) => self.raw_pointer(*place, span, out),
 			Rvalue::Reborrow(..) => self.err(span, "reborrowing a type by its `Reborrow` impl is not supported"),
 			Rvalue::ThreadLocalRef(_) => self.err(span, "thread locals are not supported"),
 			Rvalue::WrapUnsafeBinder(..) => self.err(span, "unsafe binders are not supported"),
@@ -260,6 +153,236 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			}
 			Rvalue::Aggregate(kind, ops) => self.aggregate(kind, ops, ty, dest, span, out)?,
 		})
+	}
+
+	/// A raw pointer to `place`.
+	pub(super) fn raw_pointer(&mut self, place: Place<'tcx>, span: Span, out: &mut Vec<Stmt>) -> Expr {
+		let tcx = self.tcx;
+		if self.union_whole(place, span).is_some() {
+			return self.err(span, "a pointer to a union's field kept in more than one slot");
+		}
+		if let Some(why) = self.out_of_step(place, false) {
+			return self.err(span, why);
+		}
+		let pointee = place.ty(&self.mir.local_decls, tcx).ty;
+		match self.b.t.pointee(pointee) {
+			Pointee::Object => self.place_expr(place, span, out),
+			// `&raw mut *p` of a raw pointer is `p`; of a reference, the slice's start and
+			// length.
+			Pointee::Slice => match place.projection.as_slice() {
+				[rest @ .., mir::ProjectionElem::Deref]
+					if Place::ty_from(place.local, rest, &self.mir.local_decls, tcx)
+						.ty
+						.is_raw_ptr() =>
+				{
+					let base = Place {
+						local: place.local,
+						projection: tcx.mk_place_elems(rest),
+					};
+					self.place_expr(base, span, out)
+				}
+				_ => {
+					let value = self.place_expr(place, span, out);
+					match crate::lower::pointer::slice_of_bytes(pointee) {
+						true => Expr::rs("rawByteSliceOf", vec![value]),
+						false => Expr::rs("rawSliceOf", vec![value]),
+					}
+				}
+			},
+			// A slice of all of an array, as a borrow of it is.
+			Pointee::Array => {
+				if let Some(e) = self.array_subslice(mir::BorrowKind::Shared, place, span, out) {
+					return e;
+				}
+				let value = self.place_expr(place, span, out);
+				match self.in_array(place) {
+					true => value,
+					false => self.b.t.array_rs(pointee, "From").call(vec![value]),
+				}
+			}
+			// `&raw mut *p` is `p`. A pointer to `()` is an identity, which only another
+			// pointer is: not the `rs.Place` of a place or of a `&mut`, each borrow's own.
+			Pointee::Place => match place.projection.as_slice() {
+				[rest @ .., mir::ProjectionElem::Deref]
+					if !self.box_pointer(place.local) && {
+						let base = Place::ty_from(place.local, rest, &self.mir.local_decls, tcx).ty;
+						match self.b.t.identity_pointee(pointee) {
+							true => base.is_raw_ptr(),
+							false => self.b.t.place_pointee(base).is_some(),
+						}
+					} =>
+				{
+					let base = Place {
+						local: place.local,
+						projection: tcx.mk_place_elems(rest),
+					};
+					let borrowed = match Place::ty_from(place.local, rest, &self.mir.local_decls, tcx)
+						.ty
+						.is_ref()
+					{
+						true => self.borrowed_pointer(base, span, out),
+						false => None,
+					};
+					match borrowed {
+						Some(p) => p,
+						None => self.place_expr(base, span, out),
+					}
+				}
+				// A reference to an `Arc`'s value, which is that value's one place.
+				[mir::ProjectionElem::Deref]
+					if let Some(p) = self.arc_raw(&Operand::Copy(Place::from(place.local)), span, out) =>
+				{
+					p
+				}
+				_ if self.b.t.identity_pointee(pointee) => self.err(
+					span,
+					"a raw pointer to a place of `()`, which has no address of its own",
+				),
+				// A reference to an object is the object, not the place holding it.
+				// A reference to an object is the object, not the place holding it.
+				[rest @ .., mir::ProjectionElem::Deref] if !self.box_pointer(place.local) => {
+					let reference = Place {
+						local: place.local,
+						projection: tcx.mk_place_elems(rest),
+					};
+					self.behind_reference(reference, span, out)
+				}
+				// A pointer to an element is where it is in its array, which pointer
+				// arithmetic moves within.
+				[
+					array @ ..,
+					mir::ProjectionElem::Index(_) | mir::ProjectionElem::ConstantIndex { .. },
+				] => {
+					// It points into the array, which must stay where it is.
+					let array = Place {
+						local: place.local,
+						projection: tcx.mk_place_elems(array),
+					};
+					if let Some(why) = self.out_of_step(array, false) {
+						return self.err(span, why);
+					}
+					let target = self.place_expr(place, span, out);
+					let target = self.stable_target(place, target, span, out);
+					match target.unlocated() {
+						Expr::Index(array, index) => Expr::rs("arrayAsPtr", vec![*array.clone(), *index.clone()]),
+						_ => self.place_of(target, None),
+					}
+				}
+				_ => {
+					let target = self.place_expr(place, span, out);
+					self.make_place(place, target, span, out)
+				}
+			},
+		}
+	}
+
+	/// A raw pointer to what the reference `r` points at, a value whose pointer is an
+	/// `rs.Place`, where `r` is no `rs.Place` itself but the value: the place the body shows
+	/// `r` borrowed, as [`Self::borrowed_pointer`] finds it. Otherwise it is a place of its
+	/// own, as `ptr::from_ref` makes: of the value, where `r` is shared and nothing may write
+	/// a whole value through the pointer, and else writing a whole value into the object `r`
+	/// is in place, as `*r = v` does.
+	pub(super) fn behind_reference(&mut self, r: Place<'tcx>, span: Span, out: &mut Vec<Stmt>) -> Expr {
+		let tcx = self.tcx;
+		if let Some(p) = self.borrowed_pointer(r, span, out) {
+			return p;
+		}
+		let pointee = tcx.mk_place_deref(r);
+		let ty = pointee.ty(&self.mir.local_decls, tcx).ty;
+		let shared = matches!(
+			r.ty(&self.mir.local_decls, tcx).ty.kind(),
+			ty::Ref(_, _, rustc_ast::Mutability::Not)
+		);
+		// Through a shared reference, a whole write is undefined unless every byte of the
+		// value is in an `UnsafeCell`, as no tag or niche of a layout's variants is.
+		let env = self.b.t.typing_env_pub();
+		let tagged = tcx
+			.layout_of(env.as_query_input(ty))
+			.is_ok_and(|layout| matches!(layout.variants, rustc_abi::Variants::Multiple { .. }));
+		let value = self.place_expr(pointee, span, out);
+		if shared && (tagged || ty.is_freeze(tcx, env)) {
+			return Expr::Object(vec![(Key::Name("v".into()), value)]);
+		}
+		let target = self.b.spill(value, "target", out);
+		let written = self.b.fresh("value");
+		let Some(write) = self.write_into(target.clone(), Expr::ident(&written), ty) else {
+			return self.err(
+				span,
+				format!("a raw pointer to `{ty}` behind a reference, which JS can't write a whole value into in place"),
+			);
+		};
+		let get = Expr::Lambda(Vec::new(), Box::new(target));
+		let set = Expr::Lambda(
+			vec![Param {
+				name: written,
+				ty: None,
+			}],
+			Box::new(write),
+		);
+		Expr::rs("place", vec![get, set])
+	}
+
+	/// The raw pointer to the place the body shows the reference `r` borrowed, if it does:
+	/// the place an alias of a borrow stands for, the element an index lends, or where the
+	/// raw pointer `r` reborrows what it points at from points.
+	fn borrowed_pointer(&mut self, r: Place<'tcx>, span: Span, out: &mut Vec<Stmt>) -> Option<Expr> {
+		let pointee = self.tcx.mk_place_deref(r);
+		let borrowed = self.through_aliases(pointee);
+		if borrowed != pointee {
+			return Some(self.raw_pointer(borrowed, span, out));
+		}
+		if let Some((array, index)) = self.indexed(r) {
+			return Some(Expr::rs("arrayAsPtr", vec![array, index]));
+		}
+		let p = self.reborrowed_pointer(r)?;
+		Some(self.place_expr(p, span, out))
+	}
+
+	/// Whether a raw pointer to `pointee`, made from the reference `r`, is what
+	/// [`Self::behind_reference`] makes: one to a value whose pointer is an `rs.Place`, which
+	/// `r` is not.
+	pub(super) fn behind_place(&self, r: Place<'tcx>, pointee: Ty<'tcx>) -> bool {
+		let ty = r.ty(&self.mir.local_decls, self.tcx).ty;
+		let t = &self.b.t;
+		ty.is_ref()
+			&& t.place_pointee(ty).is_none()
+			&& t.pointee(pointee) == Pointee::Place
+			&& !t.identity_pointee(pointee)
+			&& !t.zero_sized(pointee)
+	}
+
+	/// The array and index of the element the reference `r` is an alias of, as indexing a
+	/// slice, an array, or a `Vec` by a number makes one.
+	pub(super) fn indexed(&self, r: Place<'tcx>) -> Option<(Expr, Expr)> {
+		let local = r.as_local()?;
+		if self.def_rvalue(local).is_some() {
+			return None;
+		}
+		let Slot::Alias(Some(target)) = &self.slots[local] else {
+			return None;
+		};
+		let Expr::Index(array, index) = target.unlocated() else {
+			return None;
+		};
+		Some((*array.clone(), *index.clone()))
+	}
+
+	/// The raw pointer whose pointee the reference `r` borrows, if the body shows it: `r` is
+	/// `&*p` or `&mut *p`, each of which it assigns once, so `p` still points there.
+	pub(super) fn reborrowed_pointer(&self, r: Place<'tcx>) -> Option<Place<'tcx>> {
+		let Rvalue::Ref(_, _, p) = self.def_rvalue(self.traced(&Operand::Copy(r))?)? else {
+			return None;
+		};
+		let [mir::ProjectionElem::Deref] = p.projection.as_slice() else {
+			return None;
+		};
+		let pointer = Place::from(p.local);
+		let fixed = match self.is_arg(p.local) {
+			true => self.defs[p.local] == 0,
+			false => self.traced(&Operand::Copy(pointer)).is_some(),
+		};
+		let raw = self.mir.local_decls[p.local].ty.is_raw_ptr() && !self.box_pointer(p.local);
+		(raw && fixed && !self.borrowed[p.local]).then_some(pointer)
 	}
 
 	/// An unsigned integer of at most 32 bits, as a `u32`.

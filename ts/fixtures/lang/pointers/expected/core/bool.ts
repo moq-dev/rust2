@@ -3,6 +3,20 @@
 import * as rs from "../rs.ts";
 import type * as Spot from "../pointers.Spot.ts";
 
+export function thenSome$1gvhopg(self: boolean, t: rs.u16): rs.u16 | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return t;
+}
+
+export function then$01qpu7s(self: boolean, f: () => rs.Cell<rs.u32>): rs.Cell<rs.u32> | undefined {
+	if (!self) {
+		return undefined;
+	}
+	return f();
+}
+
 export function then$0bgt67i(self: boolean, f: () => rs.Weak<rs.ByteSlice>): rs.Weak<rs.ByteSlice> | undefined {
 	if (!self) {
 		return undefined;

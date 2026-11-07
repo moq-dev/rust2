@@ -2,14 +2,15 @@
 
 import * as rs from "./rs.ts";
 import { copy$Option_pointers_Pair, copy$Option_tuple2_u16_u8, copy$array_array2_u32, copy$array_ptr_array4_u8, copy$array_u16, copy$array_u32, copy$array_u8, copy$mem_MaybeUninit_array_u32, copy$mem_MaybeUninit_array_u8, copy$mem_MaybeUninit_tuple2_u8_u8, copy$pointers_Aimed_Cell_u8, copy$pointers_Aimed_array2_u16, copy$pointers_Aimed_array4_u8, copy$pointers_Aimed_pointers_Housed_u8, copy$pointers_Aimed_pointers_Leaning, copy$pointers_Aimed_pointers_Paired, copy$pointers_Aimed_u8, copy$pointers_ByCall, copy$pointers_ByClosure, copy$pointers_ByObject, copy$pointers_Duo, copy$pointers_Halves, copy$pointers_Outer, copy$pointers_Pair, copy$pointers_Spot, copy$pointers_Twin, copy$tuple2_array2_u32_u8, copy$tuple2_u16_u8, copy$tuple2_u32_u32, copy$tuple2_u8_u8, drop$pointers_List_String, drop$pointers_List_sync_Arc_u8, drop$tuple2_sync_Arc_pointers_Twin_Rc_pointers_Twin, drop$tuple3_sync_Arc_u32_Rc_pointers_Duo_sync_Arc_unit, drop$tuple4_sync_Arc_pointers_Twin_sync_Arc_pointers_Twin_Rc_pointers_Twin_Rc_pointers_Twin, of$pointers_Bin_pointers_ByObject } from "./lib.ts";
-import { then$0bgt67i, then$1a5xgoh, then$0jw3xip } from "./core/bool.ts";
-import { isSomeAnd$1s2u5lz, isSomeAnd$1nosv3e, isSomeAnd$07atiew, unwrapOr$0mkoact as option_unwrapOr$0mkoact, unwrapOr$179xo1w as option_unwrapOr$179xo1w, unwrapOr$1fr498u as option_unwrapOr$1fr498u, map$1cfrse5 as option_map$1cfrse5, mapOr$078vnqn as option_mapOr$078vnqn, mapOr$00zno7m as option_mapOr$00zno7m, mapOr$173j2gr as option_mapOr$173j2gr, filter$0wvwd70 } from "./core/option.ts";
+import { thenSome$1gvhopg, then$01qpu7s, then$0bgt67i, then$1a5xgoh, then$0jw3xip } from "./core/bool.ts";
+import { isSomeAnd$1s2u5lz, isSomeAnd$1nosv3e, isSomeAnd$07atiew, unwrapOr$0mkoact as option_unwrapOr$0mkoact, unwrapOr$179xo1w as option_unwrapOr$179xo1w, unwrapOr$1fr498u as option_unwrapOr$1fr498u, map$1cfrse5 as option_map$1cfrse5, mapOr$078vnqn as option_mapOr$078vnqn, mapOr$00zno7m as option_mapOr$00zno7m, mapOr$173j2gr as option_mapOr$173j2gr, mapOr$0smr0aj as option_mapOr$0smr0aj, filter$0wvwd70 } from "./core/option.ts";
 import type * as Aimed from "./pointers.Aimed.ts";
 import * as Bin from "./pointers.Bin.ts";
 import type * as ByCall from "./pointers.ByCall.ts";
 import * as ByClosure from "./pointers.ByClosure.ts";
 import type * as ByObject from "./pointers.ByObject.ts";
 import * as Counted from "./pointers.Counted.ts";
+import * as Drained from "./pointers.Drained.ts";
 import type * as Duo from "./pointers.Duo.ts";
 import type * as Enclosed from "./pointers.Enclosed.ts";
 import type * as Gauge from "./pointers.Gauge.ts";
@@ -2978,6 +2979,320 @@ export function lent(n: rs.u8): rs.ByteVec {
 	rc2[Symbol.dispose]();
 	rc[Symbol.dispose]();
 	return o;
+}
+
+/** `v`'s elements, read out from both ends as `bits` picks, which nothing drops in `v`. */
+export function drained$Option_u16(v: rs.Vec<rs.u16 | undefined>, bits: rs.u8): rs.Vec<rs.u16 | undefined> {
+	let next!: rs.u16 | undefined | rs.None;
+	const iter: Drained.Drained<rs.u16 | undefined> = { iter: rs.iterSlice(v.items) as rs.Iter<rs.Ptr<rs.u16 | undefined>> };
+	const out: rs.Vec<rs.u16 | undefined> = new rs.Vec();
+	let i: rs.i32 = 0;
+	while (true) {
+		if ((rs.u8Shr(bits, rs.i32Rem(i, 8)) & 1) === 0) {
+			next = rs.iterToOption(Drained.next$iter_Iterator_Option_u16(iter), rs.None);
+		} else {
+			next = Drained.nextBack$iter_DoubleEndedIterator_Option_u16(iter);
+		}
+		if (next !== rs.None) {
+			out.items.push(next);
+			i = rs.i32Add(i, 1);
+		} else {
+			return out;
+		}
+	}
+}
+
+/** `v`'s elements, read out from both ends as `bits` picks, which nothing drops in `v`. */
+export function drained$String(v: rs.Vec<string>, bits: rs.u8): rs.Vec<string> {
+	let next!: string | undefined;
+	const iter: Drained.Drained<string> = { iter: rs.iterSlice(v.items) as rs.Iter<rs.Ptr<string>> };
+	const out: rs.Vec<string> = new rs.Vec();
+	let i: rs.i32 = 0;
+	while (true) {
+		if ((rs.u8Shr(bits, rs.i32Rem(i, 8)) & 1) === 0) {
+			next = rs.iterToOption(Drained.next$iter_Iterator_String(iter));
+		} else {
+			next = Drained.nextBack$iter_DoubleEndedIterator_String(iter);
+		}
+		if (next !== undefined) {
+			out.items.push(next);
+			i = rs.i32Add(i, 1);
+		} else {
+			return out;
+		}
+	}
+}
+
+/** `v`'s elements, read out from both ends as `bits` picks, which nothing drops in `v`. */
+export function drained$Vec_u8(v: rs.Vec<rs.ByteVec>, bits: rs.u8): rs.Vec<rs.ByteVec> {
+	let next!: rs.ByteVec | undefined;
+	const iter: Drained.Drained<rs.ByteVec> = { iter: rs.iterSlice(v.items) as rs.Iter<rs.Ptr<rs.ByteVec>> };
+	const out: rs.Vec<rs.ByteVec> = new rs.Vec();
+	let i: rs.i32 = 0;
+	while (true) {
+		if ((rs.u8Shr(bits, rs.i32Rem(i, 8)) & 1) === 0) {
+			next = rs.iterToOption(Drained.next$iter_Iterator_Vec_u8(iter));
+		} else {
+			next = Drained.nextBack$iter_DoubleEndedIterator_Vec_u8(iter);
+		}
+		if (next !== undefined) {
+			out.items.push(next);
+			i = rs.i32Add(i, 1);
+		} else {
+			return out;
+		}
+	}
+}
+
+/** `v`'s elements, read out from both ends as `bits` picks, which nothing drops in `v`. */
+export function drained$u32(v: rs.Vec<rs.u32>, bits: rs.u8): rs.Vec<rs.u32> {
+	let next!: rs.u32 | undefined;
+	const iter: Drained.Drained<rs.u32> = { iter: rs.iterSlice(v.items) as rs.Iter<rs.Ptr<rs.u32>> };
+	const out: rs.Vec<rs.u32> = new rs.Vec();
+	let i: rs.i32 = 0;
+	while (true) {
+		if ((rs.u8Shr(bits, rs.i32Rem(i, 8)) & 1) === 0) {
+			next = rs.iterToOption(Drained.next$iter_Iterator_u32(iter));
+		} else {
+			next = Drained.nextBack$iter_DoubleEndedIterator_u32(iter);
+		}
+		if (next !== undefined) {
+			out.items.push(next);
+			i = rs.i32Add(i, 1);
+		} else {
+			return out;
+		}
+	}
+}
+
+/**
+ * What smallvec's `retain` is: each element lent as a `&mut`, which a pointer from it then
+ * drops or moves to the front.
+ */
+export function retained$String_pointers_behind_refs_closure6(v: rs.Vec<string>, keep: (a0: rs.Place<string>) => boolean): void {
+	let _10!: rs.usize;
+	const len: rs.usize = v.items.length;
+	const p: rs.Place<string> = rs.arrayAsPtr(v.items);
+	let write: rs.usize = 0;
+	let iterStart: rs.usize = 0;
+	const iterEnd: rs.usize = len;
+	while ((_10 = iterStart++) < iterEnd) {
+		const _15: rs.Place<string> = rs.ptrAdd(p, _10);
+		if (keep(_15)) {
+			rs.ptrCopy(_15, rs.ptrAdd(p, write), 1);
+			write = rs.usizeAdd(write, 1);
+		}
+	}
+	rs.vecSplitOff(v, write);
+}
+
+/**
+ * What smallvec's `retain` is: each element lent as a `&mut`, which a pointer from it then
+ * drops or moves to the front.
+ */
+export function retained$Vec_u8_pointers_behind_refs_closure8(v: rs.Vec<rs.ByteVec>, keep: (a0: rs.ByteVec) => boolean): void {
+	let _10!: rs.usize;
+	const len: rs.usize = v.items.length;
+	const p: rs.Place<rs.ByteVec> = rs.arrayAsPtr(v.items);
+	let write: rs.usize = 0;
+	let iterStart: rs.usize = 0;
+	const iterEnd: rs.usize = len;
+	while ((_10 = iterStart++) < iterEnd) {
+		const _15: rs.Place<rs.ByteVec> = rs.ptrAdd(p, _10);
+		if (keep(_15.v)) {
+			rs.ptrCopy(_15, rs.ptrAdd(p, write), 1);
+			write = rs.usizeAdd(write, 1);
+		}
+	}
+	rs.vecSplitOff(v, write);
+}
+
+/**
+ * What smallvec's `retain` is: each element lent as a `&mut`, which a pointer from it then
+ * drops or moves to the front.
+ */
+export function retained$u32_pointers_behind_refs_closure4(v: rs.Vec<rs.u32>, keep: (a0: rs.Place<rs.u32>) => boolean): void {
+	let _10!: rs.usize;
+	const len: rs.usize = v.items.length;
+	const p: rs.Place<rs.u32> = rs.arrayAsPtr(v.items);
+	let write: rs.usize = 0;
+	let iterStart: rs.usize = 0;
+	const iterEnd: rs.usize = len;
+	while ((_10 = iterStart++) < iterEnd) {
+		const _15: rs.Place<rs.u32> = rs.ptrAdd(p, _10);
+		if (keep(_15)) {
+			rs.ptrCopy(_15, rs.ptrAdd(p, write), 1);
+			write = rs.usizeAdd(write, 1);
+		}
+	}
+	rs.vecSplitOff(v, write);
+}
+
+/** The length of the `Vec` a pointer from a reference the body is given points at. */
+export function vecLen(v: rs.ByteVec): rs.usize {
+	return { v }.v.length;
+}
+
+/**
+ * `with` written whole through a pointer from a `&mut` the body is given, made each way
+ * std makes one, which its caller's `Vec` holds after.
+ */
+export function refilled(v: rs.ByteVec, with_: rs.ByteVec, how: rs.u8): void {
+	let p!: rs.Place<rs.ByteVec>;
+	const _5: rs.u8 = rs.u8Rem(how, 4);
+	if (_5 === 0) {
+		const target4 = v;
+		p = rs.place(() => target4, (value4) => Object.assign(target4, value4));
+	} else if (_5 === 1) {
+		const target3 = v;
+		p = rs.place(() => target3, (value3) => Object.assign(target3, value3));
+	} else if (_5 === 2) {
+		const target2 = v;
+		p = rs.place(() => target2, (value2) => Object.assign(target2, value2));
+	} else {
+		const target = v;
+		p = rs.place(() => target, (value) => Object.assign(target, value));
+	}
+	p.v = with_;
+	rs.byteVecPush(p.v, how);
+}
+
+/**
+ * The value a pointer from a shared reference the body is given points at, made each way
+ * std makes one.
+ */
+export function behind(r: rs.u32, how: rs.u8): rs.u32 {
+	let p!: rs.Place<rs.u32>;
+	const _4: rs.u8 = rs.u8Rem(how, 3);
+	if (_4 === 0) {
+		p = { v: r };
+	} else if (_4 === 1) {
+		p = { v: r };
+	} else {
+		p = { v: r };
+	}
+	return p.v;
+}
+
+/**
+ * Whether the `Option` a pointer from a shared reference the body is given points at
+ * holds a cell, and the number in it, read through the pointer made each way std makes
+ * one.
+ */
+export function cellBehind(r: rs.Cell<rs.u32> | undefined, how: rs.u8): rs.u32 {
+	let p!: rs.Place<rs.Cell<rs.u32> | undefined>;
+	if (rs.u8Rem(how, 2) === 0) {
+		p = { v: r };
+	} else {
+		p = { v: r };
+	}
+	const _6: rs.Cell<rs.u32> | undefined = p.v;
+	if (_6 === undefined) {
+		return 0;
+	}
+	return rs.u32Add(_6.v, 1);
+}
+
+/**
+ * Raw pointers from references: smallvec's `Drain` and `retain`, over values JS copies, a
+ * library type, and an `Option`; pointers from a reference the body borrowed, which move
+ * within the array it borrowed from; from references the body is given, to a number, to an
+ * `Option` of a cell, and to a `Vec`, read and written whole; and from references to an
+ * `Arc`'s value, measured against each other.
+ */
+export function behindRefs(data: rs.ByteSlice, out: rs.ByteVec): void {
+	let _112!: rs.usize;
+	const bits: rs.u8 = option_unwrapOr$1fr498u(rs.byteSliceFirst(data), 0);
+	const nums: rs.Vec<rs.u32> = rs.iterToVec(rs.iterMap(rs.iterSlice(rs.byteSliceView(data)), (_2: rs.u8): rs.u32 => {
+		return rs.u32Mul(_2 as rs.u32, 3);
+	}), undefined, 4, true);
+	rs.iterExtendBytes(out, rs.iterMap(rs.iterSlice(drained$u32(rs.vecFrom(nums.items.slice()), bits).items), (_23: rs.u32): rs.u8 => {
+		return _23 & 0xff;
+	}), undefined, true);
+	const words: rs.Vec<string> = rs.iterToVec(rs.iterMap(rs.iterSlice(rs.byteSliceView(data)), (b3: rs.u8): string => {
+		return rs.fmtToString((f: rs.Formatter) => rs.u8Display(b3, f));
+	}), undefined, 12, true);
+	for (const _25 of drained$String(rs.vecFrom(words.items.slice()), bits).items) {
+		rs.iterExtendBytes(out, rs.strBytes(_25), undefined, true);
+	}
+	const runs: rs.Vec<rs.ByteVec> = rs.iterToVec(rs.iterMap(rs.byteSliceChunks(data, 3), (a0: rs.ByteSlice): rs.ByteVec => {
+		return rs.byteSliceToByteVec(a0);
+	}), undefined, 12, true);
+	for (const r of drained$Vec_u8(rs.vecFrom(runs.items.map((a02: rs.ByteVec): rs.ByteVec => {
+		return rs.byteVecFrom(rs.byteVecView(a02));
+	})), bits).items) {
+		rs.byteVecPush(out, r.length & 0xff);
+		rs.iterExtendBytes(out, rs.byteVecIntoIter(r), undefined, true);
+	}
+	for (const _56 of drained$Option_u16(rs.iterToVec(rs.iterMap(rs.iterSlice(rs.byteSliceView(data)), (_24: rs.u8): rs.u16 | undefined => {
+		const b4: rs.u8 = _24;
+		return thenSome$1gvhopg(rs.u8Rem(b4, 3) !== 0, b4 as rs.u16);
+	}), undefined, 4, true), bits).items) {
+		rs.iterExtendBytes(out, rs.iterSlice(option_mapOr$0smr0aj(_56, Uint8Array.of(255, 255), (a03: rs.u16): Uint8Array => {
+			return rs.u16ToBeBytes(a03);
+		})), undefined, true);
+	}
+	const nums2: rs.Vec<rs.u32> = nums;
+	retained$u32_pointers_behind_refs_closure4(nums2, (n2: rs.Place<rs.u32>): boolean => {
+		n2.v = rs.u32Add(n2.v, 1);
+		return rs.u32Rem(n2.v, 2) === 0;
+	});
+	rs.iterExtendBytes(out, rs.iterMap(rs.iterSlice(nums2.items), (_26: rs.u32): rs.u8 => {
+		return _26 & 0xff;
+	}), undefined, true);
+	const words2: rs.Vec<string> = words;
+	retained$String_pointers_behind_refs_closure6(words2, (w2: rs.Place<string>): boolean => {
+		w2.v = w2.v + "!";
+		return rs.usizeRem(rs.stringLen(w2.v), 2) === 0;
+	});
+	rs.iterExtendBytes(out, rs.iterFlatMap(rs.iterSlice(words2.items), (w3: string): rs.Iter<rs.u8> => {
+		return rs.strBytes(w3);
+	}, undefined, true), "next");
+	const runs2: rs.Vec<rs.ByteVec> = runs;
+	retained$Vec_u8_pointers_behind_refs_closure8(runs2, (r2: rs.ByteVec): boolean => {
+		rs.byteVecPush(r2, 7);
+		return rs.u8Rem(r2.data[rs.idx(r2, 0)], 2) === 0;
+	});
+	rs.iterExtendBytes(out, rs.iterFlatten(rs.iterSlice(runs2.items), (value: rs.ByteVec) => rs.iterSlice(rs.byteVecView(value)), true), "next");
+	const nums3: rs.Vec<rs.u32> = rs.iterToVec(rs.iterMap(rs.iterSlice(rs.byteSliceView(data)), (_27: rs.u8): rs.u32 => {
+		return _27 as rs.u32;
+	}), undefined, 4, true);
+	if (rs.sliceFrom(nums3.items).length >= 2) {
+		const first: rs.Place<rs.u32> = rs.arrayAsPtr(nums3.items, rs.idx(nums3.items, 0));
+		rs.byteVecPush(out, rs.ptrOffsetFrom(rs.arrayAsPtr(nums3.items, rs.idx(nums3.items, rs.usizeSub(nums3.items.length, 1))), first) & 0xff);
+		const _109: rs.usize = nums3.items.length;
+		let iterStart: rs.usize = 0;
+		const iterEnd: rs.usize = _109;
+		while ((_112 = iterStart++) < iterEnd) {
+			rs.byteVecPush(out, rs.ptrAdd(first, _112).v & 0xff);
+		}
+		rs.byteVecPush(out, rs.ptrAdd(rs.arrayAsPtr(nums3.items, rs.idx(nums3.items, 1)), -1).v & 0xff);
+		rs.ptrAdd(rs.arrayAsPtr(nums3.items, rs.idx(nums3.items, 1)), -1).v = 9;
+		rs.byteVecPush(out, nums3.items[rs.idx(nums3.items, 0)] & 0xff);
+	}
+	const v: rs.ByteVec = rs.byteSliceToByteVec(data);
+	rs.byteVecPush(out, vecLen(v) & 0xff);
+	const _143: rs.ByteVec = rs.iterToByteVec(rs.iterRev(rs.iterSlice(rs.byteSliceView(data))), undefined, true);
+	refilled(v, _143, bits);
+	rs.iterExtendBytes(out, rs.iterSlice(rs.byteVecView(v)), undefined, true);
+	const iter5: rs.Iter<[rs.usize, rs.u8]> = rs.iterEnumerate(rs.iterSlice(rs.byteSliceView(data)));
+	while (true) {
+		const _153: [rs.usize, rs.u8] | rs.Done = iter5.next();
+		if (_153 === rs.DONE) {
+			break;
+		}
+		const i2: rs.usize = _153[0];
+		const b: rs.u8 = _153[1];
+		rs.byteVecPush(out, behind(b as rs.u32, i2 & 0xff) & 0xff);
+		rs.byteVecPush(out, cellBehind(then$01qpu7s(rs.u8Rem(b, 3) !== 0, (): rs.Cell<rs.u32> => {
+			return new rs.Cell(b as rs.u32);
+		}), b) & 0xff);
+	}
+	const arc: rs.Arc<rs.u32> = new rs.Arc(bits as rs.u32);
+	const q: rs.Place<rs.u32> = rs.arcRaw(arc, rs.arcPlace(arc), "Arc");
+	rs.byteVecPush(out, rs.ptrOffsetFrom(rs.arcRaw(arc, rs.arcPlace(arc), "Arc"), q) & 0xff);
+	rs.byteVecPush(out, q.v & 0xff);
+	arc[Symbol.dispose]();
 }
 
 //# sourceMappingURL=pointers.ts.map

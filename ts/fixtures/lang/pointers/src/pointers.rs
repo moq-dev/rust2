@@ -2409,3 +2409,179 @@ fn lent(n: u8) -> Vec<u8> {
 struct Holder {
 	arr: [u32; 2],
 }
+
+/// What smallvec's `Drain` is: the elements of a slice nothing will drop again, each read
+/// out through the reference its iterator lends.
+struct Drained<'a, T> {
+	iter: std::slice::Iter<'a, T>,
+}
+
+impl<T> Iterator for Drained<'_, T> {
+	type Item = T;
+
+	fn next(&mut self) -> Option<T> {
+		self.iter.next().map(|r| unsafe { ptr::read(r) })
+	}
+}
+
+impl<T> DoubleEndedIterator for Drained<'_, T> {
+	fn next_back(&mut self) -> Option<T> {
+		self.iter.next_back().map(|r| unsafe { ptr::read(r) })
+	}
+}
+
+/// `v`'s elements, read out from both ends as `bits` picks, which nothing drops in `v`.
+fn drained<T>(v: Vec<T>, bits: u8) -> Vec<T> {
+	let v = mem::ManuallyDrop::new(v);
+	let mut iter = Drained { iter: v.iter() };
+	let mut out = Vec::new();
+	let mut i = 0;
+	loop {
+		let next = match bits >> (i % 8) & 1 {
+			0 => iter.next(),
+			_ => iter.next_back(),
+		};
+		let Some(next) = next else { break };
+		out.push(next);
+		i += 1;
+	}
+	out
+}
+
+/// What smallvec's `retain` is: each element lent as a `&mut`, which a pointer from it then
+/// drops or moves to the front.
+fn retained<T>(v: &mut Vec<T>, mut keep: impl FnMut(&mut T) -> bool) {
+	let len = v.len();
+	let p = v.as_mut_ptr();
+	let mut write = 0;
+	for read in 0..len {
+		let cur = unsafe { &mut *p.add(read) };
+		if !keep(cur) {
+			unsafe { ptr::drop_in_place(cur) };
+		} else {
+			unsafe { ptr::copy(cur, p.add(write), 1) };
+			write += 1;
+		}
+	}
+	// What `set_len` leaves past the length, which nothing drops again.
+	mem::forget(v.split_off(write));
+}
+
+/// The length of the `Vec` a pointer from a reference the body is given points at.
+fn vec_len(v: &Vec<u8>) -> usize {
+	let p = &raw const *v;
+	unsafe { (*p).len() }
+}
+
+/// `with` written whole through a pointer from a `&mut` the body is given, made each way
+/// std makes one, which its caller's `Vec` holds after.
+fn refilled(v: &mut Vec<u8>, with: Vec<u8>, how: u8) {
+	let p = match how % 4 {
+		0 => v as *mut Vec<u8>,
+		1 => ptr::from_mut(v),
+		2 => NonNull::from(v).as_ptr(),
+		_ => Into::<NonNull<Vec<u8>>>::into(v).as_ptr(),
+	};
+	unsafe { *p = with };
+	unsafe { (*p).push(how) };
+}
+
+/// The value a pointer from a shared reference the body is given points at, made each way
+/// std makes one.
+fn behind(r: &u32, how: u8) -> u32 {
+	let p = match how % 3 {
+		0 => r as *const u32,
+		1 => ptr::from_ref(r),
+		_ => NonNull::from(r).as_ptr(),
+	};
+	unsafe { ptr::read(p) }
+}
+
+/// Whether the `Option` a pointer from a shared reference the body is given points at
+/// holds a cell, and the number in it, read through the pointer made each way std makes
+/// one.
+fn cell_behind(r: &Option<Cell<u32>>, how: u8) -> u32 {
+	let p = match how % 2 {
+		0 => &raw const *r,
+		_ => ptr::from_ref(r),
+	};
+	match unsafe { &*p } {
+		Some(cell) => cell.get() + 1,
+		None => 0,
+	}
+}
+
+/// Raw pointers from references: smallvec's `Drain` and `retain`, over values JS copies, a
+/// library type, and an `Option`; pointers from a reference the body borrowed, which move
+/// within the array it borrowed from; from references the body is given, to a number, to an
+/// `Option` of a cell, and to a `Vec`, read and written whole; and from references to an
+/// `Arc`'s value, measured against each other.
+pub fn behind_refs(data: &[u8], out: &mut Vec<u8>) {
+	let bits = data.first().copied().unwrap_or(0);
+	let nums: Vec<u32> = data.iter().map(|&b| u32::from(b) * 3).collect();
+	out.extend(drained(nums.clone(), bits).iter().map(|&n| n as u8));
+	let words: Vec<String> = data.iter().map(|b| b.to_string()).collect();
+	for w in drained(words.clone(), bits) {
+		out.extend(w.bytes());
+	}
+	let runs: Vec<Vec<u8>> = data.chunks(3).map(<[u8]>::to_vec).collect();
+	for r in drained(runs.clone(), bits) {
+		out.push(r.len() as u8);
+		out.extend(r);
+	}
+	let opts: Vec<Option<u16>> = data.iter().map(|&b| (b % 3 != 0).then_some(u16::from(b))).collect();
+	for o in drained(opts, bits) {
+		out.extend(o.map_or([0xff, 0xff], u16::to_be_bytes));
+	}
+
+	let mut nums = nums;
+	retained(&mut nums, |n| {
+		*n += 1;
+		*n % 2 == 0
+	});
+	out.extend(nums.iter().map(|&n| n as u8));
+	let mut words = words;
+	retained(&mut words, |w| {
+		w.push('!');
+		w.len() % 2 == 0
+	});
+	out.extend(words.iter().flat_map(|w| w.bytes()));
+	let mut runs = runs;
+	retained(&mut runs, |r| {
+		r.push(7);
+		r[0] % 2 == 0
+	});
+	out.extend(runs.iter().flatten());
+
+	// From a reference the body borrowed, where the element is.
+	let mut nums: Vec<u32> = data.iter().map(|&b| u32::from(b)).collect();
+	if let [_, _, ..] = nums[..] {
+		let first = &nums[0] as *const u32;
+		let last = &nums[nums.len() - 1] as *const u32;
+		out.push(unsafe { last.offset_from(first) } as u8);
+		for i in 0..nums.len() {
+			out.push(unsafe { *first.add(i) } as u8);
+		}
+		let second = ptr::from_ref(&nums[1]);
+		out.push(unsafe { *second.sub(1) } as u8);
+		let m = &mut nums[1] as *mut u32;
+		unsafe { *m.sub(1) = 9 };
+		out.push(nums[0] as u8);
+	}
+
+	let mut v = data.to_vec();
+	out.push(vec_len(&v) as u8);
+	refilled(&mut v, data.iter().rev().copied().collect(), bits);
+	out.extend(&v);
+	for (i, &b) in data.iter().enumerate() {
+		out.push(behind(&u32::from(b), i as u8) as u8);
+		let cell = (b % 3 != 0).then(|| Cell::new(u32::from(b)));
+		out.push(cell_behind(&cell, b) as u8);
+	}
+	// Pointers from references to an `Arc`'s value, which is its one place.
+	let arc = Arc::new(u32::from(bits));
+	let p = ptr::from_ref(&*arc);
+	let q = ptr::from_ref(&*arc);
+	out.push(unsafe { p.offset_from(q) } as u8);
+	out.push(unsafe { *q } as u8);
+}

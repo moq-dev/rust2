@@ -48,7 +48,35 @@ export function unwrapOr$1fr498u(self: rs.u8 | undefined, default_: rs.u8): rs.u
 	return self;
 }
 
+export function map$00buaky(self: rs.u16 | undefined | rs.None, f: (a0: rs.u16 | undefined) => rs.u16 | undefined): rs.u16 | undefined | rs.None {
+	if (self === rs.None) {
+		return rs.None;
+	}
+	return f(self);
+}
+
+export function map$18tou5q(self: string | undefined, f: (a0: string) => string): string | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
+export function map$1h9tk16(self: rs.ByteVec | undefined, f: (a0: rs.ByteVec) => rs.ByteVec): rs.ByteVec | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
 export function map$1cfrse5(self: Loaded.Loaded | undefined, f: (a0: Loaded.Loaded) => Loaded.Loaded): Loaded.Loaded | undefined {
+	if (self === undefined) {
+		return undefined;
+	}
+	return f(self);
+}
+
+export function map$070fw7m(self: rs.u32 | undefined, f: (a0: rs.u32) => rs.u32): rs.u32 | undefined {
 	if (self === undefined) {
 		return undefined;
 	}
@@ -74,6 +102,13 @@ export function mapOr$173j2gr(self: [rs.u8, rs.Arc<rs.u8>] | undefined, default_
 		return default_;
 	}
 	return f(self);
+}
+
+export function mapOr$0smr0aj(self: rs.u16 | undefined, default_: Uint8Array, _: (a0: rs.u16) => Uint8Array): Uint8Array {
+	if (self === undefined) {
+		return default_;
+	}
+	return rs.u16ToBeBytes(self);
 }
 
 export function filter$0wvwd70(self: rs.u32 | undefined, predicate: (a0: rs.u32) => boolean): rs.u32 | undefined {

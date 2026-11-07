@@ -194,36 +194,27 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 					op,
 					_,
 				) if self.same_pointee(op, local) => self.origin(op),
-				Rvalue::RawPtr(mir::RawPtrKind::Const | mir::RawPtrKind::Mut, place) => {
-					match place.projection.as_slice() {
-						// `&raw mut *p` is `p`.
-						[ProjectionElem::Deref] => self.origin(&Operand::Copy(mir::Place::from(place.local))),
-						[.., ProjectionElem::Deref] => None,
-						[
-							array @ ..,
-							ProjectionElem::Index(_) | ProjectionElem::ConstantIndex { .. },
-						] => (!place.projection.contains(&ProjectionElem::Deref)).then(|| Origin {
-							array: Array::Owned(mir::Place {
-								local: place.local,
-								projection: self.tcx.mk_place_elems(array),
-							}),
-							index: None,
-						}),
-						_ => Some(Origin {
-							array: Array::Lone(Location {
-								block: bb,
-								statement_index: i,
-							}),
-							index: Some(0),
-						}),
-					}
-				}
+				Rvalue::RawPtr(mir::RawPtrKind::Const | mir::RawPtrKind::Mut, place) => self.raw_origin(
+					*place,
+					Location {
+						block: bb,
+						statement_index: i,
+					},
+				),
 				_ => None,
 			};
 		}
 		let (def_id, _, args) = self.def_call(local)?;
 		let (owner, name) = library::key(self.tcx, def_id)?;
 		match (owner.as_str(), name.as_str()) {
+			("ptr", "from_ref" | "from_mut") | ("From", "from") | ("Into", "into") => {
+				let block = self.def_block(local)?;
+				let at = Location {
+					block,
+					statement_index: self.mir.basic_blocks[block].statements.len(),
+				};
+				self.reference_origin(args[0].node.place()?, at)
+			}
 			("ptr" | "NonNull", "add" | "sub" | "offset") => {
 				Some(self.moved(self.origin(&args[0].node)?, name.as_str(), &args[1].node))
 			}
@@ -231,6 +222,78 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 			("slice" | "Vec", "as_ptr" | "as_mut_ptr") => self.start(&args[0].node),
 			_ => None,
 		}
+	}
+
+	/// Where a raw pointer to `place`, made at `at`, points, if the body shows it.
+	fn raw_origin(&self, place: mir::Place<'tcx>, at: Location) -> Option<Origin<'tcx>> {
+		match place.projection.as_slice() {
+			// `&raw mut *p` is `p`.
+			[ProjectionElem::Deref] if self.mir.local_decls[place.local].ty.is_raw_ptr() => {
+				self.origin(&Operand::Copy(mir::Place::from(place.local)))
+			}
+			[rest @ .., ProjectionElem::Deref] => self.reference_origin(
+				mir::Place {
+					local: place.local,
+					projection: self.tcx.mk_place_elems(rest),
+				},
+				at,
+			),
+			[
+				array @ ..,
+				ProjectionElem::Index(_) | ProjectionElem::ConstantIndex { .. },
+			] => (!place.projection.contains(&ProjectionElem::Deref)).then(|| Origin {
+				array: Array::Owned(mir::Place {
+					local: place.local,
+					projection: self.tcx.mk_place_elems(array),
+				}),
+				index: None,
+			}),
+			_ => Some(Origin {
+				array: Array::Lone(at),
+				index: Some(0),
+			}),
+		}
+	}
+
+	/// Where a raw pointer to what the reference `r` points at, made at `at`, points, as
+	/// [`Self::behind_reference`] makes it: where the body shows `r` borrowed, and else at
+	/// a place of its own, or, where `r` is an `rs.Place`, where that points.
+	fn reference_origin(&self, r: mir::Place<'tcx>, at: Location) -> Option<Origin<'tcx>> {
+		let ty = r.ty(&self.mir.local_decls, self.tcx).ty;
+		// A reference to an `Arc`'s value points at that value's one place.
+		if !ty.is_ref() || self.arc_of(&Operand::Copy(r)).is_some() {
+			return None;
+		}
+		let pointee = self.tcx.mk_place_deref(r);
+		let borrowed = self.through_aliases(pointee);
+		if borrowed != pointee {
+			return self.raw_origin(borrowed, at);
+		}
+		if self.indexed(r).is_some() {
+			let (def_id, _, args) = self.def_call(r.as_local()?)?;
+			let (owner, name) = library::key(self.tcx, def_id)?;
+			if !matches!(
+				(owner.as_str(), name.as_str()),
+				("Index" | "IndexMut", "index" | "index_mut")
+			) {
+				return None;
+			}
+			let o = self.start(&args[0].node)?;
+			return Some(Origin {
+				index: o.index.zip(self.const_int(&args[1].node)).map(|(i, n)| i + n),
+				..o
+			});
+		}
+		if let Some(p) = self.reborrowed_pointer(r) {
+			return self.origin(&Operand::Copy(p));
+		}
+		if self.b.t.place_pointee(ty).is_some() {
+			return None;
+		}
+		Some(Origin {
+			array: Array::Lone(at),
+			index: Some(0),
+		})
 	}
 
 	/// `o` moved by the offset `op` as `add`, `sub`, or `offset` moves it.

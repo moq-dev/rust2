@@ -533,6 +533,17 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			{
 				done(p, false)
 			}
+			// A pointer from a reference to a value JS keeps in a place, as `&raw const *r` makes.
+			("ptr", "from_ref" | "from_mut") | ("From", "from") | ("Into", "into")
+				if let Some(r) = args[0].node.place()
+					&& crate::lower::pointer::raw_pointee(tcx, dest.ty(&self.mir.local_decls, tcx).ty)
+						.is_some_and(|pointee| self.behind_place(r, pointee)) =>
+			{
+				if let Some(why) = self.made_out_of_step(def_id, gargs, &args[0].node) {
+					return done(self.err(span, why), false);
+				}
+				done(self.behind_reference(r, span, out), false)
+			}
 			// A place of no bytes has nothing to read or write, and every value of its type
 			// is the one it holds. What made the `&mut` still runs, as its unread temporary.
 			("mem", "take" | "replace" | "swap") if self.b.t.zero_sized(targ(0)?) => match name.as_str() {

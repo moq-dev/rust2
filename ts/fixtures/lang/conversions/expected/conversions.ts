@@ -2100,7 +2100,7 @@ export function converted$Option_u16(data: rs.ByteSlice, out: rs.ByteVec): void 
 		put$conversions_Value_Option_u16(_199, out);
 	}
 	boxed$Option_u16(data, out);
-	put$conversions_Value_Option_u16({ v: b }.v, out);
+	put$conversions_Value_Option_u16(b, out);
 	c = make$conversions_Value_Option_u16(data, 16);
 	put$conversions_Value_Option_u16(c, out);
 }
@@ -2187,7 +2187,7 @@ export function converted$String(data: rs.ByteSlice, out: rs.ByteVec): void {
 		put$conversions_Value_String(_199, out);
 	}
 	boxed$String(data, out);
-	put$conversions_Value_String({ v: b }.v, out);
+	put$conversions_Value_String(b, out);
 	c = make$conversions_Value_String(data, 16);
 	put$conversions_Value_String(c, out);
 }
@@ -2275,7 +2275,7 @@ export function converted$Vec_u32(data: rs.ByteSlice, out: rs.ByteVec): void {
 		put$conversions_Value_Vec_u32(_199, out);
 	}
 	boxed$Vec_u32(data, out);
-	put$conversions_Value_Vec_u32({ v: b }.v, out);
+	put$conversions_Value_Vec_u32(b, out);
 	c = make$conversions_Value_Vec_u32(data, 16);
 	put$conversions_Value_Vec_u32(c, out);
 }
@@ -2363,7 +2363,7 @@ export function converted$Vec_u8(data: rs.ByteSlice, out: rs.ByteVec): void {
 		put$conversions_Value_Vec_u8(_199, out);
 	}
 	boxed$Vec_u8(data, out);
-	put$conversions_Value_Vec_u8({ v: b }.v, out);
+	put$conversions_Value_Vec_u8(b, out);
 	c = make$conversions_Value_Vec_u8(data, 16);
 	put$conversions_Value_Vec_u8(c, out);
 }
@@ -3198,7 +3198,7 @@ export function converted$u32(data: rs.ByteSlice, out: rs.ByteVec): void {
 		put$conversions_Value_u32(_199, out);
 	}
 	boxed$u32(data, out);
-	put$conversions_Value_u32({ v: b }.v, out);
+	put$conversions_Value_u32(b, out);
 	c = make$conversions_Value_u32(data, 16);
 	put$conversions_Value_u32(c, out);
 }
@@ -3285,7 +3285,7 @@ export function converted$u64(data: rs.ByteSlice, out: rs.ByteVec): void {
 		put$conversions_Value_u64(_199, out);
 	}
 	boxed$u64(data, out);
-	put$conversions_Value_u64({ v: b }.v, out);
+	put$conversions_Value_u64(b, out);
 	c = make$conversions_Value_u64(data, 16);
 	put$conversions_Value_u64(c, out);
 }
@@ -3370,7 +3370,7 @@ export function converted$u8(data: rs.ByteSlice, out: rs.ByteVec): void {
 		put$conversions_Value_u8(_199, out);
 	}
 	boxed$u8(data, out);
-	put$conversions_Value_u8({ v: b }.v, out);
+	put$conversions_Value_u8(b, out);
 	c = make$conversions_Value_u8(data, 16);
 	put$conversions_Value_u8(c, out);
 }

@@ -819,15 +819,8 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 				matches!(self.mir.local_decls[place.local].ty.kind(), ty::RawPtr(..)) && !self.box_pointer(place.local);
 			let e = match raw {
 				true => Expr::rs("ptrWrite", vec![target, value]),
-				false => match self.b.t.write_in(pointee) {
-					Some(ObjectKind::Bytes) => target.member("set").call(vec![value]),
-					// A boxed slice is a JS array, whose length a write changes, unlike a
-					// tuple's or an array's.
-					Some(ObjectKind::Array) if self.b.t.erased(pointee).is_slice() => {
-						Expr::rs("arrayAssign", vec![target, value])
-					}
-					Some(_) if self.b.t.moves_private(pointee) => Expr::rs("ptrWrite", vec![target, value]),
-					Some(_) => Expr::ident("Object").member("assign").call(vec![target, value]),
+				false => match self.write_into(target, value, pointee) {
+					Some(e) => e,
 					None => self.err(span, format!("an assignment through a reference to `{pointee}`")),
 				},
 			};
@@ -838,6 +831,19 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		let loc = self.b.t.loc(span);
 		self.assign_to(target, value, loc, &mut out);
 		out
+	}
+
+	/// The write of `value`, a whole `pointee`, into `target`, the object a reference to it
+	/// is, in place, if JS can write one so.
+	pub(super) fn write_into(&self, target: Expr, value: Expr, pointee: Ty<'tcx>) -> Option<Expr> {
+		Some(match self.b.t.write_in(pointee)? {
+			ObjectKind::Bytes => target.member("set").call(vec![value]),
+			// A boxed slice is a JS array, whose length a write changes, unlike a tuple's or
+			// an array's.
+			ObjectKind::Array if self.b.t.erased(pointee).is_slice() => Expr::rs("arrayAssign", vec![target, value]),
+			_ if self.b.t.moves_private(pointee) => Expr::rs("ptrWrite", vec![target, value]),
+			_ => Expr::ident("Object").member("assign").call(vec![target, value]),
+		})
 	}
 
 	/// `target = value`, where `target` may be a struct's byte slice field held as its

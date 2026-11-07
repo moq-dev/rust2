@@ -12,6 +12,11 @@
 //! pointer arithmetic moves within the array. A pointer to an element JS keeps as an
 //! object is that object, which knows no array it is in, so arithmetic on one is refused.
 //!
+//! A reference to a value JS copies is the value, not where it is kept, so a pointer made
+//! from one is the place the body shows the reference borrowed, and else a place of its
+//! own: of a shared reference's value, which nothing may write while the pointer lives,
+//! or writing a whole value into the object a `&mut` is in place.
+//!
 //! A pointer to `()`, as std erases one, is an identity that compares as itself: null,
 //! `rs.DANGLING_UNIT`, or a waker's data. One to a place of `()` or from a reference to
 //! one is refused, as an `rs.Place` of it would be an identity of its own each borrow.
@@ -1105,7 +1110,13 @@ pub fn raw_pointee<'tcx>(tcx: ty::TyCtxt<'tcx>, ty: Ty<'tcx>) -> Option<Ty<'tcx>
 /// The value `p`, a pointer to `ty`, points at, as a value of its own.
 fn read<'tcx>(b: &mut Body<'_, '_, 'tcx>, p: Expr, ty: Ty<'tcx>, span: Span) -> Expr {
 	let value = match b.t.pointee(ty) {
-		Pointee::Place => p.member("v"),
+		// The value a pointer made here of a shared reference holds.
+		Pointee::Place => match p {
+			Expr::Object(mut members) if matches!(members.as_slice(), [(Key::Name(v), _)] if v == "v") => {
+				members.pop().expect("one member").1
+			}
+			p => p.member("v"),
+		},
 		Pointee::Object => p,
 		Pointee::Array => {
 			let ty = b.t.uninit_inner(ty);
