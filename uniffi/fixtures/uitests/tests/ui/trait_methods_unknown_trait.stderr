@@ -1,7 +1,7 @@
-error: Failed to generate scaffolding from UDL file at ../../../../uniffi/fixtures/uitests/src/trait_methods_unknown_trait.udl: parsing udl file ../../../../uniffi/fixtures/uitests/src/trait_methods_unknown_trait.udl: Invalid trait name: PartialEq
+error: Failed to generate scaffolding from UDL file at ../../src/trait_methods_unknown_trait.udl: parsing udl file $DIR/tests/ui/../../src/trait_methods_unknown_trait.udl: Invalid trait name: PartialEq
  --> tests/ui/trait_methods_unknown_trait.rs:2:1
   |
-2 | uniffi_macros::generate_and_include_scaffolding!("../../../../uniffi/fixtures/uitests/src/trait_methods_unknown_trait.udl");
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2 | uniffi_macros::generate_and_include_scaffolding!("../../src/trait_methods_unknown_trait.udl");
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   |
   = note: this error originates in the macro `uniffi_macros::generate_and_include_scaffolding` (in Nightly builds, run with -Z macro-backtrace for more info)

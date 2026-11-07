@@ -6,7 +6,9 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
-export PATH := if env("RUST2_TS_TOOLCHAIN", "") == "" { env("PATH") } else { env("RUST2_TS_TOOLCHAIN") / "bin:" + env("PATH") }
+# mbx's Cargo shim, which the dev shell exports, stays ahead of the nightly so cargo still builds through it.
+cargo_shim := if env("RUST2_CARGO_SHIM", "") == "" { "" } else { env("RUST2_CARGO_SHIM") + ":" }
+export PATH := if env("RUST2_TS_TOOLCHAIN", "") == "" { env("PATH") } else { cargo_shim + env("RUST2_TS_TOOLCHAIN") / "bin:" + env("PATH") }
 
 # The model fixture, its own workspace, which builds moq-net at the moq pin.
 model := "fixtures/model/Cargo.toml"

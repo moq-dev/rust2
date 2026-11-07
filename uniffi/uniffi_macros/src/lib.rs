@@ -10,7 +10,7 @@
 //! Macros for `uniffi`.
 
 #[cfg(feature = "trybuild")]
-use camino::Utf8Path;
+use camino::Utf8PathBuf;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, LitStr};
@@ -275,8 +275,9 @@ pub fn use_remote_type(tokens: TokenStream) -> TokenStream {
 ///
 /// This is a convenience macro designed for writing `trybuild`-style tests and
 /// probably shouldn't be used for production code. Given the path to a `.udl` file,
-/// if will run `uniffi-bindgen` to produce the corresponding Rust scaffolding and then
-/// include it directly into the calling file. Like so:
+/// relative to the calling file as `include_str!`'s is, it will run `uniffi-bindgen` to
+/// produce the corresponding Rust scaffolding and then include it directly into the calling
+/// file. Like so:
 ///
 /// ```rs
 /// uniffi_macros::generate_and_include_scaffolding!("path/to/my/interface.udl");
@@ -285,8 +286,19 @@ pub fn use_remote_type(tokens: TokenStream) -> TokenStream {
 #[cfg(feature = "trybuild")]
 pub fn generate_and_include_scaffolding(udl_file: TokenStream) -> TokenStream {
     let udl_file = syn::parse_macro_input!(udl_file as LitStr);
-    let udl_file_string = udl_file.value();
-    let udl_file_path = Utf8Path::new(&udl_file_string);
+    // Not relative to rustc's working directory, which is trybuild's project inside the target
+    // directory, and that need not sit in the checkout.
+    let Some(udl_file_path) = proc_macro::Span::call_site()
+        .local_file()
+        .and_then(|file| Utf8PathBuf::from_path_buf(file).ok())
+        .and_then(|file| Some(file.parent()?.join(udl_file.value())))
+    else {
+        return quote! {
+            compile_error!("generate_and_include_scaffolding! needs a UTF-8 path to the invoking file");
+        }
+        .into();
+    };
+    let udl_file_path = udl_file_path.as_path();
     if std::env::var("OUT_DIR").is_err() {
         quote! {
             compile_error!("This macro assumes the crate has a build.rs script, but $OUT_DIR is not present");

@@ -1,5 +1,5 @@
-// Unfortunately, path is relative to a temporary build directory :-/
-uniffi_macros::generate_and_include_scaffolding!("../../../../uniffi/fixtures/uitests/src/errors.udl");
+// The path is relative to this file.
+uniffi_macros::generate_and_include_scaffolding!("../../src/errors.udl");
 
 fn main() { /* empty main required by `trybuild` */}
 

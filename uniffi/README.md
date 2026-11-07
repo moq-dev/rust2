@@ -88,6 +88,9 @@ uniffi-rs:
 - Scaffolding is written to a temporary file and renamed into place. Two trybuild cases
   expanding `generate_and_include_scaffolding!` on one UDL write it concurrently, and the
   in-place truncate let one include a partial file.
+- `generate_and_include_scaffolding!` takes a path relative to the calling file, not to
+  rustc's working directory: trybuild compiles from inside the target directory, which a
+  build cache such as mbx moves out of the checkout.
 - The bindgen tests generate into a directory per test instead of one per language, so they
   run under nextest, which runs each test in its own process.
 - `uniffi_bindgen` has no `askama.toml`: its templates move from `src/**/templates` to

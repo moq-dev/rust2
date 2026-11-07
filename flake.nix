@@ -312,6 +312,21 @@
             RUST2_TS_TOOLCHAIN = tsToolchain;
             RUST2_TS_SYSROOT = rust2-ts-std;
             KOTLINX_COROUTINES = "${kotlinx-coroutines}";
+            # The pinned toolchain goes on PATH ahead of everything the host had, which
+            # shadows the Cargo shim `mbx setup` installs. Put it back in front, as moq's dev
+            # shell does, so cargo builds through mbx's cache wherever the host set one up,
+            # the land gate included. The nightly projects' justfiles keep it ahead of their
+            # toolchain through RUST2_CARGO_SHIM. `setup --status` names the shim on its first
+            # line even when it is missing, and its exit code also fails over unrelated setup,
+            # so only the shim existing decides.
+            shellHook = ''
+              shim=$(mbx setup --status 2>/dev/null | sed -n '1s/.*: //p' || true)
+              if [ -x "$shim" ]; then
+                export RUST2_CARGO_SHIM=''${shim%/*}
+                export PATH="$RUST2_CARGO_SHIM:$PATH"
+              fi
+              unset shim
+            '';
           };
           # `just ts bench` adds Chrome and Firefox as engines. Apart for their size.
           devShells.bench = self.devShells.${system}.default.overrideAttrs (old: {
