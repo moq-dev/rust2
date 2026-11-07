@@ -25,7 +25,6 @@ declare -A scope=(
     [lint]=''
     [quest]='^quest/'
     [sh]='^sh/dispatch\.test\.py$'
-    [hooks]='^\.claude/hooks/'
     [uniffi]='^uniffi/'
     # The driver and ffi link ts's toolchain, and both of the others build on
     # the driver's front end.
@@ -36,7 +35,7 @@ declare -A scope=(
     [ts]='^(ts|driver)/'
 )
 # Cheapest first, so a lint fails before the builds start.
-modules=(lint quest sh hooks uniffi driver ffi go ts)
+modules=(lint quest sh uniffi driver ffi go ts)
 
 # Paths that only the repository-wide lints read.
 lints='^(bench/|\.agents/|\.claude/|\.codex/|[^/]+\.md$|LICENSE-|\.(editorconfig|gitattributes|gitignore|taplo\.toml)$)'
@@ -84,7 +83,7 @@ if [[ -n "$query" ]]; then
     exit
 fi
 
-scripts=(.claude/hooks/*.sh .codex/hooks/*.sh bench/*/*.sh sh/*.sh)
+scripts=(bench/*/*.sh sh/*.sh)
 
 # One function per module and phase; a module skips a phase it has none for.
 check_lint() {
@@ -106,7 +105,6 @@ check_ffi() { just ffi check; }
 check_go() { just go check; }
 check_ts() { just ts check; }
 test_sh() { python3 -I sh/dispatch.test.py; }
-test_hooks() { bash .claude/hooks/direnv.test.sh; }
 test_uniffi() { just uniffi test; }
 test_driver() { just driver test; }
 test_ffi() { just ffi test; }

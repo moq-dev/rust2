@@ -53,7 +53,7 @@ bench-ffi *args:
 
 # Apply formatters without changing program behavior.
 fix:
-    shfmt -w .claude/hooks/*.sh .codex/hooks/*.sh bench/*/*.sh sh/*.sh
+    shfmt -w bench/*/*.sh sh/*.sh
     taplo format
     nixfmt flake.nix bench/build/nix.nix
     cargo fmt --all

@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 DISPATCH = Path(__file__).with_name("dispatch.sh").resolve()
-EVERYTHING = ["lint", "quest", "sh", "hooks", "uniffi", "driver", "ffi", "go", "ts"]
+EVERYTHING = ["lint", "quest", "sh", "uniffi", "driver", "ffi", "go", "ts"]
 
 
 class SelectTests(unittest.TestCase):
@@ -87,13 +87,11 @@ class SelectTests(unittest.TestCase):
         self.assertEqual(self.select(), ["lint", "driver", "ffi", "go", "ts"])
 
     def test_lint_only_paths_select_only_the_lints(self):
-        for path in ("bench/ffi/run.sh", "README.md", ".codex/hooks/direnv.sh", ".claude/settings.json"):
+        for path in ("bench/ffi/run.sh", "README.md", ".claude/settings.json"):
             with self.subTest(path=path):
                 self.change(path)
                 self.assertEqual(self.select(), ["lint"])
                 self.git("clean", "-fdq")
-        self.change(".claude/hooks/direnv.sh")
-        self.assertEqual(self.select(), ["lint", "hooks"])
 
     def test_empty_diff_keeps_the_lints(self):
         self.assertEqual(self.select(), ["lint"])
