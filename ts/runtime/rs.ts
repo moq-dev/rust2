@@ -149,9 +149,9 @@ export const NULL: never = null as never;
 /** A dangling raw pointer, `NonNull::dangling`, of any type: nothing reads through it. */
 export const DANGLING: never = /* @__PURE__ */ Object.freeze({}) as never;
 
-/** The raw pointer `p` unsized by `make`, or `p` itself if it is null or dangling, which point at nothing. */
+/** The raw pointer `p` unsized or projected by `make`, or `p` itself if it points at no memory. */
 export function rawUnsize<P, Q>(p: P, make: (p: P) => Q): Q {
-	return p === NULL || p === DANGLING ? (p as never) : make(p);
+	return ptrNowhere(p as object) ? (p as never) : make(p);
 }
 
 /**

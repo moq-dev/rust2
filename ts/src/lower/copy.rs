@@ -639,8 +639,8 @@ fn by_value<'tcx>(tcx: TyCtxt<'tcx>, env: ty::TypingEnv<'tcx>, ty: Ty<'tcx>) -> 
 
 /// The value std's `def_id`, given `this` as its `self`, writes whole through that shared
 /// reference, putting another object in its place: the value of the `RefCell` it is, or
-/// that a thread-local's `RefCell` holds. A `Cell`'s are left out, as none of its methods
-/// that translate lends a reference into its value.
+/// that a thread-local's `RefCell` holds. A `Cell`'s and an `UnsafeCell`'s are left out,
+/// as each writes into the object it holds, which [`cell_writes`] says.
 fn replaces<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, this: Ty<'tcx>) -> Option<Ty<'tcx>> {
 	let (owner, name) = super::library::key(tcx, def_id)?;
 	let replaces = matches!(
@@ -661,6 +661,19 @@ fn replaces<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, this: Ty<'tcx>) -> Option<Ty
 			_ => return None,
 		}
 	}
+}
+
+/// The value std's `def_id`, a method of a cell of it, writes whole in place of the one the
+/// cell holds: as a write through the pointer `as_ptr` or `get` gives, into the object or
+/// array it is.
+fn cell_writes<'tcx>(tcx: TyCtxt<'tcx>, def_id: DefId, args: ty::GenericArgsRef<'tcx>) -> Option<Ty<'tcx>> {
+	let (owner, name) = super::library::key(tcx, def_id)?;
+	let writes = match owner.as_str() {
+		"Cell" => matches!(name.as_str(), "replace" | "set" | "swap" | "take" | "update"),
+		"UnsafeCell" => name == "replace",
+		_ => false,
+	};
+	(writes && super::library::is_std(tcx, def_id)).then(|| args.type_at(0))
 }
 
 /// The place each local of `body` borrows, where its one assignment is a borrow and
@@ -1200,6 +1213,10 @@ impl<'tcx> Visitor<'tcx> for BodyWrites<'_, '_, '_, 'tcx> {
 				&& let Some(value) = replaces(self.tcx, def_id, this)
 			{
 				self.replace(value);
+			}
+			if let Some(held) = cell_writes(self.tcx, def_id, args.skip_binder()) {
+				self.insert(held);
+				self.replace(held);
 			}
 			// Those that point a pointer elsewhere or read through it replace nothing.
 			let replace = !super::pointer::keeps(self.tcx, def_id, args.skip_binder());

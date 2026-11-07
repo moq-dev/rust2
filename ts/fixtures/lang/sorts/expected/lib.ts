@@ -3,6 +3,10 @@
 import * as rs from "./rs.ts";
 import { sorts, disorders, btrees } from "./sorts.ts";
 
+export function copy$tuple2_u32_u32(v: [rs.u32, rs.u32]): [rs.u32, rs.u32] {
+	return [v[0], v[1]];
+}
+
 /**
  * Each case's name and what it runs. The first two bytes, big-endian, pick one modulo
  * their count, so a case added at the end moves no other.

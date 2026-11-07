@@ -19,6 +19,10 @@ export function copy$tuple2_u8_u16(v: [rs.u8, rs.u16]): [rs.u8, rs.u16] {
 	return [v[0], v[1]];
 }
 
+export function copy$tuple2_u8_u8(v: [rs.u8, rs.u8]): [rs.u8, rs.u8] {
+	return [v[0], v[1]];
+}
+
 /**
  * Each case's name and what it runs. The first two bytes, big-endian, pick one modulo
  * their count, so a case added at the end moves no other.

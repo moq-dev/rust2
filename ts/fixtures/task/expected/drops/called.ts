@@ -437,7 +437,7 @@ export function called(log: Log.Log, id: rs.u32, arg: rs.u8): void {
 		});
 		rs.cellUpdate(new rs.Cell(1), rs.once(add));
 		const pair: rs.Cell<rs.u32[]> = new rs.Cell([1, 2]);
-		rs.cellUpdate(pair, (p: rs.u32[]): rs.u32[] => {
+		const _510: (a0: rs.u32[]) => rs.u32[] = (p: rs.u32[]): rs.u32[] => {
 			p = copy$array_u32(p);
 			p[0] = rs.u32Add(p[0], 10);
 			const _155: rs.u32[] = copy$array_u32(pair.v);
@@ -446,7 +446,9 @@ export function called(log: Log.Log, id: rs.u32, arg: rs.u8): void {
 			const args76 = [(f: rs.Formatter) => rs.u32Display(part2, f), (f: rs.Formatter) => rs.u32Display(part3, f)];
 			Log.note(log, rs.fmtFormat(["pair ", args76[0], " ", args76[1]]));
 			return copy$array_u32(p);
-		});
+		};
+		const pointer = rs.sliceFrom(pair.v);
+		rs.sliceSet(pointer, _510(rs.sliceToArray(pointer)));
 		const part4 = rs.sliceFrom(copy$array_u32(pair.v));
 		Log.note(log, rs.fmtFormat(["paired ", (f: rs.Formatter) => rs.fmtList(rs.sliceItems(part4), f, rs.u32Debug)]));
 		const part5 = rs.refCellReplaceWith(cell2, rs.once(doubled), true);

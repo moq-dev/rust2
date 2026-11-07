@@ -14,6 +14,8 @@ fixtures/reject/src/alloc.rs:bytes_as_values+3:3: a byte of memory from `alloc`,
 fixtures/reject/src/alloc.rs:bytes_as_values+4:15: a cast from a pointer to `u8` to one to `u32`, which reads the bytes of one type as another
 fixtures/reject/src/alloc.rs:bytes_as_values+5:16: a cast from a pointer to `u8` to one to `pointers::Halves`, which reads the bytes of one type as another
 fixtures/reject/src/alloc.rs:bytes_as_values+7:15: a cast from a pointer to `u32` to one to `u8`, which reads the bytes of one type as another
+fixtures/reject/src/alloc.rs:cell_pointer_kept+2:45: a raw pointer to `std::cell::UnsafeCell<u32>` behind a reference, which is the object and not where it is kept
+fixtures/reject/src/alloc.rs:cell_pointer_reassigned+2:10: a raw pointer to `std::cell::UnsafeCell<u32>` in a variable assigned again while it may point there
 fixtures/reject/src/alloc.rs:reinterpreted+1:27: a cast from a pointer to `u32` to one to `u8`, which reads the bytes of one type as another
 fixtures/reject/src/alloc.rs:vec_pointer+1:10: a raw pointer to `std::vec::Vec<u8>` behind a reference, which is the object and not where it is kept
 fixtures/reject/src/alloc.rs:zeroed+1:12: a cast from a pointer to `u8` to one to `u32`, which reads the bytes of one type as another

@@ -434,8 +434,13 @@ pub struct Fx<'m, 'b, 'a, 'tcx> {
 	idx_of: FxHashMap<Local, Place<'tcx>>,
 	/// The halves a `|` joins into a `u64`, by the local of the shift that is its left side.
 	halves: FxHashMap<Local, (&'m Operand<'tcx>, &'m Operand<'tcx>)>,
-	/// Temporaries of those joins, whose assignments go unlowered.
+	/// Temporaries of those joins, and the pointers of `raw_cells`, whose assignments go
+	/// unlowered.
 	joined: FxHashSet<Local>,
+	/// Pointers made of a reference to an `UnsafeCell` that only `UnsafeCell::raw_get`
+	/// reads, right after, by the place the reference points at, which it reads in their
+	/// place: the cell itself, where a raw pointer to it would be where it is kept.
+	raw_cells: FxHashMap<Local, Place<'tcx>>,
 	/// The paths a switch lowered so far tests the variant of, with the enum it tests,
 	/// which `tsc` narrows in its arms. An `Option`'s `Some` is the path itself, so it
 	/// may be tested as both.
@@ -534,6 +539,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 			idx_of: FxHashMap::default(),
 			halves: FxHashMap::default(),
 			joined: FxHashSet::default(),
+			raw_cells: FxHashMap::default(),
 			switched: FxHashSet::default(),
 			tested: IndexVec::from_elem_n(false, n),
 			widened: FxHashSet::default(),
@@ -715,6 +721,7 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		self.find_stepped();
 		self.unborrow_passed();
 		self.find_halves();
+		self.find_raw_cells();
 		self.find_slotted_calls();
 		self.find_scalars();
 		self.find_returning();
@@ -1410,6 +1417,57 @@ impl<'m, 'b, 'a, 'tcx> Fx<'m, 'b, 'a, 'tcx> {
 		for (shift, (cast_hi, hi), (cast_lo, lo)) in found {
 			self.halves.insert(shift, (hi, lo));
 			self.joined.extend([shift, cast_hi, cast_lo]);
+		}
+	}
+
+	/// Find the pointers [`Self::raw_cells`] holds: `&raw const *r` of a reference `r`,
+	/// read once, as the argument of the `UnsafeCell::raw_get` its own block ends in, with
+	/// nothing but storage markers between.
+	fn find_raw_cells(&mut self) {
+		let mir: &'m mir::Body<'tcx> = self.mir;
+		let tcx = self.tcx;
+		for (bb, data) in mir.basic_blocks.iter_enumerated() {
+			let TerminatorKind::Call { func, args, .. } = &data.terminator().kind else {
+				continue;
+			};
+			let ty::FnDef(def_id, _) = *func.ty(&mir.local_decls, tcx).kind() else {
+				continue;
+			};
+			if !crate::lower::library::is_std(tcx, def_id)
+				|| crate::lower::library::key(tcx, def_id)
+					.is_none_or(|(owner, name)| (owner.as_str(), name.as_str()) != ("UnsafeCell", "raw_get"))
+			{
+				continue;
+			}
+			let Some(Operand::Copy(p) | Operand::Move(p)) = args.first().map(|a| &a.node) else {
+				continue;
+			};
+			let Some(local) = p.as_local().filter(|&l| self.defs[l] == 1 && self.uses[l] == 1) else {
+				continue;
+			};
+			let Some((_, i)) = self.def_at[local].filter(|&(at, _)| at == bb) else {
+				continue;
+			};
+			let Some(Rvalue::RawPtr(mir::RawPtrKind::Const | mir::RawPtrKind::Mut, cell)) = self.def_rvalue(local)
+			else {
+				continue;
+			};
+			let behind_ref = match cell.projection.as_slice() {
+				[rest @ .., mir::ProjectionElem::Deref] => {
+					Place::ty_from(cell.local, rest, &mir.local_decls, tcx).ty.is_ref()
+				}
+				_ => false,
+			};
+			let next = data.statements[i + 1..].iter().all(|s| {
+				matches!(
+					s.kind,
+					StatementKind::StorageLive(_) | StatementKind::StorageDead(_) | StatementKind::Nop
+				)
+			});
+			if behind_ref && next {
+				self.raw_cells.insert(local, *cell);
+				self.joined.insert(local);
+			}
 		}
 	}
 

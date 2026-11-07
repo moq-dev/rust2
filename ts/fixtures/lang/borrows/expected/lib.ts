@@ -14,6 +14,10 @@ export function copy$tuple2_u64_u64(v: [rs.u64, rs.u64]): [rs.u64, rs.u64] {
 	return [v[0], v[1]];
 }
 
+export function copy$tuple2_u8_char(v: [rs.u8, rs.char]): [rs.u8, rs.char] {
+	return [v[0], v[1]];
+}
+
 export function drop$Option_cell_RefMut_borrows_Tagged(_1: rs.RefCell<Tagged.Tagged> | undefined): void {
 	if (_1 !== undefined) {
 		rs.refMutRelease(_1);

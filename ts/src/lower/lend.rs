@@ -75,7 +75,7 @@ pub fn plan<'tcx>(t: &Translator<'_, 'tcx>, def_id: DefId, args: GenericArgsRef<
 				("mem", "swap" | "replace" | "take")
 				| ("Clone", "clone_from")
 				| ("ToOwned", "clone_into")
-				| ("raw" | "array" | "Cell" | "ptr", "from_mut")
+				| ("raw" | "array" | "Cell" | "UnsafeCell" | "ptr", "from_mut")
 				| ("Option", "get_or_insert" | "get_or_insert_with" | "get_or_insert_default" | "insert") => true,
 				// `Clone::clone`, which takes the slice, and an array as a slice, which it is.
 				("ToOwned", "to_owned") => true,

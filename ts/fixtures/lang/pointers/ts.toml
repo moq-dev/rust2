@@ -1,2 +1,2 @@
 package = "lang-pointers-fixture"
-roots = ["harness::run", "harness::op"]
+roots = ["harness::run", "harness::op", "cell_slice"]

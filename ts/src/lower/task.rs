@@ -589,26 +589,65 @@ fn cell<'tcx>(
 	args: Vec<Expr>,
 	out: &mut Vec<Stmt>,
 ) -> Result<Option<Expr>, Vec<Expr>> {
+	use super::pointer::{self, Pointee};
 	let tcx = b.t.tcx;
+	let span = call.span;
 	let ty = call.args.type_at(0);
+	// A pointer `as_ptr` gave to an object or an array is it, so a write lands in it.
+	let in_place = matches!(b.t.pointee(ty), Pointee::Object | Pointee::Array) && !b.t.zero_sized(ty);
+	let default = |b: &mut Body<'_, '_, 'tcx>, out: &mut Vec<Stmt>| {
+		let f = super::collections::trait_fn(tcx, "Default", "default");
+		b.call_def(f, tcx.mk_args(&[ty.into()]), Vec::new(), span, out)
+	};
 	let e = match name {
 		"new" => Expr::New(Box::new(Expr::Rs("Cell".into())), args),
-		"get" => b.t.copied(first(args).member("v"), ty, call.span),
+		"get" => b.t.copied(first(args).member("v"), ty, span),
 		"into_inner" => first(args).member("v"),
 		// As its `UnsafeCell`'s `get` and `get_mut`, the same `rs.Cell`.
 		"as_ptr" | "get_mut" => return Err(args),
+		// With what drops the value it replaces.
+		"set" if in_place => {
+			let [cell, value] = two(args);
+			let p = pointer::cell_pointer(b, cell, ty);
+			match b.t.drops(ty) {
+				true => {
+					let old = pointer::replace(b, p, value, ty, span, out);
+					b.t.drop_value(old, ty, span).unwrap_or_else(Expr::undefined)
+				}
+				false => pointer::write(b, p, value, ty, span),
+			}
+		}
+		"replace" | "take" if in_place => {
+			let [cell, value] = two(args);
+			let value = match name {
+				"take" => default(b, out),
+				_ => value,
+			};
+			let p = pointer::cell_pointer(b, cell, ty);
+			pointer::replace(b, p, value, ty, span, out)
+		}
+		"update" if in_place => {
+			let [cell, f] = two(args);
+			let p = b.spill(pointer::cell_pointer(b, cell, ty), "pointer", out);
+			let new = f.call(vec![pointer::read(b, p.clone(), ty, span)]);
+			pointer::write(b, p, new, ty, span)
+		}
+		"swap" => {
+			let [x, y] = two(args);
+			let (x, y) = (pointer::cell_pointer(b, x, ty), pointer::cell_pointer(b, y, ty));
+			pointer::swap(b, x, y, ty, span, out)
+		}
 		"replace" => Expr::rs("cellReplace", args),
 		"update" => Expr::rs("cellUpdate", args),
 		// With what drops the value it replaces.
 		"set" => {
-			let Some(droppers) = b.t.droppers([ty], call.span) else {
+			let Some(droppers) = b.t.droppers([ty], span) else {
 				return Ok(Some(Expr::undefined()));
 			};
 			Expr::rs("cellSet", args.into_iter().chain(droppers).collect())
 		}
 		"take" => {
-			let f = super::collections::trait_fn(tcx, "Default", "default");
-			let value = b.call_def(f, tcx.mk_args(&[ty.into()]), Vec::new(), call.span, out);
+			let value = default(b, out);
 			Expr::rs("cellReplace", vec![first(args), value])
 		}
 		_ => return Ok(None),

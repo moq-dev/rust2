@@ -2233,18 +2233,17 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 			&& (t.pointee(ty) != crate::lower::pointer::Pointee::Place || cells && t.std_of(ty) == Some(Std::Cell))
 	}
 
-	/// Why the pointer std's `def_id` makes of what `reference` points at would not keep
-	/// pointing where Rust's does, if it would not, judged as [`Self::out_of_step`] judges a
-	/// raw pointer: `UnsafeCell::get`'s, holding a `T`, is the `rs.Cell` itself or the
-	/// object it holds.
+	/// Why the pointer std's `def_id` makes of `pointee`, what a reference points at, would
+	/// not keep pointing where Rust's does, if it would not, judged as [`Self::out_of_step`]
+	/// judges a raw pointer: `UnsafeCell::get`'s, holding a `T`, is the `rs.Cell` itself or
+	/// the object it holds.
 	pub(super) fn made_out_of_step(
 		&self,
 		def_id: rustc_hir::def_id::DefId,
 		gargs: ty::GenericArgsRef<'tcx>,
-		reference: &Operand<'tcx>,
+		pointee: Place<'tcx>,
 	) -> Option<String> {
 		let tcx = self.tcx;
-		let pointee = tcx.mk_place_deref(reference.place()?);
 		let owner = library::key(tcx, def_id).map(|(owner, _)| owner);
 		let cell = matches!(owner.as_deref(), Some("UnsafeCell" | "Cell"));
 		let held = gargs.type_at(0);

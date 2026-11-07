@@ -413,7 +413,9 @@ impl<'tcx> Fx<'_, '_, '_, 'tcx> {
 			("ptr" | "NonNull", "cast_const" | "cast_mut") | ("NonNull", "as_ptr" | "new_unchecked") => {
 				self.arc_pointer(&args.first()?.node)
 			}
-			("UnsafeCell", "get") | ("Cell", "as_ptr") | ("MaybeUninit", "as_ptr" | "as_mut_ptr") => Some(false),
+			("UnsafeCell", "get" | "raw_get") | ("Cell", "as_ptr") | ("MaybeUninit", "as_ptr" | "as_mut_ptr") => {
+				Some(false)
+			}
 			_ => None,
 		}
 	}

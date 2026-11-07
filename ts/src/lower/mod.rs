@@ -1458,6 +1458,21 @@ impl<'a, 'tcx> Translator<'a, 'tcx> {
 		}
 	}
 
+	/// How many levels of arrays of objects a write may land in `ty` nests, whose items a
+	/// copy of a view of one copies too, unlike references, which move as they are: the
+	/// runtime's `depth`, if any.
+	pub fn copy_depth(&self, ty: Ty<'tcx>) -> Option<ts::Expr> {
+		let mut depth = 0;
+		let mut at = ty;
+		while let ty::Array(elem, _) = at.kind()
+			&& self.write_in(*elem).is_some()
+		{
+			depth += 1;
+			at = *elem;
+		}
+		(depth > 0).then(|| ts::Expr::lit(depth.to_string()))
+	}
+
 	/// What `ty` points at, if it is a `&mut` that is an `rs.Place`.
 	pub fn place_pointee(&self, ty: Ty<'tcx>) -> Option<Ty<'tcx>> {
 		match ty.kind() {

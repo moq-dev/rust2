@@ -12,6 +12,10 @@ export function copy$tuple2_locals_Twin_locals_Twin(v: [Twin.Twin, Twin.Twin]): 
 	return [copy$locals_Twin(v[0]), copy$locals_Twin(v[1])];
 }
 
+export function copy$tuple2_u8_u8(v: [rs.u8, rs.u8]): [rs.u8, rs.u8] {
+	return [v[0], v[1]];
+}
+
 /**
  * Each case's name and what it runs. The first two bytes, big-endian, pick one modulo
  * their count, so a case added at the end moves no other.

@@ -30,6 +30,25 @@ pub fn vec_pointer(v: &mut Vec<u8>) -> usize {
 	unsafe { (*p).len() }
 }
 
+/// A pointer to a cell behind a reference, made before a call that `UnsafeCell::raw_get`
+/// comes after, which reads it in its place only right after it is made.
+pub fn cell_pointer_kept(c: &std::cell::UnsafeCell<u32>, n: u32) -> u32 {
+	let x = n.wrapping_mul(3);
+	let p: *const std::cell::UnsafeCell<u32> = c;
+	let y = vec_pointer(&mut vec![0; x as usize]);
+	unsafe { *std::cell::UnsafeCell::raw_get(p) + y as u32 }
+}
+
+/// A pointer `UnsafeCell::raw_get` makes of a reference to a cell, read after the variable
+/// holding the cell is given another.
+pub fn cell_pointer_reassigned(n: u32) -> u32 {
+	let mut c = std::cell::UnsafeCell::new(n);
+	let p = std::cell::UnsafeCell::raw_get(&c);
+	c = std::cell::UnsafeCell::new(n ^ 1);
+	let _ = &c;
+	unsafe { *p }
+}
+
 /// Casts between pointers to bytes and to values outside memory from `alloc`, which read
 /// the bytes of one type as another: of an array's bytes to `u32`s, of memory from
 /// `alloc` to the crate's struct, which JS keeps as an object, and of a pointer to values
