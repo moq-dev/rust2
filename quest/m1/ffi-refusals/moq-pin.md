@@ -98,13 +98,25 @@ Measured on 2026-11-12 at moq's `main` `6936f0a`: `just ffi moq-cpp` fails the e
 type `std::num::NonZero` (such as `Client::with_peer_hop`), 11 stale excludes naming nothing
 exported (such as `bytes` and `kio`), and single refusals such as `qmux::Session`,
 `CertificateDer`, a borrowing future from the non-async `Server::accept`, and borrowed
-returns that are not `Clone`.
+returns that are not `Clone`. At `9b80cfcc8` on 2026-11-14 it fails with 19: 15 stale
+excludes, `dial_tcp` and `dial_track` on the excluded `kio::Pending`, and two rustls
+`ConfigBuilder` instances on the foreign `ServerConfig`.
+
+Decided 2026-11-14 (maintainer, [kixel-ai/rust2#809](https://github.com/kixel-ai/rust2/pull/809)):
+✅ keep waiting on moq, and plan the fix in moq-dev/moq: wrap the lite publisher's
+`kio::Tasks<Control>` so it proves `Send + Sync` once, as
+[moq-dev/moq#8657](https://github.com/moq-dev/moq/pull/8657) did for the subscriber, and build
+moq-tokio and the moq-ffi facade under `-D recursion_depth_exceeding_limit` so the overflow
+cannot return. Rejected: record the wait only, with no moq fix planned; allow the lint for moq's
+crates, which only defers the failure until a later nightly makes it a hard error.
 
 ## Waiting
 
 - moq-dev/moq: moq-tokio builds without tripping `recursion_depth_exceeding_limit` (an
   overflow proving `Send` on `Instrumented<...>`), which `just ffi moq-cpp <checkout>` denies.
-  Done when it passes at moq's `main`. Still failing on 2026-11-12 at moq `c681b7a`, at
-  `rs/moq-tokio/src/client.rs:748`, on the `Instrumented<...>` from
+  Done when it passes at moq's `main`. Still failing on 2026-11-14 at moq `9b80cfcc8`, after
+  [moq-dev/moq#8657](https://github.com/moq-dev/moq/pull/8657), which shortened only moq-net's
+  own `Driver: Send` proof: at `rs/moq-tokio/src/client.rs:789`, on the `Instrumented<...>` from
   `tokio::spawn(panic::isolate(time::run(driver)).instrument(..))`, and in the moq-ffi facade
-  on `moq_net::Driver: Sync`.
+  on `moq_net::Driver: Sync`, through the lite session driver's `Publisher` and its
+  `kio::Tasks<Control>`.
