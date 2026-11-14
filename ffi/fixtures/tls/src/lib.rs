@@ -193,4 +193,66 @@ pub mod held {
 	/// A `Copy` token, which an opaque handle holds by value.
 	#[derive(Clone, Copy, Debug)]
 	pub struct Token(pub u32);
+
+	/// A trait C never implements, whose `Arc<dyn Resolver>` an opaque handle holds, as
+	/// moq-tokio's TLS server takes rustls's certificate resolver.
+	pub trait Resolver: Send + Sync {
+		fn name(&self) -> String;
+	}
+
+	/// A resolver of a fixed name.
+	pub struct Named(pub String);
+
+	impl Resolver for Named {
+		fn name(&self) -> String {
+			self.0.clone()
+		}
+	}
+
+	/// A trait whose `&'static dyn Codec` an opaque handle holds by value, as rustls's
+	/// client config lists its certificate compressors.
+	pub trait Codec: Send + Sync {
+		fn id(&self) -> u8;
+	}
+
+	/// A codec of a fixed id.
+	pub struct Fixed(pub u8);
+
+	impl Codec for Fixed {
+		fn id(&self) -> u8 {
+			self.0
+		}
+	}
+
+	/// The codecs there are, each `'static`.
+	pub static ZLIB: Fixed = Fixed(1);
+	pub static BROTLI: Fixed = Fixed(2);
+
+	/// A stream no type C holds implements, which C cannot implement either, as tokio's
+	/// `AsyncRead` bounds the stream moq-tokio's TLS acceptor takes.
+	pub trait Stream {
+		fn read(&mut self) -> u8;
+	}
+
+	/// A sink every reference meets, whatever it refers to, so a value C holds may meet it.
+	pub trait Sink {
+		fn write(&self, byte: u8) -> u8;
+	}
+
+	impl<T> Sink for &T {
+		fn write(&self, byte: u8) -> u8 {
+			byte
+		}
+	}
+
+	/// A width only `u32` has, a value C passes by role, so a value C holds may meet it.
+	pub trait Width {
+		fn bits(&self) -> u32;
+	}
+
+	impl Width for u32 {
+		fn bits(&self) -> u32 {
+			32
+		}
+	}
 }

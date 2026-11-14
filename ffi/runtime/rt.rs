@@ -36,19 +36,33 @@ pub fn intern(s: &str) -> &'static str {
 	s
 }
 
+/// `b` for as long as the program runs, as [`intern`] keeps a string: keyed by its
+/// contents, never by the caller's pointer, which the caller may free or reuse.
+pub fn intern_bytes(b: &[u8]) -> &'static [u8] {
+	static INTERNED: std::sync::Mutex<std::collections::BTreeSet<&'static [u8]>> =
+		std::sync::Mutex::new(std::collections::BTreeSet::new());
+	let mut interned = INTERNED.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+	if let Some(&b) = interned.get(b) {
+		return b;
+	}
+	let b: &'static [u8] = Box::leak(Box::from(b));
+	interned.insert(b);
+	b
+}
+
 /// An `Arc` of another crate's type, held erased behind a handle with none of its API, so
 /// the export names neither the type nor its crate. Rust takes it back as the `Arc` it
 /// gave, and a handle of another such type aborts. A clone clones the `Arc` itself, so
 /// Rust counts each handle as an owner.
 pub struct Opaque(Box<dyn Held>);
 
-/// An `Arc<T>` of any `T`, erased.
+/// An `Arc<T>` of any `T`, a trait object's too, erased.
 trait Held: Send + Sync {
 	fn any(&self) -> &dyn std::any::Any;
 	fn clone_box(&self) -> Box<dyn Held>;
 }
 
-impl<T: Send + Sync + 'static> Held for Arc<T> {
+impl<T: ?Sized + Send + Sync + 'static> Held for Arc<T> {
 	fn any(&self) -> &dyn std::any::Any {
 		self
 	}
@@ -65,18 +79,18 @@ impl Clone for Opaque {
 }
 
 impl Opaque {
-	pub fn new<T: Send + Sync + 'static>(value: Arc<T>) -> Self {
+	pub fn new<T: ?Sized + Send + Sync + 'static>(value: Arc<T>) -> Self {
 		Self(Box::new(value))
 	}
 
 	/// The `Arc` it holds, lent.
-	pub fn get<T: Send + Sync + 'static>(&self, what: &str) -> &Arc<T> {
+	pub fn get<T: ?Sized + Send + Sync + 'static>(&self, what: &str) -> &Arc<T> {
 		(self.0.any().downcast_ref())
 			.unwrap_or_else(|| fail(what, "an opaque handle holds another type"))
 	}
 
 	/// A clone of the `Arc` it holds.
-	pub fn arc<T: Send + Sync + 'static>(&self, what: &str) -> Arc<T> {
+	pub fn arc<T: ?Sized + Send + Sync + 'static>(&self, what: &str) -> Arc<T> {
 		Arc::clone(self.get(what))
 	}
 }

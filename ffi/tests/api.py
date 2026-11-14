@@ -605,6 +605,23 @@ def script():
 	print(f"secure {api.alpn_lent(config)} {api.alpn(config.clone())}")
 	cert = api.certify(b"der")
 	print(f"cert {api.cert_len(cert)} {text(api.cert_der(cert))} {api.chain_len([api.certify(b'a'), api.certify(b'bc')])}")
+	# Another crate's trait objects: an `Arc`, taken back, and `'static` ones, held by value.
+	print(f"resolver {api.resolved(api.resolver('r1'))}")
+	codecs = api.Codecs.new()
+	print(f"codecs {codecs.ids()}")
+	codecs.list_set(list(reversed(codecs.list_get)))
+	print(f"codecs reversed {codecs.ids()}")
+	# A standard library value no type maps, in a handle.
+	failure = api.failure("boom")
+	print(f"failure {api.failure_message(failure)} {api.failure_kind(failure)}")
+	# Iterators, passed as the arrays of their items.
+	print(f"sum_all {api.sum_all(iter([1, 2, 3]))}")
+	print(f"weigh_all {api.weigh_all_counter([api.Counter.new('w', 3)])}")
+	print(f"offered_len {api.offered_len([b'h3', b'moq-00'])}")
+	print(f"join_words {api.join_words(['a', 'b', 'c'])}")
+	# Bytes that must be `'static`, interned.
+	print(f"der {text(api.Der.from_slice(b'der').bytes())}")
+	print(f"der again {text(api.Der.from_slice(b'der').bytes())}")
 	session = api.resume("h3", 60)
 	print(f"resume {session.alpn()} {session.lifetime().seconds}")
 	try:
@@ -620,6 +637,13 @@ def script():
 	lent_last = meters.last_get
 	lent_last.add(4)
 	print(f"field lent {lent_last.add(1)}")
+	# An optional field that is not Clone, lent as `Some` of a handle.
+	print(f"spare {str(meters.spare_get is not None).lower()}")
+	meters.spare_set(api.Meter.default())
+	spare = meters.spare_get
+	assert spare is not None
+	spare.add(5)
+	print(f"spare lent {spare.add(1)}")
 	tallies = api.Tallies.new()
 	tallies.first().bump()
 	print(f"tallied {tallies.first().bump()}")
@@ -682,6 +706,7 @@ def script():
 
 	# Slices, passed in and returned as clones, and the socket address of each family.
 	print(f"shapes {debugs(api.Shape.ALL)} greetings {quoted(api.GREETINGS)}")
+	print(f"both {debugs(api.Shape.BOTH)} primes {list(api.PRIMES)}")
 	trail = api.Trail.new([api.Point(1, 2), api.Point(3, 4)], ["a", "b"])
 	print(f"trail {debugs(trail.points())} {debugs(trail.labels())}")
 	# Returned iterators, each collected at the call: drained labels are gone after.

@@ -63,12 +63,17 @@ pub const NOT_INFERRED: &str = "instance not inferred";
 
 /// What C can never hold: left out and listed in the census rather than refused, since
 /// exporting it would need constructors or returns the crate has no use for.
-const UNHELD: [&str; 4] = [
+const UNHELD: [&str; 5] = [
 	"object no export returns",
 	"value no export returns",
 	"generic type no export instantiates",
 	"type C never holds",
+	UNMET,
 ];
+
+/// The construct of a type parameter bounded by another crate's trait that no export
+/// implements and C cannot: no value C holds could be passed for it.
+const UNMET: &str = "bound no type C holds meets";
 
 fn why(construct: &'static str, detail: impl Into<String>) -> Why {
 	Why {
@@ -260,6 +265,8 @@ struct Collector<'tcx> {
 	/// lent from the receiver's handle.
 	lending: std::cell::Cell<bool>,
 	bytes: Option<DefId>,
+	/// `std::vec::IntoIter`, which an `impl Iterator` parameter takes.
+	vec_iter: Option<DefId>,
 	/// `serde_json::Map`, a map of `serde_json::Value`s.
 	json_map: Option<DefId>,
 	/// The standard library's crates, `core`, `alloc`, and `std`, known by what each
@@ -330,6 +337,26 @@ pub fn collect<'tcx>(tcx: TyCtxt<'tcx>, facade: &Facade<'_>) -> Collected {
 	};
 	let bytes = root("bytes", "Bytes");
 	let json_map = root("serde_json", "Map");
+	// What `Vec` iterates by value as.
+	let vec_iter = (|| {
+		let into_iter = tcx.get_diagnostic_item(sym::IntoIterator)?;
+		let assoc = (tcx
+			.associated_items(into_iter)
+			.filter_by_name_unhygienic(rustc_span::Symbol::intern("IntoIter")))
+		.next()?;
+		let vec = tcx.get_diagnostic_item(sym::Vec)?;
+		let alloc = tcx.lang_items().global_alloc_ty()?;
+		let alloc = Ty::new_adt(tcx, tcx.adt_def(alloc), ty::GenericArgs::empty());
+		let vec = Ty::new_adt(tcx, tcx.adt_def(vec), tcx.mk_args(&[tcx.types.u8.into(), alloc.into()]));
+		let iter = Ty::new_projection(tcx, ty::IsRigid::No, assoc.def_id, [vec]);
+		let iter = tcx
+			.try_normalize_erasing_regions(TypingEnv::fully_monomorphized(), ty::Unnormalized::new_wip(iter))
+			.ok()?;
+		match iter.kind() {
+			ty::Adt(adt, _) => Some(adt.did()),
+			_ => None,
+		}
+	})();
 	let sysroot: Vec<CrateNum> = [
 		tcx.lang_items().sized_trait(),
 		tcx.lang_items().owned_box(),
@@ -401,6 +428,7 @@ pub fn collect<'tcx>(tcx: TyCtxt<'tcx>, facade: &Facade<'_>) -> Collected {
 			impls: Default::default(),
 			lending: Default::default(),
 			bytes,
+			vec_iter,
 			json_map,
 			sysroot: sysroot.clone(),
 			foreign: Vec::new(),
@@ -903,14 +931,43 @@ impl<'tcx> Collector<'tcx> {
 			return None;
 		}
 		let inner = args.type_at(0);
-		let ty::Adt(adt, inner_args) = inner.kind() else {
-			return None;
+		let (did, inner_args) = match inner.kind() {
+			ty::Adt(adt, inner_args) => (adt.did(), inner_args.as_slice()),
+			ty::Dynamic(..) => (self.held_trait(inner)?, &[][..]),
+			_ => return None,
 		};
-		let did = adt.did();
 		let mapped = Some(did) == self.bytes || Some(did) == self.json_map || !self.opaque(did);
 		let held = !self.walked(did.krate) && !self.sysroot.contains(&did.krate) && !mapped;
 		(held && inner_args.is_empty() && self.is_send(inner, TypingEnv::fully_monomorphized()) && self.is_sync(inner))
 			.then_some(did)
+	}
+
+	/// The trait of a trait object an opaque handle may hold: one of a crate the walk from
+	/// the root does not reach, and not the standard library's, whose traits are closures and
+	/// markers; taking no arguments, as its handle names none; and with no associated type
+	/// fixed, which would be one.
+	///
+	/// One object type per trait, as the handle names only the trait: its auto traits are
+	/// `Send` and `Sync` but those the trait implies, as `dyn Trait + Send + Sync` and, where
+	/// the trait has them as supertraits, `dyn Trait` are. Its lifetime is held, as
+	/// [`Self::lifetimes`] says, so one that borrows what C lends is refused.
+	fn held_trait(&self, ty: Ty<'tcx>) -> Option<DefId> {
+		let tcx = self.tcx;
+		let ty::Dynamic(preds, _) = ty.kind() else {
+			return None;
+		};
+		let principal = preds.principal()?.skip_binder();
+		let did = principal.def_id;
+		let plain = principal.args.is_empty() && preds.projection_bounds().next().is_none();
+		let implied: Vec<DefId> = rustc_middle::ty::elaborate::supertrait_def_ids(tcx, did).collect();
+		let canonical: Vec<DefId> = [tcx.get_diagnostic_item(sym::Send), tcx.get_diagnostic_item(sym::Sync)]
+			.into_iter()
+			.flatten()
+			.filter(|tr| !implied.contains(tr))
+			.collect();
+		let auto: Vec<DefId> = preds.auto_traits().collect();
+		let same = auto.len() == canonical.len() && auto.iter().all(|tr| canonical.contains(tr));
+		(plain && same && !self.walked(did.krate) && !self.sysroot.contains(&did.krate)).then_some(did)
 	}
 
 	/// The type a handle holds by value, if it exports as an opaque handle: as
@@ -918,10 +975,17 @@ impl<'tcx> Collector<'tcx> {
 	/// taking no type parameters, and `Send` and `Sync`, but not an iterator or a future,
 	/// nor one that exports by its own crate's path. Its lifetimes are `'static`, as an object's are.
 	fn opaque_value(&self, ty: Ty<'tcx>) -> Option<DefId> {
+		// A `'static` borrow of a trait object is a value, as `&'static dyn Trait` is `Copy`,
+		// held as the `Arc` form's trait is.
+		if let ty::Ref(region, inner, ty::Mutability::Not) = ty.kind() {
+			let did = self.held_trait(*inner).filter(|_| region.is_static())?;
+			return (self.opaque(did) && self.is_send(ty, TypingEnv::fully_monomorphized()) && self.is_sync(ty))
+				.then_some(did);
+		}
 		let ty::Adt(adt, args) = ty.kind() else { return None };
 		let did = adt.did();
-		let mapped = Some(did) == self.bytes || Some(did) == self.json_map || !self.opaque(did);
-		let held = !self.walked(did.krate) && !self.sysroot.contains(&did.krate) && !mapped;
+		let mapped = Some(did) == self.bytes || Some(did) == self.json_map || !self.opaque(did) || self.by_role(did);
+		let held = !self.walked(did.krate) && !mapped;
 		// Each lifetime is `'static` in the export, as an object's is.
 		let erasable = args.iter().all(|arg| matches!(arg.kind(), GenericArgKind::Lifetime(_)));
 		// Asked of a signature's type, whose lifetimes may be bound by it.
@@ -940,6 +1004,30 @@ impl<'tcx> Collector<'tcx> {
 			&& self.is_sync(ty)
 			&& !self.reaches(ty, did))
 		.then_some(did)
+	}
+
+	/// Whether `did` is one of the standard library's types that crosses by its role rather
+	/// than in a handle, such as `String` or `SocketAddr`, or that will: `IpAddr` and its
+	/// families, which stay refused until they cross as `SocketAddr` does. A collection's
+	/// allocator and hasher are part of the collection's role.
+	fn by_role(&self, did: DefId) -> bool {
+		const ROLES: [&str; 14] = [
+			"String",
+			"Duration",
+			"Path",
+			"PathBuf",
+			"Waker",
+			"Context",
+			"SocketAddr",
+			"SocketAddrV4",
+			"SocketAddrV6",
+			"IpAddr",
+			"Ipv4Addr",
+			"Ipv6Addr",
+			"Global",
+			"RandomState",
+		];
+		self.sysroot.contains(&did.krate) && ROLES.contains(&self.tcx.item_name(did).as_str())
 	}
 
 	/// Whether `did`, the type of `ty`, exports with its API by its public path in its own
@@ -995,6 +1083,10 @@ impl<'tcx> Collector<'tcx> {
 	/// Whether the foreign type `did` is a value C holds as its bytes, as a `Copy` one is.
 	fn foreign_value(&self, did: DefId) -> bool {
 		let tcx = self.tcx;
+		// A trait object's handle holds the `Arc` or `&'static`, never a value.
+		if tcx.def_kind(did) == DefKind::Trait {
+			return false;
+		}
 		let ty = tcx.type_of(did).instantiate_identity().skip_norm_wip();
 		!self.opaque(did) && implements(tcx, ty, did, sym::Copy) && padding(tcx, ty).is_some()
 	}
@@ -1724,23 +1816,33 @@ impl<'tcx> Collector<'tcx> {
 		let name = tcx.item_name(def_id);
 		if self.opaque(def_id) {
 			let owned = self.owned.contains(&def_id);
+			// A trait's handle holds a trait object of it.
+			let held = match tcx.def_kind(def_id) {
+				DefKind::Trait if owned => format!("&'static dyn {}", tcx.def_path_str(def_id)),
+				DefKind::Trait => format!("dyn {}", tcx.def_path_str(def_id)),
+				_ => tcx.def_path_str(def_id),
+			};
 			let docs = match owned {
 				true => format!(
-					"`{}`: a handle to another crate's value, which Rust takes back or borrows, with none of its API.",
-					tcx.def_path_str(def_id)
+					"`{held}`: a handle to another crate's value, which Rust takes back or borrows, with none of its API."
 				),
 				false => format!(
-					"`Arc<{}>`: a handle to another crate's value, which Rust takes back, with none of its API.",
-					tcx.def_path_str(def_id)
+					"`Arc<{held}>`: a handle to another crate's value, which Rust takes back, with none of its API."
 				),
 			};
+			// The standard library's is named through its module, as `std::io::Error`, since its
+			// names repeat across modules.
+			let path: Path = match self.sysroot.contains(&def_id.krate) {
+				true => tcx.def_path_str(def_id).split("::").map(str::to_string).collect(),
+				false => vec![krate.to_string(), name.to_string()],
+			};
 			return Object {
-				path: vec![krate.to_string(), name.to_string()],
 				home: Home {
 					krate: self.keys[&def_id.krate].clone(),
 					outside: 2,
 				},
-				shown: vec![self.report.root.clone(), krate.to_string(), name.to_string()],
+				shown: [&[self.report.root.clone()][..], &path].concat(),
+				path,
 				args: Vec::new(),
 				span,
 				on: On::ALL,
@@ -1941,7 +2043,20 @@ impl<'tcx> Collector<'tcx> {
 	fn arg(&self, ty: Ty<'tcx>) -> Result<Type, Why> {
 		let arg = match ty.kind() {
 			ty::Tuple(list) if list.is_empty() => Type::Unit,
-			_ => self.ty(ty, Pos::Behind)?,
+			_ => match self.ty(ty, Pos::Behind) {
+				Ok(arg) => arg,
+				// A type a handle holds erased, which the glue never names, names no instance C
+				// holds.
+				Err(why)
+					if why.construct == "foreign type"
+						&& let ty::Adt(adt, _) = ty.kind()
+						&& (self.barred.contains(&adt.did())
+							|| self.foreign.iter().any(|&(other, _)| other == adt.did())) =>
+				{
+					return Err(self::why("type C never holds", self.spell(ty)));
+				}
+				Err(why) => return Err(why),
+			},
 		};
 		match arg {
 			Type::Unit
@@ -2447,8 +2562,13 @@ impl<'tcx> Collector<'tcx> {
 			let read = Ty::new_imm_ref(tcx, tcx.lifetimes.re_erased, ty);
 			// A field that is an object but not `Clone` is lent from the receiver's handle,
 			// as a method's borrowed return of one is.
+			// So is an `Option` of one, as `Some` of the borrow.
+			let object = match ty.kind() {
+				ty::Adt(adt, args) if tcx.is_diagnostic_item(sym::Option, adt.did()) => args.type_at(0),
+				_ => ty,
+			};
 			let lends = !self.is_clone(ty)
-				&& matches!(ty.kind(), ty::Adt(adt, args) if matches!(self.decl(adt.did(), *args), Some(Decl::Object(_))));
+				&& matches!(object.kind(), ty::Adt(adt, args) if matches!(self.decl(adt.did(), *args), Some(Decl::Object(_))));
 			let mapped = {
 				self.lending.set(lends);
 				let get = self.ty(read, Pos::Return);
@@ -2499,8 +2619,7 @@ impl<'tcx> Collector<'tcx> {
 						instance: None,
 						home: Home::default(),
 					};
-					let lent = lends
-						&& matches!(&get, Type::Ref(Mutability::Not, inner) if matches!(**inner, Type::Object(_)));
+					let lent = lends && lent(&get);
 					let mut getter = accessor(Receiver::Ref, Vec::new(), get, false);
 					getter.lends = lent;
 					accessors.push(getter);
@@ -2819,6 +2938,8 @@ impl<'tcx> Collector<'tcx> {
 					ty::Ref(_, inner, ty::Mutability::Not) => {
 						self.arg(inner).map(|inner| Type::Ref(Mutability::Not, Box::new(inner)))
 					}
+					// An iterator parameter's instance, the array C passes, as it maps there.
+					ty::Adt(adt, _) if Some(adt.did()) == self.vec_iter => self.ty(ty, Pos::Param),
 					_ => self.arg(ty),
 				},
 				GenericArgKind::Lifetime(_) => unreachable!("no lifetime names an instance"),
@@ -3081,6 +3202,22 @@ impl<'tcx> Collector<'tcx> {
 		if future && params.iter().any(|p: &Param| p.ty.written()) {
 			errs.push(why("&mut of a value in a future", ""));
 		}
+		// Each borrowed item is lent for the call, which a future outlives, and a callback
+		// would take an iterator from Rust, which no language holds.
+		if (future || callback)
+			&& params
+				.iter()
+				.any(|p: &Param| matches!(p.ty, Type::List(Collection::IterRef, _)))
+		{
+			errs.push(why("iterator of borrows in a future or callback", ""));
+		}
+		if callback
+			&& params
+				.iter()
+				.any(|p: &Param| matches!(p.ty, Type::List(Collection::Iter, _)))
+		{
+			errs.push(why("iterator in a callback", ""));
+		}
 		// A reader is lent for the call, which a future outlives.
 		if future && params.iter().any(|p: &Param| *p.ty.base() == Type::Reader) {
 			errs.push(why("reader lent to a future", ""));
@@ -3170,8 +3307,7 @@ impl<'tcx> Collector<'tcx> {
 				}
 			}
 		}
-		let lends = matches!(ok, Ok(Type::Ref(Mutability::Not, ref inner)) if matches!(**inner, Type::Object(_)))
-			&& !self.is_clone(ok_ty.peel_refs());
+		let lends = ok.as_ref().is_ok_and(lent) && !self.is_clone(ok_ty.peel_refs());
 		let ok = ok.map_err(|why| errs.push(why)).ok();
 		let err = match err {
 			Some(Ok(err)) => Some(err),
@@ -3181,13 +3317,24 @@ impl<'tcx> Collector<'tcx> {
 			}
 			None => None,
 		};
+		// What interning costs, which the caller cannot see from the parameter's type.
+		let mut docs = docs(tcx, def_id);
+		for param in params.iter().filter(|p| p.interned) {
+			if !docs.is_empty() {
+				docs.push_str("\n\n");
+			}
+			docs.push_str(&format!(
+				"`{}` must live as long as the program, so each distinct value passed is copied once and never freed: memory grows with each distinct value.",
+				param.name
+			));
+		}
 		match (errs.is_empty(), ok) {
 			(true, Some(ok)) => Ok(Function {
 				path,
 				shown,
 				span: tcx.def_span(def_id),
 				on: On::ALL,
-				docs: docs(tcx, def_id),
+				docs,
 				receiver,
 				params,
 				units,
@@ -3232,7 +3379,11 @@ impl<'tcx> Collector<'tcx> {
 		let mut kept = Vec::new();
 		// Each choice of the parameters so far, with the arguments that name it.
 		let mut choices: Vec<(Vec<ty::GenericArg<'tcx>>, Vec<ty::GenericArg<'tcx>>)> = vec![(args, Vec::new())];
-		for (i, arg) in identity.iter().enumerate() {
+		// A parameter another iterates, as `S` in `I: IntoIterator<Item = S>`, is chosen first,
+		// so the iterator's choice sees its items.
+		let mut order: Vec<(usize, ty::GenericArg<'tcx>)> = identity.iter().enumerate().collect();
+		order.sort_by_key(|&(_, arg)| !arg.as_type().is_some_and(|ty| self.iterated(def_id, ty)));
+		for (i, arg) in order {
 			let param = match arg.kind() {
 				_ if i < count => continue,
 				GenericArgKind::Lifetime(_) => continue,
@@ -3448,14 +3599,23 @@ impl<'tcx> Collector<'tcx> {
 			} else if tcx.is_diagnostic_item(sym::IntoIterator, tr) {
 				// Borrowed items iterate a slice C lends, borrowed for the items' own lifetime,
 				// so the signature's borrows decide whether C's slice lives long enough.
-				let items = self.items(&identity.clauses, param).and_then(|item| match item.kind() {
-					ty::Ref(region, elem, ty::Mutability::Not)
-						if !outlives && !matches!(region.kind(), ty::ReBound(..)) =>
-					{
-						Some(Ty::new_imm_ref(tcx, *region, Ty::new_slice(tcx, *elem)))
-					}
-					_ => self.vec_of(item),
-				});
+				let items = self
+					.items(&identity.clauses, param, sym::IntoIterator)
+					.and_then(|item| match item.kind() {
+						ty::Ref(region, elem, ty::Mutability::Not)
+							if !outlives && !matches!(region.kind(), ty::ReBound(..)) =>
+						{
+							Some(Ty::new_imm_ref(tcx, *region, Ty::new_slice(tcx, *elem)))
+						}
+						_ => self.vec_of(item),
+					});
+				candidates.extend(items.map(|ty| (ty, None)));
+			} else if tcx.is_diagnostic_item(sym::Iterator, tr) {
+				// The array of its items, which Rust iterates by value: a borrowed string or bytes
+				// borrow what C lends for the call, the rest are owned.
+				let items = (self.items(&identity.clauses, param, sym::Iterator))
+					.filter(|item| !outlives || !item.is_ref())
+					.and_then(|item| self.vec_iter_of(item));
 				candidates.extend(items.map(|ty| (ty, None)));
 			} else if tcx.is_diagnostic_item(rustc_span::Symbol::intern("IoRead"), tr) && !outlives {
 				// What it reads, which C lends for the call.
@@ -3476,11 +3636,14 @@ impl<'tcx> Collector<'tcx> {
 		// `impl Into<Arc<str>>` takes a `String` too, which maps where `Arc<str>` does not.
 		// Not another crate's type a handle holds: the glue never names it, so nothing would
 		// fix the call's type argument.
-		candidates.retain(|&(candidate, _)| {
+		let takes = |candidate: Ty<'tcx>| {
 			self.at(def_id, param, base, candidate).is_some()
 				&& self.maps(candidate, Pos::Param)
 				&& !(candidate.walk().filter_map(|arg| arg.as_type())).any(|ty| self.is_opaque(ty))
-		});
+		};
+		let iterated = self.iterated(def_id, param);
+		// An array's items are owned, as C lends nothing inside one.
+		candidates.retain(|&(candidate, _)| !(iterated && candidate.is_ref()) && takes(candidate));
 		// Two sources that C passes as one buffer but that hold different values, as a
 		// `String` and a `Vec<u8>` do, leave the caller no say in which conversion runs. Forms
 		// of one value, as `&str` and `String` are, convert alike.
@@ -3511,10 +3674,62 @@ impl<'tcx> Collector<'tcx> {
 			.filter(|b| !sized.contains(&Some(b.def_id())))
 			.map(|b| tcx.def_path_str(b.def_id()))
 			.collect();
+		// Another crate's trait, which no type the export holds meets, as instantiating found
+		// none, and C cannot implement: no value C holds could be passed. The standard library's
+		// traits are met by values C passes, which the rules may yet take.
+		// An impl for a type the export names, for a value C passes by role that meets every
+		// bound, or for any type at all, may yet meet it.
+		let unmet = (bounds.iter().map(|b| b.def_id())).any(|tr| {
+			let foreign = !self.sysroot.contains(&tr.krate) && !marker(tcx, tr) && !self.walked(tr.krate);
+			let met = || {
+				tcx.all_impls(tr).any(|imp| {
+					// A blanket impl for any type, or for a reference to any type but one that
+					// needs that type to meet the bound itself, as tokio's `&mut T` impls do.
+					let ty = tcx.type_of(imp).instantiate_identity().skip_norm_wip();
+					let inner = ty.peel_refs();
+					let role = || {
+						!ty.has_non_region_param() && takes(ty::fold_regions(tcx, ty, |_, _| tcx.lifetimes.re_erased))
+					};
+					match inner.kind() {
+						ty::Param(_) => {
+							ty == inner
+								|| !(tcx.clauses_of(imp).instantiate_identity(tcx).clauses.iter())
+									.filter_map(|clause| clause.skip_norm_wip().as_trait_clause())
+									.any(|bound| bound.def_id() == tr && bound.self_ty().skip_binder() == inner)
+						}
+						ty::Adt(adt, _) => {
+							self.items.iter().any(|(item, _)| *item == adt.did())
+								|| self.foreign.iter().any(|&(f, _)| f == adt.did())
+								|| role()
+						}
+						_ => role(),
+					}
+				})
+			};
+			foreign && !met() || matches!(self.trait_decl(tr), Some(Decl::Refused(_)))
+		});
 		match local[..] {
 			[_] => Err(why("callback bound", names.join(" + "))),
+			[] if unmet => Err(why(UNMET, names.join(" + "))),
 			_ => Err(why("generic parameter", names.join(" + "))),
 		}
+	}
+
+	/// Whether `param` is the `Item` of another of `def_id`'s parameters' `IntoIterator` or
+	/// `Iterator` bounds.
+	fn iterated(&self, def_id: DefId, param: Ty<'tcx>) -> bool {
+		let tcx = self.tcx;
+		(tcx.clauses_of(def_id).instantiate_identity(tcx).clauses.iter())
+			.filter_map(|clause| clause.skip_norm_wip().as_projection_clause())
+			.map(|pred| pred.skip_binder())
+			.any(|pred| {
+				let item = pred.projection_term.expect_projection_def_id();
+				let iterator = tcx.parent(item);
+				(tcx.is_diagnostic_item(sym::IntoIterator, iterator) || tcx.is_diagnostic_item(sym::Iterator, iterator))
+					&& tcx.item_name(item) == sym::Item
+					&& pred.projection_term.self_ty() != param
+					&& pred.term.as_type() == Some(param)
+			})
 	}
 
 	/// `serde_json::Value`, if it exports as a foreign object.
@@ -3527,7 +3742,12 @@ impl<'tcx> Collector<'tcx> {
 
 	/// The `Item` that `clauses` bind `param`'s `IntoIterator` to, if it names no type
 	/// parameter, which a `Vec` of it then iterates as.
-	fn items(&self, clauses: &[ty::Unnormalized<'tcx, ty::Clause<'tcx>>], param: Ty<'tcx>) -> Option<Ty<'tcx>> {
+	fn items(
+		&self,
+		clauses: &[ty::Unnormalized<'tcx, ty::Clause<'tcx>>],
+		param: Ty<'tcx>,
+		iterator: rustc_span::Symbol,
+	) -> Option<Ty<'tcx>> {
 		let tcx = self.tcx;
 		(clauses.iter())
 			.filter_map(|clause| clause.skip_norm_wip().as_projection_clause())
@@ -3536,7 +3756,7 @@ impl<'tcx> Collector<'tcx> {
 				let term = pred.projection_term;
 				let item = term.expect_projection_def_id();
 				term.self_ty() == param
-					&& tcx.is_diagnostic_item(sym::IntoIterator, tcx.parent(item))
+					&& tcx.is_diagnostic_item(iterator, tcx.parent(item))
 					&& tcx.item_name(item) == sym::Item
 			})
 			.and_then(|pred| pred.term.as_type())
@@ -3725,13 +3945,16 @@ impl<'tcx> Collector<'tcx> {
 		// A lifetime bound, such as `'static`, which a reference to a value C passes for the
 		// call cannot meet, though `at` holds modulo regions.
 		let outlives = must_outlive(&self.implied(def_id, base), param);
+		// An array's items are owned, as C lends nothing inside one.
+		let iterated = self.iterated(def_id, param);
+		let owned = outlives || iterated;
 		let mut found: Vec<Ty<'tcx>> = Vec::new();
 		for ty in self.implementors(def_id, param) {
-			if outlives && ty.is_ref() {
+			if owned && ty.is_ref() {
 				continue;
 			}
 			// An implementation for `&X` is taken as it is: C passes no reference to one.
-			let borrowed = (!ty.is_ref() && !outlives).then(|| Ty::new_imm_ref(tcx, tcx.lifetimes.re_erased, ty));
+			let borrowed = (!ty.is_ref() && !owned).then(|| Ty::new_imm_ref(tcx, tcx.lifetimes.re_erased, ty));
 			let ty = match borrowed.filter(|&borrowed| at(borrowed).is_some()) {
 				Some(borrowed) => borrowed,
 				None if at(ty).is_some() => ty,
@@ -3753,7 +3976,7 @@ impl<'tcx> Collector<'tcx> {
 			.filter_map(exported)
 			.any(|(_, args)| args.iter().any(|arg| arg.walk().any(|a| a == param.into())));
 		for site in self.instances.iter().filter(|_| argument) {
-			for candidate in site.args.types() {
+			for candidate in site.args.types().filter(|ty| !(iterated && ty.is_ref())) {
 				let erased = tcx.erase_and_anonymize_regions(candidate);
 				if found
 					.iter()
@@ -4109,6 +4332,15 @@ impl<'tcx> Collector<'tcx> {
 	}
 
 	/// `Vec<item>`.
+	/// `std::vec::IntoIter<item>`, an iterator C passes as the array of its items.
+	fn vec_iter_of(&self, item: Ty<'tcx>) -> Option<Ty<'tcx>> {
+		let tcx = self.tcx;
+		let ty::Adt(_, args) = self.vec_of(item)?.kind() else {
+			return None;
+		};
+		Some(Ty::new_adt(tcx, tcx.adt_def(self.vec_iter?), *args))
+	}
+
 	fn vec_of(&self, item: Ty<'tcx>) -> Option<Ty<'tcx>> {
 		let tcx = self.tcx;
 		let vec = tcx.get_diagnostic_item(sym::Vec)?;
@@ -4386,12 +4618,13 @@ impl<'tcx> Collector<'tcx> {
 		let mut refused = Vec::new();
 		let mut interned = Vec::new();
 		for &(region, n, input) in &lent {
-			// A string lives as long as the program once interned, which a binding passes
-			// as it passes any other.
+			// A string or bytes live as long as the program once interned, which a binding
+			// passes as it passes any other. Shared and never freed, the copy is as good as
+			// the caller's: equal contents differ only by address.
 			if statics.contains(&region)
 				&& let ty::Ref(r, inner, ty::Mutability::Not) = input.kind()
 				&& *r == region
-				&& inner.is_str()
+				&& (inner.is_str() || matches!(inner.kind(), ty::Slice(elem) if *elem == tcx.types.u8))
 			{
 				interned.push(n);
 				continue;
@@ -4481,7 +4714,11 @@ impl<'tcx> Collector<'tcx> {
 		let mut lent = Vec::new();
 		for ty in ty.walk().filter_map(|arg| arg.as_type()) {
 			match ty.kind() {
+				// Another crate's `&'static dyn Trait`, which a handle holds.
+				ty::Ref(region, ..) if self.opaque_value(ty).is_some() => held.push(*region),
 				ty::Ref(region, ..) => lent.push(*region),
+				// A trait object a handle holds holds its own lifetime, as `dyn Trait + 'a` does.
+				ty::Dynamic(_, region) if self.held_trait(ty).is_some() => held.push(*region),
 				// An object, an opaque value, or another crate's value an opaque handle holds, holds
 				// what its lifetime parameters name.
 				ty::Adt(adt, args)
@@ -4857,6 +5094,25 @@ impl<'tcx> Collector<'tcx> {
 			ty::Float(ty::FloatTy::F64) => Type::F64,
 			ty::Uint(ty::UintTy::U128) => Type::U128,
 			ty::Int(_) | ty::Uint(_) => Type::Int(int(ty).ok_or_else(|| why("128-bit integer", ty.to_string()))?),
+			// Another crate's `&'static dyn Trait`, held by value.
+			ty::Ref(..)
+				if let Some(did) = self.opaque_value(ty)
+					&& let Some(&(_, i)) = self.foreign.iter().find(|&&(other, _)| other == did) =>
+			{
+				if self.both.contains(&did) {
+					return Err(why(BOTH, tcx.def_path_str(did)));
+				}
+				if self.orphans.contains(&Key {
+					def_id: did,
+					args: None,
+				}) {
+					return Err(why("type C never holds", tcx.def_path_str(did)));
+				}
+				match pos {
+					Pos::Field => return Err(why("object in a value", tcx.def_path_str(did))),
+					_ => Type::Object(i),
+				}
+			}
 			ty::Ref(_, inner, m) => {
 				let inner_ty = match inner.kind() {
 					ty::Str => Type::Str,
@@ -4918,6 +5174,16 @@ impl<'tcx> Collector<'tcx> {
 					// another crate's value, which a handle holds only erased and by value.
 					(Type::Object(_), Pos::Return, Mutability::Not)
 						if self.lending.take() && self.opaque_value(*inner).is_none() => {}
+					// A borrowed `Option` of one is lent as `Some` of a borrow of it, so C holds the
+					// handle the bare borrow would be.
+					(Type::Option(object), Pos::Return, Mutability::Not)
+						if matches!(**object, Type::Object(_))
+							&& let ty::Adt(_, args) = inner.kind()
+							&& self.opaque_value(args.type_at(0)).is_none()
+							&& self.lending.take() =>
+					{
+						return Ok(Type::Option(Box::new(Type::Ref(Mutability::Not, object.clone()))));
+					}
 					// A slice's clone is a `Vec` of its elements' clones.
 					(_, Pos::Return | Pos::Returned, _)
 						if !self.is_clone(match inner.kind() {
@@ -5000,6 +5266,28 @@ impl<'tcx> Collector<'tcx> {
 					Type::List(c, Box::new(inner))
 				} else if Some(did) == self.bytes {
 					Type::Bytes
+				} else if Some(did) == self.vec_iter
+					&& pos == Pos::Param
+					&& tcx.lang_items().global_alloc_ty() == args.type_at(1).ty_adt_def().map(|adt| adt.did())
+				{
+					// An `impl Iterator` parameter's, which C passes as the array of its items. A
+					// borrowed string or bytes borrow what C lends for the call.
+					let elem = args.type_at(0);
+					match elem.kind() {
+						ty::Ref(_, inner, ty::Mutability::Not) if inner.is_str() => {
+							Type::List(Collection::IterRef, Box::new(Type::String))
+						}
+						ty::Ref(_, inner, ty::Mutability::Not) if matches!(inner.kind(), ty::Slice(byte) if *byte == tcx.types.u8) => {
+							Type::List(Collection::IterRef, Box::new(Type::Vec))
+						}
+						_ => {
+							let inner = self.ty(elem, pos.inner())?;
+							if borrows(&inner) {
+								return Err(why("iterator of references", elem.to_string()));
+							}
+							Type::List(Collection::Iter, Box::new(inner))
+						}
+					}
 				} else if tcx.is_diagnostic_item(rustc_span::Symbol::intern("Duration"), did) {
 					Type::Duration
 				} else if tcx.is_diagnostic_item(rustc_span::Symbol::intern("NonZero"), did) {
@@ -5090,7 +5378,8 @@ impl<'tcx> Collector<'tcx> {
 				} else if tcx.is_diagnostic_item(sym::Arc, did) {
 					let inner = args.type_at(0);
 					match inner.kind() {
-						ty::Dynamic(preds, ..) => {
+						// Another crate's trait is held as its other types are, below.
+						ty::Dynamic(preds, ..) if self.opaque_arc(ty).is_none() => {
 							return self.dynamic(preds.principal_def_id(), Dyn::Arc, inner, pos);
 						}
 						// Held erased, as a handle with none of its API, which Rust takes back.
@@ -5205,6 +5494,15 @@ impl<'tcx> Collector<'tcx> {
 					Ok(n) => Type::Array(n),
 					Err(_) => return Err(why("array too long", ty.to_string())),
 				}
+			}
+			// Returned as the array of its elements, as a returned slice is: C has no fixed-size
+			// array of a value that is not plain bytes.
+			ty::Array(elem, len) if matches!(pos, Pos::Return | Pos::Returned) => {
+				let n = len
+					.try_to_target_usize(tcx)
+					.and_then(|n| usize::try_from(n).ok())
+					.ok_or_else(|| why("array of unknown length", ty.to_string()))?;
+				Type::List(Collection::Array(n), Box::new(self.ty(*elem, Pos::Returned)?))
 			}
 			ty::Array(..) => return Err(why("array of an element other than u8", ty.to_string())),
 			ty::Slice(_) | ty::Str => return Err(why("unsized type", ty.to_string())),
@@ -5419,6 +5717,16 @@ fn lends_inside(ty: &Type) -> bool {
 			matches!(**inner, Type::Ref(..)) || lends_inside(inner)
 		}
 		_ => false,
+	}
+}
+
+/// Whether a return of `ty` is a borrowed object, or `Some` of one, which its receiver's
+/// handle may lend.
+fn lent(ty: &Type) -> bool {
+	let borrowed = |ty: &Type| matches!(ty, Type::Ref(Mutability::Not, inner) if matches!(**inner, Type::Object(_)));
+	match ty {
+		Type::Option(inner) => borrowed(inner),
+		ty => borrowed(ty),
 	}
 }
 

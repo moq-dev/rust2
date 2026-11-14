@@ -602,11 +602,13 @@ impl Meter {
 	}
 }
 
-/// Owns a meter it lends, and one in a field, lent as the method's is.
+/// Owns a meter it lends, and one in a field, lent as the method's is, and an optional one,
+/// lent as `Some` of it.
 #[derive(Default)]
 pub struct Meters {
 	first: Meter,
 	pub last: Meter,
+	pub spare: Option<Meter>,
 }
 
 impl Meters {
@@ -2641,6 +2643,124 @@ pub fn blame(err: tls::held::Invalid) -> String {
 
 /// A session of `alpn` lasting `seconds`, from a crate the facade re-exports nothing from:
 /// its type exports by its path there, and its error crosses as its message.
+/// Another crate's trait object behind an `Arc`: an opaque handle, taken back as the `Arc`.
+pub fn resolver(name: &str) -> Arc<dyn tls::held::Resolver> {
+	Arc::new(tls::held::Named(name.to_string()))
+}
+
+/// The name a resolver resolves, from its handle.
+pub fn resolved(resolver: Arc<dyn tls::held::Resolver>) -> String {
+	resolver.name()
+}
+
+/// Codecs, each another crate's `&'static dyn Codec`, held by value in an opaque handle.
+pub struct Codecs {
+	pub list: Vec<&'static dyn tls::held::Codec>,
+	seen: u8,
+}
+
+impl Codecs {
+	pub fn new() -> Self {
+		Self {
+			list: vec![&tls::held::ZLIB, &tls::held::BROTLI],
+			seen: 0,
+		}
+	}
+
+	/// The ids of the listed codecs, in order, as one number of a digit each.
+	pub fn ids(&mut self) -> u32 {
+		self.seen += 1;
+		self.list.iter().fold(0, |n, codec| n * 10 + u32::from(codec.id()))
+	}
+}
+
+impl Default for Codecs {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
+/// A standard library value no exported type maps: an opaque handle held by value.
+pub fn failure(message: &str) -> std::io::Error {
+	std::io::Error::other(message.to_string())
+}
+
+/// The failure's message, borrowed from its handle.
+pub fn failure_message(error: &std::io::Error) -> String {
+	error.to_string()
+}
+
+/// The failure's kind, taken back by value.
+pub fn failure_kind(error: std::io::Error) -> String {
+	format!("{:?}", error.kind())
+}
+
+/// The sum of what an iterator yields, which C passes as the array of its items.
+pub fn sum_all(items: impl Iterator<Item = u32>) -> u32 {
+	items.sum()
+}
+
+/// What a counter weighs, owned or borrowed, which C cannot implement for its constant.
+pub trait Weigh {
+	const SCALE: u64;
+	fn weight(&self) -> u64;
+}
+
+impl Weigh for Counter {
+	const SCALE: u64 = 1;
+	fn weight(&self) -> u64 {
+		self.get() * Self::SCALE
+	}
+}
+
+impl Weigh for &Counter {
+	const SCALE: u64 = 10;
+	fn weight(&self) -> u64 {
+		self.get() * Self::SCALE
+	}
+}
+
+/// The weights of an iterator's items summed: C passes the array of its counters, each
+/// moved in, so `&Counter`'s weight is not taken.
+pub fn weigh_all<I: Iterator<Item = W>, W: Weigh>(items: I) -> u64 {
+	items.map(|item| item.weight()).sum()
+}
+
+/// The total length of borrowed byte strings, as moq-tokio's TLS acceptor reads offered ALPNs.
+pub fn offered_len<'a>(alpns: impl Iterator<Item = &'a [u8]>) -> usize {
+	alpns.map(<[u8]>::len).sum()
+}
+
+/// Words joined with spaces: an `IntoIterator` of what converts to `&str`, as moq-tokio's
+/// WebSocket listener takes its protocols.
+pub fn join_words<I, S>(words: I) -> String
+where
+	I: IntoIterator<Item = S>,
+	S: AsRef<str>,
+{
+	let words: Vec<String> = words.into_iter().map(|w| w.as_ref().to_string()).collect();
+	words.join(" ")
+}
+
+/// Bytes that must outlive every handle, as rustls's `CertificateDer::from_slice` borrows
+/// its DER: the glue interns them.
+pub struct Der<'a>(&'a [u8]);
+
+impl<'a> Der<'a> {
+	pub fn from_slice(bytes: &'a [u8]) -> Self {
+		Self(bytes)
+	}
+
+	pub fn bytes(&self) -> Vec<u8> {
+		self.0.to_vec()
+	}
+}
+
+/// Reads a stream no type C holds implements: left out, as C never holds one.
+pub fn pump<T: tls::held::Stream>(mut stream: T) -> u8 {
+	stream.read()
+}
+
 pub fn resume(alpn: &str, seconds: u32) -> Result<tls::Session, tls::Error> {
 	tls::resume(alpn, seconds)
 }
@@ -2993,10 +3113,16 @@ impl Site {
 impl Shape {
 	/// Every shape, as a constant slice.
 	pub const ALL: &'static [Shape] = &[Shape::Circle, Shape::Square];
+
+	/// Every shape, as a constant array, returned as the array of its elements.
+	pub const BOTH: [Shape; 2] = [Shape::Circle, Shape::Square];
 }
 
 /// Greetings, as a constant slice of references, each returned as a clone.
 pub const GREETINGS: &[&str] = &["hi", "hello"];
+
+/// Primes, as a constant array of a block's element.
+pub const PRIMES: [u32; 3] = [2, 3, 5];
 
 /// A trail through points, each labeled: slices passed in and lent back out.
 pub struct Trail {

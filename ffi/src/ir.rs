@@ -476,8 +476,9 @@ pub enum Receiver {
 pub struct Param {
 	pub name: String,
 	pub ty: Type,
-	/// Whether it is a `&str` that must be `'static`, which the glue interns: it leaks each
-	/// distinct string once and lends that copy to every later call with equal content.
+	/// Whether it is a `&str` or `&[u8]` that must be `'static`, which the glue interns: it
+	/// leaks each distinct value once and lends that copy to every later call with equal
+	/// content.
 	pub interned: bool,
 }
 
@@ -611,6 +612,13 @@ pub enum Collection {
 	BTreeMap,
 	/// `serde_json::Map`, of `String` keys and `serde_json::Value`s.
 	JsonMap,
+	/// `[T; N]` of any `T` but `u8`, which is [`Type::Array`]: only returned.
+	Array(usize),
+	/// `std::vec::IntoIter<T>`, which an `impl Iterator` parameter takes: only a parameter.
+	Iter,
+	/// `std::vec::IntoIter<&str>` or `std::vec::IntoIter<&[u8]>`, of a [`Type::String`] or
+	/// [`Type::Vec`], each lent for the call: only a parameter.
+	IterRef,
 }
 
 /// The addresses a socket address type holds.
@@ -716,11 +724,13 @@ impl Type {
 	/// one array type holds them on every target.
 	pub fn block(&self) -> Option<&Type> {
 		match self {
-			Type::List(Collection::Vec | Collection::Slice | Collection::Box, inner) => match &**inner {
-				Type::Int(Int::Usize | Int::Isize) => None,
-				Type::Int(_) | Type::F32 | Type::F64 => Some(inner),
-				_ => None,
-			},
+			Type::List(Collection::Vec | Collection::Slice | Collection::Box | Collection::Array(_), inner) => {
+				match &**inner {
+					Type::Int(Int::Usize | Int::Isize) => None,
+					Type::Int(_) | Type::F32 | Type::F64 => Some(inner),
+					_ => None,
+				}
+			}
 			_ => None,
 		}
 	}

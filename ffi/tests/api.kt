@@ -514,6 +514,24 @@ fun script() {
 	val cert = certify(Bytes("der".encodeToByteArray()))
 	val certLen = certLen(cert)
 	println("cert $certLen ${certDer(cert).text()} ${chainLen(listOf(certify(Bytes("a".encodeToByteArray())), certify(Bytes("bc".encodeToByteArray()))))}")
+	// Another crate's trait objects: an `Arc`, taken back, and `'static` ones, held by value.
+	println("resolver ${resolved(resolver("r1"))}")
+	Codecs.new().use { codecs ->
+		println("codecs ${codecs.ids()}")
+		codecs.listSet(codecs.listGet.reversed())
+		println("codecs reversed ${codecs.ids()}")
+	}
+	// A standard library value no type maps, in a handle.
+	val failure = failure("boom")
+	println("failure ${failureMessage(failure)} ${failureKind(failure)}")
+	// Iterators, passed as the arrays of their items.
+	println("sum_all ${sumAll(listOf(1u, 2u, 3u))}")
+	println("weigh_all ${weighAllCounter(listOf(Counter.new("w", 3u)))}")
+	println("offered_len ${offeredLen(listOf(Bytes("h3".encodeToByteArray()), Bytes("moq-00".encodeToByteArray())))}")
+	println("join_words ${joinWords(listOf("a", "b", "c"))}")
+	// Bytes that must be `'static`, interned.
+	Der.fromSlice(Bytes("der".encodeToByteArray())).use { println("der ${it.bytes().text()}") }
+	Der.fromSlice(Bytes("der".encodeToByteArray())).use { println("der again ${it.bytes().text()}") }
 	resume("h3", 60u).use { session -> println("resume ${session.alpn()} ${session.lifetime().seconds}") }
 	try {
 		resume("", 60u)
@@ -530,6 +548,13 @@ fun script() {
 		meters.lastGet.use { last ->
 			last.add(4uL)
 			println("field lent ${last.add(1uL)}")
+		}
+		// An optional field that is not Clone, lent as `Some` of a handle.
+		println("spare ${meters.spareGet != null}")
+		meters.spareSet(Meter.default())
+		meters.spareGet!!.use { spare ->
+			spare.add(5uL)
+			println("spare lent ${spare.add(1uL)}")
 		}
 	}
 	Tallies.new().use { tallies ->
@@ -603,6 +628,7 @@ fun script() {
 
 	// Slices, passed in and returned as clones, and the socket address of each family.
 	println("shapes ${Shape.ALL.joinToString(", ", "[", "]") { it.debug() }} greetings ${GREETINGS.joinToString(", ", "[", "]") { "\"$it\"" }}")
+	println("both ${Shape.BOTH.joinToString(", ", "[", "]") { it.debug() }} primes ${PRIMES.joinToString(", ", "[", "]")}")
 	Trail.new(listOf(Point(1, 2), Point(3, 4)), listOf("a", "b")).use { trail ->
 		println("trail ${trail.points().joinToString(", ", "[", "]") { it.debug() }} ${trail.labels().joinToString(", ", "[", "]") { it.debug() }}")
 		// Returned iterators, each collected at the call: drained labels are gone after.

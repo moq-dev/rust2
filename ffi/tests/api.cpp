@@ -961,6 +961,30 @@ int script() {
 		chain.push_back(api::certify("a"));
 		chain.push_back(api::certify("bc"));
 		std::printf("%llu\n", ull(api::chain_len(std::move(chain))));
+		// Another crate's trait objects: an `Arc`, taken back, and `&'static` ones, held by value.
+		print("resolver ", api::resolved(api::resolver("r1")), "\n");
+		auto codecs = api::Codecs::new_();
+		std::printf("codecs %u\n", unsigned(codecs.ids()));
+		auto listed = codecs.list_get();
+		std::vector<api::tls_Codec> reversed;
+		reversed.push_back(std::move(listed[1]));
+		reversed.push_back(std::move(listed[0]));
+		codecs.list_set(std::move(reversed));
+		std::printf("codecs reversed %u\n", unsigned(codecs.ids()));
+		// A standard library value no type maps, in a handle.
+		auto failure = api::failure("boom");
+		print("failure ", api::failure_message(failure), " ");
+		print("", api::failure_kind(std::move(failure)), "\n");
+		// Iterators, passed as the arrays of their items.
+		std::printf("sum_all %u\n", unsigned(api::sum_all({1, 2, 3})));
+		std::vector<api::Counter> weighed;
+		weighed.push_back(api::Counter::new_("w", 3));
+		std::printf("weigh_all %llu\n", ull(api::weigh_all_Counter(std::move(weighed))));
+		std::printf("offered_len %llu\n", ull(api::offered_len({"h3", "moq-00"})));
+		print("join_words ", api::join_words({"a", "b", "c"}), "\n");
+		// Bytes that must be `'static`, interned.
+		print("der ", api::Der::from_slice("der").bytes(), "\n");
+		print("der again ", api::Der::from_slice("der").bytes(), "\n");
 		auto session = api::resume("h3", 60);
 		print("resume ", session.value().alpn(), " ");
 		std::printf("%u\n", unsigned(session.value().lifetime().seconds));
@@ -975,6 +999,12 @@ int script() {
 		auto last = meters.last_get();
 		last.add(4);
 		std::printf("field lent %llu\n", ull(last.add(1)));
+		// An optional field that is not Clone, lent as `Some` of a handle.
+		std::printf("spare %s\n", meters.spare_get() ? "true" : "false");
+		meters.spare_set(api::Meter::default_());
+		auto spare = meters.spare_get();
+		spare->add(5);
+		std::printf("spare lent %llu\n", ull(spare->add(1)));
 		auto tallies = api::Tallies::new_();
 		tallies.first().bump();
 		std::printf("tallied %u\n", tallies.first().bump());
@@ -1122,6 +1152,17 @@ int script() {
 	std::printf("] greetings ");
 	print_strings(api::GREETINGS());
 	std::printf("\n");
+	auto both = api::Shape_BOTH();
+	std::printf("both [");
+	for (std::size_t i = 0; i < both.size(); i++) {
+		print(i == 0 ? "" : ", ", api::Shape_debug(both[i]), "");
+	}
+	std::printf("] primes [");
+	auto primes = api::PRIMES();
+	for (std::size_t i = 0; i < primes.size(); i++) {
+		std::printf("%s%u", i == 0 ? "" : ", ", unsigned(primes[i]));
+	}
+	std::printf("]\n");
 	api::Trail trail = api::Trail::new_({api::Point{1, 2}, api::Point{3, 4}}, {"a", "b"});
 	auto points = trail.points();
 	std::printf("trail [");

@@ -2023,6 +2023,8 @@ fn relative_target() {
 		"- `handover`: type C never holds `tls::held::Handoff`",
 		"- `Unnamed`: generic type no export instantiates",
 		"- `blame`: type C never holds `tls::held::Invalid`",
+		// A type parameter only another crate's trait bounds, which no export implements.
+		"- `pump`: bound no type C holds meets `tls::held::Stream`",
 		// An exclude that names what exports, by its generic or instance path or as a field,
 		// even where a method of the field's name is refused.
 		"## Excluded by the config, though it exports",

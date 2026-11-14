@@ -596,6 +596,27 @@ Future<void> script() async {
   final certLen = api.certLen(cert);
   print('cert $certLen ${text(api.certDer(cert))} ${api.chainLen([api.certify(utf8.encode('a')), api.certify(utf8.encode('bc'))])}');
   config.close();
+  // Another crate's trait objects: an `Arc`, taken back, and `'static` ones, held by value.
+  print('resolver ${api.resolved(api.resolver('r1'))}');
+  final codecs = api.Codecs();
+  print('codecs ${codecs.ids()}');
+  codecs.listSet(codecs.listGet.reversed.toList());
+  print('codecs reversed ${codecs.ids()}');
+  codecs.close();
+  // A standard library value no type maps, in a handle.
+  final failure = api.failure('boom');
+  print('failure ${api.failureMessage(failure)} ${api.failureKind(failure)}');
+  // Iterators, passed as the arrays of their items.
+  print('sum_all ${api.sumAll([1, 2, 3])}');
+  print('weigh_all ${api.weighAllCounter([api.Counter('w', 3)])}');
+  print('offered_len ${api.offeredLen([utf8.encode('h3'), utf8.encode('moq-00')])}');
+  print('join_words ${api.joinWords(['a', 'b', 'c'])}');
+  // Bytes that must be `'static`, interned.
+  for (final label in ['der', 'der again']) {
+    final der = api.Der.fromSlice(utf8.encode('der'));
+    print('$label ${text(der.bytes())}');
+    der.close();
+  }
   final session = api.resume('h3', 60);
   print('resume ${session.alpn()} ${session.lifetime().seconds}');
   session.close();
@@ -615,6 +636,13 @@ Future<void> script() async {
   lastMeter.add(4);
   print('field lent ${lastMeter.add(1)}');
   lastMeter.close();
+  // An optional field that is not Clone, lent as `Some` of a handle.
+  print('spare ${meters.spareGet != null}');
+  meters.spareSet(api.Meter.default_());
+  final spare = meters.spareGet!;
+  spare.add(5);
+  print('spare lent ${spare.add(1)}');
+  spare.close();
   meters.close();
   final tallies = api.Tallies();
   tallies.first().bump();
@@ -691,6 +719,7 @@ Future<void> script() async {
         _ => throw ArgumentError(v),
       }).join(', ')}]';
   print('shapes ${debugs(api.Shape.ALL)} greetings ${quoted(api.GREETINGS)}');
+  print('both ${debugs(api.Shape.BOTH)} primes ${api.PRIMES}');
   final trail = api.Trail([const api.Point(x: 1, y: 2), const api.Point(x: 3, y: 4)], ['a', 'b']);
   print('trail ${debugs(trail.points())} ${debugs(trail.labels())}');
   // Returned iterators, each collected at the call: drained labels are gone after.

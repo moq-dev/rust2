@@ -112,14 +112,15 @@ public path names, or an error taken by value, is held by value as an opaque han
 | `bool`, integers but 128-bit, floats, `char` | `bool`, `<stdint.h>` types, `float`, `double`, a `uint32_t` code point |
 | `u128` | `<prefix>_u128`: its low and high 64 bits |
 | `NonZero<T>` of an integer but 128-bit | `T`, in every binding too; a zero passed in aborts, and `Option<NonZero<T>>` is `T`'s option |
-| `[u8; N]` | `<prefix>_array_u8_<N>`: a struct of its `N` bytes, `items`, copied across; an empty one, or one of any other element, is refused |
+| `[u8; N]` | `<prefix>_array_u8_<N>`: a struct of its `N` bytes, `items`, copied across; an empty one is refused |
+| `[T; N]` of any other `T`, returned or a constant's value | `Vec<T>` of its `N` items; taken, it is refused |
 | `&str`, `String`, `&[u8]`, `Vec<u8>`, `bytes::Bytes` | `<prefix>_buf`: an owned buffer returned; passed in, a view, or a buffer Rust returned, which Rust takes back without a copy unless it sits behind a pointer or in an array; `<prefix>_buf_clone` shares one the caller keeps, which a `Vec<u8>`, `String`, or `PathBuf` parameter then copies, since only a sole owner's allocation becomes a `Vec` |
 | `&Path`, `PathBuf` | `<prefix>_buf` of the path's bytes as the OS holds them on Unix, which need not be UTF-8, else UTF-8 |
 | `Duration` | `<prefix>_duration` |
 | `SocketAddr`, `SocketAddrV4`, `SocketAddrV6` | `<prefix>_socket_addr`: its IP's bytes, port, and whether it is IPv6; one of the other family passed to `V4` or `V6` aborts |
 | `url::Url` | an object `<prefix>_Url`, made by `<prefix>_Url_parse`, which fails with the parse error's message, and printed by `_to_string` |
-| `Arc<T>` of another crate's `Send` and `Sync` type that no other rule maps, such as `Arc<rustls::ServerConfig>` | an opaque object named by `T`'s crate and name, such as `<prefix>_rustls_ServerConfig`, with `_clone` and `_free` and none of `T`'s API: it only passes back to Rust |
-| another crate's `Send` and `Sync` type taken or returned by value or lent, with no type parameters, that no other rule maps, that is no iterator or future, and that is not reached by its public path, such as one only a `#[doc(hidden)]` module names | an opaque object named as the `Arc` form is, with `_free` and none of `T`'s API, holding the value: Rust takes it back by value, or borrows it; a type also named behind an `Arc` is that form, and refused by value |
+| `Arc<T>` of another crate's `Send` and `Sync` type that no other rule maps, such as `Arc<rustls::ServerConfig>`, or `Arc<dyn Trait>` and `&'static dyn Trait` of another crate's trait without generic arguments, whose auto traits are `Send` and `Sync` but those the trait implies, borrowing nothing C lends, as rustls's `Arc<dyn ResolvesServerCert>` | an opaque object named by `T`'s crate and name, such as `<prefix>_rustls_ServerConfig`, with `_clone` and `_free` and none of `T`'s API: it only passes back to Rust |
+| another crate's `Send` and `Sync` type taken or returned by value or lent, with no type parameters, that no other rule maps, that is no iterator or future, and that is not reached by its public path, such as one only a `#[doc(hidden)]` module names, or a standard library type no other rule maps, such as `io::Error`, named by its full path, `<prefix>_std_io_Error` | an opaque object named as the `Arc` form is, with `_free` and none of `T`'s API, holding the value: Rust takes it back by value, or borrows it; a type also named behind an `Arc` is that form, and refused by value |
 | `std::time::Instant` | an object `<prefix>_Instant`, which only Rust makes, copied into each call that takes it and compared by `_eq`, with none of its methods |
 | `tracing::Level` | `<prefix>_Level`: a C enum of its five levels, `TRACE` to `ERROR` |
 | `tracing::level_filters::LevelFilter` | `Option<tracing::Level>`, whose `None` is `OFF` |
@@ -139,6 +140,7 @@ public path names, or an error taken by value, is held by value as an opaque han
 | `impl Into<X>`, where `X` does not map | what a `From` implementation into `X` takes: a source parameter by its bounds as above, so `impl<B: Into<Bytes>> From<B> for Timed<Bytes>` takes `Bytes`, and by each `Into<Y>` whose `Y` does not map, what converts into `Y` in turn, each `Y` once and refusing a chain longer than the crate's recursion limit; any other source as it is, so `impl<'a, V> From<&'a V> for Timed<&'a V>` takes `&V`. Two sources C passes as one buffer, such as `String` and `Vec<u8>`, are refused, unless they are forms of one value, as `&str` and `String` are |
 | `impl IntoIterator<Item = X>`, where `X` is no type parameter | `Vec<X>`, or `&[Y]` where `X` is `&Y` |
 | `impl io::Read`, not bounded by `Seek` | `&[u8]` |
+| `impl Iterator<Item = X>` taken | `Vec<X>`, whose items Rust iterates; for `X` of `&str` or `&[u8]`, an array of buffers C lends for the call; an iterator of other references, or one a future or a callback takes, is refused |
 | another type parameter | `serde_json::Value` for a serde `Serialize` or `Deserialize` bound, else the first of `String`, `Bytes`, and `Vec<u8>` meeting its bounds, or a foreign implementation of its one exported trait; else an instance of the function at each type the exports implement a trait bounding it for, through a blanket impl at each type implementing what the impl requires, as `&X` where that meets its bounds too and no bound, its own or one a supertrait implies, makes it outlive the call, so C keeps its handle, and, as an argument of a generic type, at each argument of an instance that meets its bounds and makes each generic type the signature names an instance |
 | a const parameter of a function | an instance of the function at each value an instance of a generic type the signature passes it to has there, where each generic type the signature then names is an instance |
 | a const argument | a `bool` or an integer below 128 bits; any other is refused |
@@ -158,11 +160,11 @@ A record or enum holds only values and `Copy` handles: one with a field that doe
 or that holds itself, is an object instead, and the census lists it. A borrowed return is
 returned as a clone, so it must be `Clone`, and a handle in it is a new handle to the
 clone, but for an object a `&self` method of an object returns borrowed from its receiver
-alone, or an object's `pub` field holds: that one, if not `Clone`, is a lent handle, which holds its receiver and checks it
+alone, or an object's `pub` field holds, bare or as an `Option`'s `Some`: that one, if not `Clone`, is a lent handle, which holds its receiver and checks it
 on each use, on one thread at a time where the receiver is not `Sync`. A handle outlives every call, so every lifetime an
 object takes is `'static`, as is every lifetime that must outlive one; any other lifetime
 is the call's. A signature may not lend C's borrow for one that is `'static`, but for a
-`&str`, which Rust interns, nor return an object that borrows. A parameter is a reference
+`&str` or `&[u8]`, which Rust interns, nor return an object that borrows. A parameter is a reference
 only at its top or as `Some` of an `Option`, lent as the reference alone is, so
 `Option<&T>` is a null or borrowed handle, a null or viewed buffer, or an option of a
 value, and not inside a `Box` or any other type. A `&mut` of a value, but a `str` or a
@@ -170,7 +172,8 @@ slice, is in and out, and not inside an `Option`, a callback, or a future, nor b
 by what the call returns; a `&mut` of another crate's `Arc` is refused. Only a bare
 returned `&Object` is lent, never one inside what a call returns nor its error. What C could never hold, an
 object no export C can call returns or lends to a closure, a generic type no export
-instantiates, and whatever takes one, is left out and listed in the census. Everything
+instantiates, a type parameter bounded by another crate's trait no type C holds implements,
+and whatever takes one, is left out and listed in the census. Everything
 else is refused, and the census counts why.
 
 ## Targets
@@ -282,8 +285,8 @@ where it was while its file is unchanged.
   shared and aborts, naming the function, once it was since borrowed exclusively, moved
   out, or freed, which Rust's borrow checker would refuse. Borrowing a lent handle
   exclusively aborts too, as Rust lent it shared.
-- **Interned strings**: a `&str` a function needs for `'static`, as `Path::from_static`
-  does, is leaked once per distinct content and reused for every later equal one, so a
+- **Interned strings**: a `&str` or `&[u8]` a function needs for `'static`, as
+  `Path::from_static` and `CertificateDer::from_slice` do, is leaked once per distinct content and reused for every later equal one, so a
   caller passing ever-new strings grows the set without bound.
 - **Arrays** of a `Vec` are a pointer, a length, and an owner, as a buffer is: passed
   in, Rust copies each element out of C's array, or for a slice of a fixed-width integer

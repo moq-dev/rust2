@@ -82,6 +82,8 @@ fn collection(c: Collection) -> String {
 		Collection::Vec => "::std::vec::Vec".to_string(),
 		Collection::Box => "::std::boxed::Box".to_string(),
 		Collection::Slice => unreachable!("a slice is spelled `[T]`"),
+		Collection::Array(_) => unreachable!("an array is spelled `[T; N]`"),
+		Collection::Iter | Collection::IterRef => "::std::vec::IntoIter".to_string(),
 		Collection::BTreeSet => "::std::collections::BTreeSet".to_string(),
 		Collection::BTreeMap => "::std::collections::BTreeMap".to_string(),
 		Collection::JsonMap => format!("::{}::Map", foreign("serde_json")),
@@ -628,6 +630,9 @@ impl Gen<'_> {
 				}
 				(Collection::Box, _) => format!("{}<[{}]>", collection(*c), self.rust(inner)),
 				(Collection::Slice, _) => format!("[{}]", self.rust(inner)),
+				(Collection::Array(n), _) => format!("[{}; {n}]", self.rust(inner)),
+				(Collection::IterRef, Type::String) => format!("{}<&str>", collection(*c)),
+				(Collection::IterRef, _) => format!("{}<&[u8]>", collection(*c)),
 				_ => format!("{}<{}>", collection(*c), self.rust(inner)),
 			},
 			Type::Option(inner) => format!("Option<{}>", self.rust(inner)),
@@ -686,6 +691,12 @@ impl Gen<'_> {
 					_ => "::std::vec::Vec::<_>",
 				}
 			),
+			// An iterator iterates the `Vec` of its items.
+			Type::List(Collection::Iter, inner) => format!(
+				"::std::iter::IntoIterator::into_iter({})",
+				self.lift(&Type::List(Collection::Vec, inner.clone()), e, take)
+			),
+			Type::List(Collection::IterRef, _) => unreachable!("an iterator of borrows is lent by `arg`"),
 			Type::List(c, inner) => format!(
 				"unsafe {{ {e}.items(w) }}.iter().map(|c| {}).collect::<{}>()",
 				// An array's items are behind its pointer, so only read.
@@ -695,6 +706,9 @@ impl Gen<'_> {
 					Collection::Box => format!("{}<[_]>", collection(*c)),
 					Collection::Vec | Collection::Slice => format!("{}<_>", collection(Collection::Vec)),
 					Collection::BTreeSet => format!("{}<_>", collection(*c)),
+					Collection::Array(_) | Collection::Iter | Collection::IterRef => {
+						unreachable!("{c:?} is lifted apart")
+					}
 				}
 			),
 			// A foreign enum's option converts into its filter, as `tracing::LevelFilter`.
@@ -866,7 +880,7 @@ impl Gen<'_> {
 			Type::Array(n) => format!("{} {{ items: {e} }}", self.abi.array(*n)),
 			Type::SocketAddr(_) => format!("rt::SocketAddr::lower(::std::net::SocketAddr::from({e}))"),
 			// A block hands over its own allocation.
-			Type::List(Collection::Box, _) if ty.block().is_some() => {
+			Type::List(Collection::Box | Collection::Array(_), _) if ty.block().is_some() => {
 				format!("rt::List::owned(::std::vec::Vec::from({e}))")
 			}
 			Type::List(..) if ty.block().is_some() => format!("rt::List::owned({e})"),
@@ -1602,6 +1616,14 @@ impl Gen<'_> {
 					(format!("{binding} {local} = {};", self.lift(inner, c, "true")), pass)
 				}
 			},
+			// An iterator of borrowed strings or bytes, each lent from its owned copy for the call.
+			Type::List(Collection::IterRef, item) => (
+				format!(
+					"let {local}_items = {};\n\tlet {local} = {local}_items.iter().map(|v| &v[..]).collect::<::std::vec::Vec<_>>();",
+					self.lift(&Type::List(Collection::Vec, item.clone()), c, "true")
+				),
+				format!("::std::iter::IntoIterator::into_iter({local})"),
+			),
 			// `Some` of a borrow, lent as the borrow alone is: a null handle or buffer is `None`.
 			Type::Option(opt) if let Type::Ref(m, inner) = &**opt => match (&**inner, future) {
 				(Type::Object(i), _) => {
@@ -1825,6 +1847,10 @@ impl Gen<'_> {
 						pass,
 					)
 				}
+				_ if param.interned && *param.ty.base() == Type::Slice => (
+					format!("let a{n} = rt::intern_bytes(unsafe {{ p{n}.hold(w) }}.bytes());"),
+					format!("a{n}"),
+				),
 				_ if param.interned => (
 					format!("let a{n} = rt::intern(unsafe {{ p{n}.hold(w) }}.str(w));"),
 					format!("a{n}"),

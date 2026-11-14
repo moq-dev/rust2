@@ -639,6 +639,33 @@ fn main() {
 		String::from_utf8_lossy(&api::cert_der(cert)),
 		api::chain_len(chain)
 	);
+	// Another crate's trait objects: an `Arc`, taken back, and `&'static` ones, held by value.
+	let resolver = api::resolver("r1");
+	println!("resolver {}", api::resolved(resolver));
+	let mut codecs = api::Codecs::new();
+	println!("codecs {}", codecs.ids());
+	let mut list = codecs.list.clone();
+	list.reverse();
+	codecs.list = list;
+	println!("codecs reversed {}", codecs.ids());
+	// A standard library value no type maps, in a handle.
+	let failure = api::failure("boom");
+	println!(
+		"failure {} {}",
+		api::failure_message(&failure),
+		api::failure_kind(failure)
+	);
+	// Iterators, passed as the arrays of their items.
+	println!("sum_all {}", api::sum_all(vec![1u32, 2, 3].into_iter()));
+	println!("weigh_all {}", api::weigh_all(vec![Counter::new("w", 3)].into_iter()));
+	println!("offered_len {}", api::offered_len([&b"h3"[..], b"moq-00"].into_iter()));
+	println!("join_words {}", api::join_words(["a", "b", "c"]));
+	// Bytes that must be `'static`, interned.
+	println!("der {}", String::from_utf8_lossy(&api::Der::from_slice(b"der").bytes()));
+	println!(
+		"der again {}",
+		String::from_utf8_lossy(&api::Der::from_slice(b"der").bytes())
+	);
 	let session = api::resume("h3", 60).unwrap();
 	println!("resume {} {}", session.alpn(), session.lifetime().seconds);
 	println!("resume err {}", api::resume("", 60).err().unwrap());
@@ -650,6 +677,11 @@ fn main() {
 	println!("cleared {}", meters.first().count());
 	meters.last.add(4);
 	println!("field lent {}", meters.last.add(1));
+	// An optional field that is not Clone, lent as `Some` of a handle.
+	println!("spare {}", meters.spare.is_some());
+	meters.spare = Some(api::Meter::default());
+	meters.spare.as_ref().unwrap().add(5);
+	println!("spare lent {}", meters.spare.as_ref().unwrap().add(1));
 	let tallies = api::Tallies::new();
 	tallies.first().bump();
 	println!("tallied {}", tallies.first().bump());
@@ -760,6 +792,7 @@ fn main() {
 
 	// Slices, passed in and returned as clones, and the socket address of each family.
 	println!("shapes {:?} greetings {:?}", api::Shape::ALL, api::GREETINGS);
+	println!("both {:?} primes {:?}", api::Shape::BOTH, api::PRIMES);
 	let trail = api::Trail::new(
 		&[api::Point { x: 1, y: 2 }, api::Point { x: 3, y: 4 }],
 		&["a".to_string(), "b".to_string()],

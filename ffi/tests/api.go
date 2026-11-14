@@ -715,6 +715,28 @@ func script() {
 	cert := api.Certify(rt.NewBytes([]byte("der")))
 	certLen := must(api.CertLen(cert))
 	fmt.Printf("cert %d %s %d\n", certLen, must(api.CertDer(cert)).Copy(), must(api.ChainLen([]*tls.Cert{api.Certify(rt.NewBytes([]byte("a"))), api.Certify(rt.NewBytes([]byte("bc")))})))
+	// Another crate's trait objects: an `Arc`, taken back, and `'static` ones, held by value.
+	fmt.Printf("resolver %s\n", must(api.Resolved(api.Resolver("r1"))))
+	codecs := api.NewCodecs()
+	fmt.Printf("codecs %d\n", must(codecs.Ids()))
+	listed := must(codecs.ListGet())
+	ok(codecs.ListSet([]*tls.Codec{listed[1], listed[0]}))
+	fmt.Printf("codecs reversed %d\n", must(codecs.Ids()))
+	codecs.Close()
+	// A standard library value no type maps, in a handle.
+	failure := api.Failure("boom")
+	fmt.Printf("failure %s %s\n", must(api.FailureMessage(failure)), must(api.FailureKind(failure)))
+	// Iterators, passed as the arrays of their items.
+	fmt.Printf("sum_all %d\n", api.SumAll([]uint32{1, 2, 3}))
+	fmt.Printf("weigh_all %d\n", must(api.WeighAllCounter([]*api.Counter{api.NewCounter("w", 3)})))
+	fmt.Printf("offered_len %d\n", api.OfferedLen([]rt.Bytes{rt.NewBytes([]byte("h3")), rt.NewBytes([]byte("moq-00"))}))
+	fmt.Printf("join_words %s\n", api.JoinWords([]string{"a", "b", "c"}))
+	// Bytes that must be `'static`, interned.
+	for _, label := range []string{"der", "der again"} {
+		der := api.DerFromSlice(rt.NewBytes([]byte("der")))
+		fmt.Printf("%s %s\n", label, must(der.Bytes()).Copy())
+		der.Close()
+	}
 	session := must(api.Resume("h3", 60))
 	fmt.Printf("resume %s %d\n", must(session.Alpn()), must(session.Lifetime()).Seconds)
 	session.Close()
@@ -730,6 +752,12 @@ func script() {
 	lastMeter := must(meters.LastGet())
 	_ = must(lastMeter.Add(4))
 	fmt.Printf("field lent %d\n", must(lastMeter.Add(1)))
+	// An optional field that is not Clone, lent as `Some` of a handle.
+	fmt.Printf("spare %t\n", must(meters.SpareGet()) != nil)
+	ok(meters.SpareSet(api.MeterDefault()))
+	spare := must(meters.SpareGet())
+	_ = must(spare.Add(5))
+	fmt.Printf("spare lent %d\n", must(spare.Add(1)))
 	tallies := api.NewTallies()
 	_ = must(must(tallies.First()).Bump())
 	fmt.Printf("tallied %d\n", must(must(tallies.First()).Bump()))
@@ -821,6 +849,7 @@ func script() {
 
 	// Slices, passed in and returned as clones, and the socket address of each family.
 	fmt.Printf("shapes %s greetings %s\n", list(api.ShapeALL(), func(s api.Shape) string { return shapes[s] }), list(api.GREETINGS(), quoted))
+	fmt.Printf("both %s primes %s\n", list(api.ShapeBOTH(), func(s api.Shape) string { return shapes[s] }), list(api.PRIMES(), func(n uint32) string { return fmt.Sprint(n) }))
 	trail := api.NewTrail([]api.Point{{X: 1, Y: 2}, {X: 3, Y: 4}}, []string{"a", "b"})
 	point := func(p api.Point) string { return p.GoString() }
 	labeled := func(l api.Label) string { return l.GoString() }

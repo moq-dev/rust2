@@ -30,5 +30,5 @@ that passes them).
 ## Required
 
 - [The moq pin bump](/quest/m1/ffi-refusals/moq-pin.md) - the pin is at moq's `main`, where the census is taken
-- [What the excludes hide at moq's main](/quest/m1/ffi-refusals/moq-excluded.md) - exports the constructs the census still refuses there behind an exclude
+- [`IpAddr`](/quest/m1/ffi-refusals/ip-addr.md) - exports `quic::demux::Datagram::local`, the last item moq's main refuses beyond not-send's
 - [Not Send](/quest/m1/ffi-export/not-send.md) - exports the three types the census still refuses for not being `Send`

@@ -101,8 +101,9 @@ impl<'a> Text<'a> {
 	}
 }
 
-/// Bytes that must be `'static`, which only a string's interning makes them.
-pub fn forever(bytes: &'static [u8]) -> usize {
+/// Bytes lent mutably for as long as the program runs, which interning would alias: every
+/// call with equal bytes would share one copy.
+pub fn forever_mut(bytes: &'static mut [u8]) -> usize {
 	bytes.len()
 }
 
@@ -1191,4 +1192,49 @@ pub fn hidden_option() -> impl Clone {
 /// A boxed slice of bytes, which no buffer form takes.
 pub fn boxed_bytes(bytes: Box<[u8]>) -> usize {
 	bytes.len()
+}
+
+/// An iterator of borrowed strings a future keeps past the call that lent them.
+pub async fn count_later<'a>(words: impl Iterator<Item = &'a str> + Send) -> usize {
+	words.count()
+}
+
+/// An iterator of borrowed objects, which C lends none of inside an array.
+pub fn count_opaques<'a>(items: impl Iterator<Item = &'a Opaque>) -> usize {
+	items.count()
+}
+
+/// A trait object with another auto trait than the one form its handle names.
+pub fn unpin_resolver() -> std::sync::Arc<dyn tls::held::Resolver + Unpin> {
+	std::sync::Arc::new(tls::held::Named("unpin".into()))
+}
+
+/// A trait object that borrows, which no handle outliving the call may hold.
+pub fn borrowed_resolver<'a>(_ids: &'a [u32]) -> std::sync::Arc<dyn tls::held::Resolver + 'a> {
+	std::sync::Arc::new(tls::held::Named("borrowed".into()))
+}
+
+/// A stream an exported type implements, so the bound is met by a value C holds: refused,
+/// not left out.
+pub struct Pipe(pub u8);
+
+impl tls::held::Stream for Pipe {
+	fn read(&mut self) -> u8 {
+		self.0
+	}
+}
+
+/// Reads one byte of a stream.
+pub fn pump_pipe<T: tls::held::Stream>(mut stream: T) -> u8 {
+	stream.read()
+}
+
+/// A sink a reference to any exported type meets: refused, not left out.
+pub fn pump_sink<T: tls::held::Sink>(sink: T) -> u8 {
+	sink.write(1)
+}
+
+/// A width only `u32`, which C passes by role, meets: refused, not left out.
+pub fn widen<T: tls::held::Width>(x: T) -> u32 {
+	x.bits()
 }

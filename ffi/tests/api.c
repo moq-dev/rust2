@@ -1525,6 +1525,41 @@ static int script(void) {
 	printf("%llu\n", (unsigned long long)api_chain_len((api_vec_tls_Cert){.ptr = chain, .len = 2}));
 	api_tls_Cert_free(chain[0]);
 	api_tls_Cert_free(chain[1]);
+	/* Another crate's trait objects: an `Arc`, taken back, and `&'static` ones, held by value. */
+	api_tls_Resolver *resolver = api_resolver(str("r1"));
+	print("resolver ", api_resolved(resolver), "\n");
+	api_tls_Resolver_free(resolver);
+	api_Codecs *codecs = api_Codecs_new();
+	printf("codecs %u\n", api_Codecs_ids(codecs));
+	api_vec_tls_Codec listed = api_Codecs_list_get(codecs);
+	api_tls_Codec *codecs_reversed[2] = {listed.ptr[1], listed.ptr[0]};
+	api_Codecs_list_set(codecs, (api_vec_tls_Codec){.ptr = codecs_reversed, .len = 2});
+	/* The setter took each handle's value: the array, and the handles, are still ours to free. */
+	api_vec_tls_Codec_free(listed);
+	printf("codecs reversed %u\n", api_Codecs_ids(codecs));
+	api_Codecs_free(codecs);
+	/* A standard library value no type maps, in a handle. */
+	api_std_io_Error *failure = api_failure(str("boom"));
+	print("failure ", api_failure_message(failure), " ");
+	print("", api_failure_kind(failure), "\n");
+	api_std_io_Error_free(failure);
+	/* Iterators, passed as the arrays of their items. */
+	const uint32_t summed_items[] = {1, 2, 3};
+	printf("sum_all %u\n", api_sum_all((api_vec_u32){.ptr = summed_items, .len = 3}));
+	/* Each counter moves in, leaving its handle only to free. */
+	api_Counter *weighed = api_Counter_new(str("w"), 3);
+	printf("weigh_all %llu\n", (unsigned long long)api_weigh_all_Counter((api_vec_Counter){.ptr = &weighed, .len = 1}));
+	api_Counter_free(weighed);
+	const api_buf alpns[] = {str("h3"), str("moq-00")};
+	printf("offered_len %zu\n", api_offered_len((api_vec_bytes){.ptr = alpns, .len = 2}));
+	const api_buf joined_words[] = {str("a"), str("b"), str("c")};
+	print("join_words ", api_join_words((api_vec_string){.ptr = joined_words, .len = 3}), "\n");
+	/* Bytes that must be `'static`, interned. */
+	for (int i = 0; i < 2; i++) {
+		api_Der *der = api_Der_from_slice(str("der"));
+		print(i == 0 ? "der " : "der again ", api_Der_bytes(der), "\n");
+		api_Der_free(der);
+	}
 	/* Another crate's type only signatures name, exported by its path there, and its error,
 	 * which crosses as its message. */
 	api_tls_Session *session;
@@ -1558,6 +1593,16 @@ static int script(void) {
 		api_Meter_add(last, 4);
 		printf("field lent %llu\n", (unsigned long long)api_Meter_add(last, 1));
 		api_Meter_free(last);
+		/* An optional field that is not Clone, lent as `Some` of a handle. */
+		api_Meter *spare = api_Meters_spare_get(lender);
+		printf("spare %s\n", spare != NULL ? "true" : "false");
+		api_Meter *fresh = api_Meter_default();
+		api_Meters_spare_set(lender, fresh);
+		api_Meter_free(fresh);
+		spare = api_Meters_spare_get(lender);
+		api_Meter_add(spare, 5);
+		printf("spare lent %llu\n", (unsigned long long)api_Meter_add(spare, 1));
+		api_Meter_free(spare);
 		api_Meters_free(lender);
 		/* One lent from a handle that is not Sync, on one thread at a time. */
 		api_Tallies *tallies = api_Tallies_new();
@@ -1759,6 +1804,19 @@ static int script(void) {
 	}
 	printf("]\n");
 	api_vec_string_free(greetings);
+	api_vec_Shape shapes_both = api_Shape_BOTH();
+	printf("both [");
+	for (size_t i = 0; i < shapes_both.len; i++) {
+		print(i == 0 ? "" : ", ", api_Shape_debug(&shapes_both.ptr[i]), "");
+	}
+	api_vec_Shape_free(shapes_both);
+	api_vec_u32 primes = api_PRIMES();
+	printf("] primes [");
+	for (size_t i = 0; i < primes.len; i++) {
+		printf("%s%u", i == 0 ? "" : ", ", primes.ptr[i]);
+	}
+	printf("]\n");
+	api_vec_u32_free(primes);
 	api_Point trail_points[] = {{.x = 1, .y = 2}, {.x = 3, .y = 4}};
 	api_buf trail_names[] = {str("a"), str("b")};
 	api_Trail *trail =

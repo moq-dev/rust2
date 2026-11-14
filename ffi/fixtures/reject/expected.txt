@@ -1,151 +1,158 @@
-fixtures/reject/src/lib.rs:1002:2: rust2-ffi: cannot export method `Risky::new`: unsafe fn; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1008:1: rust2-ffi: cannot export fn `poll_risky`: Poll with no Context or waiter parameter `std::task::Poll<()>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1024:1: rust2-ffi: cannot export fn `poll_loose`: Poll with no Context or waiter parameter `std::task::Poll<()>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1031:1: rust2-ffi: cannot export fn `among`: 3 optional borrowed objects, past the 2 Swift takes, which overloads each with and without it since its optional holds an object only by consuming it; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1037:1: rust2-ffi: cannot export fn `wrapped`: error holding an object Swift cannot copy, as `Swift.Error` requires; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1042:1: rust2-ffi: cannot export fn `sum_pair`: array of an element other than u8 `[u16; 2]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1047:1: rust2-ffi: cannot export fn `empty`: empty array `[u8; 0]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1053:1: rust2-ffi: cannot export enum `Wide`: discriminant outside `i32` `Large = 1099511627776`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:1055:2: note: has this discriminant
-fixtures/reject/src/lib.rs:105:1: rust2-ffi: cannot export fn `forever`: 'static borrow `&'static [u8]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1060:1: rust2-ffi: cannot export enum `Huge`: discriminant outside `i32` `Large = 18446744073709551616`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:1062:2: note: has this discriminant
-fixtures/reject/src/lib.rs:1067:1: rust2-ffi: cannot export enum `Top`: discriminant outside `i32` `Large = 340282366920938463463374607431768211455`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:1069:2: note: has this discriminant
-fixtures/reject/src/lib.rs:1073:1: rust2-ffi: cannot export fn `raw`: unsafe fn; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1078:1: rust2-ffi: cannot export fn `sum`: C-variadic function; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1084:1: rust2-ffi: cannot export fn `custom`: uncallable ABI `"custom"`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1098:2: rust2-ffi: cannot export method `Raw::peek`: unsafe fn; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1104:1: rust2-ffi: cannot export trait `Trusted`: unsafe trait; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1109:1: rust2-ffi: cannot export trait `Hazard`: unsafe fn `risk`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1114:1: rust2-ffi: cannot export fn `trust`: trait object `dyn Trusted`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:1104:1: note: C cannot implement `Trusted`: unsafe trait
-fixtures/reject/src/lib.rs:1119:1: rust2-ffi: cannot export fn `hazard`: trait object `dyn Hazard`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:1109:1: note: C cannot implement `Hazard`: unsafe fn `risk`
-fixtures/reject/src/lib.rs:111:1: rust2-ffi: cannot export fn `boxed`: reference inside a parameter `std::boxed::Box<&str>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1124:1: rust2-ffi: cannot export fn `wide_non_zero`: NonZero `u128`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1146:1: rust2-ffi: cannot export fn `wrap`: returned object that borrows `View<'_>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1151:1: rust2-ffi: cannot export fn `hidden_wrap`: returned object that borrows `impl std::clone::Clone + '_`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1167:1: rust2-ffi: cannot export fn `picked`: closure signature `&'static Mark`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1172:1: rust2-ffi: cannot export fn `maybe_picked`: closure signature `std::option::Option<&'static Mark>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1177:1: rust2-ffi: cannot export fn `hidden_answer`: opaque type `impl std::marker::Copy`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1182:1: rust2-ffi: cannot export fn `hidden_items`: opaque type `impl std::marker::Copy`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1187:1: rust2-ffi: cannot export fn `hidden_option`: opaque type `impl std::clone::Clone`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:1192:1: rust2-ffi: cannot export fn `boxed_bytes`: boxed slice of bytes `std::boxed::Box<[u8]>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1003:2: rust2-ffi: cannot export method `Risky::new`: unsafe fn; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1009:1: rust2-ffi: cannot export fn `poll_risky`: Poll with no Context or waiter parameter `std::task::Poll<()>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1025:1: rust2-ffi: cannot export fn `poll_loose`: Poll with no Context or waiter parameter `std::task::Poll<()>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1032:1: rust2-ffi: cannot export fn `among`: 3 optional borrowed objects, past the 2 Swift takes, which overloads each with and without it since its optional holds an object only by consuming it; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1038:1: rust2-ffi: cannot export fn `wrapped`: error holding an object Swift cannot copy, as `Swift.Error` requires; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1043:1: rust2-ffi: cannot export fn `sum_pair`: array of an element other than u8 `[u16; 2]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1048:1: rust2-ffi: cannot export fn `empty`: empty array `[u8; 0]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1054:1: rust2-ffi: cannot export enum `Wide`: discriminant outside `i32` `Large = 1099511627776`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:1056:2: note: has this discriminant
+fixtures/reject/src/lib.rs:1061:1: rust2-ffi: cannot export enum `Huge`: discriminant outside `i32` `Large = 18446744073709551616`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:1063:2: note: has this discriminant
+fixtures/reject/src/lib.rs:1068:1: rust2-ffi: cannot export enum `Top`: discriminant outside `i32` `Large = 340282366920938463463374607431768211455`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:1070:2: note: has this discriminant
+fixtures/reject/src/lib.rs:106:1: rust2-ffi: cannot export fn `forever_mut`: 'static borrow `&'static mut [u8]`; &mut of a slice `[u8]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1074:1: rust2-ffi: cannot export fn `raw`: unsafe fn; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1079:1: rust2-ffi: cannot export fn `sum`: C-variadic function; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1085:1: rust2-ffi: cannot export fn `custom`: uncallable ABI `"custom"`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1099:2: rust2-ffi: cannot export method `Raw::peek`: unsafe fn; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1105:1: rust2-ffi: cannot export trait `Trusted`: unsafe trait; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1110:1: rust2-ffi: cannot export trait `Hazard`: unsafe fn `risk`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1115:1: rust2-ffi: cannot export fn `trust`: trait object `dyn Trusted`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:1105:1: note: C cannot implement `Trusted`: unsafe trait
+fixtures/reject/src/lib.rs:1120:1: rust2-ffi: cannot export fn `hazard`: trait object `dyn Hazard`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:1110:1: note: C cannot implement `Hazard`: unsafe fn `risk`
+fixtures/reject/src/lib.rs:1125:1: rust2-ffi: cannot export fn `wide_non_zero`: NonZero `u128`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:112:1: rust2-ffi: cannot export fn `boxed`: reference inside a parameter `std::boxed::Box<&str>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1147:1: rust2-ffi: cannot export fn `wrap`: returned object that borrows `View<'_>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1152:1: rust2-ffi: cannot export fn `hidden_wrap`: returned object that borrows `impl std::clone::Clone + '_`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1168:1: rust2-ffi: cannot export fn `picked`: closure signature `&'static Mark`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1173:1: rust2-ffi: cannot export fn `maybe_picked`: closure signature `std::option::Option<&'static Mark>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1178:1: rust2-ffi: cannot export fn `hidden_answer`: opaque type `impl std::marker::Copy`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1183:1: rust2-ffi: cannot export fn `hidden_items`: opaque type `impl std::marker::Copy`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1188:1: rust2-ffi: cannot export fn `hidden_option`: opaque type `impl std::clone::Clone`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1193:1: rust2-ffi: cannot export fn `boxed_bytes`: boxed slice of bytes `std::boxed::Box<[u8]>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1198:1: rust2-ffi: cannot export fn `count_later`: iterator of borrows in a future or callback; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:11:1: rust2-ffi: cannot export fn `map`: foreign type `std::collections::HashMap`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:122:1: rust2-ffi: cannot export fn `parse_later`: returned object that borrows `impl std::future::Future<Output = std::result::Result<u32, tls::held::Malformed<'_>>>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:136:1: rust2-ffi: cannot export fn `poll_ready`: Poll with no Context or waiter parameter `std::task::Poll<u32>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:153:2: rust2-ffi: cannot export method `Link::session`: borrowed return that is not Clone `tls::held::Handoff`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1203:1: rust2-ffi: cannot export fn `count_opaques`: generic parameter `std::iter::Iterator`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1208:1: rust2-ffi: cannot export fn `unpin_resolver`: trait object `dyn tls::held::Resolver + std::marker::Unpin`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1213:1: rust2-ffi: cannot export fn `borrowed_resolver`: returned object that borrows `std::sync::Arc<(dyn tls::held::Resolver + 'a)>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1228:1: rust2-ffi: cannot export fn `pump_pipe`: generic parameter `tls::held::Stream`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1233:1: rust2-ffi: cannot export fn `pump_sink`: generic parameter `tls::held::Sink`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1238:1: rust2-ffi: cannot export fn `widen`: generic parameter `tls::held::Width`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:123:1: rust2-ffi: cannot export fn `parse_later`: returned object that borrows `impl std::future::Future<Output = std::result::Result<u32, tls::held::Malformed<'_>>>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:137:1: rust2-ffi: cannot export fn `poll_ready`: Poll with no Context or waiter parameter `std::task::Poll<u32>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:154:2: rust2-ffi: cannot export method `Link::session`: borrowed return that is not Clone `tls::held::Handoff`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:16:1: rust2-ffi: cannot export fn `generic`: generic parameter `std::marker::Copy`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:170:1: rust2-ffi: cannot export fn `measure`: foreign type `tls::held::Local`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:175:1: rust2-ffi: cannot export instance `Cell<std::vec::Vec<String>>`: type argument `std::vec::Vec<String>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:175:1: rust2-ffi: cannot export instance `Cell<tls::held::Cert>`: type argument `tls::held::Cert`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:178:1: rust2-ffi: cannot export fn `sealed`: refused type `reject::Cell<tls::held::Cert>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:184:1: rust2-ffi: cannot export fn `echo`: borrowing output of a future from a function that is not async `&str`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:189:1: rust2-ffi: cannot export fn `blame`: borrowing output of a future from a function that is not async `std::result::Result<u32, tls::held::Wrapped<'_, u8>>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:194:1: rust2-ffi: cannot export fn `relay`: borrowing output of a future from a function that is not async `&str`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:199:1: rust2-ffi: cannot export fn `resolve`: borrowing output of a future from a function that is not async `&str`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:204:1: rust2-ffi: cannot export fn `spend`: closure signature `tls::held::Token`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:209:1: rust2-ffi: cannot export fn `mint`: closure signature `tls::held::Token`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:219:1: rust2-ffi: cannot export fn `spent`: reference to a handle inside a value `[tls::held::Token]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:171:1: rust2-ffi: cannot export fn `measure`: foreign type `tls::held::Local`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:176:1: rust2-ffi: cannot export instance `Cell<std::vec::Vec<String>>`: type argument `std::vec::Vec<String>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:176:1: rust2-ffi: cannot export instance `Cell<tls::held::Cert>`: type argument `tls::held::Cert`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:179:1: rust2-ffi: cannot export fn `sealed`: refused type `reject::Cell<tls::held::Cert>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:185:1: rust2-ffi: cannot export fn `echo`: borrowing output of a future from a function that is not async `&str`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:190:1: rust2-ffi: cannot export fn `blame`: borrowing output of a future from a function that is not async `std::result::Result<u32, tls::held::Wrapped<'_, u8>>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:195:1: rust2-ffi: cannot export fn `relay`: borrowing output of a future from a function that is not async `&str`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:200:1: rust2-ffi: cannot export fn `resolve`: borrowing output of a future from a function that is not async `&str`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:205:1: rust2-ffi: cannot export fn `spend`: closure signature `tls::held::Token`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:210:1: rust2-ffi: cannot export fn `mint`: closure signature `tls::held::Token`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:21:1: rust2-ffi: cannot export fn `nested`: nested Option `std::option::Option<std::boxed::Box<std::option::Option<u32>>>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:229:1: rust2-ffi: cannot export fn `adopt`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:241:2: rust2-ffi: cannot export method `Cell<u8>::nest`: instance holding an instance of a type inside it `reject::Cell<reject::Cell<u8>>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:260:2: rust2-ffi: cannot export method `Pong<reject::Ping<u8>>::ping`: instance holding an instance of a type inside it `reject::Ping<reject::Pong<reject::Ping<u8>>>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:271:1: rust2-ffi: cannot export instance `Grow<(u32,)>`: type argument `(u32,)`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:274:2: rust2-ffi: cannot export method `Grow<u32>::grow`: refused type `reject::Grow<(u32,)>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:285:1: rust2-ffi: cannot export instance `Shell<(u32,)>`: type argument `(u32,)`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:294:1: rust2-ffi: cannot export fn `shell`: refused type `reject::Shell<(u32,)>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:305:1: rust2-ffi: cannot export fn `probe`: const generic `N`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:220:1: rust2-ffi: cannot export fn `spent`: reference to a handle inside a value `[tls::held::Token]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:230:1: rust2-ffi: cannot export fn `adopt`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:242:2: rust2-ffi: cannot export method `Cell<u8>::nest`: instance holding an instance of a type inside it `reject::Cell<reject::Cell<u8>>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:261:2: rust2-ffi: cannot export method `Pong<reject::Ping<u8>>::ping`: instance holding an instance of a type inside it `reject::Ping<reject::Pong<reject::Ping<u8>>>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:272:1: rust2-ffi: cannot export instance `Grow<(u32,)>`: type argument `(u32,)`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:275:2: rust2-ffi: cannot export method `Grow<u32>::grow`: refused type `reject::Grow<(u32,)>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:286:1: rust2-ffi: cannot export instance `Shell<(u32,)>`: type argument `(u32,)`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:295:1: rust2-ffi: cannot export fn `shell`: refused type `reject::Shell<(u32,)>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:306:1: rust2-ffi: cannot export fn `probe`: const generic `N`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:30:1: rust2-ffi: cannot export fn `peek`: reference to a handle inside a value `std::boxed::Box<Opaque>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:310:1: rust2-ffi: cannot export fn `excluded_cell`: excluded type `reject::Cell<u16>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:315:1: rust2-ffi: cannot export fn `listed`: refused type `reject::Cell<std::vec::Vec<String>>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:320:1: rust2-ffi: cannot export instance `Fixed<'a'>`: const argument `'a'`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:323:1: rust2-ffi: cannot export fn `fixed`: refused type `reject::Fixed<'a'>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:328:9: rust2-ffi: cannot export use `HashSet`: re-export of the standard library's item `std`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:331:1: rust2-ffi: cannot export fn `lend`: Waker outside a parameter or a return; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:339:2: rust2-ffi: cannot export field `Tag::label`: 'static borrow `&'static str`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:349:1: rust2-ffi: cannot export fn `gather`: closure signature `std::vec::Vec<u8>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:354:1: rust2-ffi: cannot export fn `attempt`: closure signature `std::result::Result<u32, u8>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:359:1: rust2-ffi: cannot export fn `consume`: reader not lent as &mut `impl std::io::Read + std::io::Seek`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:311:1: rust2-ffi: cannot export fn `excluded_cell`: excluded type `reject::Cell<u16>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:316:1: rust2-ffi: cannot export fn `listed`: refused type `reject::Cell<std::vec::Vec<String>>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:321:1: rust2-ffi: cannot export instance `Fixed<'a'>`: const argument `'a'`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:324:1: rust2-ffi: cannot export fn `fixed`: refused type `reject::Fixed<'a'>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:329:9: rust2-ffi: cannot export use `HashSet`: re-export of the standard library's item `std`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:332:1: rust2-ffi: cannot export fn `lend`: Waker outside a parameter or a return; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:340:2: rust2-ffi: cannot export field `Tag::label`: 'static borrow `&'static str`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:350:1: rust2-ffi: cannot export fn `gather`: closure signature `std::vec::Vec<u8>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:355:1: rust2-ffi: cannot export fn `attempt`: closure signature `std::result::Result<u32, u8>`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:35:1: rust2-ffi: cannot export static `COUNT`: static; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:364:1: rust2-ffi: cannot export fn `retain`: reader kept past the call `R`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:369:1: rust2-ffi: cannot export fn `rewrite`: reader bound `std::io::Write`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:374:1: rust2-ffi: cannot export fn `read_later`: reader kept past the call `impl std::io::Read + std::io::Seek`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:379:1: rust2-ffi: cannot export fn `twice`: closure bound `std::clone::Clone`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:385:1: rust2-ffi: cannot export fn `both`: closure type taken twice `F`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:391:1: rust2-ffi: cannot export fn `read`: lent object that borrows `&Text<'_>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:396:1: rust2-ffi: cannot export fn `count_words`: Vec of references `&str`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:360:1: rust2-ffi: cannot export fn `consume`: reader not lent as &mut `impl std::io::Read + std::io::Seek`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:365:1: rust2-ffi: cannot export fn `retain`: reader kept past the call `R`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:370:1: rust2-ffi: cannot export fn `rewrite`: reader bound `std::io::Write`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:375:1: rust2-ffi: cannot export fn `read_later`: reader kept past the call `impl std::io::Read + std::io::Seek`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:380:1: rust2-ffi: cannot export fn `twice`: closure bound `std::clone::Clone`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:386:1: rust2-ffi: cannot export fn `both`: closure type taken twice `F`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:392:1: rust2-ffi: cannot export fn `read`: lent object that borrows `&Text<'_>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:397:1: rust2-ffi: cannot export fn `count_words`: Vec of references `&str`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:39:1: rust2-ffi: cannot export macro `noop`: macro; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:401:1: rust2-ffi: cannot export fn `count_some`: Vec of references `std::option::Option<&str>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:406:1: rust2-ffi: cannot export fn `count_slice`: slice of references `&str`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:411:1: rust2-ffi: cannot export fn `peek_all`: reference to a handle inside a value `[Opaque]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:416:1: rust2-ffi: cannot export fn `none_opaque`: borrowed return that is not Clone `[Opaque]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:428:1: rust2-ffi: cannot export fn `stash`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:443:1: rust2-ffi: cannot export fn `hold`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:448:1: rust2-ffi: cannot export fn `bound`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:453:1: rust2-ffi: cannot export fn `kept`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:467:1: rust2-ffi: cannot export fn `holder`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:402:1: rust2-ffi: cannot export fn `count_some`: Vec of references `std::option::Option<&str>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:407:1: rust2-ffi: cannot export fn `count_slice`: slice of references `&str`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:412:1: rust2-ffi: cannot export fn `peek_all`: reference to a handle inside a value `[Opaque]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:417:1: rust2-ffi: cannot export fn `none_opaque`: borrowed return that is not Clone `[Opaque]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:429:1: rust2-ffi: cannot export fn `stash`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:444:1: rust2-ffi: cannot export fn `hold`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:449:1: rust2-ffi: cannot export fn `bound`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:454:1: rust2-ffi: cannot export fn `kept`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:468:1: rust2-ffi: cannot export fn `holder`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:47:1: rust2-ffi: cannot export fn `excluded`: excluded type `Excluded`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:481:1: rust2-ffi: cannot export fn `lender`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:496:1: rust2-ffi: cannot export fn `outlived`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:511:1: rust2-ffi: cannot export fn `paired`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:482:1: rust2-ffi: cannot export fn `lender`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:497:1: rust2-ffi: cannot export fn `outlived`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:512:1: rust2-ffi: cannot export fn `paired`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:52:1: rust2-ffi: cannot export fn `letters`: Range `char`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:534:1: rust2-ffi: cannot export fn `pinner`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:549:1: rust2-ffi: cannot export fn `grows`: growing conversion `Grows<u8>`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:541:1: note: applies past the recursion limit
-fixtures/reject/src/lib.rs:579:1: rust2-ffi: cannot export fn `call`: ambiguous conversion `std::vec::Vec<u8>`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:556:1: note: `std::string::String` converts too, which C passes alike
-fixtures/reject/src/lib.rs:584:1: rust2-ffi: cannot export fn `alphabet`: Range `char`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:589:1: rust2-ffi: cannot export fn `naturals`: foreign type `std::ops::RangeFrom`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:594:1: rust2-ffi: cannot export fn `opaques`: borrowed return that is not Clone `Opaque`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:599:1: rust2-ffi: cannot export fn `tried`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:604:1: rust2-ffi: cannot export fn `eventually`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:630:1: rust2-ffi: cannot export fn `tallied`: unmet bound `u32: std::convert::From<C>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:635:1: rust2-ffi: cannot export fn `drain`: trait object `dyn Source`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:609:1: note: C cannot implement `Source`: callback signature `items`
-fixtures/reject/src/lib.rs:640:1: rust2-ffi: cannot export fn `summed_forever`: 'static borrow `&'static [u32]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:645:1: rust2-ffi: cannot export fn `retext_last`: 'static borrow `&'a [std::string::String]`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:645:20: note: `'a` is `'static`, as a handle outlives every call
-fixtures/reject/src/lib.rs:652:1: rust2-ffi: cannot export fn `outlast`: 'static borrow `&'b [std::string::String]`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:652:20: note: `'b` is `'static`, as a handle outlives every call
-fixtures/reject/src/lib.rs:659:1: rust2-ffi: cannot export fn `retext_into`: 'static borrow `&'a [std::string::String]`; exclude it in the config to leave it out
-	fixtures/reject/src/lib.rs:659:20: note: `'a` is `'static`, as a handle outlives every call
-fixtures/reject/src/lib.rs:668:1: rust2-ffi: cannot export fn `ones`: foreign type `std::iter::Repeat`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:535:1: rust2-ffi: cannot export fn `pinner`: generic parameter `std::convert::Into`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:550:1: rust2-ffi: cannot export fn `grows`: growing conversion `Grows<u8>`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:542:1: note: applies past the recursion limit
+fixtures/reject/src/lib.rs:580:1: rust2-ffi: cannot export fn `call`: ambiguous conversion `std::vec::Vec<u8>`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:557:1: note: `std::string::String` converts too, which C passes alike
+fixtures/reject/src/lib.rs:585:1: rust2-ffi: cannot export fn `alphabet`: Range `char`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:590:1: rust2-ffi: cannot export fn `naturals`: foreign type `std::ops::RangeFrom`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:595:1: rust2-ffi: cannot export fn `opaques`: borrowed return that is not Clone `Opaque`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:600:1: rust2-ffi: cannot export fn `tried`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:605:1: rust2-ffi: cannot export fn `eventually`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:631:1: rust2-ffi: cannot export fn `tallied`: unmet bound `u32: std::convert::From<C>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:636:1: rust2-ffi: cannot export fn `drain`: trait object `dyn Source`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:610:1: note: C cannot implement `Source`: callback signature `items`
+fixtures/reject/src/lib.rs:641:1: rust2-ffi: cannot export fn `summed_forever`: 'static borrow `&'static [u32]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:646:1: rust2-ffi: cannot export fn `retext_last`: 'static borrow `&'a [std::string::String]`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:646:20: note: `'a` is `'static`, as a handle outlives every call
+fixtures/reject/src/lib.rs:653:1: rust2-ffi: cannot export fn `outlast`: 'static borrow `&'b [std::string::String]`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:653:20: note: `'b` is `'static`, as a handle outlives every call
+fixtures/reject/src/lib.rs:660:1: rust2-ffi: cannot export fn `retext_into`: 'static borrow `&'a [std::string::String]`; exclude it in the config to leave it out
+	fixtures/reject/src/lib.rs:660:20: note: `'a` is `'static`, as a handle outlives every call
+fixtures/reject/src/lib.rs:669:1: rust2-ffi: cannot export fn `ones`: foreign type `std::iter::Repeat`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:66:2: rust2-ffi: cannot export method `Text::view`: returned object that borrows `Text<'_>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:674:1: rust2-ffi: cannot export fn `long_words`: foreign type `std::iter::Filter`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:680:1: rust2-ffi: cannot export fn `kept_in`: foreign type `std::iter::Filter`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:697:1: rust2-ffi: cannot export fn `launched`: foreign type `std::iter::Chain`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:675:1: rust2-ffi: cannot export fn `long_words`: foreign type `std::iter::Filter`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:681:1: rust2-ffi: cannot export fn `kept_in`: foreign type `std::iter::Filter`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:698:1: rust2-ffi: cannot export fn `launched`: foreign type `std::iter::Chain`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:6:1: rust2-ffi: cannot export fn `pair`: tuple of references `(&str, u8)`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:714:1: rust2-ffi: cannot export fn `launches`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:737:1: rust2-ffi: cannot export fn `pumped`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:751:1: rust2-ffi: cannot export fn `skipped`: foreign type `std::iter::Skip`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:756:1: rust2-ffi: cannot export fn `merged`: foreign type `std::iter::Copied`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:763:1: rust2-ffi: cannot export fn `values`: foreign type `std::collections::btree_map::IntoValues`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:769:1: rust2-ffi: cannot export fn `floats`: collection not built from its items `std::collections::BTreeSet<f64>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:774:1: rust2-ffi: cannot export fn `zeros`: foreign type `std::iter::RepeatN`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:779:1: rust2-ffi: cannot export fn `successes`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:715:1: rust2-ffi: cannot export fn `launches`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:738:1: rust2-ffi: cannot export fn `pumped`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:752:1: rust2-ffi: cannot export fn `skipped`: foreign type `std::iter::Skip`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:757:1: rust2-ffi: cannot export fn `merged`: foreign type `std::iter::Copied`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:764:1: rust2-ffi: cannot export fn `values`: foreign type `std::collections::btree_map::IntoValues`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:770:1: rust2-ffi: cannot export fn `floats`: collection not built from its items `std::collections::BTreeSet<f64>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:775:1: rust2-ffi: cannot export fn `zeros`: foreign type `std::iter::RepeatN`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:77:1: rust2-ffi: cannot export fn `first`: borrowed return that is not Clone `Opaque`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:799:1: rust2-ffi: cannot export fn `allocated`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:806:1: rust2-ffi: cannot export fn `flattened`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:830:1: rust2-ffi: cannot export fn `lent`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:848:1: rust2-ffi: cannot export fn `halves`: foreign type `std::str::Split`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:853:1: rust2-ffi: cannot export fn `settled`: Poll with no Context or waiter parameter `std::task::Poll<u8>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:858:1: rust2-ffi: cannot export fn `poll_named`: poll's parameter taken by value that is not Copy `std::string::String`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:864:1: rust2-ffi: cannot export fn `poll_first`: borrowed Poll `&u8`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:870:1: rust2-ffi: cannot export fn `poll_until`: poll's parameter taken by value that is not Copy `impl Fn(u8) -> bool`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:881:1: rust2-ffi: cannot export fn `context_later`: Context of a function returning a future; future not Send; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:900:1: rust2-ffi: cannot export fn `poll_ticket`: Poll with no Context or waiter parameter `std::task::Poll<u16>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:905:1: rust2-ffi: cannot export fn `poll_both`: several task parameters; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:912:1: rust2-ffi: cannot export fn `poll_bump`: &mut of a value in a future; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:919:1: rust2-ffi: cannot export fn `peek_some`: reference to a handle inside a value `std::boxed::Box<Opaque>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:924:1: rust2-ffi: cannot export fn `bump_some`: &mut of a value inside an Option `std::option::Option<&mut u32>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:931:1: rust2-ffi: cannot export fn `rest`: returned borrow of a value written back `&[u8]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:936:1: rust2-ffi: cannot export fn `fill`: returned borrow of a value written back `impl std::future::Future<Output = ()>`; &mut of a value in a future; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:941:1: rust2-ffi: cannot export fn `zero`: &mut of a slice `[u8]`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:946:1: rust2-ffi: cannot export fn `reseat`: &mut of another crate's Arc `std::sync::Arc<dep::Size>`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:959:2: rust2-ffi: cannot export method `Keeper::check`: borrowed return that is not Clone `Opaque`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:970:9: rust2-ffi: cannot export use `dep`: re-export of a whole crate `dep`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:973:9: rust2-ffi: cannot export use `renamed`: re-export of a whole crate `dep`; exclude it in the config to leave it out
-fixtures/reject/src/lib.rs:984:2: rust2-ffi: cannot export method `Tally::poll_bump`: `&mut self` of a value; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:780:1: rust2-ffi: cannot export fn `successes`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:800:1: rust2-ffi: cannot export fn `allocated`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:807:1: rust2-ffi: cannot export fn `flattened`: foreign type `std::iter::Flatten`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:831:1: rust2-ffi: cannot export fn `lent`: foreign type `std::vec::IntoIter`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:849:1: rust2-ffi: cannot export fn `halves`: foreign type `std::str::Split`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:854:1: rust2-ffi: cannot export fn `settled`: Poll with no Context or waiter parameter `std::task::Poll<u8>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:859:1: rust2-ffi: cannot export fn `poll_named`: poll's parameter taken by value that is not Copy `std::string::String`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:865:1: rust2-ffi: cannot export fn `poll_first`: borrowed Poll `&u8`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:871:1: rust2-ffi: cannot export fn `poll_until`: poll's parameter taken by value that is not Copy `impl Fn(u8) -> bool`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:882:1: rust2-ffi: cannot export fn `context_later`: Context of a function returning a future; future not Send; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:901:1: rust2-ffi: cannot export fn `poll_ticket`: Poll with no Context or waiter parameter `std::task::Poll<u16>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:906:1: rust2-ffi: cannot export fn `poll_both`: several task parameters; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:913:1: rust2-ffi: cannot export fn `poll_bump`: &mut of a value in a future; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:920:1: rust2-ffi: cannot export fn `peek_some`: reference to a handle inside a value `std::boxed::Box<Opaque>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:925:1: rust2-ffi: cannot export fn `bump_some`: &mut of a value inside an Option `std::option::Option<&mut u32>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:932:1: rust2-ffi: cannot export fn `rest`: returned borrow of a value written back `&[u8]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:937:1: rust2-ffi: cannot export fn `fill`: returned borrow of a value written back `impl std::future::Future<Output = ()>`; &mut of a value in a future; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:942:1: rust2-ffi: cannot export fn `zero`: &mut of a slice `[u8]`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:947:1: rust2-ffi: cannot export fn `reseat`: &mut of another crate's Arc `std::sync::Arc<dep::Size>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:960:2: rust2-ffi: cannot export method `Keeper::check`: borrowed return that is not Clone `Opaque`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:971:9: rust2-ffi: cannot export use `dep`: re-export of a whole crate `dep`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:974:9: rust2-ffi: cannot export use `renamed`: re-export of a whole crate `dep`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:985:2: rust2-ffi: cannot export method `Tally::poll_bump`: `&mut self` of a value; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:99:2: rust2-ffi: cannot export method `Text::later`: returned object that borrows `impl std::future::Future<Output = Text<'_>>`; exclude it in the config to leave it out

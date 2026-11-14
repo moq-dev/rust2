@@ -6,7 +6,10 @@
 thread that made it: a call, poll, or drop from another thread never runs Rust code on
 that value there. Three of moq's own are refused for it at moq `ffcb7cd9`: `clock::Entered`,
 `clock::Rng`, and `catalog::Guard`
-([#675](https://github.com/kixel-ai/rust2/pull/675)). Proven per language by a fixture
+([#675](https://github.com/kixel-ai/rust2/pull/675)). At moq's `main` (`a11a584`, measured on 2026-11-14 in
+[#802](https://github.com/kixel-ai/rust2/pull/802)), moq-tokio's `server::Listener::accept_with`
+is a fourth: its future borrows `&self` of a `Listener` that is not `Sync`, through a
+`FuturesUnordered` of boxed futures that are not, so the future is not `Send`. Proven per language by a fixture
 type holding an `Rc`, called, awaited, and dropped from a second thread.
 
 ## Plan

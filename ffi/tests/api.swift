@@ -692,6 +692,30 @@ func script() {
 		chain.append(certify(Bytes("a".utf8)))
 		chain.append(certify(Bytes("bc".utf8)))
 		print("cert \(certLength) \(der) \(chainLen(chain))")
+		// Another crate's trait objects: an `Arc`, taken back, and `'static` ones, held by value.
+		print("resolver \(resolved(resolver("r1")))")
+		var codecs = Codecs.new()
+		print("codecs \(codecs.ids())")
+		var listed = codecs.listGet
+		var reversed = UniqueArray<TlsCodec>()
+		reversed.append(listed.remove(at: 1))
+		reversed.append(listed.remove(at: 0))
+		codecs.listSet(reversed)
+		print("codecs reversed \(codecs.ids())")
+		// A standard library value no type maps, in a handle.
+		let failed = failure("boom")
+		let message = failureMessage(failed)
+		print("failure \(message) \(failureKind(failed))")
+		// Iterators, passed as the arrays of their items.
+		print("sum_all \(sumAll([1, 2, 3]))")
+		var weighed = UniqueArray<Counter>()
+		weighed.append(Counter.new("w", 3))
+		print("weigh_all \(weighAllCounter(weighed))")
+		print("offered_len \(offeredLen([Bytes("h3".utf8), Bytes("moq-00".utf8)]))")
+		print("join_words \(joinWords(["a", "b", "c"]))")
+		// Bytes that must be `'static`, interned.
+		print("der \(text(Der.fromSlice(Bytes("der".utf8)).bytes()))")
+		print("der again \(text(Der.fromSlice(Bytes("der".utf8)).bytes()))")
 		let session = try! resume("h3", 60)
 		print("resume \(session.alpn()) \(session.lifetime().seconds)")
 		do {
@@ -710,6 +734,17 @@ func script() {
 		let last = meters.lastGet
 		_ = last.add(4)
 		print("field lent \(last.add(1))")
+		// An optional field that is not Clone, lent as `Some` of a handle.
+		var hasSpare = false
+		if let _ = meters.spareGet {
+			hasSpare = true
+		}
+		print("spare \(hasSpare)")
+		meters.spareSet(Meter.default())
+		if let spare = meters.spareGet {
+			_ = spare.add(5)
+			print("spare lent \(spare.add(1))")
+		}
 		let tallies = Tallies.new()
 		_ = tallies.first().bump()
 		print("tallied \(tallies.first().bump())")
@@ -771,6 +806,7 @@ func script() {
 
 	// Slices, passed in and returned as clones, and the socket address of each family.
 	print("shapes \(Shape.ALL) greetings \(GREETINGS)")
+	print("both \(Shape.BOTH) primes \(PRIMES)")
 	var trail = Trail.new([Point(x: 1, y: 2), Point(x: 3, y: 4)], ["a", "b"])
 	print("trail \(trail.points()) \(trail.labels())")
 	// Returned iterators, each collected at the call: drained labels are gone after.
