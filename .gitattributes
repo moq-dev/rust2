@@ -1,1 +1,2 @@
 quest/** merge=quest
+driver/pub/tests/fixture/api/src/crlf.rs -text

@@ -13,17 +13,22 @@ export PATH := if env("RUST2_TS_TOOLCHAIN", "") == "" { env("PATH") } else { car
 default:
     @just --list
 
-# Lint and format-check the driver front end.
+# Lint and format-check the driver front end and rust2-pub.
 check:
-    cargo clippy --locked --all-targets -- -D warnings
+    cargo clippy --locked --workspace --all-targets -- -D warnings
     cargo fmt --all --check
 
-# Run the driver front end's tests.
+# Run the driver front end's and rust2-pub's tests.
 test *args:
-    cargo test --locked {{ args }}
+    cargo test --locked --workspace {{ args }}
+
+# Audit which `pub` items another crate needs, from where it is invoked: `just driver pub --help`.
+[no-cd]
+pub *args:
+    cargo run --quiet --locked --release --manifest-path {{ quote(source_directory() / "Cargo.toml") }} --package rust2-pub -- {{ args }}
 
 # Apply formatters without changing program behavior.
 fix:
-    cargo clippy --locked --fix --allow-staged --allow-dirty --all-targets
+    cargo clippy --locked --fix --allow-staged --allow-dirty --workspace --all-targets
     cargo fmt --all
 

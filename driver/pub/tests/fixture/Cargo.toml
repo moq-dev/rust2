@@ -1,0 +1,5 @@
+# A workspace whose library's `pub` items cover each way a crate needs another's, for the
+# audit's tests: they audit a copy, narrow it, and compare what its binary prints.
+[workspace]
+members = ["api", "app", "derives", "extra", "facade"]
+resolver = "3"

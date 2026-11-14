@@ -7,7 +7,7 @@ levers ([relink](/quest/m3/relink.md) and [TPDE](/quest/m3/tpde.md)) and
 [the benchmark on bare metal](/quest/m3/bench-metal.md), the translator's features that
 wait on [the gate](/quest/m2/wasm/README.md), the binding targets planned ahead of a
 consumer, what waits on moq, [crabx's GitHub App](/quest/m3/crabx-app.md), and
-[the public-visibility audit](/quest/m3/pub-audit.md).
+[narrowing rust2's own `pub`](/quest/m3/pub-apply.md) with rust2-pub.
 
 ## Plan
 
@@ -50,12 +50,26 @@ Decided with the maintainer on 2026-11-12, in the quest audit:
 
 The [dead `pub` spike](https://github.com/kixel-ai/rust2/pull/763) finished on
 2026-11-13 with a go for a compiler-validated audit that preserves original resolved
-references, planned in [the public-visibility audit](/quest/m3/pub-audit.md). The raw
+references, which [rust2-pub](/driver/pub/README.md) now is. The raw
 graph still fails moq publicity checks. A compiler-only narrowing loop can silently
 redirect method dispatch: the native fixture changes 99 to 3, while the graph
 retains the original method. Neither alone is an automatic cleanup tool, and
 neither establishes the absence of external API consumers. The PR holds the census,
 collective mutation checks and comparison.
+
+Decided with the maintainer on 2026-11-13, for
+[rust2-pub](https://github.com/kixel-ai/rust2/pull/785):
+
+- ✅ Validation fingerprints every item as rustc's HIR printer prints it after macro
+  expansion, which leaves visibility out, and traces a changed item back through the
+  macro calls it came from to the narrowed `pub` they read. It replaces the derive
+  fingerprint and the rule that kept every `pub` passed to a macro. Rejected: adding a
+  check per macro kind, where each review round found one more.
+- ✅ What a published crate exports, and all of an unpublished library the audit never
+  runs, stays public. Rejected: also reporting a published crate's unused exports as
+  breaking narrowings.
+- ✅ Applying the findings is follow-up work: [rust2's](/quest/m3/pub-apply.md) here,
+  and moq's in moq's own quest tree.
 
 Decided with the maintainer on 2026-11-07, the unsafe policy, to stop one-off fixes for
 ever rarer `unsafe`:

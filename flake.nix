@@ -156,6 +156,31 @@
                 # The tests need node, tsc, and wasm builds: `just ts test` runs them.
                 doCheck = false;
               };
+          # The public-visibility audit, on the same nightly, run by cargo as rustc.
+          rust2-pub =
+            (pkgs.makeRustPlatform {
+              cargo = tsToolchain;
+              rustc = tsToolchain;
+            }).buildRustPackage
+              {
+                pname = "rust2-pub";
+                version = "0.0.0";
+                src = pkgs.lib.fileset.toSource {
+                  root = ./.;
+                  fileset = ./driver;
+                };
+                buildAndTestSubdir = "driver/pub";
+                cargoRoot = "driver";
+                cargoLock.lockFile = ./driver/Cargo.lock;
+                RUSTFLAGS = "-C link-args=-Wl,-rpath,${tsToolchain}/lib";
+                nativeBuildInputs = [ pkgs.makeWrapper ];
+                # It checks with its own nightly's cargo, unless the caller names another.
+                postInstall = ''
+                  wrapProgram $out/bin/rust2-pub --set-default CARGO ${tsToolchain}/bin/cargo
+                '';
+                # The tests run cargo on a fixture workspace: `just driver test` runs them.
+                doCheck = false;
+              };
           # rust2-ffi's generated async Kotlin needs coroutines on the
           # classpath; nixpkgs has no jar.
           kotlinx-coroutines = pkgs.fetchurl {
@@ -167,6 +192,7 @@
           packages = {
             quest = quest-cli;
             ts = rust2-ts;
+            pub = rust2-pub;
           }
           # ra-jit and its toolchain for the benchmark's ra-jit variants, which build it
           # only when they run: it compiles from source. ra-jit skips Intel macOS.

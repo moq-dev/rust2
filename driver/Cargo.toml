@@ -14,10 +14,14 @@ rustc_private = true
 
 [dependencies]
 
+[lints]
+workspace = true
+
 # Its own workspace, apart from the repo's, on the drivers' nightly: rust-toolchain.toml
 # links ts's pin, which flake.nix reads.
 [workspace]
+members = ["pub"]
 
-[lints.clippy]
+[workspace.lints.clippy]
 # Every suppression says why, so the next lint audit can judge it.
 allow_attributes_without_reason = "warn"
