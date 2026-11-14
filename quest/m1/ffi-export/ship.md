@@ -25,4 +25,3 @@ then see change. A sibling planned later adds itself to `Required` here.
 - [Copy types that change cross by value](/quest/m1/ffi-export/copy-values.md) - how moq's stats and `WallMap` are held in every language
 - [Opaque padding from the glue's rustc](/quest/m1/ffi-export/padding-layout.md) - that zeroing an opaque value's padding never zeroes a live field
 - [Not Send](/quest/m1/ffi-export/not-send.md) - the types and futures that export checked by thread
-- [Export moq for every target](/quest/m1/ffi-export/moq-targets.md) - one binding across the targets moq ships

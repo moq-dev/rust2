@@ -292,13 +292,15 @@
             };
           });
           # `just ffi android` builds the Kotlin's library for an Android device, with the NDK
-          # cargo-ndk finds through ANDROID_NDK_HOME: the SDK and NDK are the caller's, as moq's
-          # Android build takes the GitHub runner image's.
+          # cargo-ndk finds through ANDROID_NDK_HOME, and `just ffi moq-api` stages moq's API on
+          # each Android ABI moq ships: the SDK and NDK are the caller's, as moq's Android build
+          # takes the GitHub runner image's.
           devShells.android = self.devShells.${system}.default.overrideAttrs (old: {
             nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.cargo-ndk ];
             RUST2_TS_TOOLCHAIN = tsToolchain.override {
               targets = (builtins.fromTOML (builtins.readFile ./ts/rust-toolchain.toml)).toolchain.targets ++ [
                 "aarch64-linux-android"
+                "armv7-linux-androideabi"
                 "x86_64-linux-android"
               ];
             };

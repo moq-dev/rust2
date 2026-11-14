@@ -68,4 +68,5 @@ exclude = [
     "tokio::server::Config::websocket",
     "tokio::server::Request::within",
     "tokio::tls::Serve::resolver",
+    "tokio::tls::init_android",
 ]

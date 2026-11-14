@@ -389,10 +389,49 @@ moq-c checkout="": (moq-write checkout)
     fi
     target/moq-c-test
 
-# Export moq's crates' C ABI into target/export/moq, unbuilt.
+# Export moq's crates' C ABI into target/export/moq, unbuilt, for the host and each target moq-api staged in target/moq-api.
 [private]
 moq-write checkout="": (standin checkout)
-    cargo run --locked --quiet -- --config moq/ffi.toml --manifest-path target/moq-ffi/Cargo.toml --out target/export/moq
+    #!/usr/bin/env bash
+    set -euo pipefail
+    with=()
+    for api in target/moq-api/*.json; do
+        [ -e "$api" ] || continue
+        # A staged API speaks for the sources it was checked from, which the export's must be.
+        if ! cmp -s "${api%.json}.source" target/moq-ffi/source; then
+            echo "$api was staged from other moq sources than these: stage it again with just ffi moq-api, or delete it" >&2
+            exit 1
+        fi
+        with+=(--with "$api")
+    done
+    # macOS's bash 3.2 reads an empty array as unset.
+    cargo run --locked --quiet -- --config moq/ffi.toml --manifest-path target/moq-ffi/Cargo.toml --out target/export/moq ${with[@]+"${with[@]}"}
+
+# Stage moq's crates' API on one target into target/moq-api/<target>.json, from the pinned moq revision or a checkout, for `just ffi moq` and the recipes exporting as it does to merge into their binding. Run it on a host with the target's C toolchain, which moq's build scripts need even for a check: Android's is the NDK at ANDROID_NDK_HOME, in the Android shell (nix develop .#android).
+moq-api target checkout="": (standin checkout)
+    #!/usr/bin/env bash
+    set -euo pipefail
+    target={{ target }}
+    [ -f target/moq-ffi/source ] || { echo "moq-api stages a git checkout of moq, whose revision names its sources" >&2; exit 1; }
+    case "$target" in
+        *-android*)
+            # The NDK's compiler for the target, at API 24, the oldest moq's Android library
+            # supports, as cargo-ndk sets it.
+            case "{{ os() }}" in
+                macos) host=darwin-x86_64 ;;
+                *) host=linux-x86_64 ;;
+            esac
+            bin=${ANDROID_NDK_HOME:?ANDROID_NDK_HOME names the NDK}/toolchains/llvm/prebuilt/$host/bin
+            clang=${target/armv7-/armv7a-}24-clang
+            [ -x "$bin/$clang" ] || { echo "the NDK at $ANDROID_NDK_HOME has no $clang" >&2; exit 1; }
+            var=${target//-/_}
+            export "CC_$var=$bin/$clang" "AR_$var=$bin/llvm-ar"
+            ;;
+    esac
+    mkdir -p target/moq-api
+    rm -f "target/moq-api/$target.json" "target/moq-api/$target.source"
+    cargo run --locked --quiet -- --config moq/ffi.toml --manifest-path target/moq-ffi/Cargo.toml --target "$target" --api "target/moq-api/$target.json"
+    cp target/moq-ffi/source "target/moq-api/$target.source"
 
 # Export moq's crates' C ABI into target/export/moq and build it, with the libraries a program linking it needs besides in target/moq-native.
 [private]
@@ -517,6 +556,11 @@ standin checkout="":
     update "$dir/src/lib.rs.new" "$dir/src/lib.rs"
     # moq's lockfile pins what moq's own builds use.
     cmp -s "$src/Cargo.lock" "$dir/Cargo.lock" || cp "$src/Cargo.lock" "$dir/Cargo.lock"
+    # The sources' revision and uncommitted changes, which a staged API must share.
+    rm -f "$dir/source"
+    if git -C "$src" rev-parse --verify --quiet HEAD > /dev/null; then
+        { git -C "$src" rev-parse HEAD; git -C "$src" diff HEAD | git hash-object --stdin; } > "$dir/source"
+    fi
 
 # Check out the pinned moq revision in target/moq, apart from `just ts`'s so neither recipe touches the other's checkout, copying the objects its clone already has.
 [private]

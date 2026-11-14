@@ -1041,6 +1041,7 @@ just ffi moq      # export moq's crates at the pinned revision, build them, and 
 just ffi moq-c    # the same export, built in debug, running only moq/moq.c: `just ci`'s check on moq
 just ffi moq-cpp  # the same export, running only moq/moq.cpp
 just ffi moq-swift  # the same export, running only moq/moq.swift
+just ffi moq-api <target>  # stage moq's API on another target into target/moq-api, which the exports above merge
 just ffi census   # census each into target/census
 just ffi shapes   # round-trip every sampled type shape in every language but KNOWN's, as the nightly does
 nix develop .#android --command just ffi android  # the Kotlin test, shrunk by R8, on the Android device adb reaches
@@ -1109,7 +1110,12 @@ and then ThreadSanitizer, runs `tests/api.c` and `tests/api.cpp` against it, and
 their output to the native transcript; it then drives the C ABI from `tests/miri/api.rs`
 under Miri with strict provenance.
 moq's crates export through `target/moq-ffi`, an empty library on each that `just ffi moq`
-writes in place of moq-ffi's remainder. `moq/moq.c` publishes and subscribes to a moq-net
+writes in place of moq-ffi's remainder. The export serves the host and each target
+`just ffi moq-api` staged in `target/moq-api` from the same moq sources, and fails on a
+staged API from other sources. Nightly stages every target moq ships a binding to but the
+host on the host with its C toolchain, Android's in the Android shell from the runner's NDK,
+and runs `just ffi moq` on Linux over all of them, so an item two targets define
+differently fails it. `moq/moq.c` publishes and subscribes to a moq-net
 track in one process, polling each read, scopes an origin to moq-pattern's patterns and
 hands it to a client to publish, polls its driver until the origin's last owner drops, reads an OpusHead into hang's catalog through moq-mux,
 sets and reads a field of the catalog lent to C through `catalog::Producer::mutate`, and
