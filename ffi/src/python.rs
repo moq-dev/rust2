@@ -1600,7 +1600,14 @@ impl<'a> Gen<'a> {
 		place: Place,
 	) -> Option<Form> {
 		let abi = self.abi;
-		let export = abi.export(function, owner);
+		// A value is immutable in Python, so its `&mut self` method returns it as the call
+		// left it, calling the C function in place on a copy it hands back.
+		let handed = (owner.zip(owner_ty)).and_then(|(owner, (ty, _))| abi.handed_back(function, owner, ty));
+		let (back, export, handed) = match handed {
+			Some((back, export, handed)) => (Some(back), export, Some(handed)),
+			None => (None, abi.export(function, owner), None),
+		};
+		let function = back.as_ref().unwrap_or(function);
 		let c_name = export.call.name.clone();
 		let bare = self.bare(&c_name).to_string();
 		let owner_c = match owner {
@@ -1766,13 +1773,21 @@ impl<'a> Gen<'a> {
 				false => self.outs(&outs, &written, &function.ok, err.as_ref(), exception.as_deref(), "ret"),
 			};
 			let args: Vec<String> = c_args.iter().cloned().chain(ptrs).collect();
+			let call = match &handed {
+				Some(h) => h.call(&args),
+				None => format!("crate::{c_name}({})", args.join(", ")),
+			};
 			stmts.push(format!(
-				"{decl}\n\t\tlet ret = rt::call(|| crate::{c_name}({}));\n\t\ts.done();\n\t\t{value}",
-				args.join(", ")
+				"{decl}\n\t\tlet ret = rt::call(|| {call});\n\t\ts.done();\n\t\t{value}"
 			));
 		}
 		// The Python.
 		let mut text = function.docs.clone();
+		if handed.is_some() {
+			text.push_str(
+				"\n\nRust changes a copy of this value, which it returns first, as the call left it: this one never changes.",
+			);
+		}
 		for param in &function.params {
 			let name = param_name(&param.name);
 			if let Type::Closure(closure_) = &param.ty {

@@ -607,14 +607,36 @@ int script() {
 		std::printf("berth Some(%u) %s\n", *berth.at(), api::Berth::new_(std::nullopt).at() ? "Some" : "None");
 	}
 
-	// A `Copy` type changed in place is a handle, which a call taking it by value copies.
+	// A `Copy` type changed in place is a value, whose change reaches only the copy changed.
 	{
 		api::Score score = api::Score::of(2);
 		api::Score step = api::Score::of(3);
 		score.add(step);
 		score.add(step);
 		std::printf("score %llu %llu %llu\n", ull(score.count()), ull(step.doubled().count()), ull(step.count()));
-		api::Weighted weighted{step.clone(), 4};
+		api::Score copy = score;
+		std::uint64_t taken = copy.take();
+		std::printf("taken %llu %llu %llu\n", ull(taken), ull(copy.count()), ull(score.count()));
+		api::Score other = step;
+		auto [before0, before1] = copy.absorb(other);
+		std::printf("absorbed %llu %llu %llu %llu %llu\n", ull(before0), ull(before1), ull(copy.count()),
+			ull(other.count()), ull(step.count()));
+		api::Hits hits = api::Hits::of(1, 2);
+		api::Hits kept = hits;
+		hits.add(api::Hits::of(10, 20));
+		hits.hits_set(7);
+		std::printf("hits %llu %u %llu %u %s\n", ull(hits.hits_get()), hits.misses_get(), ull(kept.hits_get()),
+			kept.misses_get(), yes(hits == kept));
+		api::Hits counted = kept;
+		bool counted_same = counted.eq_(kept);
+		std::printf("counted %s %llu\n", yes(counted_same), ull(counted.hits_get()));
+		api::Extent extent = api::Extent::new_(5, 3);
+		api::Extent extent_start = extent;
+		std::uint64_t old = extent.slide(10);
+		extent.start_set(extent.start_get() + 1);
+		std::printf("extent %llu %llu %llu %llu %llu\n", ull(old), ull(extent.start_get()), ull(extent.end()),
+			ull(extent_start.start_get()), ull(extent_start.end()));
+		api::Weighted weighted{step, 4};
 		std::printf("weighted %llu %llu\n", ull(weighted.total()), ull(weighted.score.count() + step.count()));
 	}
 

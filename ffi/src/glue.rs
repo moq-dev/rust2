@@ -111,6 +111,7 @@ pub fn rs(ty: &Ty) -> String {
 		Ty::ForeignReader => "rt::ForeignReader".to_string(),
 		Ty::Out(inner) => format!("*mut {}", rs(inner)),
 		Ty::In(inner) => format!("*const {}", rs(inner)),
+		Ty::InOut(inner) => format!("*mut {}", rs(inner)),
 		Ty::Fn(params, ret) => {
 			let params: Vec<String> = std::iter::once("*mut ::std::ffi::c_void".to_string())
 				.chain(params.iter().map(rs))
@@ -1773,14 +1774,20 @@ impl Gen<'_> {
 					if function.holds && *receiver != Receiver::Owned {
 						held.push("a_self".to_string());
 					}
-					// Read through a pointer, so the caller keeps it.
+					// Read through a pointer, so the caller keeps it, and for `&mut self`
+					// written back through it once the call returns.
+					let binding = match receiver {
+						Receiver::Mut => "let mut",
+						_ => "let",
+					};
 					stmts.push(format!(
-						"let a_self = {};",
+						"{binding} a_self = {};",
 						self.lift(value, "unsafe { *this }", "false")
 					));
 					args.push(match receiver {
 						Receiver::Owned => "a_self".to_string(),
-						_ => "&a_self".to_string(),
+						Receiver::Ref => "&a_self".to_string(),
+						Receiver::Mut => "&mut a_self".to_string(),
 					});
 				}
 			}
@@ -1883,8 +1890,14 @@ impl Gen<'_> {
 			args.insert(usize::from(receiver_ty.is_some()) + at, arg);
 		}
 		// Rust writes back what the call left in each value C passed for `&mut`, on every
-		// path, errors included.
-		let writes: String = (function.params.iter().enumerate())
+		// path, errors included, and in a value's `&mut self`, in place.
+		let mut writes: String = match &receiver_ty {
+			Some(((_, value), Receiver::Mut)) if !matches!(value, Type::Object(_)) => {
+				format!("\n\tunsafe {{ this.write({}) }};", self.lower(value, "a_self"))
+			}
+			_ => String::new(),
+		};
+		writes += &(function.params.iter().enumerate())
 			.filter(|(_, param)| param.ty.written())
 			.map(|(n, param)| {
 				let Type::Ref(_, inner) = &param.ty else {
@@ -1897,7 +1910,7 @@ impl Gen<'_> {
 					self.lower(inner, &format!("a{n}"))
 				)
 			})
-			.collect();
+			.collect::<String>();
 		let mut callee = match &owner {
 			Some((_, owner_type)) => format!("<{}>::{}", self.rust(owner_type), function.name()),
 			None => self.path(&function.path),

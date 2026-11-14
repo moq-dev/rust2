@@ -88,6 +88,7 @@ pub fn generate(abi: &Abi<'_>, packages: &str, contract: u64) -> Result<Output, 
 		fresh: 0,
 		on: On::ALL,
 		space: Gen::space(abi),
+		handed: BTreeMap::new(),
 	};
 	g.locked = crate::lock::types(abi, &g.classes);
 	g.variants = g.variants(&taken);
@@ -418,6 +419,9 @@ struct Gen<'a> {
 	on: On,
 	/// The namespace of the glue's C names, apart from the export's.
 	space: String,
+	/// A value's `&mut self` methods by their C names, which a call makes in place on a
+	/// copy it hands back.
+	handed: BTreeMap<String, abi::Handed>,
 }
 
 impl<'a> Gen<'a> {
@@ -794,13 +798,15 @@ impl<'a> Gen<'a> {
 			.map(|(n, (_, ty))| format!(", p{n}: {}", rs(ty)))
 			.collect();
 		let args: Vec<String> = (0..call.params.len()).map(|n| format!("p{n}")).collect();
+		let call_ = match self.handed.get(&call.name) {
+			Some(h) => h.call(&args),
+			None => format!("crate::{}({})", call.name, args.join(", ")),
+		};
 		let _ = write!(
 			self.glue,
-			"#[unsafe(no_mangle)]\npub unsafe extern \"C\" fn {name}(home: *const c_void{}) -> {} {{\n\tlet home = unsafe {{ &*home.cast::<runtime::Home>() }};\n\tunsafe {{ home.serve(move || crate::{}({})) }}\n}}\n\n",
+			"#[unsafe(no_mangle)]\npub unsafe extern \"C\" fn {name}(home: *const c_void{}) -> {} {{\n\tlet home = unsafe {{ &*home.cast::<runtime::Home>() }};\n\tunsafe {{ home.serve(move || {call_}) }}\n}}\n\n",
 			decls.concat(),
 			rs(&call.ret),
-			call.name,
-			args.join(", ")
 		);
 		let native = self.native_fn(&name, params, call.ret.clone());
 		let api = self.abi.api;
@@ -2006,7 +2012,17 @@ impl<'a> Gen<'a> {
 	) -> Option<(String, String)> {
 		let abi = self.abi;
 		let _p = abi.prefix.clone();
-		let export = abi.export(function, owner);
+		// A value is immutable in Dart, so its `&mut self` method returns it as the call left
+		// it, calling the C function in place on a copy it hands back.
+		let handed = (owner.zip(owner_ty)).and_then(|(owner, ty)| abi.handed_back(function, owner, ty));
+		let (handed, export) = match handed {
+			Some((back, export, handed)) => {
+				self.handed.insert(export.call.name.clone(), handed);
+				(Some(back), export)
+			}
+			None => (None, abi.export(function, owner)),
+		};
+		let function = handed.as_ref().unwrap_or(function);
 		let c_name = export.call.name.clone();
 		let owner_c = match owner {
 			Some(Ty::Struct(n) | Ty::Enum(n) | Ty::Handle { name: n, .. }) => Some(n.clone()),
@@ -2278,6 +2294,11 @@ impl<'a> Gen<'a> {
 		}
 
 		let mut text = function.docs.clone();
+		if handed.is_some() {
+			text.push_str(
+				"\n\nRust changes a copy of this value, which it returns first, as the call left it: this one never changes.",
+			);
+		}
 		for param in &function.params {
 			let name = param_name(&param.name);
 			match &param.ty {

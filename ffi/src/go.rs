@@ -2308,7 +2308,12 @@ impl<'a> Gen<'a> {
 			let (_, c) = c_params.next().expect("a method has its receiver");
 			let ty = owner_ty.expect("a method has its type").clone();
 			let go = self.go(&ty);
-			go_receiver = Some(format!("self {go}"));
+			// A value's `&mut self` is a pointer receiver, which Rust writes back through.
+			let pointer = matches!(c, Ty::InOut(_));
+			go_receiver = Some(match pointer {
+				true => format!("self *{go}"),
+				false => format!("self {go}"),
+			});
 			match c {
 				Ty::Handle { name, .. } => {
 					prelude.push(format!(
@@ -2332,7 +2337,11 @@ impl<'a> Gen<'a> {
 						true => "a_, ",
 						false => "",
 					};
-					prelude.push(format!("c_self_ := lower_{c}({a}self)"));
+					let deref = match pointer {
+						true => "*",
+						false => "",
+					};
+					prelude.push(format!("c_self_ := lower_{c}({a}{deref}self)"));
 					args.push("&c_self_".to_string());
 					checked |= self.holds(&ty);
 				}
@@ -2571,14 +2580,23 @@ impl<'a> Gen<'a> {
 			let mut call_args = args.clone();
 			call_args.extend(outs.iter().map(|(n, _)| format!("&c_{n}_")));
 			let mut call = format!("C.{c_name}({})", call_args.join(", "));
-			// Each value passed for `&mut` takes what Rust wrote back, on every path.
-			let writes: Vec<String> = (function.params.iter().zip(&names))
-				.filter(|(param, _)| param.ty.written())
-				.map(|(param, name)| {
-					let out = Abi::written(function, &abi::escape(&param.name));
-					format!("*{name} = {}", self.lift(param.ty.base(), &format!("c_{out}_")))
-				})
-				.collect();
+			// Each value passed for `&mut` takes what Rust wrote back, on every path, as does a
+			// value's own `&mut self`, which Rust wrote back in place.
+			let mut writes: Vec<String> = match export.call.params.first() {
+				Some((_, Ty::InOut(_))) => {
+					let ty = owner_ty.expect("a method has its type");
+					vec![format!("*self = {}", self.lift(ty, "c_self_"))]
+				}
+				_ => Vec::new(),
+			};
+			writes.extend(
+				(function.params.iter().zip(&names))
+					.filter(|(param, _)| param.ty.written())
+					.map(|(param, name)| {
+						let out = Abi::written(function, &abi::escape(&param.name));
+						format!("*{name} = {}", self.lift(param.ty.base(), &format!("c_{out}_")))
+					}),
+			);
 			if !writes.is_empty() {
 				let made = match &err {
 					Some(_) => {

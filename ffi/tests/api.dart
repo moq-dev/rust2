@@ -366,12 +366,32 @@ Future<void> script() async {
   final berth = api.Berth(4);
   print('berth Some(${berth.at()}) ${api.Berth(null).at() == null ? 'None' : 'Some'}');
 
-  // A `Copy` type changed in place is a handle, which a call taking it by value copies.
-  final score = api.Score.of(2);
+  // A `Copy` type changed in place is a value, which a `&mut self` method returns as the
+  // call left it, Rust's own return beside it: a change reaches only the copy it replaces.
+  var score = api.Score.of(2);
   final increment = api.Score.of(3);
-  score.add(increment);
-  score.add(increment);
+  score = score.add(increment);
+  score = score.add(increment);
   print('score ${score.count()} ${increment.doubled().count()} ${increment.count()}');
+  var (scoreCopy, taken) = score.take();
+  print('taken $taken ${scoreCopy.count()} ${score.count()}');
+  final otherScore = api.Mut(increment);
+  final (absorbed, before0, before1) = scoreCopy.absorb(otherScore);
+  scoreCopy = absorbed;
+  print('absorbed $before0 $before1 ${scoreCopy.count()} ${otherScore.value.count()} ${increment.count()}');
+  var hits = api.Hits.of(1, 2);
+  final keptHits = hits;
+  hits = hits.add(api.Hits.of(10, 20));
+  hits = hits.hitsSet(7);
+  print('hits ${hits.hitsGet} ${hits.missesGet} ${keptHits.hitsGet} ${keptHits.missesGet} ${hits == keptHits}');
+  final (counted, countedSame) = keptHits.eq(keptHits);
+  print('counted $countedSame ${counted.hitsGet}');
+  var extent = api.Extent(5, 3);
+  final extentStart = extent;
+  final (slid, old) = extent.slide(10);
+  extent = slid;
+  extent = extent.startSet(extent.startGet + 1);
+  print('extent $old ${extent.startGet} ${extent.end()} ${extentStart.startGet} ${extentStart.end()}');
   final weighted = api.Weighted(score: increment, weight: 4);
   print('weighted ${weighted.total()} ${weighted.score.count() + increment.count()}');
 

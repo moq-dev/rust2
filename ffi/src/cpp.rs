@@ -1546,14 +1546,23 @@ impl<'a> Header<'a> {
 			}
 		}
 		let outs: Vec<(String, Ty)> = c_params.cloned().collect();
-		// Each value passed for `&mut` takes what Rust wrote back, on every path.
-		let writes: Vec<String> = (function.params.iter().zip(&names))
-			.filter(|(param, _)| param.ty.written())
-			.map(|(param, name)| {
-				let out = Abi::written(function, &abi::escape(&param.name));
-				format!("{name} = {};", self.lift(param.ty.base(), &format!("c_{out}_")))
-			})
-			.collect();
+		// Each value passed for `&mut` takes what Rust wrote back, on every path, as does a
+		// value's own `&mut self`, which Rust wrote back in place.
+		let mut writes: Vec<String> = match export.call.params.first() {
+			Some((_, Ty::InOut(_))) => {
+				let ty = record(abi, owner_c.as_deref().expect("a member method has its record"));
+				vec![format!("*this = {};", self.lift(&ty, "c_self_"))]
+			}
+			_ => Vec::new(),
+		};
+		writes.extend(
+			(function.params.iter().zip(&names))
+				.filter(|(param, _)| param.ty.written())
+				.map(|(param, name)| {
+					let out = Abi::written(function, &abi::escape(&param.name));
+					format!("{name} = {};", self.lift(param.ty.base(), &format!("c_{out}_")))
+				}),
+		);
 		for (name, _) in &outs {
 			args.push(format!("&c_{name}_"));
 		}

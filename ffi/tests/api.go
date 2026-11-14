@@ -468,16 +468,33 @@ func script() {
 	berth.Close()
 	empty.Close()
 
-	// A `Copy` type changed in place is a handle, which a call taking it by value copies.
+	// A `Copy` type changed in place is a value, whose change reaches only the copy changed.
 	score := api.ScoreOf(2)
 	step := api.ScoreOf(3)
-	ok(score.Add(step))
-	ok(score.Add(step))
-	fmt.Printf("score %d %d %d\n", must(score.Count()), must(must(step.Doubled()).Count()), must(step.Count()))
+	score.Add(step)
+	score.Add(step)
+	fmt.Printf("score %d %d %d\n", score.Count(), step.Doubled().Count(), step.Count())
+	scoreCopy := score
+	taken := scoreCopy.Take()
+	fmt.Printf("taken %d %d %d\n", taken, scoreCopy.Count(), score.Count())
+	otherScore := step
+	before0, before1 := scoreCopy.Absorb(&otherScore)
+	fmt.Printf("absorbed %d %d %d %d %d\n", before0, before1, scoreCopy.Count(), otherScore.Count(), step.Count())
+	hits := api.HitsOf(1, 2)
+	keptHits := hits
+	hits.Add(api.HitsOf(10, 20))
+	hits.HitsSet(7)
+	fmt.Printf("hits %d %d %d %d %t\n", hits.HitsGet(), hits.MissesGet(), keptHits.HitsGet(), keptHits.MissesGet(), hits.Equal(keptHits))
+	counted := keptHits
+	countedSame := counted.Eq(keptHits)
+	fmt.Printf("counted %t %d\n", countedSame, counted.HitsGet())
+	extent := api.NewExtent(5, 3)
+	extentStart := extent
+	old := extent.Slide(10)
+	extent.StartSet(extent.StartGet() + 1)
+	fmt.Printf("extent %d %d %d %d %d\n", old, extent.StartGet(), extent.End(), extentStart.StartGet(), extentStart.End())
 	weighted := api.Weighted{Score: step, Weight: 4}
-	fmt.Printf("weighted %d %d\n", must(weighted.Total()), must(weighted.Score.Count())+must(step.Count()))
-	score.Close()
-	step.Close()
+	fmt.Printf("weighted %d %d\n", weighted.Total(), weighted.Score.Count()+step.Count())
 
 	// Rust frees the implementation once it drops it, releasing Go's.
 	fmt.Printf("kept %d\n", api.Emit(printLog{}, rt.NewBytes([]byte{1, 2, 3, 4})))

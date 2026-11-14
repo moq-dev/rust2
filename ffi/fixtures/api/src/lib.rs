@@ -1285,9 +1285,8 @@ impl Berth {
 	}
 }
 
-/// A running count, as moq's `stats::Traffic`: `Copy` with private fields, but changed in
-/// place through `&mut self`, which a copy could not write back, so a handle. A call taking
-/// one by value copies it out of its handle, leaving the caller's as it was.
+/// A running count, as moq's `stats::Traffic`: `Copy` with private fields, changed in place
+/// through `&mut self`, so a value whose every copy changes alone.
 #[derive(Clone, Copy, Debug)]
 pub struct Score {
 	count: u64,
@@ -1312,6 +1311,72 @@ impl Score {
 		Self {
 			count: self.count.wrapping_mul(2),
 		}
+	}
+
+	/// The count, leaving zero in its place.
+	pub fn take(&mut self) -> u64 {
+		std::mem::take(&mut self.count)
+	}
+
+	/// Moves `other`'s count into this one, as `&mut` of a value Rust writes back too, and
+	/// returns both counts before, as a tuple.
+	pub fn absorb(&mut self, other: &mut Score) -> (u64, u64) {
+		let before = (self.count, other.count);
+		self.count = self.count.wrapping_add(std::mem::take(&mut other.count));
+		before
+	}
+}
+
+/// A tally, as moq's `stats::Presence`: `Copy`, its fields `pub` but `#[non_exhaustive]`,
+/// so a value whose fields read and write through accessors.
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+#[non_exhaustive]
+pub struct Hits {
+	pub hits: u64,
+	pub misses: u32,
+}
+
+impl Hits {
+	pub fn of(hits: u64, misses: u32) -> Self {
+		Self { hits, misses }
+	}
+
+	/// Adds `other` into this one, as moq's `add` does.
+	pub fn add(&mut self, other: Hits) {
+		self.hits = self.hits.wrapping_add(other.hits);
+		self.misses = self.misses.wrapping_add(other.misses);
+	}
+
+	/// Whether `other` equals this one, counting it a hit: named as `PartialEq`'s C
+	/// function, which the clash renames.
+	pub fn eq(&mut self, other: Hits) -> bool {
+		let same = *self == other;
+		self.hits = self.hits.wrapping_add(1);
+		same
+	}
+}
+
+/// A span whose `pub` start sits beside a private length, which no record could hold.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Extent {
+	pub start: u64,
+	len: u32,
+}
+
+impl Extent {
+	pub fn new(start: u64, len: u32) -> Self {
+		Self { start, len }
+	}
+
+	pub fn end(&self) -> u64 {
+		self.start.wrapping_add(u64::from(self.len))
+	}
+
+	/// Moves the window `by` later, returning its old start.
+	pub fn slide(&mut self, by: u64) -> u64 {
+		let start = self.start;
+		self.start = start.wrapping_add(by);
+		start
 	}
 }
 

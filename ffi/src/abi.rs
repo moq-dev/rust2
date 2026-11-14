@@ -92,6 +92,8 @@ pub enum Ty {
 	Out(Box<Ty>),
 	/// A pointer the callee only reads through: a value's receiver.
 	In(Box<Ty>),
+	/// A pointer the callee reads and writes back through: a value's `&mut self`.
+	InOut(Box<Ty>),
 	/// A function lent for the call, taking its data first: what it takes and returns.
 	Fn(Vec<Ty>, Box<Ty>),
 	/// The data a lent function takes, which Rust only passes back to it.
@@ -114,6 +116,48 @@ pub struct Export {
 	pub named: String,
 	/// For a future: its handle type and the functions over it.
 	pub future: Option<Future>,
+}
+
+/// How the glue calls a value's `&mut self` method for a language whose values are
+/// immutable, which [`Abi::handed_back`] makes.
+#[derive(Clone)]
+pub struct Handed {
+	/// The C name of the method's function, which a clash may have renamed.
+	name: String,
+	/// How many parameters both take after `self`, before the outs.
+	lead: usize,
+	/// Whether the method returns nothing.
+	unit: bool,
+	/// Whether it returns a tuple, which the C function writes through its outs.
+	tuple: bool,
+}
+
+impl Handed {
+	/// The glue's expression, of the handed-back export's C return, calling the C function
+	/// in place on a copy of the value that `args[0]` points to and handing the copy back.
+	/// `args` are of that export's C signature: `self`, what both take after it, then the outs the value and
+	/// each element Rust returns are written through, which the C function takes from the
+	/// one after the value's.
+	pub fn call(&self, args: &[String]) -> String {
+		let lead = self.lead;
+		let mut real = vec!["&mut handed_".to_string()];
+		real.extend(args[1..=lead].iter().cloned());
+		if self.tuple {
+			real.extend(args[lead + 2..].iter().cloned());
+		}
+		let call = format!("crate::{}({})", self.name, real.join(", "));
+		// Apart from the names the glue gives its arguments, which are numbered.
+		let body = match (self.unit, self.tuple) {
+			(true, _) => format!("{call};\n\thanded_"),
+			(_, true) => format!("{call};\n\tstd::ptr::write({}, handed_)", args[lead + 1]),
+			(_, false) => format!(
+				"let handed_r_ = {call};\n\tstd::ptr::write({}, handed_);\n\tstd::ptr::write({}, handed_r_)",
+				args[lead + 1],
+				args[lead + 2]
+			),
+		};
+		format!("unsafe {{\n\tlet mut handed_ = *({});\n\t{body}\n}}", args[0])
+	}
 }
 
 /// The C functions of a future besides the call that makes it.
@@ -711,7 +755,9 @@ impl<'a> Abi<'a> {
 							&& (0..self.api.objects.len())
 								.any(|i| self.api.objects[i].copy && &self.object(i) == name)),
 				},
-				// A value's receiver is read through a pointer, and never changed.
+				// A value's receiver is read through a pointer, and written back in place for
+				// `&mut self`.
+				value if receiver == Receiver::Mut => Ty::InOut(Box::new(value.clone())),
 				value => Ty::In(Box::new(value.clone())),
 			};
 			params.push(("self".to_string(), ty));
@@ -843,6 +889,51 @@ impl<'a> Abi<'a> {
 			out.push('_');
 		}
 		out
+	}
+
+	/// A value's `&mut self` method as a language whose values are immutable calls it:
+	/// through `&self`, returning the value as the call left it, before Rust's own return
+	/// or each element of its tuple: that function, its export, and how the glue calls it.
+	/// The export keeps the C name of the method's, which a clash may have renamed. `None`
+	/// for any other function.
+	pub fn handed_back(&self, function: &Function, owner: &Ty, owner_ty: &Type) -> Option<(Function, Export, Handed)> {
+		if function.receiver != Some(Receiver::Mut) || matches!(owner, Ty::Handle { .. }) {
+			return None;
+		}
+		// `written_back` in collect.rs refuses a future's and a `Result`'s.
+		assert!(
+			!function.future && function.err.is_none(),
+			"a value's `&mut self` returns a plain value"
+		);
+		let real = self.export(function, Some(owner));
+		let returned = match &function.ok {
+			Type::Unit => Vec::new(),
+			Type::Tuple(elements) => elements.clone(),
+			ok => vec![ok.clone()],
+		};
+		let back = Function {
+			receiver: Some(Receiver::Ref),
+			ok: match returned.is_empty() {
+				true => owner_ty.clone(),
+				false => Type::Tuple([vec![owner_ty.clone()], returned].concat()),
+			},
+			..function.clone()
+		};
+		// Named as the method is: a rename is keyed by the API's own function.
+		let mut export = self.export(&back, Some(owner));
+		export.call.name = real.call.name.clone();
+		export.named = real.named;
+		let elements = match &function.ok {
+			Type::Tuple(elements) => elements.len(),
+			_ => 0,
+		};
+		let handed = Handed {
+			name: real.call.name,
+			lead: real.call.params.len() - 1 - elements,
+			unit: function.ok == Type::Unit,
+			tuple: elements > 0,
+		};
+		Some((back, export, handed))
 	}
 
 	fn claim(&mut self, name: String, what: String, span: Span, owner: Option<Owner>) {

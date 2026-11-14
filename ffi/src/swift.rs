@@ -1469,9 +1469,11 @@ impl<'a> Gen<'a> {
 		// A struct's method takes `self` as Rust does: by value, it consumes it, and Swift
 		// then frees the handle Rust moved the value out of.
 		let unique = owner_ty.is_some_and(|ty| self.unique(ty));
+		// A value's `&mut self` is too, as Rust writes back the value it changed.
+		let value = matches!(export.call.params.first(), Some((_, Ty::InOut(_))));
 		let mutation = match receiver {
 			Some(Receiver::Owned) if unique => "consuming ",
-			Some(Receiver::Mut) if unique => "mutating ",
+			Some(Receiver::Mut) if unique || value => "mutating ",
 			_ => "",
 		};
 		// Only a future or a `Result` throws, and a future only once it is awaited.
@@ -1508,6 +1510,9 @@ impl<'a> Gen<'a> {
 				_ => {
 					arena |= self.arena(&ty);
 					prelude.push(format!("var c_self_ = self._lower({})", self.arena_arg(&ty)));
+					if value {
+						prelude.push(format!("defer {{ self = {} }}", self.lift(&ty, "c_self_")));
+					}
 					arg.exprs.push("&c_self_".to_string());
 				}
 			}

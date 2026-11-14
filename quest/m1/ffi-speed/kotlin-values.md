@@ -17,7 +17,3 @@ within its `from_micros` call of the plain write, as Go's and Dart's do.
 - `equals` and `hashCode` keep today's rules, so only the storage changes.
 - Re-measure the stamped write, CPU and wall, on HotSpot and on ART in the nightly
   emulator job.
-
-## Related
-
-- [Copy types that change cross by value](/quest/m1/ffi-export/copy-values.md) - writes a value's bytes back, through the same fields

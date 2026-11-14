@@ -92,11 +92,11 @@ public path names, or an error taken by value, is held by value as an opaque han
 | --- | --- |
 | a struct whose fields are all `pub`, not `#[non_exhaustive]`, which map, with no `Drop` of its own | a record: a struct, copied across |
 | an enum with variants whose fields map, with no `Drop` of its own | a C enum without fields, or a struct of a tag and a union |
-| any other type that is `Copy` and `Send`, with no `pub` field, no `pub` method taking `&mut self`, and no union or enum whose variants initialize different bytes, such as an `Option<u32>`, in it, such as moq's `Timestamp` or std's `Instant` | an opaque value: a struct of its bytes, copied across, which only Rust makes or reads, with its padding zeroed; one no export returns is left out, since C could never make one |
-| any other type, if `Send` | an object: an opaque handle to an `Arc`, freed with `_free`; one that is `Copy`, since C may change it in place, is copied out of its handle where Rust takes it by value, and a closure neither takes nor returns one by value |
+| any other type that is `Copy` and `Send`, with no union or enum whose variants initialize different bytes, such as an `Option<u32>`, in it, such as moq's `Timestamp`, `stats::Traffic`, or std's `Instant` | an opaque value: a struct of its bytes, copied across, which only Rust makes, reads, or changes, with its padding zeroed; its `pub` fields are a getter and a setter, and a `&mut self` method writes back the caller's copy alone, one returning a future or a `Result` refused, since a language raising the error would lose the change; one no export returns is left out, since C could never make one |
+| any other type, if `Send` | an object: an opaque handle to an `Arc`, freed with `_free`; one that is `Copy`, since its handle is shared, is copied out of its handle where Rust takes it by value, and a closure neither takes nor returns one by value |
 | a type whose only generic parameters are lifetimes, such as `Path<'a>` | an object holding its `'static` form |
 | a generic type, at each instance it infers | that instance as any other type, with each method whose impl and own bounds it meets; any other instance is refused |
-| a `pub` field of an object | a getter returning a copy, and a setter assigning in place, as `x.field = value` does |
+| a `pub` field of an object or opaque value | a getter returning a copy, and a setter assigning in place, as `x.field = value` does |
 | a `pub` trait | a callback interface: a table of C functions and their data; a trait C cannot implement, such as one with a blanket impl, an associated type, or a supertrait but a marker, is left out, since C never passes one, and a signature taking one from C is refused |
 | a type parameter or `impl` bounded by `Fn`, `FnMut`, or `FnOnce` alone, taking what a callback takes, objects by reference, or opaque values, and returning a scalar, a `String`, an opaque value, an `Option` of one, or a `Result` of one and a `String` | a C function and its `void *` data; one a lifetime bound or the return lets outlive the call, as kio's `clock::drive` and a spawned task's are, adds a `free` Rust calls once it drops it; a closure of any other signature is refused |
 | a type parameter or `impl` taken by value and bounded by `Future` or `IntoFuture`, whose every bound `Pin<Box<dyn Future<Output = ()> + Send>>` meets, as kio's `clock::timeout` takes, or taken as `Pin<&mut F>` by a poll, as kio's `Waiter::poll_future` takes | `<prefix>_foreign_future`: a future of `()` C implements, which Rust takes as that type, or which the future the poll makes owns and pins; a future of another output is refused |
@@ -253,9 +253,9 @@ where it was while its file is unchanged.
 
 - **Handles** are `Arc`s, and a call borrows the value as Rust's receiver or parameter
   does, checked at run time: shared for `&T`, exclusive for `&mut T`, and moved out for
-  `T`, after which the handle is only freed. A `Copy` object, one with a `pub` field, a
-  `pub` method taking `&mut self`, or bytes its value decides are initialized, as an
-  `Option<u32>` in it does, is copied out instead, leaving its handle as it was. A
+  `T`, after which the handle is only freed. A `Copy` object, one whose bytes its value
+  decides are initialized, as an `Option<u32>` in it does, is copied out instead, leaving
+  its handle as it was. A
   value that is not `Sync` is shared on one thread at a time, and held exclusively by a
   future, which may be polled on any thread. A borrow Rust would
   refuse at compile time aborts, naming the function, as does a null or moved-out handle:
@@ -266,8 +266,9 @@ where it was while its file is unchanged.
   it, so moving it out would abort.
 - **Opaque values** are `typedef struct <T> { uintN_t opaque[n]; } <T>;`, the bytes of a
   `Copy` type with private fields, in units of its alignment up to 8 bytes: C copies one
-  as any struct, and passes `&self` as a `const <T> *`, but never makes or changes one,
-  and frees none. Its padding is zero, from a table of each target's padding rustc's
+  as any struct, and passes `&self` as a `const <T> *` and `&mut self`, a field's setter
+  included, as a `<T> *` Rust writes what the call left back through, so only that copy
+  changes; it never makes or reads one itself, and frees none. Its padding is zero, from a table of each target's padding rustc's
   layout gives, so no byte Rust left uninitialized reaches a language, which may
   serialize what it holds. Its size and alignment are the largest of the export's targets, so one
   header serves them all, a few bytes past a 32-bit target's own. A change of size is an
@@ -427,7 +428,8 @@ packages place it in.
   `std::variant` of a struct per variant, `<enum>_<variant>`. An enum's methods and
   traits are free functions taking it first. `PartialEq` is `==`, `Display` `to_string()`,
   `Debug` `debug()`, and `Default` `default_()`. An **opaque value** is a trivially
-  copyable class holding its C struct, with no public constructor, so only Rust makes one.
+  copyable class holding its C struct, with no public constructor, so only Rust makes one;
+  a `&mut self` method is not `const`, and assigns `*this` what Rust wrote back.
 - **Bytes** are passed as a `view`, which any contiguous bytes convert to, and returned as
   a `buf`, which owns Rust's buffer without a copy, so it outlives the object it came
   from. From C++20, either converts to `std::span<const std::uint8_t>`. A `view` or span
@@ -515,7 +517,10 @@ out, with only its other fields encoded.
   derived or std `PartialEq`, a value class over a `Long`, compared by its bits, which
   allocates nothing unless Kotlin boxes it, as in a `List` or a nullable; otherwise one over
   a `LongArray`, whose `==` is Rust's, and whose `hashCode` is 0, since none Kotlin
-  computes agrees with it.
+  computes agrees with it. Either is shared by reference, so it never changes: a `&mut
+  self` method, a field's setter included, returns the value as the call left it,
+  `x = x.add(o)`, and beside Rust's own return, a `Pair`, or each element of its tuple,
+  `val (y, n) = x.take()`.
 - **Bytes** are a `Bytes`. Passed in, Rust's own are shared with no copy, and Kotlin's,
   which `Bytes(ByteArray)` holds without a copy, are copied once into a buffer Rust takes,
   at a call's top level or in a record; those Rust lends a closure or trait method are
@@ -619,7 +624,10 @@ caller imports it with no ignores.
   `Event.Moved(p)`. `Display` is `str()`, `Debug` `repr()`, and `Default` a static
   `default()`. Constants are module or class attributes, made anew on each read unless a
   literal. An **opaque value** is a class of the runtime's `Value`, which holds its bytes
-  in place, so only Rust makes or reads one: making one raises `TypeError`.
+  in place, so only Rust makes or reads one: making one raises `TypeError`. It is shared
+  by reference, so it never changes: a `&mut self` method, a field's setter included,
+  returns the value as the call left it, `x = x.add(o)`, and beside Rust's own return, a
+  `tuple`, with each element of a tuple Rust returns, `x, n = x.take()`.
 - **Bytes** passed in are any buffer, `bytes | bytearray | memoryview`: `bytes` is read in
   place, and others, which Python may change while Rust reads, are copied. Bytes Rust
   returns, or a record holds, are a read-only `memoryview` lending Rust's buffer until it
@@ -719,7 +727,8 @@ and, for `Swift.Duration`, macOS 13 or iOS 16, and builds in either language mod
 - **Records** are structs and **enums** Swift enums, with a variant's data as associated
   values, all `Sendable`. `PartialEq` is `==`, through Rust's; `Display` is `description`,
   `Debug` `debugDescription`, and `Default` a static `default()`. An **opaque value** is
-  a struct holding its C struct, with no public initializer, so only Rust makes one.
+  a struct holding its C struct, with no public initializer, so only Rust makes one; a
+  `&mut self` method is `mutating`, and assigns `self` what Rust wrote back.
 - **Bytes** are the runtime's `Bytes`, a `RandomAccessCollection` of `UInt8` whose slices
   are `Bytes` too. Bytes Rust returns lend its buffer until Swift releases the last `Bytes`
   or slice reading it, and pass back to Rust as a second owner of it, with no copy, except
@@ -829,7 +838,8 @@ reads a go.mod.
   since cgo gives each its own C types: callers use neither. An **opaque value** is a
   struct of its bytes, `Bytes_`, and `Made_`, true once Rust made it: a zero value panics
   where Rust would read it, and `==` does not compile, since bytes alike need not be
-  equal, so `Equal`, if it has one, is Rust's.
+  equal, so `Equal`, if it has one, is Rust's. A `&mut self` method has a pointer
+  receiver, which it assigns what Rust wrote back.
 - **Bytes** a call takes are a `[]byte`, and text a `string`, each read in place: Go's
   memory, pinned where C reads it through other memory. Bytes Rust passes a callback are
   copied into a `[]byte`. Bytes anywhere else, such as those Rust returns or a record
@@ -932,7 +942,9 @@ the library's own URI, mapped to the library by a build hook or by `--native-ass
   through Rust's, with a `hashCode` that throws an `UnsupportedError`, since no hash Dart
   computes agrees with Rust's `==`, and `Default` a constructor, `default_()`. An
   **opaque value** is a final class of its bytes as `int`s, with a private constructor,
-  so only Rust makes one. A plain enum's `==` is Dart's, by its value.
+  so only Rust makes one. It never changes: a `&mut self` method, a field's setter
+  included, returns the value as the call left it, `x = x.add(o)`, and beside Rust's own
+  return, a record, with each element of a tuple Rust returns, `final (y, n) = x.take()`. A plain enum's `==` is Dart's, by its value.
 - **Integers** are `int`. A narrower one passed in throws a `RangeError` when out of its
   range, and a `u64` passes its 64 bits, so one past `i64`'s range is negative in Dart.
   A `char` is a `String` of one Unicode scalar.

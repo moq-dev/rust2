@@ -1072,21 +1072,45 @@ static int script(void) {
 	api_Berth_free(empty_berth);
 	api_Berth_free(berth);
 
-	/* A `Copy` type changed in place is a handle, which a call taking it by value copies. */
-	api_Score *score = api_Score_of(2);
-	api_Score *step = api_Score_of(3);
-	api_Score_add(score, step);
-	api_Score_add(score, step);
-	api_Score *doubled_score = api_Score_doubled(step);
-	printf("score %llu %llu %llu\n", (unsigned long long)api_Score_count(score),
-		   (unsigned long long)api_Score_count(doubled_score), (unsigned long long)api_Score_count(step));
-	api_Weighted weighted = {.score = api_Score_clone(step), .weight = 4};
+	/* A `Copy` type changed in place is a value, whose change reaches only the copy changed. */
+	api_Score score = api_Score_of(2);
+	api_Score step = api_Score_of(3);
+	api_Score_add(&score, step);
+	api_Score_add(&score, step);
+	api_Score doubled_score = api_Score_doubled(&step);
+	printf("score %llu %llu %llu\n", (unsigned long long)api_Score_count(&score),
+		   (unsigned long long)api_Score_count(&doubled_score), (unsigned long long)api_Score_count(&step));
+	api_Score score_copy = score;
+	uint64_t taken = api_Score_take(&score_copy);
+	printf("taken %llu %llu %llu\n", (unsigned long long)taken, (unsigned long long)api_Score_count(&score_copy),
+		   (unsigned long long)api_Score_count(&score));
+	api_Score other_score = step;
+	uint64_t before0, before1;
+	api_Score_absorb(&score_copy, other_score, &other_score, &before0, &before1);
+	printf("absorbed %llu %llu %llu %llu %llu\n", (unsigned long long)before0, (unsigned long long)before1,
+		   (unsigned long long)api_Score_count(&score_copy), (unsigned long long)api_Score_count(&other_score),
+		   (unsigned long long)api_Score_count(&step));
+	api_Hits hits = api_Hits_of(1, 2);
+	api_Hits kept = hits;
+	api_Hits_add(&hits, api_Hits_of(10, 20));
+	api_Hits_hits_set(&hits, 7);
+	printf("hits %llu %u %llu %u %s\n", (unsigned long long)api_Hits_hits_get(&hits), api_Hits_misses_get(&hits),
+		   (unsigned long long)api_Hits_hits_get(&kept), api_Hits_misses_get(&kept),
+		   api_Hits_eq(&hits, &kept) ? "true" : "false");
+	api_Hits counted = kept;
+	bool counted_same = api_Hits_eq_(&counted, kept);
+	printf("counted %s %llu\n", counted_same ? "true" : "false", (unsigned long long)api_Hits_hits_get(&counted));
+	api_Extent extent = api_Extent_new(5, 3);
+	api_Extent extent_start = extent;
+	uint64_t old = api_Extent_slide(&extent, 10);
+	api_Extent_start_set(&extent, api_Extent_start_get(&extent) + 1);
+	printf("extent %llu %llu %llu %llu %llu\n", (unsigned long long)old,
+		   (unsigned long long)api_Extent_start_get(&extent), (unsigned long long)api_Extent_end(&extent),
+		   (unsigned long long)api_Extent_start_get(&extent_start), (unsigned long long)api_Extent_end(&extent_start));
+	api_Weighted weighted = {.score = step, .weight = 4};
 	printf("weighted %llu %llu\n", (unsigned long long)api_Weighted_total(&weighted),
-		   (unsigned long long)(api_Score_count(weighted.score) + api_Score_count(step)));
+		   (unsigned long long)(api_Score_count(&weighted.score) + api_Score_count(&step)));
 	api_Weighted_free(&weighted);
-	api_Score_free(doubled_score);
-	api_Score_free(step);
-	api_Score_free(score);
 
 	static const api_Log_vtable print_log = {.free = log_free, .log = log_line};
 	uint8_t levels[] = {1, 2, 3, 4};

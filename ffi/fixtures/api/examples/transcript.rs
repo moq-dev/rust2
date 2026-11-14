@@ -330,12 +330,51 @@ fn main() {
 	let berth = api::Berth::new(Some(4));
 	println!("berth {:?} {:?}", berth.at(), api::Berth::new(None).at());
 
-	// A `Copy` type changed in place is a handle, which a call taking it by value copies.
+	// A `Copy` type changed in place is a value, whose change reaches only the copy changed.
 	let mut score = api::Score::of(2);
 	let step = api::Score::of(3);
 	score.add(step);
 	score.add(step);
 	println!("score {} {} {}", score.count(), step.doubled().count(), step.count());
+	let mut copy = score;
+	let taken = copy.take();
+	println!("taken {taken} {} {}", copy.count(), score.count());
+	let mut other = step;
+	let before = copy.absorb(&mut other);
+	println!(
+		"absorbed {} {} {} {} {}",
+		before.0,
+		before.1,
+		copy.count(),
+		other.count(),
+		step.count()
+	);
+	let mut hits = api::Hits::of(1, 2);
+	let kept = hits;
+	hits.add(api::Hits::of(10, 20));
+	hits.hits = 7;
+	println!(
+		"hits {} {} {} {} {}",
+		hits.hits,
+		hits.misses,
+		kept.hits,
+		kept.misses,
+		hits == kept
+	);
+	let mut counted = kept;
+	let same = api::Hits::eq(&mut counted, kept);
+	println!("counted {same} {}", counted.hits);
+	let mut extent = api::Extent::new(5, 3);
+	let start = extent;
+	let old = extent.slide(10);
+	extent.start += 1;
+	println!(
+		"extent {old} {} {} {} {}",
+		extent.start,
+		extent.end(),
+		start.start,
+		start.end()
+	);
 	let weighted = api::Weighted { score: step, weight: 4 };
 	println!(
 		"weighted {} {}",

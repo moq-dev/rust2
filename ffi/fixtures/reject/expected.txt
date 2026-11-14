@@ -30,7 +30,10 @@ fixtures/reject/src/lib.rs:1168:1: rust2-ffi: cannot export fn `hidden_answer`: 
 fixtures/reject/src/lib.rs:1173:1: rust2-ffi: cannot export fn `hidden_items`: opaque type `impl std::marker::Copy`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:1178:1: rust2-ffi: cannot export fn `hidden_option`: opaque type `impl std::clone::Clone`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:1183:1: rust2-ffi: cannot export fn `boxed_bytes`: boxed slice of bytes `std::boxed::Box<[u8]>`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1199:2: rust2-ffi: cannot export method `Counter::try_bump`: `&mut self` of a value returning a Result; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:11:1: rust2-ffi: cannot export fn `map`: foreign type `std::collections::HashMap`; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1204:2: rust2-ffi: cannot export method `Counter::bump_later`: `&mut self` of a value in a future; exclude it in the config to leave it out
+fixtures/reject/src/lib.rs:1209:2: rust2-ffi: cannot export method `Counter::bump_ref`: returned borrow of a value written back `&u8`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:127:1: rust2-ffi: cannot export fn `poll_ready`: Poll with no Context or waiter parameter `std::task::Poll<u32>`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:144:2: rust2-ffi: cannot export method `Link::session`: borrowed return that is not Clone `tls::held::Handoff`; exclude it in the config to leave it out
 fixtures/reject/src/lib.rs:161:1: rust2-ffi: cannot export fn `measure`: foreign type `tls::held::Local`; exclude it in the config to leave it out

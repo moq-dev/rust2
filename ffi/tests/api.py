@@ -358,12 +358,30 @@ def script():
 	berth = api.Berth.new(4)
 	print(f"berth Some({berth.at()}) {'None' if api.Berth.new(None).at() is None else 'Some'}")
 
-	# A `Copy` type changed in place is a handle, which a call taking it by value copies.
+	# A `Copy` type changed in place is a value, which a `&mut self` method returns as the
+	# call left it, Rust's own return beside it: a change reaches only the copy it replaces.
 	score = api.Score.of(2)
 	increment = api.Score.of(3)
-	score.add(increment)
-	score.add(increment)
+	score = score.add(increment)
+	score = score.add(increment)
 	print(f"score {score.count()} {increment.doubled().count()} {increment.count()}")
+	score_copy, taken = score.take()
+	print(f"taken {taken} {score_copy.count()} {score.count()}")
+	other_score = api.Mut(increment)
+	score_copy, before0, before1 = score_copy.absorb(other_score)
+	print(f"absorbed {before0} {before1} {score_copy.count()} {other_score.value.count()} {increment.count()}")
+	hits = api.Hits.of(1, 2)
+	kept_hits = hits
+	hits = hits.add(api.Hits.of(10, 20))
+	hits = hits.hits_set(7)
+	print(f"hits {hits.hits_get} {hits.misses_get} {kept_hits.hits_get} {kept_hits.misses_get} {flag(hits == kept_hits)}")
+	counted, same = kept_hits.eq(kept_hits)
+	print(f"counted {flag(same)} {counted.hits_get}")
+	extent = api.Extent.new(5, 3)
+	extent_start = extent
+	extent, old = extent.slide(10)
+	extent = extent.start_set(extent.start_get + 1)
+	print(f"extent {old} {extent.start_get} {extent.end()} {extent_start.start_get} {extent_start.end()}")
 	weighted = api.Weighted(increment, 4)
 	print(f"weighted {weighted.total()} {weighted.score.count() + increment.count()}")
 

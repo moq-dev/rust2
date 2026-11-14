@@ -165,7 +165,7 @@ pub struct Record {
 	pub methods: Vec<Function>,
 	pub traits: Traits,
 	/// For a `Copy` type with private fields, which has no `fields`: its bytes, which only
-	/// Rust reads.
+	/// Rust reads or writes, its `pub` fields through accessors among its `methods`.
 	pub opaque: Option<Opaque>,
 	/// For an opaque value, its padding on each target, by target, as `(offset, length)`
 	/// ranges, which the glue zeroes, so no byte Rust leaves uninitialized reaches a
@@ -286,9 +286,9 @@ pub struct Object {
 	pub docs: String,
 	/// Whether it is `Sync`: if not, `&self` borrows it on one thread at a time.
 	pub sync: bool,
-	/// Whether it is `Copy`, which only one with a `pub` field or a `&mut self` method
-	/// is, any other being a value: taken by value, it is copied out of its handle, as
-	/// Rust copies it, rather than moved out.
+	/// Whether it is `Copy`, which only one whose padding depends on its value is, any
+	/// other being a value: taken by value, it is copied out of its handle, as Rust copies
+	/// it, rather than moved out.
 	pub copy: bool,
 	/// Whether copies of its handle may share one value, since no call tells that apart
 	/// from `Clone` but by an `Arc`'s or `Rc`'s count: it is `Clone` and `Sync`, its clone owns no state that changes

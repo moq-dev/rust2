@@ -1115,7 +1115,8 @@ impl<'a> Gen<'a> {
 				arg.exprs.push(format!("_Native.__Pollable({e}, {context})"));
 				arg.rust_args.push(format!("rt::future(env, {p})"));
 			}
-			Ty::Void | Ty::Future(_) | Ty::Poll | Ty::Out(_) | Ty::Data => {
+			// A value's `&mut self` is handed back, through `&self`.
+			Ty::Void | Ty::Future(_) | Ty::Poll | Ty::Out(_) | Ty::InOut(_) | Ty::Data => {
 				unreachable!("{c:?} is no parameter Kotlin passes")
 			}
 		}
@@ -2104,8 +2105,15 @@ impl<'a> Gen<'a> {
 		taken: &[String],
 	) -> Option<String> {
 		let abi = self.abi;
+		// A value is immutable in Kotlin, so its `&mut self` method returns it as the call
+		// left it, calling the C function in place on a copy it hands back.
+		let handed = (owner.zip(owner_ty)).and_then(|(owner, ty)| abi.handed_back(function, owner, ty));
+		let (back, export, handed) = match handed {
+			Some((back, export, handed)) => (Some(back), export, Some(handed)),
+			None => (None, abi.export(function, owner), None),
+		};
+		let function = back.as_ref().unwrap_or(function);
 		self.params = locals(&function.params);
-		let export = abi.export(function, owner);
 		let written = function
 			.params
 			.iter()
@@ -2289,9 +2297,11 @@ impl<'a> Gen<'a> {
 		let value;
 		// The C call, with the out pointers after its arguments.
 		let rust_call = |outs: &[String]| {
-			let args: Vec<&String> = rust_args.iter().chain(outs).collect();
-			let args: Vec<&str> = args.iter().map(|a| a.as_str()).collect();
-			format!("crate::{c_name}({})", args.join(", "))
+			let args: Vec<String> = rust_args.iter().chain(outs).cloned().collect();
+			match &handed {
+				Some(h) => h.call(&args),
+				None => format!("crate::{c_name}({})", args.join(", ")),
+			}
 		};
 		if let Some(abi::Future { poll, free, .. }) = &export.future {
 			// The call makes the future and polls it once, returning its result if ready, or
@@ -2689,6 +2699,11 @@ impl<'a> Gen<'a> {
 		}
 
 		let mut text = function.docs.clone();
+		if handed.is_some() {
+			text.push_str(
+				"\n\nRust changes a copy of this value, which it returns first, as the call left it: this one never changes.",
+			);
+		}
 		for (param, name) in function.params.iter().zip(&names) {
 			if let Type::Closure(closure_) = &param.ty {
 				let lent = &closure_.params;
@@ -3159,7 +3174,7 @@ fn jni_type(abi: &Abi<'_>, c: &Ty, ty: &Type) -> (&'static str, &'static str) {
 		Ty::Waker => ("jobject", "Waker"),
 		Ty::ForeignReader => ("jobject", "java.nio.channels.SeekableByteChannel"),
 		Ty::ForeignFuture => ("jobject", "Any"),
-		Ty::Poll | Ty::Out(_) | Ty::Data => unreachable!("{c:?} never crosses JNI"),
+		Ty::Poll | Ty::Out(_) | Ty::InOut(_) | Ty::Data => unreachable!("{c:?} never crosses JNI"),
 	}
 }
 

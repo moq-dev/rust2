@@ -437,12 +437,31 @@ func script() {
 	let berth = Berth.new(4)
 	print("berth Some(\(berth.at()!)) \(Berth.new(nil).at() == nil ? "None" : "Some")")
 
-	// A `Copy` type changed in place is a handle, which a call taking it by value copies.
-	let score = Score.of(2)
+	// A `Copy` type changed in place is a value, whose change reaches only the copy changed.
+	var score = Score.of(2)
 	let step = Score.of(3)
 	score.add(step)
 	score.add(step)
 	print("score \(score.count()) \(step.doubled().count()) \(step.count())")
+	var scoreCopy = score
+	let taken = scoreCopy.take()
+	print("taken \(taken) \(scoreCopy.count()) \(score.count())")
+	var otherScore = step
+	let before = scoreCopy.absorb(&otherScore)
+	print("absorbed \(before.0) \(before.1) \(scoreCopy.count()) \(otherScore.count()) \(step.count())")
+	var hits = Hits.of(1, 2)
+	let keptHits = hits
+	hits.add(Hits.of(10, 20))
+	hits.hitsSet(7)
+	print("hits \(hits.hitsGet) \(hits.missesGet) \(keptHits.hitsGet) \(keptHits.missesGet) \(hits == keptHits)")
+	var counted = keptHits
+	let countedSame = counted.eq(keptHits)
+	print("counted \(countedSame) \(counted.hitsGet)")
+	var extent = Extent.new(5, 3)
+	let extentStart = extent
+	let old = extent.slide(10)
+	extent.startSet(extent.startGet + 1)
+	print("extent \(old) \(extent.startGet) \(extent.end()) \(extentStart.startGet) \(extentStart.end())")
 	let weighted = Weighted(score: step, weight: 4)
 	print("weighted \(weighted.total()) \(weighted.score.count() + step.count())")
 
